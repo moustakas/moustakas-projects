@@ -135,7 +135,7 @@ pro parse_ages_gandalf_specfit, pass1, solar=solar, debug=debug
           
           notzero = where((thisraw.wave gt 0.0),nnotzero)
           if (nnotzero eq 0) then message, 'Problem here!'
-          wave = thisraw.wave[notzero] ; rest
+          wave = thisraw.wave[notzero]      ; rest
           flux = thisraw.flux[notzero]*1.0D ; note!
           ferr = thisraw.ferr[notzero]*1.0D 
           continuum = thisraw.continuum[notzero]
@@ -213,8 +213,13 @@ pro parse_ages_gandalf_specfit, pass1, solar=solar, debug=debug
 ; change if necessary
           specdata1 = struct_trimtags(thisraw,except=['fitlines','wave','flux',$
             'ferr','continuum','smooth_continuum','etemplates','sol','esol'])
-          specdata1 = create_struct(specdata1,'isbroad',0,'lumage',0.0)
+          specdata1 = create_struct(specdata1,'isbroad',0,'lumage',0.0,$
+            'minwave',0.0,'maxwave',0.0)
 
+; minimum and maximum *rest* wavelengths
+          specdata1.minwave = min(exp(wave))
+          specdata1.maxwave = max(exp(wave))
+          
 ; luminosity-weighted age          
           total_weight = total(specdata1.continuum_coeff,/double)
           if (total_weight gt 0) then $

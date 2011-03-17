@@ -1,0 +1,109 @@
+pro read_starcounts, ps = ps
+;+
+; NAME:
+;	READ_STARCOUNTS
+;
+; PURPOSE:
+;	Routine to read in the differential star counts files for a
+;	given (l,b) and to organize them.
+;
+; INPUTS:
+;
+; KEYWORD PARAMETERS:
+;
+; OUTPUTS:
+;
+; COMMON BLOCKS:
+;
+; RESTRICTIONS:
+;	Assumes a datapath for now.
+;
+; PROCEDURE:
+; 	The files are organized as:
+;
+;		MAG.BIN.  logNTOTAL  DISK    BULGE     ARMS    RING	HALO
+;
+; MODIFICATION HISTORY:
+;	John Moustakas, 2000 June 28, UCB
+;-
+
+	path = '/deepscr1/ioannis/STARCOUNTS/'
+
+        flist = findfile(path)
+        good = where(strpos(flist,'all') ge 0,fcount)
+        flist = flist[good]
+
+        ifiles = flist[where(strpos(flist,'id') ge 0,icount)]
+        vfiles = flist[where(strpos(flist,'vd') ge 0,vcount)]
+
+         hstfov = 3*(1.33^2) + 0.6133^2
+         keckfov = [42., 39., 36., 36., 42., 36., 35., 34., 42., 33., 42., 36.]
+
+        template = {name:	'', $
+                    filename:	strarr(1), $
+                    magbin:	ptr_new(1D), $
+                    logcounts:	ptr_new(1D), $
+                    counts:	ptr_new(1D)}
+        starcounts = replicate(template,icount)
+        
+; read in the I-band data
+
+        for k = 0L, 11 do begin
+
+            read_data, path+ifiles[k], istars, ncol=7, /silent
+            istars = transpose(istars)
+
+            starcounts[k].filename = ifiles[k]
+            starcounts[k].magbin = ptr_new(istars[0,*])
+
+            logcounts = istars[1,*]
+            starcounts[k].logcounts = ptr_new(logcounts)  
+
+            yeah = (10^logcounts)/(4. * 60.^2) * hstfov
+            starcounts[k].counts = ptr_new(yeah)
+
+        endfor
+        
+        for k = 12, 23 do begin
+
+            read_data, path+ifiles[k], istars, ncol=7, /silent
+            istars = transpose(istars)
+
+            starcounts[k].filename = ifiles[k]
+            starcounts[k].magbin = ptr_new(istars[0,*])
+
+            logcounts = istars[1,*]
+            starcounts[k].logcounts = ptr_new(logcounts)  
+
+            yeah = (10^logcounts)/(4. * 60.^2) * keckfov[k-12]
+            starcounts[k].counts = ptr_new(yeah)
+
+        endfor
+        
+        window, 0, xs=650, ys=650
+        colortable1
+
+        plot, *starcounts[0].magbin, *starcounts[0].counts, $
+          xsty=1, xr = [18, 27], yr = [0.1, 100], /ylog, color=1, line = 1, $
+          xtitle='I', ytitle='Counts/mag/FOV', title = 'Star Counts'
+        for j = 1, 11 do oplot, *starcounts[j].magbin, *starcounts[j].counts, line = 1
+        for j = 12, 23 do oplot, *starcounts[j].magbin, *starcounts[j].counts, line = 2
+        
+IF KEYWORD_SET(ps) THEN BEGIN
+PS_OPEN, 'starcounts'
+        plot, *starcounts[0].magbin, *starcounts[0].counts, $
+          xsty=1, xr = [18, 27], yr = [0.1, 100], /ylog, color=1, line = 1, $
+          xtitle='I', ytitle='Counts/mag/FOV', title = 'Star Counts'
+        for j = 1, 11 do oplot, *starcounts[j].magbin, *starcounts[j].counts, line = 1
+        for j = 12, 23 do oplot, *starcounts[j].magbin, *starcounts[j].counts, line = 2
+PS_CLOSE
+ENDIF
+
+	ptr_free, starcounts[*].magbin
+	ptr_free, starcounts[*].logcounts
+	ptr_free, starcounts[*].counts
+    
+    
+return
+end
+

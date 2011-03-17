@@ -1,0 +1,64 @@
+J. Moustakas, 2008 July 07, NYU
+jm09jan - pipeline updated and modularized significantly  
+
+MIKE redux page: http://web.mit.edu/~burles/www/MIKE
+MIKE cookbook: http://web.mit.edu/~burles/www/MIKE/mike_cookbook.html
+
+Add the following environment variable: DEEP2_ALPHA_DIR, and then make
+the following subdirectories for each night:
+
+ut080414
+   Raw/     - 
+   rawdata/ - 
+   preproc/ - 
+   spec1d/  - 
+
+The 'Raw' subdirectory is required by the MIKE pipeline.  The
+preprocessed files (see below) are stored in 'preproc' and the actual
+raw data are kept in 'rawdata'.  The soft links to the Raw directory
+are made below.
+
+Now go and reduce the data; the driver routine is ALPHA_REDUCE_ALL:
+
+* Fix some header mistakes that affect the processing:
+   IDL> alpha_reduce_all, /fixheaders
+
+* Do the preprocessing - reject cosmic rays and get rid of some
+electronic banding.
+   IDL> alpha_reduce_all, /preproc
+
+* Make the soft links.  Basically, generate the appropriate set of
+soft links in 'Raw' pointing to the data in 'preproc' or in 'rawdata'
+(for all other files).
+   IDL> alpha_reduce_all, /makelinks
+
+* Initialize the MIKE subdirectories and files:
+   IDL> alpha_reduce_all, /init
+
+* Reduce the calibration data: First, process and fit the milky and
+trace flats: [1] generate a stacked, normalized milky flat
+(mike_mkmflat); [2] combine the trace flats for order and slit tracing
+(mike_mktflat); and [3] generate a smooth model of the order curvature
+using the trace flat previously created (mike_edgeflat).  Second,
+process the arcs and derive the 2D wavelength map: [1] process the raw
+arc frames (mike_procarc); [2] determine the offset between the trace
+flat and the position of the arcs due to thermal expansion
+(mike_arcalign); [3] derive a 1D solution down the center of each
+order (mike_fitarc); [4] create a 2D solution (mike_fit2darc); [5]
+trace the individual arc lines (mike_tracearc); [6] fit the changing
+slope of the arc lines (mike_fittrcarc); [7] create a 2D wavelength
+image (mike_mkaimg).  Finally, derive the slit profile
+(mike_slitflat).
+   IDL> alpha_reduce_all, /stage1
+
+* Reduce the science spectra (bias-subtract, flat-field, etc.,
+identify the orders of interest, derive the trace, sky-subtract, and
+extract 1D spectra): 
+   IDL> alpha_reduce_all, /stage2
+
+* Reduce the standard star(s) and build the sensitivity function:
+   IDL> alpha_reduce_all, /
+     
+* Flux-calibrate and write out both fluxed and unfluxed coadded 1D
+spectra: 
+   IDL> alpha_reduce_all, /stage3

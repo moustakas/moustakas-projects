@@ -1,0 +1,119 @@
+jm00july5ucb
+
+This README describes the function of most of the routines in
+/deep1/ioannis/trgb/idl, which were written to analyze Keck/HST
+TRGB data.  The routines are described alphabetically, with 
+the most important ones marked with asterixes.
+
+
+BOOT_RESPONSE: Bootstrap resample a stellar luminosity function.
+
+MULTIPHOT_SCRIPT: Generate a script that runs all pre-MULTIPHOT and
+		  MULTIPHOT routines.
+
+MULTIPHOT_SCRIPT_WRAPPER: Wrap MULTIPHOT_SCRIPT on a galaxy list.
+
+PLOT_LFUNCTION: Plot a stellar luminosity function.
+
+PLOT_RESPONSE: Plot the Sobol response filter.
+
+READ_MULTIPHOT: Read a MULTIPHOT output photometry file and generate an 
+		objname_starlist.dat photometry file.
+
+TRGB_DACOSTA: Return an array of structures which holds the I-band 
+	      magnitudes and the colors of the RGB's of the globular
+	      clusters described in Dacosta & Armandroff 1990.
+		
+TRGB_DATAPATH: Return the full datapath to the data.
+
+TRGB_EDGE: Detect the TRGB from the stellar luminosity function
+	   with the Sobol filter using bootstrap resampling.
+
+TRGB_HST_REDUX: Creates symbolic links to the data files, applies
+		the data-quality mask, flags cosmic rays, creates
+		a mean, cosmic-ray rejected image from which a 
+		starlist can be generated, creates a sub-directory
+		structure, and writes out the first data files by
+		chip number into appropriate subdirectories.
+
+TRGB_HST_REDUX_WRAPPER: Run TRGB_HST_REDUX on a galaxy list.
+
+TRGB_HST_THRESHOLD: Generate a plot of threshold versus number of stars
+		    found.
+
+TRGB_LFUNCTION: Generate and plot a luminosity function.
+
+TRGB_OBJECT_DATA: General informational structure on each TRGB object.
+
+TRGB_PRINTOSCREEN: Print some basic results to the screen given a TRGB
+		   edge detection.
+
+TRGB_READATA: Read the TRGB photometry data.
+
+TRGB_REGIONS: Interactively allow the user to select out certain stars
+	      based on their positions on the sky (relative to the whole
+	      galaxy) to better isolate the old, metal-poor stellar
+	      population.  Generates objname_starlist_halo.dat and
+	      objname_starlist_core.dat photometry files.
+
+TRGB_ROBUST: Robustly average magnitudes.
+
+WFPC2_CRREJ: Flag and reject cosmic rays and the bad pixels in the 
+	     data-quality mask in the raw WFPC2 data.
+
+WFPC2_LINKS: Create symbolic links to raw WFPC2 data.
+
+WFPC2_DITHERING: Calculate the amount of dithering between WFPC2 images
+		 using the astrometry information in the headers and by
+		 matching starlists.
+
+Z_DISTANCE: Generate a plot of Peebles' redshift-distance relation 
+	    (Figure 1, 1988, Apj, 332, 17).
+
+
+ALLFRAME ROUTINES:
+------------------
+
+DAOHEADER: Create a two-line DAOPHOT header.
+
+READ_DAOPHOT: Read a DAOPHOT photometry (.ap) file into a data array.
+
+TRGB_ALLFRAME: Master ALLFRAME program
+
+TRGB_APCORRECT: Determine the aperture corrections for the Keck data (UNFINISHED).
+
+TRGB_CALIBRATE: Calibrate (aperture, exposure time and airmass corrections)
+		Keck photometry to a standard system and create and
+		objname_IVmags.dat photometry file.	
+
+TRGB_CHECKCHI: Check the stellar distribution of ALLFRAME CHI values.
+
+TRGB_DAOMASTER: Create a .raw ALLFRAME photometry file.
+
+TRGB_FIXPSF: Convert an IRAF psf to a DAOPHOT psf.
+
+TRGB_HST_CALIBRATE: Calibrate HST/WFPC2 ALLFRAME photometry onto a 
+		    standard system.
+
+TRGB_HST_MASTER: Master HST/WFPC2 ALLFRAME program.
+
+TRGB_MAKEALS: Create the two-line header .als files needed by ALLFRAME.
+
+TRGB_MAKEMCH: Create a DAOPHOT transformation (.mch) file.
+
+TRGB_MAKEMINI: Interactively select a miniature photometric starlist.
+
+TRGB_MAKEOPT: Generate DAOPHOT .opt parameter files.
+
+TRGB_MASTER: Master ALLFRAME photometry analysis of the Keck TRGB data.
+
+TRGB_PRE_ALLFRAME: Iteratively run ALLFRAME on a smaller starlist to determine 
+		   the PROFILE and PERCENT ERROR that will give the best CHI 
+		   distribution.
+
+TRGB_HST_PRE_STARLIST: 
+
+TRGB_STARLIST: Generate a master ALLFRAME starlist (.mag) using
+	       ALLSTAR iteratively.
+
+

@@ -1,0 +1,58 @@
+pro kenn92_specfit, _extra=extra
+; jm04jan4uofa
+
+    analysis_path = atlas_path(/kenn92)+'analysis/'
+    datapath = atlas_path(/kenn92)+'data/'
+
+    pushd, datapath
+    speclist = findfile('*.fits.gz',count=fcount)
+    popd
+
+; ----------------------------------------------------------------------     
+; Sy2: NGC1275, NGC6240, NGC3690, MK270, MK3, NGC3227
+; ----------------------------------------------------------------------     
+    
+    remfiles = [$
+      'mrk0003', $ ; Sy2
+      'mrk0035', $ ; low resolution, in the K/M atlas
+      'mrk0059', $ ; low resolution, in the K/M atlas (as NGC 4861)
+      'mrk0071', $ ; low resolution, in the K/M atlas (as NGC 2366)
+;     'mrk0270', $ ; Sy2
+      'mrk0487', $ ; low resolution, in the K/M atlas
+      'ngc1275', $ ; wacky! double emission-line system
+      'ngc1569', $ ; in the K/M atlas
+      'ngc2903', $ ; in the K/M atlas
+      'ngc3077', $ ; in the K/M atlas
+;     'ngc3227', $ ; Sy2
+      'ngc3303', $ ; low resolution
+      'ngc3310', $ ; in the K/M atlas
+      'ngc3471', $ ; low resolution
+      'ngc3516', $ ; Sy1
+      'ngc3690', $ ; low resolution, in the K/M atlas
+      'ngc4194', $ ; low resolution, in the K/M atlas
+      'ngc4472', $ ; low resolution
+      'ngc4670', $ ; in the K/M atlas
+      'ngc5548', $ ; Sy1
+      'ngc5866', $ ; low resolution
+      'ngc5996', $ ; low resolution, in the K/M atlas
+      'ngc6052', $ ; low resolution, in the K/M atlas
+      'ngc6764', $ ; Sy2, low resolution
+      'ngc7469'  $ ; Sy1, low resolution
+      ]+'*'
+
+    doit = match_string(remfiles,speclist,/exact,index=index)
+    
+    bigindex = lindgen(fcount)
+    remove, index, bigindex
+    speclist = speclist[bigindex]
+
+    specdata = ispeclinefit(speclist,specres=7.0,snrcut=1.0,dustmodel=2,$
+      datapath=datapath,linepath=analysis_path,suffix='kenn92',/charlot,$
+      /Zmulti,/zcrosscor,nback=1,/postscript,/write)
+    
+; parse the results
+
+    kenn92_parse_specfit, datapath=analysis_path, _extra=extra
+    
+return
+end    

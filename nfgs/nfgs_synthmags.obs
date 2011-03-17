@@ -1,0 +1,703 @@
+;+
+; NAME:
+;       NFGS_SYNTHMAGS
+;
+; PURPOSE:
+;       Synthesize a variety of magnitudes.  Use the best-fitting
+;       Bruzual & Charlot models to extend the spectra to bluer and
+;       redder wavelengths. 
+;
+; CALLING SEQUENCE:
+;       nfgs_synthmags, outfile=, /doplot, /write
+;
+; INPUTS:
+;       None.
+;
+; OPTIONAL INPUTS:
+;       outfile - output file name
+;
+; KEYWORD PARAMETERS:
+;       doplot - plot the individual SED's and filter curves
+;       write  - write out the synthesized magnitudes structure 
+;
+; OUTPUTS:
+;       See WRITE keyword.
+;
+; OPTIONAL OUTPUTS:
+;
+; PROCEDURES USED:
+;
+; COMMENTS:
+;       We follow Fukugita et al. (1995) and add the following
+;       zero-points to get on the Johnson & Morgan (1953) magnitude
+;       system: c_U = 0.02, c_B = 0.03, c_V = 0.03, c_R = 0.03, c_I =
+;       0.024.
+;
+; EXAMPLES:
+;
+; MODIFICATION HISTORY:
+;       J. Moustakas, 2004 Feb 02, U of A - written
+;       jm04mar10uofa - added 2MASS magnitudes and general cleanup;
+;                       documented
+;       jm04mar14uofa - added OUTFILE optional input
+;       jm04jul28uofa - extensive updates, utilizing Blanton's
+;                       k-correct filter routines; also use
+;                       Monte-Carlo based error estimation
+;-
+
+pro nfgs_synthmags, outfile=outfile, doplot=doplot, write=write
+
+    if n_elements(outfile) eq 0L then outfile = 'nfgs_int_synthmags.fits'
+    
+    datapath = nfgs_path(/spec1d)
+    outpath = nfgs_path(/analysis)
+
+    nfgs = read_nfgs(/silent)
+    nnfgs = n_elements(nfgs)
+
+    eigendir = filepath('',root_dir=getenv('ISPEC_DIR'),subdirectory='templates')
+
+    nmonte = 100L
+    
+    filterlist = [$
+      'bessell_U',$
+      'bessell_B',$
+      'bessell_V',$
+      'bessell_R',$
+      'bessell_I',$
+      'twomass_J',$
+      'twomass_H',$
+      'twomass_Ks',$
+      'sdss_u0',$
+      'sdss_g0',$
+      'sdss_r0',$
+      'sdss_i0',$
+      'sdss_z0' $
+      ]+'.par'
+    nfilters = n_elements(filterlist)
+
+    filt = im_filterspecs(filterlist=filterlist)
+
+    vega2ab = filt.vega2ab
+    
+    sdss = where(filt.sdssflag,nsdss)
+    if (nsdss ne 0L) then vega2ab[sdss] = 0.0 ; keep the SDSS magnitudes on the AB system
+    
+    Umsun = filt[0].solarmags
+    Bmsun = filt[1].solarmags
+    Vmsun = filt[2].solarmags
+    Rmsun = filt[3].solarmags
+    Imsun = filt[4].solarmags
+
+    Jmsun = filt[5].solarmags
+    Hmsun = filt[6].solarmags
+    Ksmsun = filt[7].solarmags
+
+    umsun_sdss = filt[8].solarmags
+    gmsun_sdss = filt[9].solarmags
+    rmsun_sdss = filt[10].solarmags
+    imsun_sdss = filt[11].solarmags
+    zmsun_sdss = filt[12].solarmags
+
+    k_load_filters, filterlist, filter_nlambda, filter_lambda, filter_pass
+
+    ufilt = {$
+      filtw: filter_lambda[0L:filter_nlambda[0]-1L,0], $
+      filtf: filter_pass[0L:filter_nlambda[0]-1L,0]}
+    bfilt = {$
+      filtw: filter_lambda[0L:filter_nlambda[1]-1L,1], $
+      filtf: filter_pass[0L:filter_nlambda[1]-1L,1]}
+    vfilt = {$
+      filtw: filter_lambda[0L:filter_nlambda[2]-1L,2], $
+      filtf: filter_pass[0L:filter_nlambda[2]-1L,2]}
+    rfilt = {$
+      filtw: filter_lambda[0L:filter_nlambda[3]-1L,3], $
+      filtf: filter_pass[0L:filter_nlambda[3]-1L,3]}
+    ifilt = {$
+      filtw: filter_lambda[0L:filter_nlambda[4]-1L,4], $
+      filtf: filter_pass[0L:filter_nlambda[4]-1L,4]}
+    
+    jfilt = {$
+      filtw: filter_lambda[0L:filter_nlambda[5]-1L,5], $
+      filtf: filter_pass[0L:filter_nlambda[5]-1L,5]}
+    hfilt = {$
+      filtw: filter_lambda[0L:filter_nlambda[6]-1L,6], $
+      filtf: filter_pass[0L:filter_nlambda[6]-1L,6]}
+    ksfilt = {$
+      filtw: filter_lambda[0L:filter_nlambda[7]-1L,7], $
+      filtf: filter_pass[0L:filter_nlambda[7]-1L,7]}
+    
+    sdss_u = {$
+      filtw: filter_lambda[0L:filter_nlambda[8]-1L,8], $
+      filtf: filter_pass[0L:filter_nlambda[8]-1L,8]}
+    sdss_g = {$
+      filtw: filter_lambda[0L:filter_nlambda[9]-1L,9], $
+      filtf: filter_pass[0L:filter_nlambda[9]-1L,9]}
+    sdss_r = {$
+      filtw: filter_lambda[0L:filter_nlambda[10]-1L,10], $
+      filtf: filter_pass[0L:filter_nlambda[10]-1L,10]}
+    sdss_i = {$
+      filtw: filter_lambda[0L:filter_nlambda[11]-1L,11], $
+      filtf: filter_pass[0L:filter_nlambda[11]-1L,11]}
+    sdss_z = {$
+      filtw: filter_lambda[0L:filter_nlambda[12]-1L,12], $
+      filtf: filter_pass[0L:filter_nlambda[12]-1L,12]}
+
+    if keyword_set(doplot) then window, 0, xs=1000, ys=700
+    
+; initialize the output data structure
+    
+    result = {$
+      galaxy:       ' ', $
+
+      synth_U:         -999.0, $ ; emission-line corrected magnitude
+      synth_U_err:     -999.0, $
+      synth_U_obs:     -999.0, $ ; observed magnitude (including emission lines) 
+      synth_U_obs_err: -999.0, $
+      synth_U_lum:     -999.0, $
+      synth_U_lum_err: -999.0, $
+      synth_M_U:       -999.0, $
+      synth_M_U_err:   -999.0, $
+
+      synth_B:         -999.0, $
+      synth_B_err:     -999.0, $
+      synth_B_obs:     -999.0, $
+      synth_B_obs_err: -999.0, $
+      synth_B_lum:     -999.0, $
+      synth_B_lum_err: -999.0, $
+      synth_M_B:       -999.0, $
+      synth_M_B_err:   -999.0, $
+
+      synth_V:         -999.0, $
+      synth_V_err:     -999.0, $
+      synth_V_obs:     -999.0, $
+      synth_V_obs_err: -999.0, $
+      synth_V_lum:     -999.0, $
+      synth_V_lum_err: -999.0, $
+      synth_M_V:       -999.0, $
+      synth_M_V_err:   -999.0, $
+
+      synth_R:         -999.0, $
+      synth_R_err:     -999.0, $
+      synth_R_obs:     -999.0, $
+      synth_R_obs_err: -999.0, $
+      synth_R_lum:     -999.0, $
+      synth_R_lum_err: -999.0, $
+      synth_M_r:       -999.0, $
+      synth_M_r_err:   -999.0, $
+
+      synth_I:         -999.0, $
+      synth_I_err:     -999.0, $
+      synth_I_obs:     -999.0, $
+      synth_I_obs_err: -999.0, $
+      synth_I_lum:     -999.0, $
+      synth_I_lum_err: -999.0, $
+      synth_M_I:       -999.0, $
+      synth_M_I_err:   -999.0, $
+
+      synth_J:         -999.0, $
+      synth_J_err:     -999.0, $
+      synth_J_obs:     -999.0, $
+      synth_J_obs_err: -999.0, $
+      synth_J_lum:     -999.0, $
+      synth_J_lum_err: -999.0, $
+      synth_M_J:       -999.0, $
+      synth_M_J_err:   -999.0, $
+
+      synth_H:         -999.0, $
+      synth_H_err:     -999.0, $
+      synth_H_obs:     -999.0, $
+      synth_H_obs_err: -999.0, $
+      synth_H_lum:     -999.0, $
+      synth_H_lum_err: -999.0, $
+      synth_M_H:       -999.0, $
+      synth_M_H_err:   -999.0, $
+
+      synth_Ks:         -999.0, $
+      synth_Ks_err:     -999.0, $
+      synth_Ks_obs:     -999.0, $
+      synth_Ks_obs_err: -999.0, $
+      synth_Ks_lum:     -999.0, $
+      synth_Ks_lum_err: -999.0, $
+      synth_M_Ks:       -999.0, $
+      synth_M_Ks_err:   -999.0, $
+
+      synth_sdss_u:            -999.0, $
+      synth_sdss_u_err:        -999.0, $
+      synth_sdss_u_obs:        -999.0, $
+      synth_sdss_u_obs_err:    -999.0, $
+      synth_sdss_u_lum:        -999.0, $
+      synth_sdss_u_lum_err:    -999.0, $
+      synth_sdss_M_u:          -999.0, $
+      synth_sdss_M_u_err:      -999.0, $
+
+      synth_sdss_g:            -999.0, $
+      synth_sdss_g_err:        -999.0, $
+      synth_sdss_g_obs:        -999.0, $
+      synth_sdss_g_obs_err:    -999.0, $
+      synth_sdss_g_lum:        -999.0, $
+      synth_sdss_g_lum_err:    -999.0, $
+      synth_sdss_M_g:          -999.0, $
+      synth_sdss_M_g_err:      -999.0, $
+
+      synth_sdss_r:            -999.0, $
+      synth_sdss_r_err:        -999.0, $
+      synth_sdss_r_obs:        -999.0, $
+      synth_sdss_r_obs_err:    -999.0, $
+      synth_sdss_r_lum:        -999.0, $
+      synth_sdss_r_lum_err:    -999.0, $
+      synth_sdss_M_r:          -999.0, $
+      synth_sdss_M_r_err:      -999.0, $
+
+      synth_sdss_i:            -999.0, $
+      synth_sdss_i_err:        -999.0, $
+      synth_sdss_i_obs:        -999.0, $
+      synth_sdss_i_obs_err:    -999.0, $
+      synth_sdss_i_lum:        -999.0, $
+      synth_sdss_i_lum_err:    -999.0, $
+      synth_sdss_M_i:          -999.0, $
+      synth_sdss_M_i_err:      -999.0, $
+
+      synth_sdss_z:            -999.0, $
+      synth_sdss_z_err:        -999.0, $
+      synth_sdss_z_obs:        -999.0, $
+      synth_sdss_z_obs_err:    -999.0, $
+      synth_sdss_lum_z:        -999.0, $
+      synth_sdss_lum_z_err:    -999.0, $
+      synth_sdss_M_z:          -999.0, $
+      synth_sdss_M_z_err:      -999.0}
+
+    result = replicate(result,nnfgs)
+    result.galaxy = nfgs.galaxy
+    
+; read the Bruzual & Charlot models 
+
+    eigenflux_Z004 = mrdfits(eigendir+'BC03_Z004_salpeter_templates.fits',2,eigenhead,/silent)
+    eigenflux_Z02 = mrdfits(eigendir+'BC03_Z02_salpeter_templates.fits',2,/silent)
+    eigenflux_Z05 = mrdfits(eigendir+'BC03_Z05_salpeter_templates.fits',2,/silent)
+
+    eigenwave = make_wave(eigenhead)
+    neigen = (size(eigenflux_Z004,/dimension))[1]
+
+    bigwave = eigenwave
+    bestspec = bigwave*0.0
+    redcurve = k_lambda(eigenwave,/charlot)
+
+    t0 = systime(1)
+    for i = 0L, nnfgs-1L do begin
+
+       print, format='("Synthesizing magnitudes for object ",I3,"/",I3,".",A1,$)', $
+         i+1, nnfgs, string(13b)
+
+       galaxy = strtrim(nfgs[i].galaxy,2)
+       nicegalaxy = nfgs[i].nice_galaxy
+       z = nfgs[i].z_abs
+       medsnr = nfgs[i].continuum_snr ; median S/N in the continuum
+       
+; select the appropriate BC03 model       
+
+       if strmatch(nfgs[i].templates,'*Z004*',/fold) then eigenflux = eigenflux_Z004
+       if strmatch(nfgs[i].templates,'*Z02*',/fold) then eigenflux = eigenflux_Z02
+       if strmatch(nfgs[i].templates,'*Z05*',/fold) then eigenflux = eigenflux_Z05
+       
+; read the rest-frame spectrum and emission-line spectrum; we have to
+; read the error spectrum from the original FITS file because we don't
+; store it in the ISPECLINEFIT(); redshift the best-fitting spectrum
+       
+       specdata = read_nfgs_specfit(galaxy,/silent) ; this will need to be modified!
+       refwave = reform(specdata[*,0])*(1+z)
+       flux = reform(specdata[*,1])/(1+z)
+       testflux = mrdfits(datapath+strtrim(nfgs[i].specfile,2),0,/silent)
+       ferr = mrdfits(datapath+strtrim(nfgs[i].specfile,2),1,/silent)
+       eflux = reform(specdata[*,3])/(1+z)
+       npix = n_elements(flux)
+       
+       flux_noelines = flux - eflux ; spectrum with no emission lines
+       
+       get_element, refwave, djs_mean(refwave), snrindx
+
+;      spec = rd1dspec(nfgs[i].specfile,/silent,datapath=datapath)
+;      flux = spec.spec
+;      ferr = spec.sigspec
+;      refwave = spec.wave
+
+; compute the wavelength vector at the reference redshift; interpolate
+; the spectrum and error spectrum onto BIGWAVE, replacing extrapolated
+; values with 1.0
+       
+       linterp, refwave, flux, bigwave, bigflux, missing=1.0
+       linterp, refwave, ferr, bigwave, bigfluxerr, missing=1.0
+       linterp, refwave, flux_noelines, bigwave, bigflux_noelines, missing=1.0
+
+       nbigpix = n_elements(bigflux)
+       
+; reconstruct the best-fitting continuum spectrum, including reddening
+; and extrapolate the integrated spectrum to longer and shorter
+; wavelengths using the BC03 models
+
+       backcoeff = [nfgs[i].continuum_coeff,nfgs[i].continuum_ebv,$
+         nfgs[i].continuum_ebv*0.0+1.0]
+       bestspec = backmodel(eigenflux,backcoeff,redcurve=redcurve,$
+         nstar=nfgs[i].ntemplate,nback=0,ndust=nfgs[i].ntemplate)
+       linterp, eigenwave, bestspec, bigwave, bestspec
+
+; replace the observed galaxy spectrum where there are no data with
+; the best-fitting BC03 model
+
+       nodata = where(bigflux eq 1.0,nno)
+       if (nno ne 0L) then bigflux[nodata] = bestspec[nodata]
+       if (nno ne 0L) then bigflux_noelines[nodata] = bestspec[nodata]
+       if (nno ne 0L) then bigfluxerr[nodata] = bestspec[nodata]/sqrt(bestspec[nodata]/bestspec[snrindx])/medsnr
+
+;      ploterror, bigwave, bigflux, bigfluxerr, ps=10, xsty=3, ysty=3
+
+; synthesize magnitudes! 
+
+       bigwave_edges = k_lambda_to_edges(bigwave)
+
+       bigflux_monte = (bigflux # replicate(1.0,nmonte)) + $
+         randomn(seed,nbigpix,nmonte)*(bigfluxerr # replicate(1.0,nmonte))
+
+       maggies = k_project_filters(bigwave_edges,bigflux,filterlist=filterlist,/silent)
+       maggies_noelines = k_project_filters(bigwave_edges,bigflux_noelines,filterlist=filterlist,/silent)
+       maggies_monte = k_project_filters(bigwave_edges,bigflux_monte,filterlist=filterlist,/silent)
+
+       vegamags = -2.5*alog10(maggies) - vega2ab
+       vegamags_noelines = -2.5*alog10(maggies_noelines) - vega2ab
+
+       vegamags_err = vegamags*0.0
+       for ifilter = 0L, nfilters-1L do vegamags_err[ifilter] = stddev(-2.5*alog10(maggies_monte[*,ifilter]))
+
+       result[i].synth_U          = vegamags_noelines[0]
+       result[i].synth_U_err      = vegamags_err[0]
+       result[i].synth_U_obs      = vegamags[0]
+       result[i].synth_U_obs_err  = vegamags_err[0]
+
+       result[i].synth_B          = vegamags_noelines[1]
+       result[i].synth_B_err      = vegamags_err[1]
+       result[i].synth_B_obs      = vegamags[1]
+       result[i].synth_B_obs_err  = vegamags_err[1]
+
+       result[i].synth_V          = vegamags_noelines[2]
+       result[i].synth_V_err      = vegamags_err[2]
+       result[i].synth_V_obs      = vegamags[2]
+       result[i].synth_V_obs_err  = vegamags_err[2]
+
+       result[i].synth_R          = vegamags_noelines[3]
+       result[i].synth_R_err      = vegamags_err[3]
+       result[i].synth_R_obs      = vegamags[3]
+       result[i].synth_R_obs_err  = vegamags_err[3]
+
+       result[i].synth_I          = vegamags_noelines[4]
+       result[i].synth_I_err      = vegamags_err[4]
+       result[i].synth_I_obs      = vegamags[4]
+       result[i].synth_I_obs_err  = vegamags_err[4]
+
+       result[i].synth_J          = vegamags_noelines[5]
+       result[i].synth_J_err      = vegamags_err[5]
+       result[i].synth_J_obs      = vegamags[5]
+       result[i].synth_J_obs_err  = vegamags_err[5]
+
+       result[i].synth_H          = vegamags_noelines[6]
+       result[i].synth_H_err      = vegamags_err[6]
+       result[i].synth_H_obs      = vegamags[6]
+       result[i].synth_H_obs_err  = vegamags_err[6]
+
+       result[i].synth_Ks         = vegamags_noelines[7]
+       result[i].synth_Ks_err     = vegamags_err[7]
+       result[i].synth_Ks_obs     = vegamags[7]
+       result[i].synth_Ks_obs_err = vegamags_err[7]
+
+       result[i].synth_sdss_u         = vegamags_noelines[8]
+       result[i].synth_sdss_u_err     = vegamags_err[8]
+       result[i].synth_sdss_u_obs     = vegamags[8]
+       result[i].synth_sdss_u_obs_err = vegamags_err[8]
+
+       result[i].synth_sdss_g         = vegamags_noelines[9]
+       result[i].synth_sdss_g_err     = vegamags_err[9]
+       result[i].synth_sdss_g_obs     = vegamags[9]
+       result[i].synth_sdss_g_obs_err = vegamags_err[9]
+
+       result[i].synth_sdss_r         = vegamags_noelines[10]
+       result[i].synth_sdss_r_err     = vegamags_err[10]
+       result[i].synth_sdss_r_obs     = vegamags[10]
+       result[i].synth_sdss_r_obs_err = vegamags_err[10]
+
+       result[i].synth_sdss_i         = vegamags_noelines[11]
+       result[i].synth_sdss_i_err     = vegamags_err[11]
+       result[i].synth_sdss_i_obs     = vegamags[11]
+       result[i].synth_sdss_i_obs_err = vegamags_err[11]
+
+       result[i].synth_sdss_z         = vegamags_noelines[12]
+       result[i].synth_sdss_z_err     = vegamags_err[12]
+       result[i].synth_sdss_z_obs     = vegamags[12]
+       result[i].synth_sdss_z_obs_err = vegamags_err[12]
+
+       if keyword_set(doplot) then begin
+
+          xrange = [2500.0,11000.0]
+          get_element, bigwave, xrange, ww
+
+          xwave = bigwave[ww[0]:ww[1]]
+          yflux = bigflux[ww[0]:ww[1]]
+          yflux_noelines = bigflux_noelines[ww[0]:ww[1]]
+          norm = max(yflux)
+          yrange = minmax(yflux)/norm
+          
+          djs_plot, xwave, yflux/norm, xsty=3, ysty=3, xrange=xrange, yrange=yrange, $
+            xthick=2.0, ythick=2.0, charsize=2.0, charthick=2.0, xtitle='Wavelength', $
+            ytitle='Normalized Flux', title='Johnson/Cousins Synthetic Magnitudes', $
+            color='orange', thick=1.0
+
+          djs_oplot, xwave, yflux_noelines/norm, thick=1.0
+          djs_oplot, bigwave[nodata], bigflux[nodata]/norm, ps=3, color='cyan'
+          legend, nicegalaxy, /right, /top, box=0, charsize=1.5, charthick=2.0
+
+;         djs_oplot, refwave, testflux/norm, thick=3.0, color='yellow'
+
+          djs_oplot, ufilt.filtw, ufilt.filtf/max(ufilt.filtf), line=0, color='purple'
+          djs_oplot, bfilt.filtw, bfilt.filtf/max(bfilt.filtf), line=0, color='blue'
+          djs_oplot, vfilt.filtw, vfilt.filtf/max(vfilt.filtf), line=0, color='yellow'
+          djs_oplot, rfilt.filtw, rfilt.filtf/max(rfilt.filtf), line=0, color='green'
+          djs_oplot, ifilt.filtw, ifilt.filtf/max(rfilt.filtf), line=0, color='red'
+
+          cc = get_kbrd(1)
+          
+; ---------------------------------------------------------------------------
+; SDSS AB magnitudes
+; ---------------------------------------------------------------------------
+
+          xrange = [2500.0,11000.0]
+          get_element, bigwave, xrange, ww
+          xwave = bigwave[ww[0]:ww[1]]
+          yflux = bigflux[ww[0]:ww[1]]
+          norm = max(yflux)
+          yrange = minmax(yflux)/norm
+  
+          djs_plot, xwave, yflux/norm, xsty=3, ysty=3, xrange=xrange, yrange=yrange, $
+            xthick=2.0, ythick=2.0, charsize=2.0, charthick=2.0, xtitle='Wavelength', $
+            ytitle='Normalized Flux', title='SDSS Synthetic Magnitudes', color='orange', thick=1.0
+          djs_oplot, xwave, yflux_noelines/norm, thick=1.0
+          legend, nicegalaxy, /right, /top, box=0, charsize=1.5, charthick=2.0
+          djs_oplot, bigwave[nodata], bigflux[nodata]/norm, ps=3, color='cyan'
+
+          djs_oplot, sdss_u.filtw, sdss_u.filtf/max(sdss_u.filtf), line=0, color='purple'
+          djs_oplot, sdss_g.filtw, sdss_g.filtf/max(sdss_g.filtf), line=0, color='blue'
+          djs_oplot, sdss_r.filtw, sdss_r.filtf/max(sdss_r.filtf), line=0, color='yellow'
+          djs_oplot, sdss_i.filtw, sdss_i.filtf/max(sdss_i.filtf), line=0, color='green'
+          djs_oplot, sdss_z.filtw, sdss_z.filtf/max(sdss_z.filtf), line=0, color='red'
+  
+          cc = get_kbrd(1)
+          
+; ---------------------------------------------------------------------------
+; 2MASS Vega magnitudes
+; ---------------------------------------------------------------------------
+
+          xrange = [10000.0,24000.0]
+          get_element, bigwave, xrange, ww
+
+          xwave = bigwave[ww[0]:ww[1]]
+          yflux = bigflux[ww[0]:ww[1]]
+          yflux_noelines = bigflux_noelines[ww[0]:ww[1]]
+          norm = max(yflux)
+          yrange = minmax(yflux)/norm
+          
+          djs_plot, xwave, yflux/norm, xsty=3, ysty=3, xrange=xrange, yrange=yrange, $
+            xthick=2.0, ythick=2.0, charsize=2.0, charthick=2.0, xtitle='Wavelength', $
+            ytitle='Normalized Flux', title='2MASS Synthetic Magnitudes', $
+            color='orange', thick=1.0
+          djs_oplot, xwave, yflux_noelines/norm, thick=1.0
+          djs_oplot, bigwave[nodata], bigflux[nodata]/norm, ps=3, color='cyan'
+          legend, nicegalaxy, /right, /top, box=0, charsize=1.5, charthick=2.0
+
+          djs_oplot, jfilt.filtw, jfilt.filtf/max(jfilt.filtf), line=0, color='blue'
+          djs_oplot, hfilt.filtw, hfilt.filtf/max(hfilt.filtf), line=0, color='yellow'
+          djs_oplot, ksfilt.filtw, ksfilt.filtf/max(ksfilt.filtf), line=0, color='red'
+
+          cc = get_kbrd(1)
+
+       endif
+
+       print, nfgs[i].rc3_b, result[i].synth_b, nfgs[i].rc3_v, result[i].synth_v
+       
+    endfor
+    splog, 'Total time = '+string((systime(1)-t0)/60.0,format='(G0.0)')+' minutes.'
+    
+; compute luminosities and absolute magnitudes
+    
+    good = where((nfgs.distance gt -900.0) and (nfgs.distance_err gt -900.0),ngood)
+    if (ngood ne 0L) then begin
+
+; U-band
+       
+       result[good].synth_M_U = result[good].synth_U - 5.0*alog10(nfgs[good].distance) - 25.0
+       result[good].synth_M_U_err = sqrt(result[good].synth_U_err^2.0 + $
+         ( (5.0/alog(10))*nfgs[good].distance_err/nfgs[good].distance )^2.0)
+
+       lum = 10.0D^(0.4*Umsun) * 10.0^(-0.4*result[good].synth_M_U)   ; [L_sun]
+       lum_err = alog(10.0) * 0.4D * lum * result[good].synth_M_U_err ; [L_sun]
+       
+       result[good].synth_U_lum_err = lum_err/lum/alog(10.0) ; log L_sun
+       result[good].synth_U_lum = alog10(lum)                ; log L_sun
+
+; B-band
+       
+       result[good].synth_M_B = result[good].synth_B - 5.0*alog10(nfgs[good].distance) - 25.0
+       result[good].synth_M_B_err = sqrt(result[good].synth_B_err^2.0 + $
+         ( (5.0/alog(10))*nfgs[good].distance_err/nfgs[good].distance )^2.0)
+
+       lum = 10.0D^(0.4*Bmsun) * 10.0^(-0.4*result[good].synth_M_B)   ; [L_sun]
+       lum_err = alog(10.0) * 0.4D * lum * result[good].synth_M_B_err ; [L_sun]
+       
+       result[good].synth_B_lum_err = lum_err/lum/alog(10.0) ; log L_sun
+       result[good].synth_B_lum = alog10(lum)                ; log L_sun
+
+; V-band
+       
+       result[good].synth_M_V = result[good].synth_V - 5.0*alog10(nfgs[good].distance) - 25.0
+       result[good].synth_M_V_err = sqrt(result[good].synth_V_err^2.0 + $
+         ( (5.0/alog(10))*nfgs[good].distance_err/nfgs[good].distance )^2.0)
+
+       lum = 10.0D^(0.4*Vmsun) * 10.0^(-0.4*result[good].synth_M_V)   ; [L_sun]
+       lum_err = alog(10.0) * 0.4D * lum * result[good].synth_M_V_err ; [L_sun]
+       
+       result[good].synth_V_lum_err = lum_err/lum/alog(10.0) ; log L_sun
+       result[good].synth_V_lum = alog10(lum)                ; log L_sun
+
+; R-band
+       
+       result[good].synth_M_R = result[good].synth_R - 5.0*alog10(nfgs[good].distance) - 25.0
+       result[good].synth_M_R_err = sqrt(result[good].synth_R_err^2.0 + $
+         ( (5.0/alog(10))*nfgs[good].distance_err/nfgs[good].distance )^2.0)
+
+       lum = 10.0D^(0.4*Rmsun) * 10.0^(-0.4*result[good].synth_M_R)   ; [L_sun]
+       lum_err = alog(10.0) * 0.4D * lum * result[good].synth_M_R_err ; [L_sun]
+       
+       result[good].synth_R_lum_err = lum_err/lum/alog(10.0) ; log L_sun
+       result[good].synth_R_lum = alog10(lum)                ; log L_sun
+       
+; I-band
+       
+       result[good].synth_M_I = result[good].synth_I - 5.0*alog10(nfgs[good].distance) - 25.0
+       result[good].synth_M_I_err = sqrt(result[good].synth_I_err^2.0 + $
+         ( (5.0/alog(10))*nfgs[good].distance_err/nfgs[good].distance )^2.0)
+
+       lum = 10.0D^(0.4*Imsun) * 10.0^(-0.4*result[good].synth_M_I)   ; [L_sun]
+       lum_err = alog(10.0) * 0.4D * lum * result[good].synth_M_I_err ; [L_sun]
+       
+       result[good].synth_I_lum_err = lum_err/lum/alog(10.0) ; log L_sun
+       result[good].synth_I_lum = alog10(lum)                ; log L_sun
+
+; 2MASS J-band
+       
+       result[good].synth_M_J = result[good].synth_J - 5.0*alog10(nfgs[good].distance) - 25.0
+       result[good].synth_M_J_err = sqrt(result[good].synth_J_err^2.0 + $
+         ( (5.0/alog(10))*nfgs[good].distance_err/nfgs[good].distance )^2.0)
+
+       lum = 10.0D^(0.4*Jmsun) * 10.0^(-0.4*result[good].synth_M_J)   ; [L_sun]
+       lum_err = alog(10.0) * 0.4D * lum * result[good].synth_M_J_err ; [L_sun]
+       
+       result[good].synth_J_lum_err = lum_err/lum/alog(10.0) ; log L_sun
+       result[good].synth_J_lum = alog10(lum)                ; log L_sun
+
+; 2MASS H-band
+       
+       result[good].synth_M_H = result[good].synth_H - 5.0*alog10(nfgs[good].distance) - 25.0
+       result[good].synth_M_H_err = sqrt(result[good].synth_H_err^2.0 + $
+         ( (5.0/alog(10))*nfgs[good].distance_err/nfgs[good].distance )^2.0)
+
+       lum = 10.0D^(0.4*Hmsun) * 10.0^(-0.4*result[good].synth_M_H)   ; [L_sun]
+       lum_err = alog(10.0) * 0.4D * lum * result[good].synth_M_H_err ; [L_sun]
+       
+       result[good].synth_H_lum_err = lum_err/lum/alog(10.0) ; log L_sun
+       result[good].synth_H_lum = alog10(lum)                ; log L_sun
+
+; 2MASS KS-band
+       
+       result[good].synth_M_Ks = result[good].synth_Ks - 5.0*alog10(nfgs[good].distance) - 25.0
+       result[good].synth_M_Ks_err = sqrt(result[good].synth_Ks_err^2.0 + $
+         ( (5.0/alog(10))*nfgs[good].distance_err/nfgs[good].distance )^2.0)
+
+       lum = 10.0D^(0.4*Ksmsun) * 10.0^(-0.4*result[good].synth_M_Ks)  ; [L_sun]
+       lum_err = alog(10.0) * 0.4D * lum * result[good].synth_M_Ks_err ; [L_sun]
+       
+       result[good].synth_Ks_lum_err = lum_err/lum/alog(10.0) ; log L_sun
+       result[good].synth_Ks_lum = alog10(lum) ; log L_sun
+
+; SDSS u-band
+       
+       result[good].synth_sdss_M_u = result[good].synth_sdss_u - 5.0*alog10(nfgs[good].distance) - 25.0
+       result[good].synth_sdss_M_u_err = sqrt(result[good].synth_sdss_u_err^2.0 + $
+         ( (5.0/alog(10))*nfgs[good].distance_err/nfgs[good].distance )^2.0)
+
+       lum = 10.0D^(0.4*umsun_sdss) * 10.0^(-0.4*result[good].synth_sdss_M_u) ; [L_sun]
+       lum_err = alog(10.0) * 0.4D * lum * result[good].synth_sdss_M_u_err    ; [L_sun]
+       
+       result[good].synth_sdss_u_lum_err = lum_err/lum/alog(10.0) ; log L_sun
+       result[good].synth_sdss_u_lum = alog10(lum)                ; log L_sun
+       
+; SDSS g-band
+       
+       result[good].synth_sdss_M_g = result[good].synth_sdss_g - 5.0*alog10(nfgs[good].distance) - 25.0
+       result[good].synth_sdss_M_g_err = sqrt(result[good].synth_sdss_g_err^2.0 + $
+         ( (5.0/alog(10))*nfgs[good].distance_err/nfgs[good].distance )^2.0)
+
+       lum = 10.0D^(0.4*gmsun_sdss) * 10.0^(-0.4*result[good].synth_sdss_M_g) ; [L_sun]
+       lum_err = alog(10.0) * 0.4D * lum * result[good].synth_sdss_M_g_err    ; [L_sun]
+       
+       result[good].synth_sdss_g_lum_err = lum_err/lum/alog(10.0) ; log L_sun
+       result[good].synth_sdss_g_lum = alog10(lum)                ; log L_sun
+
+; SDSS r-band
+       
+       result[good].synth_sdss_M_r = result[good].synth_sdss_r - 5.0*alog10(nfgs[good].distance) - 25.0
+       result[good].synth_sdss_M_r_err = sqrt(result[good].synth_sdss_r_err^2.0 + $
+         ( (5.0/alog(10))*nfgs[good].distance_err/nfgs[good].distance )^2.0)
+
+       lum = 10.0D^(0.4*rmsun_sdss) * 10.0^(-0.4*result[good].synth_sdss_M_r) ; [L_sun]
+       lum_err = alog(10.0) * 0.4D * lum * result[good].synth_sdss_M_r_err    ; [L_sun]
+       
+       result[good].synth_sdss_r_lum_err = lum_err/lum/alog(10.0) ; log L_sun
+       result[good].synth_sdss_r_lum = alog10(lum)                ; log L_sun
+
+; SDSS i-band
+       
+       result[good].synth_sdss_M_i = result[good].synth_sdss_i - 5.0*alog10(nfgs[good].distance) - 25.0
+       result[good].synth_sdss_M_i_err = sqrt(result[good].synth_sdss_i_err^2.0 + $
+         ( (5.0/alog(10))*nfgs[good].distance_err/nfgs[good].distance )^2.0)
+
+       lum = 10.0D^(0.4*imsun_sdss) * 10.0^(-0.4*result[good].synth_sdss_M_i) ; [L_sun]
+       lum_err = alog(10.0) * 0.4D * lum * result[good].synth_sdss_M_i_err    ; [L_sun]
+       
+       result[good].synth_sdss_i_lum_err = lum_err/lum/alog(10.0) ; log L_sun
+       result[good].synth_sdss_i_lum = alog10(lum)                ; log L_sun
+
+; SDSS z-band
+       
+       result[good].synth_sdss_M_z = result[good].synth_sdss_z - 5.0*alog10(nfgs[good].distance) - 25.0
+       result[good].synth_sdss_M_z_err = sqrt(result[good].synth_sdss_z_err^2.0 + $
+         ( (5.0/alog(10))*nfgs[good].distance_err/nfgs[good].distance )^2.0)
+
+       lum = 10.0D^(0.4*zmsun_sdss) * 10.0^(-0.4*result[good].synth_sdss_M_z) ; [L_sun]
+       lum_err = alog(10.0) * 0.4D * lum * result[good].synth_sdss_M_z_err    ; [L_sun]
+       
+       result[good].synth_sdss_lum_z_err = lum_err/lum/alog(10.0) ; log L_sun
+       result[good].synth_sdss_lum_z = alog10(lum)                ; log L_sun
+
+    endif
+
+; write out the results
+
+    if keyword_set(write) then begin
+
+       splog, 'Writing '+outpath+outfile+'.'
+       mwrfits, result, outpath+outfile, /create
+       spawn, ['gzip -f '+outpath+outfile], /sh
+
+    endif
+
+stop
+
+return
+end
+    

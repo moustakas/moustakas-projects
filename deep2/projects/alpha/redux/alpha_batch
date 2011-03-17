@@ -1,0 +1,5 @@
+#!/bin/csh -f 
+
+echo "alpha_reduce_all, 'ut080414', /stage2" | idl > & alpha_batch.log.01 &
+echo "alpha_reduce_all, 'ut080415', /stage2" | idl > & alpha_batch.log.02 &
+echo "alpha_reduce_all, 'ut080416', /stage2" | idl > & alpha_batch.log.03 &

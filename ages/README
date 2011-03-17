@@ -1,0 +1,57 @@
+J. Moustakas, 2005 Aug 04, U of A
+jm06feb17uofa - updated procedure
+jm08jul12nyu - the procedure was documented a bit more and reexamined 
+jm08aug20nyu - updated to the new data model
+
+---------------------------------------------------------------------------
+unpack the fluxed and unfluxed spectra, and then run V. Wild's PCA
+sky-subtraction routine
+
+* preproc/unpack_ages
+* preproc/unpack_ages, /fluxed
+* skysubpca/ages_skysubpca_wrapper
+* skysubpca/ages_skysubpca_wrapper, /fluxed
+
+---------------------------------------------------------------------------
+prepare the photometric catalogs and compute k-corrections; then merge
+the broadband and spectral data into a single ancillary data structure
+
+* ancillary/unpack_ages_catalogs - for convenience, convert all the
+  AGES (v2.0) catalogs to FITS format
+
+* ancillary/build_ages_photometry - merge all the photometric
+  catalogs: ages_photometry.fits
+
+  
+  
+  
+* ancillary/ages_merge_catalogs - merge everything into one big
+  *merged* structure: ages_merged_catalogs.fits
+
+* ancillary/ages_kcorrect: ages_photo_kcorr_v?.?.fits
+
+* ancillary/ages_write_ancillary
+
+---------------------------------------------------------------------------
+fit the spectra
+---------------------------------------------------------------------------
+
+fit everything; also calls specfit/ages_merge_specfit 
+* specfit/ages_specfit -
+
+then, refit the crummy spectra and remerge
+* specfit/ages_specfit, /refitbad
+
+---------------------------------------------------------------------------
+miscellaneous tasks
+---------------------------------------------------------------------------
+
+ages_synthmags
+
+
+---------------------------------------------------------------------------
+Select the sample
+---------------------------------------------------------------------------
+
+write_ages_mz_sample
+mzplots

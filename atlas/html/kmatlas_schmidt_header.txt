@@ -1,0 +1,11 @@
+This file tabulates observed and corrected H-alpha and [N II] fluxes
+[erg/s/cm2] for the K/M spectral atlas.  Flux measurements in columns
+(06)-(13) have been corrected for Galactic foreground extinction using
+the Schlegel et al. (1998) dust maps and the O'Donnell (1994)
+extinction curve.  In addition, columns (10)-(13) have been corrected
+for internal extinction using the Balmer decrement assuming case B
+recombination (2.86) and the O'Donnell (1994) extinction curve.
+Equivalent widths have been corrected for underlying Balmer
+absorption, and are in the rest frame.  Upper limits have an error
+code of -3.0, non-measurements have an error code of -2.0, and an
+error code of -1.0 indicates no good Balmer decrement.

@@ -1,0 +1,24 @@
+We measure the emission-line fluxes of the objects in our sample using
+the method described by \citet{moustakas10a}.  Briefly, we fit a
+non-negative linear combination of \citet{bruzual03a} population
+synthesis models with instantaneous burst ages ranging from $5$~Myr to
+$10.5$~Gyr (the age of the Universe at $z\sim0.25$), assuming the
+\citet{chabrier03a} initial mass function from
+$0.1-100~\mathcal{M}_{\odot}$.  Motivated by the fact that the
+gas-phase metallicities of these objects are sub-solar (see \S???), we
+assume a fixed stellar metallicity of $Z=0.004$ ($20\%Z_{\odot}$);
+however, we have verified that using solar-metallicity templates has a
+negligible effect on the derived line-strengths ({\bf true?}).  After
+subtracting the best-fitting stellar continuum from the data, we are
+left with a pure emission-line spectrum self-consistently corrected
+for underlying stellar absorption.  Finally, we fit all the emission
+lines simultaneously using Gaussian line-profiles.  In Figure~??? we
+illustrate our fitting method for one object in our sample, EGS19.  In
+the top panel we plot the observed spectrum (light grey), the
+best-fitting continuum model (black), and the residual emission-line
+spectrum (dark grey).  We show the full best-fitting emission-line
+model spectrum (dark red) in the top panel, and in the lower panel we
+zoom into the emission lines of interest.  The lower, middle panel in
+particular emphasizes the importance of correcting the H$\beta$
+line-strength for underlying stellar absorption using this kind of
+technique (see, e.g., walcher10a, for a recent review).

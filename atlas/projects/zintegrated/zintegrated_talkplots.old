@@ -1,0 +1,320 @@
+pro oplot_errorbar, xerr, yerr, postthick=postthick, _extra=extra
+
+;   xc = !x.crange[1] - ((2.0*xerr) > (0.075*(!x.crange[1]-!x.crange[0])))
+    xc = !x.crange[0] + ((2.0*xerr) > (0.075*(!x.crange[1]-!x.crange[0])))
+    yc = !y.crange[0] + ((2.0*yerr) > (0.075*(!y.crange[1]-!y.crange[0])))
+
+    oploterror, xc, yc, 0.0, yerr, ps=3, /data, thick=postthick, $
+      errthick=postthick, _extra=extra;, color=djs_icolor('blue'), errcolor=djs_icolor('blue')
+    
+return
+end    
+
+pro zintegrated_talkplots, int_dust, int_nodust, nuc_dust, nuc_nodust, hii, allhii, $
+  allatlas, allatlasnodust, postscript=postscript, encapsulated=encapsulated, $
+  gradient=gradient, cleanpng=cleanpng
+; jm05nov25uofa - 
+
+    talkpath = '/home/ioannis/jobs/talk/'
+    datapath = atlas_path(/projects)+'zintegrated/'
+
+    rr25_int = 0.4
+    
+; setup some plotting variables
+
+    @'xyrange_zintegrated'
+
+    if keyword_set(postscript) then begin
+       postthick = 8.0
+       postthick2 = 3.0
+       postthick3 = 2.0
+       postthick4 = 10.0
+       talkcolor = 'white'
+    endif else begin
+       postthick = 2.0
+       postthick2 = postthick
+       postthick3 = postthick
+       postthick4 = postthick
+       im_window, 0, xratio=0.5, /square
+       talkcolor = ''
+    endelse
+
+    psizeall = 0.8
+    psize = 1.6
+    psize2 = 2.0
+    psize3 = 2.2
+    psize4 = 1.8
+    hiipsize = 0.6
+    digpsize = 1.5
+    hiicolor = 'blue'
+;   atlascolor = 'grey'
+    
+; clean up old PS and PNG files
+
+    if keyword_set(cleanpng) then begin
+       splog, 'Deleting all PNG and PS files in '+pspath
+       spawn, ['rm -f '+pspath+'*.png*'], /sh
+       spawn, ['rm -f '+pspath+'*ps'], /sh
+    endif
+
+; read the galaxy and HII-region data; restore the abundance gradient
+; fitting results
+
+    if (n_elements(int_dust) eq 0L) or (n_elements(int_nodust) eq 0L) or $
+      (n_elements(nuc_dust) eq 0L) or (n_elements(nuc_nodust) eq 0L) or $
+      (n_elements(hii) eq 0L) then int_dust = read_zintegrated_sample(int_nodust=int_nodust,$
+        nuc_dust=nuc_dust,nuc_nodust=nuc_nodust,hii=hii)
+
+    if (n_elements(gradient) eq 0L) then gradient = mrdfits(datapath+'zintegrated_gradients.fits.gz',1,/silent)
+    if (n_elements(allhii) eq 0L) then allhii = read_hii_regions(/limitedrefs)
+    if (n_elements(allatlas) eq 0L) then allatlas = read_integrated(atlasnodust=allatlasnodust)
+
+    kkp = rsex(datapath+'99kkp.dat') ; read the data from KKP99
+
+    h03_m33 = rsex('/home/ioannis/catalogs/03hoopes/03hoopes_m33.dat')
+    h03_m51 = rsex('/home/ioannis/catalogs/03hoopes/03hoopes_m51.dat')
+    h03 = struct_append(h03_m33,h03_m51)
+    g99 = rsex('/home/ioannis/catalogs/99galarza/99galarza.dat')
+    w97 = rsex('/home/ioannis/catalogs/97wang/97wang.dat')
+
+; define an integrated galaxy sample with nuclear spectroscopy
+
+    match = cmset_op(int_dust.atlas_id,'and',nuc_dust.atlas_id,/index)
+    intnuc_dust = int_dust[match]
+    intnuc_nodust = int_nodust[match]
+
+;   splog, 'Setting the global classification to the nuclear class!'
+;   int_dust[match].bpt_class = nuc_dust.bpt_class
+;   int_nodust[match].bpt_class = nuc_dust.bpt_class
+
+; [S II] ratio    
+    
+    ratio = where(hii.zt_sii_ratio gt -900.0,nratio)
+    if (nratio ne 0L) then siiratio = alog10(median(hii[ratio].zt_sii_ratio))
+;   junk = im_stats(hii[ratio].zt_sii_ratio,/verbose)
+
+    ngalaxy = n_elements(int_dust)
+    galaxy = strtrim(int_dust.galaxy,2)
+    nicegalaxy = strtrim(int_dust.nice_galaxy,2)
+
+; ---------------------------------------------------------------------------
+; generate an abundance gradient plot for each individual galaxy
+; ---------------------------------------------------------------------------
+
+    for k = 0L, ngalaxy-1L do begin
+
+; retrieve the HII region measurements for this object 
+
+       match = where(galaxy[k] eq strtrim(hii.atlas_galaxy,2),nmatch)
+
+       keep = where(hii[match].radius gt -9000.0,nkeep,comp=nodata,ncomp=nnodata)
+       if (nnodata ne 0L) then begin
+          splog, 'The following HII regions need radius measurements.'
+          niceprint, strtrim(hii[match[nodata]].hii_galaxy,2), strtrim(hii[match[nodata]].hii_region,2), $
+            hii[match[nodata]].zstrong_12oh_zkh94, hii[match[nodata]].radius, $
+            strtrim(hii[match[nodata]].reference,2)
+       endif
+
+       hiigalaxy = hii[match[keep]]
+
+; the following HII regions are being excluded, but should be
+; investigated 
+       
+       case galaxy[k] of
+          'NGC1058': good = where($
+            (strmatch(hiigalaxy.hii_region,'*FGW1058G*',/fold) eq 0B) and $
+            (strmatch(hiigalaxy.hii_region,'*FGW1058H*',/fold) eq 0B),ngood,comp=donotfit,ncomp=ndonotfit)
+          'NGC2903': good = where($
+            (strmatch(hiigalaxy.hii_region,'*-062-085*',/fold) eq 0B) and $
+            (strmatch(hiigalaxy.hii_region,'*-065-073*',/fold) eq 0B) and $
+            (strmatch(hiigalaxy.hii_region,'*-067-061*',/fold) eq 0B) and $
+            (strmatch(hiigalaxy.hii_region,'*+171+243*',/fold) eq 0B) and $
+            (strmatch(hiigalaxy.hii_region,'*H16*',/fold) eq 0B),ngood,comp=donotfit,ncomp=ndonotfit)
+          'NGC4651': good = where($
+            (strmatch(hiigalaxy.hii_region,'*+131+021*',/fold) eq 0B),ngood,comp=donotfit,ncomp=ndonotfit)
+          else: begin
+             ngood = n_elements(hiigalaxy)
+             good = lindgen(ngood)
+             ndonotfit = 0L
+          end
+       endcase 
+
+       r25 = int_dust[k].d25_maj/2.0
+       nii_rr25 = hiigalaxy.radius/r25 ; normalized radius
+       nii_oh = hiigalaxy.zstrong_12oh_niiha_pettini
+
+       if (ndonotfit ne 0L) then begin
+          hiigalaxy_donotfit = hiigalaxy[donotfit]
+          rr25_donotfit = hiigalaxy_donotfit.radius/r25 ; normalized radius
+          splog, 'Rejecting '+string(ndonotfit,format='(I0)')+' HII regions'
+          struct_print, struct_trimtags(hiigalaxy_donotfit,select=['HII_GALAXY','HII_REGION',$
+            'ZSTRONG_12OH_ZKH94','RADIUS','REFERENCE']), /no_head
+       endif
+
+       hiigalaxy = hiigalaxy[good]       
+       rr25 = hiigalaxy.radius/r25 ; normalized radius
+       
+       if (ndonotfit eq 0L) then begin
+          xmax = max(rr25) 
+       endif else begin 
+          xmax = max([rr25,rr25_donotfit])
+       endelse
+
+       splog, 'Found '+string(ngood,format='(I0)')+' good HII regions'
+       struct_print, struct_trimtags(hiigalaxy,select=['HII_GALAXY','HII_REGION',$
+         'ZSTRONG_12OH_ZKH94','RADIUS','REFERENCE']), /no_head
+
+; --------------------------------------------------
+; now generate the abundance gradient plots
+; --------------------------------------------------
+
+       psname = strlowcase(galaxy[k])+'_gradient'
+       im_openclose, talkpath+psname, postscript=postscript, xsize=8.5, ysize=7.3, encapsulated=encapsulated
+
+       polyfill, [1,1,0,0,1], [1,0,0,1,1], /normal, color=djs_icolor('black')
+
+       pagemaker, nx=1, ny=1, xspace=0, yspace=0.0, width=6.6, height=6.6, $
+         xmargin=[1.5,0.4], ymargin=[0.3,1.1], xpage=8.5, ypage=8.0, $
+         position=pos, /normal
+
+       xrange = [-0.09,(xmax*1.1)>1.0]
+       yrange = ohrange6
+
+       xtitle = textoidl('R / R_{25}')
+       ytitle = '12 + log (O/H)'
+       
+       plot, [0], [0], /nodata, xthick=postthick, ythick=postthick, charsize=singlecharsize, $
+         charthick=postthick, thick=postthick, xtitle=xtitle, ytitle=ytitle, $
+         xstyle=3, ystyle=1, xrange=xrange, yrange=yrange, position=pos[*,0], $
+         /noerase, color=djs_icolor(talkcolor)
+
+; plot the HII regions and the gradient - R23
+
+       plotsym, 8, psize2, /fill, color=djs_icolor(talkcolor)
+       oplot, rr25, hiigalaxy.zstrong_12oh_zkh94, ps=8
+;      oploterror, rr25, hiispiral.zstrong_o32, hiispiral.zstrong_o32_err, ps=8, errthick=postthick
+       
+       if (ndonotfit ne 0L) then begin
+          good = where(hiigalaxy_donotfit.zstrong_12oh_zkh94 -900.0,ngood)
+          if (ngood ne 0L) then begin
+             if (ngood eq 1L) then $
+               plots, rr25_donotfit[good], hiigalaxy_donotfit[good].zstrong_12oh_zkh94, $
+                 psym=7, syms=1.5, thick=postthick2, color=djs_icolor(talkcolor) else $
+               oplot, rr25_donotfit[good], hiigalaxy_donotfit[good].zstrong_12oh_zkh94, $
+                 psym=7, syms=1.5, thick=postthick2, color=djs_icolor(talkcolor)
+          endif
+       endif
+
+       gmatch = where(galaxy[k] eq strtrim(gradient.galaxy,2),ngmatch)
+;      gmatch = where(strtrim(gradient.galaxy,2) eq galaxy[k],ngmatch)
+       if (ngmatch ne 0L) then djs_oplot, gradient[gmatch].rr25axis, $
+         gradient[gmatch].ohgradient, line=0, thick=postthick, $
+         color=djs_icolor(talkcolor)
+
+       legend, nicegalaxy[k], /right, /top, box=0, charsize=singlecharsize, charthick=postthick, $
+         textcolor=djs_icolor(talkcolor)
+
+       good = where(int_dust[k].zstrong_12oh_zkh94 gt -900,ngood)
+       if (ngood ne 0L) then begin
+
+          if (ngmatch ne 0L) then begin
+
+; plot the integrated points - R23
+          
+;            plotsym, 8, psize2*1.1, fill=0, thick=postthick4
+;            plots, rr25_int, gradient[gmatch].oh_int_ew, ps=8, color=djs_icolor('green')
+
+             plotsym, 0, psize2*1.5, fill=0, thick=postthick4
+             plots, rr25_int, gradient[gmatch].oh_int_dust, ps=8, color=djs_icolor('red')
+
+             plotsym, 0, psize2*1.3, /fill, thick=postthick4
+             plots, rr25_int, gradient[gmatch].oh_int_nodust, ps=8, color=djs_icolor('blue')
+             
+; overplot the error in the integrated, reddening-corrected
+; measurement in the lower-right corner
+
+;            oplot_errorbar, 0.0, gradient[gmatch].oh_int_dust_err, postthick=postthick
+             oplot_errorbar, 0.0, sqrt(gradient[gmatch].oh_int_dust_err^2+0.1^2), $
+               postthick=postthick, color=djs_icolor(talkcolor)
+          
+          endif
+
+       endif
+
+       im_openclose, postscript=postscript, /close
+
+    endfor
+
+; ---------------------------------------------------------------------------
+; 12+log(O/H) [Characteristic] versus 12+log(O/H) [Integrated] - R23
+; ---------------------------------------------------------------------------
+
+    psname = 'int_12oh_vs_char_12oh'
+    im_openclose, talkpath+psname, postscript=postscript, xsize=8.5, ysize=8.2, encapsulated=encapsulated
+
+    polyfill, [1,1,0,0,1], [1,0,0,1,1], /normal, color=djs_icolor('black')
+
+    pagemaker, nx=1, ny=1, xspace=0, yspace=0.0, width=6.7, height=6.7, $
+      xmargin=[1.4,0.4], ymargin=[0.4,1.1], xpage=8.5, ypage=8.2, $
+      position=pos, /normal
+
+    xtitle = '12 + log (O/H) at 0.4 R_{25}'
+    ytitle = '12 + log (O/H) Integrated'
+
+    xrange = ohrange8
+    yrange = xrange
+
+    plot, [0], [0], /nodata, xthick=postthick, ythick=postthick, $
+      charsize=singlecharsize, charthick=postthick, thick=postthick, $
+      xtitle=textoidl(xtitle), ytitle=textoidl(ytitle), xstyle=3, $
+      ystyle=3, xrange=xrange, yrange=yrange, $
+      position=pos[*,0], /normal, /noerase, color=djs_icolor(talkcolor)
+    djs_oplot, !x.crange, !y.crange, line=0, thick=postthick4, color=djs_icolor(talkcolor)
+
+; distinguish the reddening-corrected metallicities and the EW
+; metallicities 
+    
+    good = where((gradient.oh_int_dust gt -900.0),ngood)
+
+    im_symbols, 108, psize=psize2, fill=1, color=djs_icolor('cyan')
+    oplot, gradient[good].oh_char, gradient[good].oh_int_nodust, ps=8
+
+    im_symbols, 108, psize=psize2, fill=0, thick=postthick4, color=djs_icolor('red')
+    oplot, gradient[good].oh_char, gradient[good].oh_int_dust, ps=8
+
+;   im_symbols, 106, psize=psize2, fill=0, thick=postthick4, color=djs_icolor('green')
+;   oplot, gradient[good].oh_char, gradient[good].oh_int_ew, ps=8
+
+;   niceprint, gradient[good].oh_char, gradient[good].oh_int_dust, gradient[good].oh_int_nodust, gradient[good].oh_int_ew
+
+; overplot the KKP99 data
+
+    im_symbols, 105, psize=psize4, fill=1, thick=postthick2, color=djs_icolor('yellow')
+    djs_oplot, kkp.oh12_char, kkp.oh12_global, ps=8, color='yellow'
+    
+;   legend, '(a)', /left, /top, box=0, charsize=charsize_3, charthick=postthick
+
+; legend
+
+    label = ['Integrated, Observed','Integrated, Corrected','Kobulnicky et al. (1999)']
+    psym = [108,108,105]
+    fill = [0,1,1]
+    color = ['red','cyan','yellow']
+
+;   label = ['Integrated, Observed','Integrated, Corrected','Integrated, EW-Derived',$
+;     'Kobulnicky et al. (1999)']
+;   psym = [108,108,106,105]
+;   fill = [0,1,0,1]
+;   color = ['red','cyan','green','yellow']
+
+    postthick1 = postthick2
+    im_legend, textoidl(label), /left, /top, box=0, charsize=charsize_5, $
+      charthick=postthick, psym=psym, fill=fill, symsize=1.2, color=color, $
+      spacing=1.5, thick=postthick4, textcolor=djs_icolor(talkcolor)
+    
+    im_openclose, postscript=postscript, /close
+
+stop
+    
+return
+end

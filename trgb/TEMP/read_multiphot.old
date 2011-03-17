@@ -1,0 +1,94 @@
+pro read_multiphot
+;+
+; NAME:
+;	READ_MULTIPHOT
+; PURPOSE:
+;	Read the photometry file from multiphot and create an
+;	objname_starlist.dat file (also see trgb_hst_combine_starlists.pro).
+; INPUTS:
+;	None.
+; KEYWORD PARAMETERS:
+;	None.
+; OUTPUTS:
+;	Creates a file called objname_starlist.dat in the current directory.
+; COMMON BLOCKS:
+;	None.
+; RESTRICTIONS:
+;	Right now the code assumes there are only 2 I-band images and,
+;	where there's color, 2 V-band images.
+; MODIFICATION HISTORY:
+;	John Moustakas, 2000 June 29, UCB
+;-
+
+	path = '/deepscr1/ioannis/trgb/'
+;       gals = rdtxt(path+'galaxy_list')
+        gals = 'ngc2683'
+        ngals = n_elements(gals)
+
+        obj_vdata = ['UGC03476','UGC03755','IC342'] ; HST objects with color
+
+        for k = 0L, ngals-1L do begin
+            
+            objname = gals[k]
+            print, 'Galaxy '+strn(objname)+'.'
+            
+            check = where(strupcase(obj_vdata) eq strupcase(objname),count)
+            if count gt 0L then ncol = 55 else ncol = 31
+
+            readfast, path+objname+'/'+objname+'_multi.dat', data, ncols=ncol, skip=0
+            ntot = n_elements(data[0,*])
+
+            if count gt 0L then begin
+
+; make a reasonable cut: chi < 2.0, -0.3 < sharp < 0.3, object < 3, mag < 50.
+
+            good = where((data[3,*] lt 2.0) and (data[5,*] gt -0.2) and $
+                         (data[5,*] lt 0.2) and (data[6,*] lt 2) and $
+                         (data[18,*] lt 30.) and (data[10,*] lt 30.),nstars)
+
+                starlist = fltarr(7,nstars)	; add ID numbers afterwards
+
+                starlist[0,*] = data[1,good]   ; x-center
+                starlist[1,*] = data[2,good]   ; y-center
+                starlist[2,*] = data[18,good]  ; I magnitude (transformed)
+                starlist[3,*] = data[19,good]  ; I error
+                starlist[4,*] = data[10,good]  ; V magnitude (transformed)
+                starlist[5,*] = data[11,good]  ; V error
+                starlist[6,*] = data[10,good]-data[18,good] ; V-I color
+            
+            endif else begin	; if there's no V data, calibrate the I data
+
+; make a reasonable cut: chi < 2.0, -0.3 < sharp < 0.3, object < 3, mag < 50. 
+
+                good = where((data[3,*] lt 5.) and (data[5,*] gt -0.5) and $
+                             (data[5,*] lt 0.5) and (data[6,*] lt 3) and $
+                             (data[9,*] lt 90.),nstars)
+
+                imag = data[9,good] 			 ; instrumental magnitude
+                itrue = imag - 0.063*1.42 + 0.025*1.42^2 ; (V-I)_TRGB = 1.42
+
+                starlist = fltarr(4,nstars)
+
+                starlist[0,*] = data[1,good]  ; x-center
+                starlist[1,*] = data[2,good]  ; y-center
+                starlist[2,*] = itrue  	      ; I magnitude (transformed)
+                starlist[3,*] = data[11,good] ; I error
+
+            endelse
+
+            id = long(findgen(nstars)) 		; sequential ID numbers
+            
+            openw, lun1, path+objname+'/'+objname+'_starlist.dat', /get_lun
+
+            if count gt 0L then $
+              printf, lun1, '#  ID   Xcenter   Ycenter    I       Ierr      V       Verr     V-I' else $
+              printf, lun1, '#  ID   Xcenter   Ycenter    I       Ierr'
+            printf, lun1, ' '
+            for j = 0L, nstars-1L do $
+              printf, lun1, id[j], starlist[*,j], format = '(1x,I5,7F9.3)'
+            free_lun, lun1
+
+        endfor
+
+return
+end

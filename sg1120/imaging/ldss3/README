@@ -1,0 +1,11 @@
+# put the data into a useful format and reduce
+unpack_ldss3, /unpack
+ldss3_redux, /preproc, /ccdproc
+
+# build the mosaics and derive the photometric zeropoints using the SDSS 
+ldss3_mosaics, /update_headers, /sex, /scamp, /swarp, /jpeg
+ldss3_calibrate
+
+# build catalogs
+ldss3_catalogs, /make_flag, /sex, /clean_catalogs, zmatch=zmatch
+

@@ -1,0 +1,36 @@
+Here are the steps for fitting all the spectra in AGES:
+
+[0] BUILD_AGES_PPXF_TEMPLATES - build the template set; additional
+support routines: ages_ppxf_velscale; ages_ppxf_instvdisp;
+ages_pixel_size
+
+[1] AGES_GET_ZABS_VDISP - Get reliable estimates of the
+absorption-line redshift and velocity dispersion using PPXF.  This
+routine sets the final sample that is fitted, namely, objects with
+GSHORT>0 and 0.001<z<1.
+
+[2] AGES_PPXF_PRETWEAK - Take the output from AGES_GET_ZABS_VDISP and
+fit each plate/spectrum over a restricted wavelength range that avoids
+the red leak and the fluxing problems in the blue for certain plates.  
+
+[3] AGES_PPXF_SPECPHOT_TWEAK - Take the output from AGES_PPXF_PRETWEAK
+and derive the average spectrophotometric correction curve for each
+plate (see also AGES_CHOOSE_SPECPHOT_TWEAK).
+  
+[4] AGES_GANDALF_SPECFIT - Take the output from AGES_GET_ZABS_VDISP
+and AGES_PPXF_SPECPHOT_TWEAK and derive the final absorption- and
+emission-line fits. 
+
+[5] AGES_GANDALF_SPECFIT, /BROAD - Fit the subset of broad-line AGN.
+
+[6] PARSE_AGES_GANDALF_SPECFIT - Parse the output from
+AGES_GANDALF_SPECFIT and write out the final data and spectrum
+structures.
+
+[7] AGES_MERGE_GANDALF_SPECFIT - Take the output from
+PARSE_AGES_GANDALF_SPECFIT and write out one uber-structure
+
+Ancillary routines:
+
+* QAPLOT_GANDALF_SPECFIT - build a QAplot for a whole plate
+* QAPLOT_AGES_GANDALF_SPECFIT - build a QAplot for specific objects

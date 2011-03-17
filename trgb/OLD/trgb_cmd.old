@@ -1,0 +1,45 @@
+; jm00apr16ucb
+
+pro trgb_cmd, objname, data, postscript=postscript, hst=hst
+
+        !x.ticklen=0.03
+        p_thick = !p.thick & chars = !p.charsize & charth = !p.charthick 
+        xth = !x.thick & yth = !y.thick
+        !p.thick = 2 & !p.charsize=1.5 & !p.charthick=1.5 & !x.thick=1.5 & !y.thick=1.5
+
+;	on_error, 2	; return to user
+        npar = n_params()
+
+        if keyword_set(hst) then read_data, objname+'_starlist.dat', data, ncol=8 else $
+          read_data, objname+'_IVmags.dat', data, ncol=8
+;       if npar eq 1 then read_data, objname+'_IVmags.dat', data, ncol=8
+
+        spawn, ['pwd'], datapath
+        datapath = datapath[0]
+
+        color = data[*,7]
+        imags = data[*,3]
+
+        nr = n_elements(imags)
+
+        if keyword_set(postscript) then begin
+            ps_open, datapath+'/'+objname+'_cmd', /ps_fonts;, /encapsulated
+            device, /inches, /times
+;           device, xsize=10.5, ysize=8, yoffset=10.5, xoffset=0, /inches, /times
+        endif else window, 0, xs=450, ys=450
+        
+        pos = aspect(1.,margin=0.1)
+
+        plot, color, imags, yrange=[max(imags),min(imags)], ps=3, $
+          xsty=3, ysty=3, xtit='V-I', ytit='I', tit=strupcase(objname)+' Color-Magnitude Diagram', $
+          xr=[-1,4], position=pos
+        xyouts, [0.61,0.61], [0.83,0.83], strn(nr)+' Stars', /normal
+        
+        if keyword_set(postscript) then ps_close
+
+        !x.ticklen=0
+        !p.thick = p_thick & !p.charsize=chars & !p.charthick=charth
+        !x.thick = xth & !y.thick=yth
+
+return
+end

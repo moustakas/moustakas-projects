@@ -1,0 +1,20 @@
+pro integrated_abundances_read, atlasdust_spiral=atlasdust_spiral, $
+      atlasnodust_spiral=atlasnodust_spiral, atlasdust_dwarf=atlasdust_dwarf, $
+      atlasnodust_dwarf=atlasnodust_dwarf
+; jm05may20uofa
+
+    datapath = atlas_path(/projects)+'abundances/'
+
+    if (n_elements(atlasdust_spiral) eq 0L) and arg_present(atlasnodust_spiral) then $
+      atlasdust_spiral = mrdfits(datapath+'atlas_spiral_abundances_dust.fits.gz',1,/silent)
+    if (n_elements(atlasnodust_spiral) eq 0L) and arg_present(atlasnodust_spiral) then $
+      atlasnodust_spiral = mrdfits(datapath+'atlas_spiral_abundances_nodust.fits.gz',1,/silent)
+    
+    if (n_elements(atlasdust_dwarf) eq 0L) and arg_present(atlasdust_dwarf) then $
+      atlasdust_dwarf = mrdfits(datapath+'atlas_dwarf_abundances_dust.fits.gz',1,/silent)
+    if (n_elements(atlasnodust_dwarf) eq 0L) and arg_present(atlasnodust_dwarf) then $
+      atlasnodust_dwarf = mrdfits(datapath+'atlas_dwarf_abundances_nodust.fits.gz',1,/silent)
+    
+return
+end
+    

@@ -1,0 +1,248 @@
+;+
+; NAME:
+;       DEEP2_KCORRECT_ALL
+;
+; PURPOSE:
+;       Derive k-corrections for DEEP2.
+;
+; KEYWORD PARAMETERS:
+;
+; COMMENTS:
+;
+; MODIFICATION HISTORY:
+;       J. Moustakas, 2007 Sep 28, NYU - based on AGES_KCORRECT_ALL 
+;-
+
+pro deep2_kcorrect_all, zcat, result, band_shift=band_shift, write=write
+
+; define the cosmology and some constants
+
+    if (n_elements(band_shift) eq 0L) then band_shift = 0.0
+
+    red, h100=0.7, omega0=0.3, omega_lambda=0.7
+    h100 = redh100()
+
+    imf_chabrier_to_salpeter = +0.25 ; 0.177
+    imf_dietsalpeter_to_salpeter = +0.15
+
+    vname = 'default.nolines'   ; NOTE!
+
+; read the DEEP2 redshift catalog; THIS SHOULD MATCH DEEP2_SPECFIT!! 
+
+    dr = 'dr3'
+    analysis_path = deep2_path(/analysis)
+
+    if (n_elements(zcat) eq 0L) then zcat = read_deep2_zcat(/good,dr=dr) 
+    ngalaxy = n_elements(zcat)
+
+; define the rest-frame filters of interest
+
+    splog, 'Loading rest-frame filters of interest:'
+    restfilters = ['galex_NUV','bessell_'+['U','B','V','R'],'sdss_'+['u0','g0','r0']]+'.par'
+    restbandpasses = ['galex_nuv','U','B','V','R','sdss_u','sdss_g','sdss_r']
+    restvega = [0,1,1,1,1,0,0]
+    nrestfilter = n_elements(restfilters)
+
+    restvega2ab = k_vega2ab(filterlist=restfilters,/kurucz)
+    notvega = where((restvega eq 0L),nnotvega)
+    if (nnotvega ne 0L) then restvega2ab[notvega] = 0.0
+
+; define the filters for which we have observed-frame photometry
+
+    splog, 'Defining filter functions with observed photometry:'
+    obsfilters = ['deep_'+['B','R','I']]+'.par'
+    nobsfilter = n_elements(obsfilters)
+
+; convert the observed photometry to maggies and store
+
+    splog, 'Converting observed photometry to maggies.'
+    deep_to_maggies, zcat, obsmaggies, obsmaggies_ivar
+
+    mobs_ab = obsmaggies*0.0
+    mobs_ab_ivar = obsmaggies*0.0
+    
+    good = where(finite(obsmaggies) and (obsmaggies_ivar gt 0.0),$
+      ngood,comp=bad,ncomp=nbad)
+    if (ngood ne 0L) then begin
+       mobs_ab[good] = -2.5*alog10(obsmaggies[good])
+       mobs_ab_ivar[good] = (0.4*alog(10.0)*obsmaggies[good]*sqrt(obsmaggies_ivar[good]))^2.0
+    endif
+    if (nbad ne 0L) then begin
+       obsmaggies[bad] = 0.0
+       obsmaggies_ivar[bad] = 1D-32
+       mobs_ab[bad] = -999.0
+       mobs_ab_ivar[bad] = -999.0
+    endif
+
+; compute k-corrections
+
+    splog, 'Fitting k-correct templates.'
+    t0 = systime(1)
+    kcorrect, obsmaggies, obsmaggies_ivar, zcat.z, first_kcorrect, $
+      band_shift=band_shift, filterlist=obsfilters, filterpath=filters_path, $
+      rmatrix=rmatrix, zvals=zvals, lambda=lambda, vmatrix=vmatrix, $
+      coeffs=coeffs, rmaggies=obsmaggies_synth, chi2=chi2, maxiter=maxiter, omega0=omega0, $
+      omegal0=omegal, mass=mass, intsfh=intsfh, mets=mets, b300=b300, $
+      b1000=b1000, mtol=mtol, vname=vname, /silent
+    splog, 'Total time = '+string((systime(1)-t0)/60.0,format='(G0.0)')+' minutes.'
+    
+; additional structure tags    
+    
+    result_template = {$
+      galaxy:                                     '', $
+      zcatindx:                                   0L, $
+      z:                                      -999.0, $
+      kcorr_mass:                             -999.0, $
+      kcorr_mets:                             -999.0, $
+      kcorr_intsfh:                           -999.0, $
+      kcorr_coeffs:                        fltarr(5), $ ; eigentemplate coefficients
+      kcorr_chi2:                             -999.0, $ ; reduced chi2
+      kcorr_kcorr:         fltarr(nrestfilter)-999.0, $ ; k-correction
+      kcorr_mobs_ab:        fltarr(nobsfilter)-999.0, $ ; "actual observed photometry"
+      kcorr_mobs_ab_ivar:         fltarr(nobsfilter), $ ; inverse variance in MOBS_AB (=0 if synthesized)
+      kcorr_mobs_ab_synth:        fltarr(nobsfilter), $ ; "synthesized observed photometry"
+      kcorr_mrest:         fltarr(nrestfilter)-999.0, $ ; k-corrected, rest frame
+      kcorr_mrest_ivar:          fltarr(nrestfilter), $ ; inverse variance in KCORR_MREST (=0 if synthesized)
+      ml_br_r:                                -999.0, $
+      mass_br_r:                              -999.0, $
+      ml_sdss_gr_r:                           -999.0, $
+      mass_sdss_gr_r:                         -999.0, $
+      cflux_3727:                             -999.0, $
+      cflux_4861:                             -999.0, $
+      cflux_4959:                             -999.0, $
+      cflux_5007:                             -999.0}
+
+    for i = 0L, nrestfilter-1L do result_template = create_struct(result_template,$
+      'M_'+restbandpasses[i],-999.0,'M_'+restbandpasses[i]+'_ivar',0.0)
+    result = replicate(result_template,ngalaxy)
+
+    result.galaxy   = zcat.galaxy
+    result.zcatindx = zcat.zcatindx
+    result.z        = zcat.z
+
+; store the mass-fitting results; convert the stellar mass to the
+; Salpeter IMF and to h=0.7
+
+    good = where((mass gt 0.0) and finite(mass),ngood)
+    if (ngood ne 0L) then begin
+       result[good].kcorr_mass   = alog10(mass[good]) - alog10(h100) + imf_chabrier_to_salpeter
+       result[good].kcorr_mets   = mets[good]
+       result[good].kcorr_intsfh = alog10(intsfh[good])
+       result[good].kcorr_coeffs = coeffs[*,good]
+       result[good].kcorr_chi2   = chi2[good]
+    endif
+
+    result.kcorr_mobs_ab       = mobs_ab
+    result.kcorr_mobs_ab_ivar  = mobs_ab_ivar
+    result.kcorr_mobs_ab_synth = -2.5*alog10(obsmaggies_synth)
+
+; now compute k-corrections    
+    
+    splog, 'Computing k-corrections.'
+
+; find the bandpass that minimizes the k-correction       
+    
+    obands = lindgen(nrestfilter) # replicate(1L,ngalaxy) ; index array
+    lambda_in = k_lambda_eff(filterlist=obsfilters)
+    lambda_out = k_lambda_eff(filterlist=restfilters,band_shift=band_shift)
+
+    for i = 0L, ngalaxy-1L do begin
+       for j = 0L, nrestfilter-1L do begin
+          dmin = min(abs(lambda_in/(1.0+zcat[i].z)-lambda_out[j]),imin)
+          obands[j,i]= imin
+       endfor
+    endfor
+
+; compute the k-corrections
+
+    k_load_vmatrix, vmatrix, lambda, vname=vname
+
+    k_projection_table, rmatrix, vmatrix, lambda, zvals, restfilters, $ 
+      zmin=zmin, zmax=zmax, nz=nz, filterpath=filters_path, /silent
+    k_reconstruct_maggies, coeffs, replicate(band_shift,ngalaxy), $
+      restmaggies_synth, rmatrix=rmatrix, zvals=zvals
+    restmaggies_synth = restmaggies_synth/(1.0+band_shift) ; rest-frame, synthesized maggies
+
+    restwave = k_lambda_to_centers(lambda)
+    for ii = 0L, ngalaxy-1L do begin
+       result[ii].cflux_3727 = interpol(reform(vmatrix#coeffs[*,ii]),restwave,3727.0) ; [erg/s/cm2/A]
+       result[ii].cflux_4861 = interpol(reform(vmatrix#coeffs[*,ii]),restwave,4861.0)
+       result[ii].cflux_4959 = interpol(reform(vmatrix#coeffs[*,ii]),restwave,4959.0)
+       result[ii].cflux_5007 = interpol(reform(vmatrix#coeffs[*,ii]),restwave,5007.0)
+    endfor
+
+    k_projection_table, rmatrix, vmatrix, lambda, zvals, obsfilters, $ 
+      zmin=zmin, zmax=zmax, nz=nz, filterpath=filters_path, /silent
+    k_reconstruct_maggies, coeffs, zcat.z, $ ; should be the same as RMAGGIES
+      obsmaggies_synth, rmatrix=rmatrix, zvals=zvals
+
+    for i = 0L, ngalaxy-1L do for j = 0L, nrestfilter-1L do $
+      result[i].kcorr_kcorr[j] = 2.5*alog10(restmaggies_synth[j,i]/obsmaggies_synth[obands[j,i],i])
+;   plot, result.kcorr_kcorr[0], sdsskcorrect.ubvri_kcorrect[0,*], ps=3
+
+; now calculate rest-frame magnitudes using the observed photometry
+; when available, otherwise the synthesized photometry; if the
+; synthesized photometry is used then the inverse variance is zero 
+
+    result.kcorr_mrest = -2.5*alog10(restmaggies_synth) - rebin(restvega2ab,nrestfilter,ngalaxy)
+
+    for j = 0L, ngalaxy-1L do begin
+       good = where((obsmaggies_ivar[obands[*,j],j] gt 0.0) and (obsmaggies[obands[*,j],j] gt 0.0),ngood)
+       if (ngood ne 0L) then begin
+          result[j].kcorr_mrest[good] = -2.5*alog10(obsmaggies[obands[good,j],j]) - result[j].kcorr_kcorr[good] - restvega2ab[good]
+          result[j].kcorr_mrest_ivar[good] = obsmaggies[obands[good,j],j]^2.0*obsmaggies_ivar[obands[good,j],j]*(0.4*alog(10.0))^2.0
+       endif
+    endfor
+
+; compute absolute magnitudes       
+
+    for iband = 0L, nrestfilter-1L do begin
+       true = tag_exist(result,'M_'+restbandpasses[iband],index=bandindx)
+       result.(bandindx) = result.kcorr_mrest[iband] - lf_distmod(zcat.z,$ ; h=1 --> h=0.7
+         omega0=omega0,omegal0=omegal0) + 5.0*alog10(h100) 
+       true = tag_exist(result,'M_'+restbandpasses[iband]+'_ivar',index=bandindx)
+       result.(bandindx) = result.kcorr_mrest_ivar[iband]
+    endfor
+
+; compute stellar masses according to Bell & de Jong; need to adopt
+; the solar magnitudes in the Bell & de Jong paper!
+
+    bell01 = read_01bell()
+    bell03 = read_03bell()
+    bell03_johnson = read_03bell(/johnson)
+
+    absmsun_r = 4.46            ; k_solar_magnitudes(filterlist='bessell_R.par')
+    absmsun_sdss_r = 4.67       ; k_solar_magnitudes(filterlist='sdss_r0.par')
+
+    if (tag_exist(result,'M_B') and tag_exist(result,'M_R')) then begin
+       good = where((result.M_B gt -900.0) and (result.M_R gt -900.0),ngood)
+       if (ngood ne 0L) then begin
+          coeff = [bell03_johnson[1].ar,bell03_johnson[1].br]
+;         coeff = [bell01[1].ar,bell01[1].br]
+          color = (result[good].M_B-result[good].M_R)
+          result[good].ml_br_r = coeff[0] + coeff[1]*color + imf_dietsalpeter_to_salpeter
+          result[good].mass_br_r = result[good].ml_br_r + (-0.4*(result[good].M_R-absmsun_r))
+       endif
+    endif
+    
+    if (tag_exist(result,'M_SDSS_G') and tag_exist(result,'M_SDSS_R')) then begin
+       good = where((result.M_sdss_g gt -900.0) and (result.M_sdss_r gt -900.0),ngood)
+       if (ngood ne 0L) then begin
+          coeff = [bell03[4].ar,bell03[4].br]
+          color = (result[good].M_sdss_g-result[good].M_sdss_r)
+          result[good].ml_sdss_gr_r = coeff[0] + coeff[1]*color + imf_dietsalpeter_to_salpeter
+          result[good].mass_sdss_gr_r = result[good].ml_sdss_gr_r + (-0.4*(result[good].M_sdss_r-absmsun_sdss_r))
+       endif
+    endif
+
+; write out
+
+    if keyword_set(write) then begin
+       splog, 'Writing '+analysis_path+'deep2.'+dr+'.kcorr.fits.gz'
+       mwrfits, result, analysis_path+'deep2.'+dr+'.kcorr.fits', /create
+       spawn, 'gzip -f '+analysis_path+'deep2.'+dr+'.kcorr.fits', /sh
+    endif
+    
+return
+end
+

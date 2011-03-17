@@ -1,0 +1,166 @@
+; ---------------------------------------------------------------------------
+; do some extractions
+; ---------------------------------------------------------------------------
+    
+    datapath = '/home/ioannis/06mar/'
+    outpath = '/home/ioannis/06mar/extracted/'
+    wfits = 1L
+
+; --------------------------------------------------
+; HII regions    
+; --------------------------------------------------
+    
+;;; NGC4321/P39
+;;    ispec, 'fwscra.0941_2.fits', /deredden, refrow=50, sbox=10, aperture=10.0, $
+;;      /meanprofile, tracespec=1, traceorder=1, $
+;;      datapath=datapath, outpath=outpath, noplot=noplot, wfits=wfits, /nobadmask, /noskymask, telluric=telluric
+;;    
+;;; NGC4321/P44
+;;    ispec, 'fwscra.0943_2.fits', /deredden, refrow=68, aperture=12.0, $
+;;      /meanprofile, tracespec=1, traceorder=1, $
+;;      datapath=datapath, outpath=outpath, noplot=noplot, wfits=wfits, /nobadmask, /noskymask, telluric=telluric
+
+; NGC2403/HK65 + something 
+    ispec, 'fwscra.1008_2.fits', /deredden, refrow=65, sbox=10, aperture=10.0, $
+      /meanprofile, tracespec=1, traceorder=1, $
+      datapath=datapath, outpath=outpath, noplot=noplot, wfits=wfits, /nobadmask, /noskymask, telluric=telluric, $
+      outname='ngc2403_hk65', redshift=0.000437, galaxy='NGC2403';/HK65'
+
+; NGC2403/HK361
+    ispec, 'fwscra.1010_2.fits', /deredden, refrow=65, sbox=10, aperture=10.0, $
+      /meanprofile, tracespec=1, traceorder=1, $
+      datapath=datapath, outpath=outpath, noplot=noplot, wfits=wfits, /nobadmask, /noskymask, telluric=telluric, $
+      outname='ngc2403_hk361', redshift=0.000437, galaxy='NGC2403';/HK542'
+
+; NGC2403/HK270 - funny looking; clouds; maybe don't combine
+;                 sequential images
+    ispec, 'fwscra.1012_2.fits', /deredden, refrow=65, sbox=10, aperture=10.0, $
+      /meanprofile, tracespec=1, traceorder=1, $
+      datapath=datapath, outpath=outpath, noplot=noplot, wfits=wfits, /nobadmask, /noskymask, telluric=telluric, $
+      outname='ngc2403_hk270', redshift=0.000437, galaxy='NGC2403';/HK270'
+
+; NGC2403/HK128
+    ispec, 'fwscra.1014_2.fits', /deredden, refrow=65, sbox=10, aperture=10.0, $
+      /meanprofile, tracespec=1, traceorder=1, $
+      datapath=datapath, outpath=outpath, noplot=noplot, wfits=wfits, /nobadmask, /noskymask, telluric=telluric, $
+      outname='ngc2403_hk128', redshift=0.000437, galaxy='NGC2403';/HK128'
+
+; NGC2403/HK542
+    ispec, 'fwscra.1016_2.fits', /deredden, refrow=65, sbox=10, aperture=10.0, $
+      /meanprofile, tracespec=1, traceorder=1, $
+      datapath=datapath, outpath=outpath, noplot=noplot, wfits=wfits, /nobadmask, /noskymask, telluric=telluric, $
+      outname='ngc2403_hk542', redshift=0.000437, galaxy='NGC2403';/HK542'
+
+; NGC2403/VS9
+    ispec, 'fwscra.1018_2.fits', /deredden, refrow=65, sbox=10, aperture=10.0, $
+      /meanprofile, tracespec=1, traceorder=1, $
+      datapath=datapath, outpath=outpath, noplot=noplot, wfits=wfits, /nobadmask, /noskymask, telluric=telluric, $
+      outname='ngc2403_vs9', redshift=0.000437, galaxy='NGC2403';/VS9'
+
+; NGC3938/P51
+    ispec, 'fwscra.1023_2.fits', /deredden, refrow=65, sbox=10, aperture=10.0, $
+      /meanprofile, tracespec=1, traceorder=1, $
+      datapath=datapath, outpath=outpath, noplot=noplot, wfits=wfits, /nobadmask, /noskymask, telluric=telluric, $
+      outname='ngc3938_p51', redshift=0.002699, galaxy='NGC3938';/P51'
+
+; NGC3938/P59
+    ispec, 'fwscra.1023_2.fits', /deredden, refrow=80, sbox=5, aperture=10.0, $
+      /meanprofile, tracespec=1, traceorder=1, $
+      datapath=datapath, outpath=outpath, noplot=noplot, wfits=wfits, /nobadmask, /noskymask, telluric=telluric, $
+      outname='ngc3938_p59', redshift=0.002699, galaxy='NGC3938';/P59'
+
+; NGC3938/P27
+    ispec, 'fdwscra.1025_2.fits', /deredden, refrow=69.5, aperture=10.0, refwave=6576.1, $
+      tracespec=0, traceorder=1, $
+      datapath=datapath, outpath=outpath, noplot=noplot, wfits=wfits, /nobadmask, /noskymask, telluric=telluric, $
+      outname='ngc3938_p27', redshift=0.002699, galaxy='NGC3938';/P27'
+
+; NGC4254/P2
+    ispec, 'fdwscra.1028_2.fits', /deredden, refrow=70.5, aperture=10.0, refwave=6615.0, $
+      tracespec=0, traceorder=1, $
+      datapath=datapath, outpath=outpath, noplot=noplot, wfits=wfits, /nobadmask, /noskymask, telluric=telluric, $
+      outname='ngc4254_p2', redshift=0.008029, galaxy='NGC4254';/P2'
+
+; NGC4254/P8
+    ispec, 'fdwscra.1028_2.fits', /deredden, refrow=115, aperture=10.0, refwave=6615.0, $
+      tracespec=0, traceorder=1, $
+      datapath=datapath, outpath=outpath, noplot=noplot, wfits=wfits, /nobadmask, /noskymask, telluric=telluric, $
+      outname='ngc4254_p8', redshift=0.008029, galaxy='NGC4254';/P8'
+
+; NGC5055/H1/ARMUS
+    ispec, 'fwscra.1030_2.fits', /deredden, refrow=74, sbox=10, aperture=10.0, $
+      /meanprofile, tracespec=1, traceorder=1, $
+      datapath=datapath, outpath=outpath, noplot=noplot, wfits=1, /nobadmask, /noskymask, telluric=telluric, $
+      outname='ngc5055_armus', redshift=0.001681, galaxy='NGC5055';/H1/ARMUS'
+
+; NGC4631/P34
+    ispec, 'fwscra.1034_2.fits', /deredden, refrow=74, sbox=10, aperture=10.0, $
+      /meanprofile, tracespec=1, traceorder=1, $
+      datapath=datapath, outpath=outpath, noplot=noplot, wfits=1, /nobadmask, /noskymask, telluric=telluric, $
+      outname='ngc4631_p34', redshift=0.002021, galaxy='NGC4631';/P34'
+
+; NGC4631/P26
+    ispec, 'fwscra.1036_2.fits', /deredden, refrow=74, sbox=10, aperture=10.0, $
+      /meanprofile, tracespec=1, traceorder=1, $
+      datapath=datapath, outpath=outpath, noplot=noplot, wfits=wfits, /nobadmask, /noskymask, telluric=telluric, $
+      outname='ngc4631_p26', redshift=0.002021, galaxy='NGC4631';/P26'
+
+; NGC4631/P1
+    ispec, 'fwscra.1038_2.fits', /deredden, refrow=68, sbox=10, aperture=10.0, $
+      /meanprofile, tracespec=1, traceorder=1, $
+      datapath=datapath, outpath=outpath, noplot=noplot, wfits=1, /nobadmask, /noskymask, telluric=telluric, $
+      outname='ngc4631_p1', redshift=0.002021, galaxy='NGC4631';/P1'
+  
+;;; NGC5713/P?? - need to update header, not really P4
+;;    ispec, 'fwscra.1040_2.fits', /deredden, refrow=68, sbox=10, aperture=10.0, $
+;;      /meanprofile, tracespec=1, traceorder=1, $
+;;      datapath=datapath, outpath=outpath, noplot=noplot, wfits=1, /nobadmask, /noskymask, telluric=telluric, $
+;;      outname='ngc5713_p', galaxy='NGC5713/P??'
+    
+; NGC5713/P5
+    ispec, 'fdwscra.1042_2.fits', /deredden, refrow=67, aperture=10.0, $
+      tracespec=0, traceorder=1, $
+      datapath=datapath, outpath=outpath, noplot=noplot, wfits=1, /nobadmask, /noskymask, telluric=telluric, $
+      outname='ngc5713_p5', redshift=0.006334, galaxy='NGC5713';/P5'
+    
+; NGC5713/P4
+    ispec, 'fdwscra.1044_2.fits', /deredden, refrow=68, aperture=10.0, $
+      tracespec=0, traceorder=1, $
+      datapath=datapath, outpath=outpath, noplot=noplot, wfits=1, /nobadmask, /noskymask, telluric=telluric, $
+      outname='ngc5713_p4', redshift=0.006334, galaxy='NGC5713';/P4'
+
+stop
+    
+; --------------------------------------------------
+; sings stuff
+; --------------------------------------------------
+    
+; NGC3031/M81    
+    ispec, 'fswcra.0913_2_stitch.fits', /deredden, refrow=330, aperture=800.0, $
+      /meanprofile, tracespec=1, traceorder=1, $
+      /starfit, star_refrow=240, debug=debug, $
+      datapath=datapath, outpath=outpath, noplot=noplot, wfits=wfits, /nobadmask, /noskymask, telluric=telluric
+
+; NGC4631
+    ispec, 'fswcra.0926_2_stitch.fits', /deredden, refrow=180, aperture=490.0, $
+      /meanprofile, tracespec=1, traceorder=1, $
+      datapath=datapath, outpath=outpath, noplot=noplot, wfits=wfits, /nobadmask, /noskymask, telluric=telluric
+
+; NGC4631 drift20
+    ispec, 'fwscra.0932_2.fits', /deredden, refrow=68, aperture=20.0, $
+      /meanprofile, tracespec=1, traceorder=1, $
+      datapath=datapath, outpath=outpath, noplot=noplot, wfits=wfits, /nobadmask, /noskymask, telluric=telluric
+
+; NGC5033
+    ispec, 'fwscra.0935_2.fits', /deredden, refrow=68, aperture=160.0, $
+      /meanprofile, tracespec=1, traceorder=1, $
+      /starfit, star_refrow=105, debug=debug, $
+      datapath=datapath, outpath=outpath, noplot=noplot, wfits=wfits, /nobadmask, /noskymask, telluric=telluric
+    
+; NGC5474
+    ispec, 'fwscra.0939_2.fits', /deredden, refrow=68, aperture=140.0, $
+      /meanprofile, tracespec=1, traceorder=1, $
+      datapath=datapath, outpath=outpath, noplot=noplot, wfits=wfits, /nobadmask, /noskymask, telluric=telluric
+
+; ---------------------------------------------------------------------------
+    

@@ -1,0 +1,58 @@
+J. Moustakas, NYU
+List of changes to the xidl and MIKE pipelines
+
+* MIKEOBJSTRCT__DEFINE - added "novar" and "nosig" tags; these tags
+  are used by X_ECHCOMBSPEC [09jan05]
+
+* MIKEFSPECSTRCT__DEFINE - added "novar" and "sky" tags to match
+  "ECHFSPECSTRCT__DEFINE"; the "novar" tag at least is used by
+  X_ECHCOMBSPEC [09jan05]
+
+* MIKE_ALLARC - Changed 'if not keyword_set(INDX)' to 'if
+  (n_elements(indx) eq 0L)' around line 142, which otherwise
+  (incorrectly) fails if 'INDX=0' [08jul08]
+
+* MIKE_SKYSUB - This is a clarification: If /STD is used, then the
+  code expects the **index number** of the standard star (within the
+  MIKE structure), rather than the **object ID number**, which is what
+  MIKE_PROC and MIKE_FNTOBJ expect.  This isn't catastrophic, but a
+  bit inconsistent. [08jul09]
+
+* MIKE_SKYSUB - On or around line 262, right before X_ECHSKYSUB is
+  called, QAFIL was not being defined, so the QA-plot was not being
+  generated.  Consequently, the following line was added: "qafil =
+  mike_getfil('qa_skysub', setup, SUBFIL=mike[thisone].img_root)".
+  Also, the /STD keyword is not needed when calling X_ECHSKYSUB
+  [08dec30]
+
+* MIKE_FLUX - added BOXCAR keyword (as in HIRES_FLUX); also added
+  error checking for when NPIX=0, which might occur if only individual
+  orders have been extracted [09jan05]
+
+* MIKE_COMBSPEC - added _EXTRA keyword, to be passed to X_ECHCOMBSPEC 
+
+* MIKE_1DSPEC needs a complete rewrite!! [09jan06]
+
+* X_EXTECHOPT - added NOCRMASK keyword; the cores of narrow emission
+  lines are occassionally flagged as cosmic rays with the simple
+  algorithm used boxcar extraction [09jan03]
+  
+* X_TEMPLARC - Around line 183 one should verify that there is at
+  least one good arc line; outside the FOR loop I added 'if (ngdlin ne
+  0L) then begin' (closing the loop around line 199) [08jun10] 
+
+
+##################################################
+Old notes - changes not actually made!
+
+* MIKE_SUBBIAS, MIKE_SUBBIAS_SNGL - To allow optional overscan
+  subtraction of science frames (right now only red arc lamps are not
+  overscan-subtracted), I added SKIPOV=SKIPOV as an optional keyword
+  to both routines; also, where 'X_SUBOSCAN' gets called (in both
+  routines) I changed 'SKIPOV=redarc' to 'SKIPOV=redarc or
+  keyword_set(skipov)' [08jul08]
+
+* MIKE_PROC, MIKE_PROC_SNGL - To support the previous change, added
+  SKIPOV=SKIPOV to both these routines, and also in the call to
+  MIKE_SUBBIAS_SNGL around line 116 in MIKE_PROC [08jul08]
+

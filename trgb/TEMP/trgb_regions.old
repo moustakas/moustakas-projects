@@ -1,0 +1,723 @@
+; -----------------------------------------------------------------------
+; This routine is very modularized.  The main code is trgb_regions below.
+; -----------------------------------------------------------------------
+
+pro regions_menu
+
+; create the widget base
+
+        base = widget_base(/column,/align_left,title='REGIONS')
+
+        button = widget_button(base,value='Circle',uvalue=1)
+        button = widget_button(base,value='Ellipse',uvalue=2)
+        button = widget_button(base,value='Rectangle',uvalue=3)
+        button = widget_button(base,value='Arbitrary',uvalue=4)
+        button = widget_button(base,value='Start Over',uvalue=5)
+        button = widget_button(base,value='TV Capture',uvalue=6)
+        button = widget_button(base,value='Write Photometry',uvalue=7)
+        button = widget_button(base,value='Done',uvalue=8)
+
+        widget_control, base, /realize
+        xmanager, 'regions_menu', base
+
+return
+end
+
+pro regions_menu_event, ev
+
+; realize the regions widget
+
+        widget_control, ev.id, get_uvalue = uvalue
+        
+        case uvalue of
+            1 : begin
+                plot_galaxy
+                regions_ellipse, /circle
+            end
+            2 : begin
+                plot_galaxy
+                regions_ellipse
+            end
+            3 : begin
+                plot_galaxy
+                regions_rectangle
+            end
+            4 : begin
+                plot_galaxy
+                regions_arbitrary
+            end
+            5 : begin
+                while !d.window ne -1L do wdelete, !d.window ; delete all windows
+                widget_control, ev.top, /destroy
+                plot_galaxy
+                regions_menu
+            end
+            6 : tv_capture
+            7 : writephot
+            8 : widget_control, ev.top, /destroy
+        endcase
+
+return
+end
+
+pro regions_ellipse, circle=circle
+
+; isolate stars in ellipse- and circular-shaped regions
+
+	common trgb, galaxy, haloindx, coreindx
+
+        objname = galaxy.object
+        xcenter = galaxy.xcenter
+        ycenter = galaxy.ycenter
+        axis = galaxy.axis
+        hst = galaxy.hst
+
+        mbutton = 0
+	if keyword_set(circle) then begin
+            epsilon = 0.	; eccentricity
+            angle = 0.		; orientation angle
+            print & print, 'Click on the center of the circle with the cursor: '
+            repeat begin
+                cursor, x_0, y_0, /down, /data ; grab the centroid coordinates
+                mbutton = !mouse.button
+            endrep until (mbutton eq 1L or mbutton eq 2L)
+            print & print, 'Now specify the radius with the cursor: '
+        endif else begin	; ellipse
+
+            read, epsilon, prompt = 'Enter the eccentricity: '
+
+            print, 'Click on the center of the ellipse with the cursor: '
+            repeat begin
+                cursor, x_0, y_0, /down, /data ; grab the centroid coordinates
+                mbutton = !mouse.button
+            endrep until (mbutton eq 1L or mbutton eq 2L)
+            print, 'Now specify the angle and length of the semi-major axis with the cursor: '
+        endelse
+            
+        repeat begin
+            cursor, xin, yin, /down, /data	; orientation and length of the semi-major axis, 
+            mbutton = !mouse.button		; or the circle radius
+        endrep until (mbutton eq 1L or mbutton eq 2L)
+        
+        angle = atan((yin-y_0)/(xin-x_0))	; orientation angle (radians)
+        major = sqrt((xin-x_0)^2 + (yin-y_0)^2) ; major axis
+        minor = major * sqrt(1-epsilon^2) 	; minor axis 
+        focus = sqrt(major^2 - minor^2)   	; focus
+
+        theta = findgen(360)*!dtor		
+        xy = [[major*cos(theta)],[minor*sin(theta)]] ; parameterized ellipse
+
+        if keyword_set(circle) then begin ; no need to rotate
+
+            xconic = xy[*,0] + x_0
+            yconic = xy[*,1] + y_0
+
+            xrot = (xcenter-x_0)
+            yrot = (ycenter-y_0)
+
+        endif else begin ; create the ellipse by rotating
+
+;           matrix = [[cos(angle),sin(angle)],[-sin(angle),cos(angle)]]
+
+;           conic = matrix##xy 		     ; rotate
+;           xyrot = matrix#[xcenter,ycenter] ; rotate the stellar coordinates
+
+            xconic = xy[*,0]*cos(angle) - xy[*,1]*sin(angle) + x_0
+            yconic = xy[*,0]*sin(angle) + xy[*,1]*cos(angle) + y_0
+
+            xrot =   (xcenter-x_0)*cos(angle) + (ycenter-y_0)*sin(angle)
+            yrot = - (xcenter-x_0)*sin(angle) + (ycenter-y_0)*cos(angle)
+
+        endelse
+
+        haloindx = where((xrot/major)^2 + (yrot/minor)^2 gt 1.,nhalo) ; stars within the region
+        coreindx = where((xrot/major)^2 + (yrot/minor)^2 le 1.,ncore) ; stars without the region
+
+; overplot the ellipse
+
+        if hst then ratio = 1. else ratio = float(axis[1]/axis[0]) ; axis ratio
+
+        oplot, xconic, yconic, color=5, thick=3
+;       polyfill, xconic, yconic, color=5, orientation=135, /line_fill
+;       oplot, xcenter[coreindx], ycenter[coreindx], ps=3, color=5
+
+; print up the coordinates and update the galaxy structure if desired
+
+        if keyword_set(hst) then $
+          infofile = '/deep1/ioannis/trgb/hst_object.dat' else $
+          infofile = '/deep1/ioannis/trgb/keck_object.dat'
+
+        info = sread(infofile)
+        indx = where(strupcase(info.object) eq strupcase(objname))
+
+        scrnsz = get_screen_size() ; user screen size
+        xsz = scrnsz[0]/3. & ysz = ratio*scrnsz[0]/3.
+        window, 1, xs=xsz/2., ys=ysz/3., xpos=scrnsz[0]-3.*xsz/2., ypos=scrnsz[1]-2.2*ysz/3., $
+          title='Region'
+
+        if keyword_set(circle) then begin
+
+            xyouts, [0.50,0.50], [0.85,0.85], 'Circle', /norm, alig=0.5, charthick=2., color=1
+            xyouts, [0.08,0.08], [0.7,0.7], 'Center: ('+strn(x_0,form='(F5.2)')+$
+              "',"+strn(y_0,form='(F5.2)')+"')", /norm, charthick=1.5, charsize=1.5, color=1
+            xyouts, [0.08,0.08], [0.55,0.55], 'Radius: '+strn(major,form='(F4.2)')+"'", $
+              /norm, charthick=1.5, charsize=1.5, color=1
+
+            info[indx].region.type = 'Circle'
+            info[indx].region.center = [x_0,y_0]
+            info[indx].region.radius = major
+            info[indx].region.major = 0.
+            info[indx].region.minor = 0.
+            info[indx].region.angle = 0.
+            info[indx].region.eccentricity = 0.
+            info[indx].region.ulxy = [0.,0.]
+            info[indx].region.lrxy = [0.,0.]
+            
+        endif else begin ; ellipse
+
+            xyouts, [0.50,0.50], [0.85,0.85], 'Ellipse', /norm, alig=0.5, charthick=2., color=1
+            xyouts, [0.08,0.08], [0.7,0.7], 'Center: ('+strn(x_0,form='(F5.2)')+$
+              "',"+strn(y_0,form='(F5.2)')+"')", /norm, charthick=1.5, charsize=1.5, color=1
+            xyouts, [0.08,0.08], [0.55,0.55], 'Major : '+strn(major,form='(F4.2)')+"'", $
+              /norm, charthick=1.5, charsize=1.5, color=1
+            xyouts, [0.08,0.08], [0.4,0.4], 'Minor : '+strn(minor,form='(F4.2)')+"'", $
+              /norm, charthick=1.5, charsize=1.5, color=1
+            xyouts, [0.08,0.08], [0.25,0.25], 'Angle : '+strn(angle*!radeg,form='(F5.1)')+' deg', $
+              /norm, charthick=1.5, charsize=1.5, color=1
+            xyouts, [0.08,0.08], [0.1,0.1], 'Eccentricity: '+strn(epsilon,form='(F5.3)'), $
+              /norm, charthick=1.5, charsize=1.5, color=1
+
+            info[indx].region.type = 'Ellipse'
+            info[indx].region.center = [x_0,y_0]
+            info[indx].region.radius = 0.
+            info[indx].region.major = major
+            info[indx].region.minor = minor
+            info[indx].region.angle = angle*!radeg
+            info[indx].region.eccentricity = epsilon
+            info[indx].region.ulxy = [0.,0.]
+            info[indx].region.lrxy = [0.,0.]
+
+        endelse
+        
+        generate_lfunction	; generate the new luminosity function
+
+        okay = 'N' & print
+        read, okay, prompt='Update the object information structure? (Y/[N])? '
+        if strupcase(okay) eq 'Y' then swrite, info, infofile
+
+        print & print, 'Select another option from the widget or click DONE to finish.' & print
+
+return
+end
+
+pro regions_rectangle
+
+; isolate stars in rectangular-shaped regions
+
+	common trgb, galaxy, haloindx, coreindx
+
+        objname = galaxy.object
+        xcenter = galaxy.xcenter
+	ycenter = galaxy.ycenter
+        axis = galaxy.axis
+        hst = galaxy.hst
+
+        if hst then ratio = 1. else ratio = float(axis[1]/axis[0]) ; axis ratio
+
+        mbutton = 0
+        print & print, 'Click on the upper-left corner of the rectangle: '
+        repeat begin
+            cursor, x_ul, y_ul, /down, /data 
+            mbutton = !mouse.button
+        endrep until (mbutton eq 1L or mbutton eq 2L)
+        print & print, 'Now click on the lower-right corner: '
+        repeat begin
+            cursor, x_lr, y_lr, /down, /data 
+            mbutton = !mouse.button
+        endrep until (mbutton eq 1L or mbutton eq 2L)
+
+        haloindx = where((xcenter lt x_ul) or (xcenter gt x_lr) and $ ; stars within the region
+                         (ycenter gt y_ul) or (ycenter lt y_lr))	
+        coreindx = where((xcenter gt x_ul) and (xcenter lt x_lr) and $ ; stars without the region
+                         (ycenter lt y_ul) and (ycenter gt y_lr))
+        
+        delxy = [(x_lr-x_ul)/2.,(y_ul-y_lr)/2.]
+        center = [x_ul+delxy[0],y_ul-delxy[1]]
+
+; overplot the rectangle
+
+        oplot, [x_ul,x_lr], [y_ul,y_ul], line=0, thick=3, color=5
+        oplot, [x_lr,x_lr], [y_ul,y_lr], line=0, thick=3, color=5
+        oplot, [x_ul,x_lr], [y_lr,y_lr], line=0, thick=3, color=5
+        oplot, [x_ul,x_ul], [y_lr,y_ul], line=0, thick=3, color=5
+
+;        polyfill, [x_ul,x_lr,x_lr,x_ul], [y_ul,y_ul,y_lr,y_lr], $
+;          color=5, /line_fill, orientation=135
+
+; print up the coordinates and update the galaxy structure
+
+        if keyword_set(hst) then $
+          infofile = '/deep1/ioannis/trgb/hst_object.dat' else $
+          infofile = '/deep1/ioannis/trgb/keck_object.dat'
+
+        info = sread(infofile)
+        indx = where(strupcase(info.object) eq strupcase(objname))
+
+        scrnsz = get_screen_size() ; user screen size
+        xsz = scrnsz[0]/3. & ysz = ratio*scrnsz[0]/3.
+        window, 2, xs=xsz/2., ys=ysz/3., xpos=scrnsz[0]-3.*xsz/2., ypos=scrnsz[1]-2.2*ysz/3., $
+          title='Region'
+
+        xyouts, [0.50,0.50], [0.85,0.85], 'Rectangle', /norm, alig=0.5, charthick=2., color=1
+        xyouts, [0.08,0.08], [0.7,0.7], 'Center: ('+strn(center[0],form='(F5.2)')+$
+          "',"+strn(center[1],form='(F5.2)')+"')", /norm, charthick=1.5, charsize=1.5, color=1
+        xyouts, [0.08,0.08], [0.55,0.55], 'UL    : ('+strn(x_ul,form='(F5.2)')+$
+          "',"+strn(y_ul,form='(F5.2)')+"')", /norm, charthick=1.5, charsize=1.5, color=1
+        xyouts, [0.08,0.08], [0.4,0.4], 'LR    : ('+strn(x_lr,form='(F5.2)')+$
+          "',"+strn(y_lr,form='(F5.2)')+"')", /norm, charthick=1.5, charsize=1.5, color=1
+
+; structure parameters
+        
+        info[indx].region.type = 'Rectangle'
+        info[indx].region.center = center
+        info[indx].region.radius = 0.
+        info[indx].region.major = 0.
+        info[indx].region.minor = 0.
+        info[indx].region.angle = 0.
+        info[indx].region.eccentricity = 0.
+        info[indx].region.ulxy = [x_ul,y_ul]
+        info[indx].region.lrxy = [x_lr,y_lr]
+
+        generate_lfunction	; generate the new luminosity function
+        
+        okay = 'N' & print
+        read, okay, prompt='Update the object information structure? (Y/[N])? '
+        if strupcase(okay) eq 'Y' then swrite, info, infofile
+
+        print & print, 'Select another option from the widget or click DONE to finish.'
+
+return
+end
+
+pro regions_arbitrary
+
+; isolate stars in an arbitrarily shaped region using IDL's defroi
+
+	common trgb, galaxy, haloindx, coreindx
+
+        xcenter = galaxy.xcenter
+        ycenter = galaxy.ycenter
+
+	result = defroi(!d.x_size,!d.y_size,xverts,yverts,/nofill)
+
+; determine the indices of the points (based on graphselect.pro by carl heiles)
+        
+        temp = bytarr(!d.x_size,!d.y_size) ; dummy image
+        temp[result] = 1B
+
+        xydev = convert_coord(xcenter,ycenter,/data,/to_device) ; convert to device coordinates
+        xyverts = convert_coord(xverts,yverts,/device,/to_data) ; convert the polygon vertices
+
+        haloindx = where(temp[xydev[0,*],xydev[1,*]] eq 0B,nhalo) ; stars within the region
+        coreindx = where(temp[xydev[0,*],xydev[1,*]] ne 0B,ncore) ; stars without the region
+
+;       polyfill, xyverts[0,*], xyverts[1,*], color=5, /line_fill, orientation=135
+;       oplot, xcenter[coreindx], ycenter[coreindx], ps=3, color=5
+
+        generate_lfunction	; generate the new luminosity function
+
+        print & print, 'Select another option from the widget or click DONE to finish.'
+
+return
+end
+
+pro tv_capture
+
+; create a postscript file of the galaxy image and the region selected
+; (based on carl heiles' hardimage.pro)
+
+	common trgb, galaxy, haloindx, coreindx
+
+        objname = galaxy.object
+        datapath = galaxy.datapath
+
+        path = trgb_datapath()
+        path = path[3]		; plot subdirectory
+        
+        print & print, 'Creating '+path+strlowcase(objname)+'_regions.ps . . .'
+
+        wset, 0		; (make this smarter -jm)
+        im = tvrd()
+        im = byte(im) eq 0B
+
+        window, 12
+        tv, im
+
+        stop
+;       im = bytscl(im,top=!d.table_size-1L)
+;       im = byte(((255./(float(!d.table_size)-1.))*float(im))<255.) ; preserve the colortable
+
+;       ps_open, path+strlowcase(objname)+'_regions', /ps_fonts, /portrait, /color
+;       device, /inches, /times
+        pfont = !p.font
+        set_plot, 'ps'
+        device, xoff = 1.0, yoff = 1.0, xsize = 6.5, ysize = 9.0, /portrait, /inches, $
+          /times
+        !p.font = 0	; ps fonts
+        tv, im
+;       tvscale, im, top=max(im)
+        
+        set_plot, 'x'
+        !p.font = pfont
+;       ps_close
+
+        print, 'Select another option from the widget or click DONE to finish.'
+
+return
+end
+
+pro writephot
+
+; write the data on the halo stars and the core stars to a file
+
+	common trgb, galaxy, haloindx, coreindx
+
+        data = galaxy.data
+        hst = galaxy.hst
+        axis = galaxy.axis
+        halofile = galaxy.halofile
+        corefile = galaxy.corefile
+        
+        halo = data[*,haloindx]
+        core = data[*,coreindx]
+
+        nhalo = n_elements(haloindx)
+        ncore = n_elements(coreindx)
+        
+        print
+        print, 'Writing '+halofile+' . . . '
+
+        openw, lun1, halofile, /get_lun ; write the halo file
+        printf, lun1, '#  ID   Xcenter   Ycenter    I       Ierr      V       Verr     V-I'
+        printf, lun1, ' '
+        for k = 0L, nhalo-1L do printf, lun1, halo[*,k], format = '(1x,I6,7F9.3)'
+        free_lun, lun1        
+
+        print
+        print, 'Writing '+corefile+' . . . '
+
+        openw, lun2, corefile, /get_lun ; write the core file
+        printf, lun1, '#  ID   Xcenter   Ycenter    I       Ierr      V       Verr     V-I'
+        printf, lun1, ' '
+        for k = 0L, ncore-1L do printf, lun2, core[*,k], format = '(1x,I6,7F9.3)'
+        free_lun, lun2
+
+        print & print, '. . . done.'
+
+        print & print, 'Select another option from the widget or click DONE to finish.'
+        
+return
+end
+
+function get_axis, datapath
+
+; retrieve the axis lengths of the image
+
+	axis = fltarr(2)
+
+	imnames = rdtxt(datapath+'/image.names')
+        head = headfits(datapath+'/'+imnames[0]+'.fits')
+        axis[0] = sxpar(head,'NAXIS1')
+        axis[1] = sxpar(head,'NAXIS2')
+
+return, axis
+end
+
+pro plot_galaxy
+
+; plot the stellar positions of the current galaxy
+
+	common trgb, galaxy, haloindx, coreindx
+
+        name = galaxy.truename
+        axis = galaxy.axis
+        hst = galaxy.hst
+        imags = galaxy.imags
+        xc = galaxy.xcenter
+        yc = galaxy.ycenter
+
+        xminmax = minmax(xc)
+        yminmax = minmax(yc)
+
+        scrnsz = get_screen_size() ; user screen size
+
+        if hst then begin
+            ratio = 1. 
+            margin = 0.15
+        endif else begin
+            ratio = float(axis[1]/axis[0]) ; axis ratio
+            margin = 0.17
+        endelse
+
+; generate a histogram of magnitudes
+        
+        bin1 = where((imags ge 19.) and (imags lt 20.),count1) ; color = 1
+        bin2 = where((imags ge 20.) and (imags lt 21.),count2) ; color = 2
+        bin3 = where((imags ge 21.) and (imags lt 22.),count3) ; color = 3
+        bin4 = where((imags ge 22.) and (imags lt 23.),count4) ; color = 4
+        bin5 = where((imags ge 23.) and (imags lt 24.),count5) ; color = 5
+        bin6 = where((imags ge 24.) and (imags lt 25.),count6) ; color = 6
+        bin7 = where((imags ge 25.) and (imags lt 26.),count7) ; color = 7
+
+; legend        
+
+        xsz = scrnsz[0]/3. & ysz = ratio*scrnsz[0]/3.
+        window, 3, xs=xsz/2., ys=ysz/3., xpos=scrnsz[0]-3.*xsz/2., ypos=scrnsz[1]-ysz/3., $
+          title='Legend'
+
+        xyouts, [0.30,0.30], [0.9,0.9], 'Stars', /norm, alig=0.5, charthick=2, color=1
+        xyouts, [0.70,0.70], [0.9,0.9], 'Mag', /norm, alig=0.5, charthick=2, color=1
+; -----------------------------------------------------------------------------
+        xyouts, [0.30,0.30], [0.7,0.7], strn(count1), /norm, alig=0.5, charthick=2, color=1
+        xyouts, [0.70,0.70], [0.7,0.7], '19-20', /norm, alig=0.5, charthick=2, color=1
+        xyouts, [0.30,0.30], [0.6,0.6], strn(count2), /norm, alig=0.5, charthick=2, color=1
+        xyouts, [0.70,0.70], [0.6,0.6], '20-21', /norm, alig=0.5, charthick=2, color=2
+        xyouts, [0.30,0.30], [0.5,0.5], strn(count3), /norm, alig=0.5, charthick=2, color=1
+        xyouts, [0.70,0.70], [0.5,0.5], '21-22', /norm, alig=0.5, charthick=2, color=3
+        xyouts, [0.30,0.30], [0.4,0.4], strn(count4), /norm, alig=0.5, charthick=2, color=1
+        xyouts, [0.70,0.70], [0.4,0.4], '22-23', /norm, alig=0.5, charthick=2, color=4
+        xyouts, [0.30,0.30], [0.3,0.3], strn(count5), /norm, alig=0.5, charthick=2, color=1
+        xyouts, [0.70,0.70], [0.3,0.3], '23-24', /norm, alig=0.5, charthick=2, color=5
+        xyouts, [0.30,0.30], [0.2,0.2], strn(count6), /norm, alig=0.5, charthick=2, color=1
+        xyouts, [0.70,0.70], [0.2,0.2], '24-25', /norm, alig=0.5, charthick=2, color=6
+        xyouts, [0.30,0.30], [0.1,0.1], strn(count7), /norm, alig=0.5, charthick=2, color=1
+        xyouts, [0.70,0.70], [0.1,0.1], '25-26', /norm, alig=0.5, charthick=2, color=7
+; -----------------------------------------------------------------------------
+
+        xsz = scrnsz[0]/3. & ysz = ratio*scrnsz[0]/3.
+        window, 0, xs=xsz, ys=ysz, xpos=scrnsz[0]-xsz, ypos=scrnsz[1]-ysz, $
+          title='Stellar Positions'
+        position = aspect(ratio,margin=margin)
+        plot, [xminmax[0],xminmax[1]], [yminmax[0],yminmax[1]], /nodata, $
+          color=1, xsty=3, ysty=3, xtit = 'x (arcmin)', ytit='y (arcmin)', $
+          title = name, position=position
+;       plotsym, 0, 0.25, /fill
+;       plots, 0, 0, ps=8, color=1 ; center of the field
+
+;       plotsym, 0, 0.05, /fill
+;       oplot, xc, yc, ps=8, color=7
+        if count1 gt 0L then oplot, xc[bin1], yc[bin1], ps=3, color=1;, syms=10
+        if count2 gt 0L then oplot, xc[bin2], yc[bin2], ps=3, color=2;, syms=10
+        if count3 gt 0L then oplot, xc[bin3], yc[bin3], ps=3, color=3;, syms=10
+        if count4 gt 0L then oplot, xc[bin4], yc[bin4], ps=3, color=4;, syms=10
+        if count5 gt 0L then oplot, xc[bin5], yc[bin5], ps=3, color=5;, syms=10
+        if count6 gt 0L then oplot, xc[bin6], yc[bin6], ps=3, color=6;, syms=10
+        if count7 gt 0L then oplot, xc[bin7], yc[bin7], ps=3, color=7;, syms=10
+        
+return
+end
+
+pro plot_cmd, name, imags, halo, core, halocolor, corecolor
+
+        nhalo = n_elements(halo)
+        ncore = n_elements(core)
+
+        scrnsz = get_screen_size() ; user screen size
+        xsz = scrnsz[0]/3.
+        ysz = scrnsz[0]/1.75
+
+        window, 4, xs=xsz, ys=ysz, xpos=scrnsz[0]-5.*xsz/2., ypos=scrnsz[1]-ysz, $
+          title='Color Magnitude Diagrams'
+;       window, 10, xs=450, ys=800, ypos=225, xpos=90
+        plot, [-1,4], [max(imags),min(imags)], color=1, xsty=1, ysty=1, $
+          ytit='I', /nodata, yr=[max(imags),min(imags)], $
+          title = name, xtickname=replicate(' ',10), $
+          position=[0.15,0.52,0.95,0.92], syms=1.2
+        oplot, halocolor, halo, ps=3, color=7
+        legend, ['Halo', strn(nhalo)+' stars'], textcolor=[1,1], $
+          thick=2, box=0, charsize=1.5
+        plot, [-1,4], [max(imags),min(imags)], color=1, xsty=1, ysty=1, $
+          ytit='I', /nodata, /noerase, yr=[max(imags),min(imags)], $
+          xtit='V-I', position=[0.15,0.12,0.95,0.52]
+        oplot, corecolor, core, ps=3, color=5
+        legend, ['Core', strn(ncore)+' stars'], textcolor=[1,1], $
+          thick=2, box=0, charsize=1.5
+        
+return
+end
+
+pro generate_lfunction
+
+; generate a luminosity function of the halo and the core stars
+
+	common trgb, galaxy, haloindx, coreindx
+
+        name = galaxy.truename
+        imags = galaxy.imags
+
+        halo = imags[haloindx]
+        core = imags[coreindx]
+
+        nhalo = n_elements(halo)
+        ncore = n_elements(core)
+
+        scrnsz = get_screen_size() ; user screen size
+        xsz = scrnsz[0]/2.5
+        ysz = scrnsz[0]/2.5
+
+; generate luminosity functions
+
+        trgb_lfunction, halo, galaxy.imags[haloindx], lfhalo, binsize=0.05, minmag=18., maxmag=27.
+        trgb_lfunction, core, galaxy.imags[coreindx], lfcore, binsize=0.05, minmag=18., maxmag=27.
+        
+        window, 5, xs=xsz, ys=ysz, xpos=scrnsz[0]-xsz, ypos=30, title=' '
+        plot_lfunction, name, lfhalo, lfcore
+        legend, ['Halo ('+strn(nhalo)+')','Core ('+strn(ncore)+')'], line=[0,2], $
+          color=[7,5], thick=2, box=0, charsize=1.5, textcolor=[1,1]
+        
+        window, 6, xs=xsz, ys=ysz, xpos=0, ypos=30, title=' '
+        plot_lfunction, name, lfhalo, lfcore, /log
+        legend, ['Halo ('+strn(nhalo)+')','Core ('+strn(ncore)+')'], line=[0,2], $
+          color=[7,5], thick=2, box=0, charsize=1.5, textcolor=[1,1]
+
+        if galaxy.color_info eq 'YES' then begin
+            color = galaxy.color
+            halocolor = color[haloindx]
+            corecolor = color[coreindx]
+            plot_cmd, name, imags, halo, core, halocolor, corecolor
+        endif
+
+return
+end
+
+pro trgb_regions, objname, hst=hst, ccut=ccut
+;+
+; NAME:
+;	TRGB_REGIONS
+;
+; PURPOSE:
+;	Interactively allow the user to select out certain stars based
+;	on their positions on the sky (relative to the whole galaxy)
+;	to better isolate the old, metal-poor stellar population.
+;
+; INPUTS:
+;	objname : string name of the galaxy
+;
+; KEYWORD PARAMETERS:
+;	hst  : keyword specifying an HST object
+;	ccut : option to read in data which has been color cut
+;
+; OUTPUTS:
+;	The user can create objname_halo.dat and objname_core.dat
+;	photometry files, or create a postscript image of the current
+;	galaxy with the region included.
+;
+; COMMON BLOCKS:
+;	The widget nature of this program requires a common block:
+;
+;		trgb, galaxy, haloindx, coreindx
+;
+; EXAMPLE:
+;	trgb_regions, 'SextansB'
+;		OR
+;	trgb_regions, 'ugc07577', /hst
+;
+; COMMENTS:
+;	Please make sure you check the terminal for prompts!
+;
+;	Photometry files are written out to the object's directory,
+;	while the TV_CAPTURE plot is written to the plot subdirectory
+;	(see TRGB_DATAPATH).
+;
+; PROCEDURES USED:
+;	TRGB_READATA, PLOT_LFUNCTION, COLORTABLE1, RDTXT(), ASPECT(),
+;	SXPAR(), SREAD(), SWRITE(), TRGB_DATAPATH(), PS_OPEN,
+;	PS_CLOSE, LEGEND 
+;
+; MODIFICATION HISTORY:
+;	John Moustakas, 2000 June 22-26, UCB
+;	jm00sep8uofa, added lots of bells and whistles
+;-
+
+        !x.ticklen=0.03
+        p_thick = !p.thick & chars = !p.charsize
+        charth = !p.charthick & xth = !x.thick & yth = !y.thick
+        !p.thick = 2 & !p.charsize=1.8 & !p.charthick=2 & !x.thick=2 & !y.thick=2
+
+        common trgb, galaxy, haloindx, coreindx
+
+	colortable1
+
+; read in the data for this object
+
+        trgb_readata, objname, datapath, data, infobase, hst=hst, ccut=ccut
+
+        if keyword_set(hst) then begin
+
+            halofile = datapath+'/'+objname+'_starlist_halo.dat'
+            corefile = datapath+'/'+objname+'_starlist_core.dat'
+
+            axis = [1600.,1600.] * 0.1 / 60.	; axis length (arcmin)
+
+            xcenter = data[1,*]
+            ycenter = data[2,*]
+
+        endif else begin	; Keck data
+
+            halofile = datapath+'/'+objname+'_IVmags_halo.dat'
+            corefile = datapath+'/'+objname+'_IVmags_core.dat'
+
+            axis = get_axis(datapath) * 0.215 / 60. ; axis length (arcmin)
+
+            xcenter = (data[1,*]*0.215/60.) - axis[0]/2. ; x centroid (arcmin, relative to the new origin)
+            ycenter = (data[2,*]*0.215/60.) - axis[1]/2. ; y centroid 
+
+        endelse
+
+        imags = data[3,*] - infobase.a_i   ; apply extinction correction
+        nstars = n_elements(imags)
+        if infobase.color_info eq 'YES' then color = data[7,*] - infobase.e_v_i ; color excess correction
+
+	galaxy = {name:		' ', $		; informational structure
+                  object:	strarr(1), $
+                  truename:	strarr(1), $
+                  color_info:	strarr(1), $
+                  hst:		lonarr(1), $
+                  datapath:	strarr(1), $
+                  axis:		fltarr(2), $
+                  data:		data-data, $
+                  imags:	fltarr(nstars), $
+                  color:	fltarr(nstars), $
+                  xcenter:	xcenter-xcenter, $
+                  ycenter:	ycenter-ycenter, $
+                  halofile:	strarr(1), $
+                  corefile:	strarr(1)}
+
+        galaxy.object = objname
+        galaxy.truename = infobase.truename
+        galaxy.color_info = infobase.color_info
+        galaxy.hst = keyword_set(hst)
+        galaxy.datapath = datapath
+        galaxy.axis = axis
+        galaxy.data = data
+        galaxy.imags = imags
+        if infobase.color_info eq 'YES' then galaxy.color = color
+        galaxy.xcenter = xcenter
+        galaxy.ycenter = ycenter
+        galaxy.halofile = halofile
+        galaxy.corefile = corefile
+        
+        print, 'Select a region type to isolate from the menu: '
+
+        plot_galaxy     ; plot the stellar positions
+        regions_menu	; pop-up widget menu
+
+        while !d.window ne -1L do wdelete, !d.window	; delete all windows
+
+        !x.ticklen=0
+        !p.thick = p_thick & !p.charsize=chars & !p.charthick=charth
+        !x.thick = xth & !y.thick=yth
+
+return
+end
+

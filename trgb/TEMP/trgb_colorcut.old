@@ -1,0 +1,122 @@
+pro trgb_colorcut, objname, hst=hst
+;+
+; NAME:
+;	TRGB_COLORCUT
+;
+; PURPOSE:
+;	Display an object's color-magnitude diagram and isolate
+;	particular stellar populations interactively.
+;
+; CALLING SEQUENCE:
+;	trgb_colorcut, objname
+;
+; INPUTS:
+;	objname	: galaxy name (string)
+;
+; KEYWORD PARAMETERS:
+;
+; OUTPUTS:
+;
+; OPTIONAL OUTPUTS:
+;	The user can choose to write a file called
+;	objname_starlist_ccut.dat of the photometry to be kept.
+;
+; COMMON BLOCKS:
+;
+; SIDE EFFECTS:
+;
+; RESTRICTIONS:
+;
+; PROCEDURES USED:
+;	COLORTABLE1, TRGB_READATA, 
+;
+; MODIFICATION HISTORY:
+;	John Moustakas, 2000 June 27, UCB
+;
+;-
+
+        !x.ticklen=0.03
+        p_thick = !p.thick & chars = !p.charsize
+        charth = !p.charthick & xth = !x.thick & yth = !y.thick
+        !p.thick = 2 & !p.charsize=1.8 & !p.charthick=2 & !x.thick=2 & !y.thick=2
+
+        colortable1
+
+        trgb_readata, objname, datapath, data, infobase, hst=hst
+        imags = data[3,*] - infobase.a_i   ; apply extinction correction
+        color = data[7,*] - infobase.e_v_i ; color excess correction
+
+        nstars = n_elements(data[0,*])
+
+;        cminmax = minmax(color) & cres = 0.05	; color resolution
+;        iminmax = minmax(imags) & ires = 0.05	; magnitude resolution
+;        xdim = fix((cminmax[1]-cminmax[0])/cres)
+;        ydim = fix((iminmax[1]-iminmax[0])/ires)
+;
+;        cmdim = fltarr(xdim+1L,ydim+1L) 	; color-magnitude image
+;        for k = 0L, nstars-1L do begin
+;            xim = fix((color[k]-cminmax[0])/cres)
+;            yim = fix((imags[k]-iminmax[0])/ires)
+;
+;            cmdim[xim,yim] = cmdim[xim,yim] + 1.0
+;        endfor
+;
+;        xarray = findgen(xdim+1L)*cres+cminmax[0]
+;        yarray = findgen(ydim+1L)*ires+iminmax[0]
+;
+;        window, 0, xs=500, ys=500
+;        plotimage, byte(cmdim[*,reverse(where(yarray))]), imgxrange = [-1,4], imgyrange = [max(yarray),min(yarray)]
+;;       jm_display, cmdim[*,reverse(where(yarray))], xarray, yarray, yr=[max(yarray),min(yarray)]
+
+        window, 0, xs=500, ys=500
+        plot, color, imags, ps=3, color=7, xsty=1, ysty=1, syms=1.2, $
+          xtit = 'V-I', ytit='I', xr=[-1,4], yr = [27.2,20.6], $ ;yr=[max(imags),min(imags)], $
+          title = infobase.truename+ ' CMD'
+        xyouts, [0.25,0.25], [0.83,0.83], strn(nstars)+' Stars', /normal, $
+          charthick=2, charsize=1.5, color=1
+        
+        trgb_dacosta, gcrgb	; globular cluster rgb
+        
+;        slope = -4.2		; slope of the RGB in M15
+;        trgbcolor = 0.4
+;
+;        colorinter1 = trgbcolor-0.8
+;        colorinter2 = trgbcolor+0.8
+;        maginter1 = -slope*colorinter1+max(imags)
+;        maginter2 = -slope*colorinter2+max(imags)
+;
+;        xaxis = findgen(500)/100.-1.
+;
+;        line1 = poly(xaxis,[maginter1,slope])
+;        line2 = poly(xaxis,[maginter2,slope])
+;
+;        eval1 = poly(color,[maginter1,slope])
+;        eval2 = poly(color,[maginter2,slope])
+;
+        colorstart = 0.8
+        colorend = 1.9
+
+        oplot, [colorstart,colorstart], [!y.crange[0],!y.crange[1]], line=2, color=2, thick=2.5
+        oplot, [colorend,colorend], [!y.crange[0],!y.crange[1]], line=2, color=2, thick=2.5
+;;       oplot, xaxis, line1, line=2, color=2
+;;       oplot, xaxis, line2, line=2, color=2
+;;       oplot, color, eval1, line=0, color=5
+;       oplot, gcrgb[0].color[nozero], gcrgb[0].imag[nozero]+(21.6-(-4.06)), color=5, line=0, thick=3
+;       oplot, gcrgb[1].color, gcrgb[1].imag+(21.6-(-4.06)), color=5, line=0, thick=3
+;        
+;;       rgbstars = where((eval1 lt line1) and (eval2 gt line2),rgbcount)
+;;       rgbstars = where((color gt colorstart) and (color lt colorend) and $
+;;                        (imags lt magstart),rgbcount)
+        rgbstars = where((color gt colorstart) and (color lt colorend),rgbcount)
+;
+;stop
+
+;       stop
+
+        !x.ticklen=0
+        !p.thick = p_thick & !p.charsize=chars & !p.charthick=charth
+        !x.thick = xth & !y.thick=yth
+
+return
+end
+

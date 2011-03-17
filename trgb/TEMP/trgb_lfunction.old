@@ -1,0 +1,270 @@
+; jm00apr17ucb
+; generate the luminosity function plots if specified
+pro makeplots, objname, mags, smoothed, lin_response, log_response, $
+               trgb_lin, trgb_log, postscript=postscript, oneplot=oneplot
+
+        !x.ticklen=0.03
+        p_thick = !p.thick & chars = !p.charsize
+        charth = !p.charthick & xth = !x.thick & yth = !y.thick
+        !p.thick = 2 & !p.charsize=1 & !p.charthick=2 & !x.thick=2 & !y.thick=2
+
+        spawn, ['pwd'], datapath
+
+        if keyword_set(oneplot) then begin
+            
+            if keyword_set(postscript) then begin
+                ps_open, datapath[0]+'/'+objname+'_lfunction', /ps_fonts ;, /encapsulated
+                device, xsize=10.5, ysize=8, yoffset=10.5, xoffset=0, /inches, /times
+            endif else window, 2, xs=650, ys=650
+            
+            !p.multi=[0,2,2,0,1]
+
+            plot, mags, smoothed, yrange = [0.9,max(smoothed)], $
+              ytit = 'Number Density', $ ;ps=10, 
+              xsty=3, ysty=3, $
+;             xtickname=replicate(' ',6), $
+              yminor=3, tit=strupcase(objname)+' Luminosity Function'
+            plot, mags, lin_response, ytit = 'Linear Filter Response', $
+              xtit = 'I magnitude', $
+              xsty=3, ysty=3, yminor=2
+            oplot, [!x.crange[0],!x.crange[1]], [0,0]
+;            xyouts, [0.2,0.2], [0.85,0.85], 'TRGB='+strn(trgb_lin[0],format='(F5.2)')+' mag', $
+;              /norm, charsize=1.5, charthick=1.8
+            
+            plot, mags, smoothed, yrange = [0.9,max(smoothed)], /ylog, $
+              ytit = 'Number Density', $ ;ps=10, 
+              xsty=3, ysty=3, $
+;             xtickname=replicate(' ',6), $
+              yminor=3, tit=strupcase(objname)+' Luminosity Function'
+            plot, mags, log_response, ytit = 'Logarithmic Filter Response', $
+              xtit = 'I magnitude', $
+              xsty=3, ysty=3, yminor=2
+            oplot, [!x.crange[0],!x.crange[1]], [0,0]
+;            xyouts, [0.2,0.2], [0.85,0.85], 'TRGB='+strn(trgb_log[0],format='(F5.2)')+' mag', $
+;              /norm, charsize=1.5, charthick=1.8
+
+            !p.multi=0
+            
+            if keyword_set(postscript) then ps_close
+
+        endif else begin
+
+            if keyword_set(postscript) then begin
+                ps_open, datapath[0]+'/'+objname+'_lintrgb', /ps_fonts ;, /encapsulated
+                device, xsize=10.5, ysize=8, yoffset=10.5, xoffset=0, /inches, /times
+            endif else window, 2, xs=650, ys=650
+            
+            plot, mags, smoothed, yrange = [0.9,max(smoothed)], $
+              ytit = 'Number Density', $ ;ps=10, 
+              xsty=3, ysty=3, $
+              position=[0.16,0.4,0.96,0.92], $;xtickname=replicate(' ',6), $
+              yminor=3, tit=strupcase(objname)+' Luminosity Function'
+            plot, mags, lin_response, ytit = 'Linear Filter Response', /noerase, $
+              xtit = 'I magnitude', position = [0.16,0.1,0.96,0.4], $
+              xsty=3, ysty=3, yminor=2
+            oplot, [!x.crange[0],!x.crange[1]], [0,0]
+;            xyouts, [0.2,0.2], [0.85,0.85], 'TRGB='+strn(trgb_lin[0],format='(F5.2)')+' mag', $
+;              /norm, charsize=1.5, charthick=1.8
+            
+            if keyword_set(postscript) then begin
+                ps_close
+                ps_open, datapath[0]+'/'+objname+'_logtrgb', /ps_fonts ;, /encapsulated
+                device, xsize=10.5, ysize=8, yoffset=10.5, xoffset=0, /inches, /times
+            endif else window, 1, xs=650, ys=650
+            
+            plot, mags, smoothed, yrange = [0.9,max(smoothed)], /ylog, $
+              ytit = 'Number Density', $ ;ps=10, 
+              xsty=3, ysty=3, $
+              position=[0.16,0.4,0.96,0.92], $;xtickname=replicate(' ',6), $
+              yminor=3, tit=strupcase(objname)+' Luminosity Function'
+            plot, mags, log_response, ytit = 'Logarithmic Filter Response', /noerase, $
+              xtit = 'I magnitude', position = [0.16,0.1,0.96,0.4], $
+              xsty=3, ysty=3, yminor=2
+            oplot, [!x.crange[0],!x.crange[1]], [0,0]
+;            xyouts, [0.2,0.2], [0.85,0.85], 'TRGB='+strn(trgb_log[0],format='(F5.2)')+' mag', $
+;              /norm, charsize=1.5, charthick=1.8
+            
+            if keyword_set(postscript) then ps_close 
+
+        endelse
+
+        !x.ticklen=0
+        !p.thick = p_thick & !p.charsize=chars & !p.charthick=charth
+        !x.thick = xth & !y.thick=yth
+
+return
+end
+
+
+; jm00apr16ucb
+pro trgb_lfunction, objname, postscript=postscript, hst=hst
+
+	colortable1
+
+        !x.ticklen=0.03
+        p_thick = !p.thick & chars = !p.charsize
+        charth = !p.charthick & xth = !x.thick & yth = !y.thick
+        !p.thick = 2 & !p.charsize=2 & !p.charthick=2 & !x.thick=2 & !y.thick=2
+
+	if keyword_set(hst) then begin
+
+            extinction = sread('/deep1/ioannis/trgb/hst_extinction.dat') ; extinction structure
+            indx = where(strupcase(extinction.object) eq strupcase(objname))
+
+            obj_vdata = ['UGC03476','UGC03755','IC342'] ; HST objects with color
+
+            if strupcase(objname) eq obj_vdata[0] or $
+              strupcase(objname) eq obj_vdata[1] or $
+              strupcase(objname) eq obj_vdata[2] then ncol = 8 else ncol = 5
+
+            filename = objname+'_starlist.dat'
+            readfast, filename, data, ncols=ncol
+
+        endif else begin
+
+            extinction = sread('/deep1/ioannis/trgb/hst_extinction.dat') ; extinction structure
+            indx = where(strupcase(extinction.object) eq strupcase(objname))
+
+            filename = objname+'_IVmags.dat'
+            readfast, filename, data, skip=2, ncols=8
+            
+        endelse
+
+        imags=data[3,*] - extinction[indx].a_i	; apply extinction correction
+        ierr=data[4,*] - extinction[indx].e_v_i
+
+        nstars = n_elements(imags)
+        kernal = [-1,-2,0,2,1]
+
+; original data response function
+
+        hist = histogram(imags,bin=0.05,min=18.0)
+        nhist = n_elements(hist)
+        mag_array = findgen(nhist)/20.+18. ; 18 to 26.05
+
+;        phi = fltarr(nhist)
+;        smooth_factor=1.
+;        for j = 0L, nhist-1L do begin
+;                
+;            near = where(abs(imags-mag_array[j]) lt 5.*ierr/smooth_factor)
+;            if total(near) gt -1 then $
+;              phi[j] = total(1./(sqrt(2*!pi)*smooth_factor*ierr[near])*exp(-(imags[near]-mag_array[j])^2 / $
+;                                                                           (2*ierr[near]^2*smooth_factor^2)) )
+;                
+;        endfor
+            
+;       response = convol(alog(phi),kernal)
+;       response = convol(phi,kernal)
+        response = convol(alog(hist),kernal)
+;       response = convol(hist,kernal)
+
+        window, 0, xs=800, ys=800
+;       plot, mag_array, phi, $
+;       plot, mag_array, hist, /ylog, $
+        plot, mag_array, hist, $
+          ytit = 'Number Density', ps=10, line=0, color=7, $
+;         xsty=3, ysty=3, xr=[22.5,24], $
+          xsty=3, ysty=3, $
+          yminor=3, tit=strupcase(objname)+' Luminosity Function'
+;       oplot, mag_array, hist/float(max(hist)), color=3, line=0
+
+; now perturb the starlist
+
+        smooth_factor=1.
+        iter = 20L	; number of iterations
+        response_pert = fltarr(200,iter)
+
+        for k = 0L, iter-1L do begin
+            bootindx = floor(randomu(seed,nstars)*nstars) ; resample the starlist uniformly
+            
+; perturb the magnitude values to take into account photometric measurement errors
+  
+            i_pert = imags[bootindx] + ierr[bootindx]*randomn(nseed,nstars)
+            ierr_pert = ierr[bootindx]
+            
+            hist_pert = histogram(i_pert,bin=0.05,min=18.0,max=max(mag_array))
+            nhist_pert = n_elements(hist_pert)
+            mag_array_pert = findgen(nhist_pert)/20.+18. ; 18 to 26.05
+            
+;            phi_pert = fltarr(nhist_pert)
+;            for j = 0L, nhist_pert-1L do begin
+;                
+;                near = where(abs(i_pert-mag_array_pert[j]) lt 5.*ierr_pert/smooth_factor)
+;                if total(near) gt -1 then $
+;                  phi_pert[j] = total(1./(sqrt(2*!pi)*smooth_factor*ierr_pert[near])*exp(-(i_pert[near]-mag_array_pert[j])^2 / $
+;                                                                               (2*ierr_pert[near]^2*smooth_factor^2)) )
+;                
+;            endfor
+            
+;           response_pert[0L:nhist_pert-1L,k] = convol(alog(phi_pert),kernal)
+;           response_pert[0L:nhist_pert-1L,k] = convol(phi_pert,kernal)
+            response_pert[0L:nhist_pert-1L,k] = convol(alog(hist_pert),kernal)
+;           response_pert[0L:nhist_pert-1L,k] = convol(hist_pert,kernal)
+            
+        endfor 
+
+        sig_array = response-response
+        for j = 0L, nhist-1L do sig_array[j] = stdev(response[j]-response_pert[j,*])
+
+        window, 2, xs=500, ys=500
+        plot, mag_array, response, ytit = 'Response', $
+          xtit = 'I magnitude', xr=[22.5,24], ps=10, $
+;         xtit = 'I magnitude', ps=10, $
+          xsty=3, ysty=3, yminor=2, line=0, color=7, $
+          tit=strupcase(objname)+' Response Function';, $
+;          yrange = [0,max(response)*1.1]
+        plotsym, 0, 0.8, /fill
+;       for j = 0L, iter-1L do oplot, mag_array, response_pert[*,j], col=1, ps=8
+        oploterror, mag_array, response, sig_array, errcolor=3, color=7, ps=3
+        oplot, [!x.crange[0],!x.crange[1]], [0,0]        
+
+        !x.ticklen=0
+        !p.thick = p_thick & !p.charsize=chars & !p.charthick=charth
+        !x.thick = xth & !y.thick=yth
+
+        stop
+
+; create luminosity function plots if specified
+
+;        makeplots, objname, mags, smoothed, lin_response, log_response, $
+;         trgb_lin, trgb_log, postscript=postscript, /oneplot
+
+;; generate a histogram
+;
+;        hist = histogram(imags,bin=0.05,min=18.0)
+;        nhist = n_elements(hist)
+;        mags = findgen(nhist)/20.+18.	; 18 to 26.05
+;
+;        smoothed=smooth2(hist,4) ; gaussian smoothing
+;
+;; compute the mean error in each bin
+;
+;        meanierr = fltarr(nhist)
+;        for i = 0L, nhist-1L do begin
+;            flag = where((imags ge mags[i]-0.05) and (imags le mags[i]+0.05),count)
+;            if count ne 0 then meanierr[i] = avg(ierr[flag]) else meanierr[i] = 0.
+;        endfor
+;
+;; define the linear response function
+;
+;        lin_response = fltarr(nhist)
+;        for j = 1L, nhist-2L do $
+;          lin_response[j] = smoothed[j+meanierr[j]] - smoothed[j-meanierr[j]]
+;
+;; define the log response function
+;
+;        log_response = fltarr(nhist)
+;        for k = 1L, nhist-2L do $
+;          log_response[k] = (alog10(smoothed[k+meanierr[k]])-alog10(smoothed[k-meanierr[k]]))*sqrt(smoothed[k])
+;
+;; determine the TRGB from the maximum response
+;
+;        trgb_lin = mags[where(lin_response eq max(lin_response))]
+;        print & print, 'TRGB (linear filter) = '+strn(trgb_lin)
+;        trgb_log = mags[where(log_response eq max(log_response))]
+;        print & print, 'TRGB (logarithmic filter) = '+strn(trgb_log)
+
+
+stop
+return
+end

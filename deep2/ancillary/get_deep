@@ -1,0 +1,20 @@
+#!/bin/csh -f 
+
+# curl http://deep.berkeley.edu/DR3/zcat.dr3.uniq.fits.gz >! ${BASEPATH}/deep2/analysis/zcat.dr3.uniq.fits.gz
+
+curl http://deep.berkeley.edu/DR1/pcat.11.fits.gz >! ${BASEPATH}/deep2/analysis/pcat.11.fits.gz
+curl http://deep.berkeley.edu/DR1/pcat.12.fits.gz >! ${BASEPATH}/deep2/analysis/pcat.12.fits.gz
+curl http://deep.berkeley.edu/DR1/pcat.13.fits.gz >! ${BASEPATH}/deep2/analysis/pcat.13.fits.gz
+curl http://deep.berkeley.edu/DR1/pcat.14.fits.gz >! ${BASEPATH}/deep2/analysis/pcat.14.fits.gz
+
+curl http://deep.berkeley.edu/DR1/pcat.21.fits.gz >! ${BASEPATH}/deep2/analysis/pcat.21.fits.gz
+curl http://deep.berkeley.edu/DR1/pcat.22.fits.gz >! ${BASEPATH}/deep2/analysis/pcat.22.fits.gz
+curl http://deep.berkeley.edu/DR1/pcat.23.fits.gz >! ${BASEPATH}/deep2/analysis/pcat.23.fits.gz
+
+curl http://deep.berkeley.edu/DR1/pcat.31.fits.gz >! ${BASEPATH}/deep2/analysis/pcat.31.fits.gz
+curl http://deep.berkeley.edu/DR1/pcat.32.fits.gz >! ${BASEPATH}/deep2/analysis/pcat.32.fits.gz
+curl http://deep.berkeley.edu/DR1/pcat.33.fits.gz >! ${BASEPATH}/deep2/analysis/pcat.33.fits.gz
+
+curl http://deep.berkeley.edu/DR1/pcat.41.fits.gz >! ${BASEPATH}/deep2/analysis/pcat.41.fits.gz
+curl http://deep.berkeley.edu/DR1/pcat.42.fits.gz >! ${BASEPATH}/deep2/analysis/pcat.42.fits.gz
+curl http://deep.berkeley.edu/DR1/pcat.43.fits.gz >! ${BASEPATH}/deep2/analysis/pcat.43.fits.gz

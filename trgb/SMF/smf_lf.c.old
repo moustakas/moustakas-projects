@@ -1,0 +1,82 @@
+/* John Moustakas, 2000 September 1, UofA */
+
+/* generate a Sakai, Madore & Freedman (SMF) (gaussian smoothed)
+   luminosity function */
+
+#include <stdio.h>
+#include <math.h>
+#include <stdlib.h>
+#include "/deep1/ioannis/lib/c/export.h"
+#include <stdio.h>
+#include "/deep1/ioannis/lib/c/export.h"
+
+IDL_LONG smf_idl     /* IDL entry point */
+
+(int argc, void *argv[])
+
+{
+  void smf_lf_();
+
+  /* declare the IDL variables as pointers */
+
+  int i, j, k;
+  float *mags, *merr, *marray, *resplin, *resplog, coef, exparg, *err, *total;
+  IDL_LONG *nbins, *nstars, *smfhist;
+
+  /* allocate memory to the new variables */
+  
+  err = vector(0,*nbins-1);
+  total = vector(0,*nbins-1);
+  /*  errindx =; long index array: variable size! */
+
+  pi = 3.1415927;
+  
+  for (i=0; i < *nbins; i++)   /* loop on each bin */
+    {
+      total[i] = 0.;
+      
+      /* gaussian-smoothed luminosity function (see SMF 1996 Appendix A) */
+      
+      for (j=0; j < nstars; j++)
+	{
+	  coef = 1./(sqrt(2.*pi)*merr[j]); /* Gaussian normalization */
+	  exparg = (mags[j]-marray[i])/merr[j];
+
+	  total[i] = total[i] + coef*exp(-0.5*(pow(2.,exparg)));
+	}
+      
+      smfhist[i] = total[i];
+
+    };
+
+  /*            
+      /* magnitude error per bin */
+      
+      for (j=0; j < *nbins; j++)
+	{
+	  if ((mags[j] >= marray[i]-0.05) && (mags[j] <= marray[i]+0.05)) errindx[j] = j;
+	}
+
+      err[i] = avg(lf.merr) else err[i] = 0.;
+
+  /* generate the response functions */
+
+  for (j=0; j < *nbins; j++)
+    {
+
+      resplin[j] = smfhist[j+err[j]] - smfhist[j-err[j]];
+      resplog[j] = (alog10[smfhist[j+err[j]]] - alog10[smfhist[j-err[j]]])*sqrt[smfhist[j]];
+
+    }
+
+  */
+
+  return, 0;
+
+}
+
+
+
+
+
+

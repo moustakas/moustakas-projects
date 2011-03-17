@@ -1,0 +1,395 @@
+;; AGES.pro
+;
+; AIM: test out sky subtraction on AGES data 
+; 
+;
+;****************************************************************************
+FUNCTION rms5,x
+;calculate 67th percentile
+    y = MEAN(x,/nan)
+    index = SORT(ABS(x-y))
+    a = N_ELEMENTS(x)*.67
+    percentile = ABS((x-y)[index[a]])
+
+    RETURN,percentile
+ END
+
+;------------------------------------------------------------------
+
+;for plotting bad sky pixels - I'm sure there's much more efficient
+;                              ways of writing these bits of code!
+
+PRO plotbits, lambda, spec, filter, _extra=extra
+
+    fil2 = filter
+
+    nbin = n_elements(fil2)
+;print, nbin
+
+    if (fil2[0]) then fil2[0] = 2
+    n=2
+
+    for i=1, nbin -1 do begin
+
+       if NOT(fil2[i]) then continue ;=1 leave alone
+
+       if (fil2[i-1]) then fil2[i] = fil2[i-1] ;previous=0, this is in same chunk
+       if NOT(fil2[i-1])  then fil2[i] = n ;previous=1, this is start of next chunk
+       
+       if (i eq nbin-1) then break
+
+       if NOT(fil2[i+1]) then n=n+1 ;next=0, this is end of chunk
+    endfor
+
+
+    nchunk = max(fil2)-1
+;print, nchunk
+;help, lambda, spec
+
+;plot each chunk seperately to avoid joining lines
+    for i=0,nchunk-1 do begin
+       index = where(fil2 eq i+2)
+       djs_oplot, lambda[index],spec[index], _extra=extra
+    endfor
+
+
+ end
+;+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+;for plotting none sky pixels
+PRO plotbits2,lambda,spec,filter
+
+    fil2 = filter
+    nbin = n_elements(fil2)
+
+    if NOT(fil2[0]) then fil2[0] = 2
+    n=2
+
+    for i=1, nbin -1 do begin
+
+       if (fil2[i]) then continue ;=1 leave alone
+
+       if NOT(fil2[i-1]) then fil2[i] = fil2[i-1] ;previous=0, this is in same chunk
+       if (fil2[i-1])  then fil2[i] = n ;previous=1, this is start of next chunk
+       
+       if (i eq nbin-1) then break
+
+       if (fil2[i+1]) then n=n+1 ;next=0, this is end of chunk
+    endfor
+
+    nchunk = max(fil2)-1
+;plot each chunk seperately to avoid joining lines
+    for i=0,nchunk-1 do begin
+       index = where(fil2 eq i+2)
+       oplot, lambda[index],spec[index],linestyle = 1
+    endfor
+
+ END
+
+;------------------------------------------------------------------
+;------------------------------------------------------------------
+
+function ages_skysubpca, data, info, qaplotname=qaplotname
+
+    ngalaxy = n_elements(info)
+    if (n_elements(data) eq 0L) or (ngalaxy eq 0L) then begin
+       print, 'Syntax - newdata = ages_skysubpca(data,info,qaplotname=)'
+       return, -1L
+    endif
+
+    if (n_elements(qaplotname) eq 0L) then begin
+       splog, 'QAPLOTNAME input required.'
+       return, -1L
+    endif
+
+    emgal_lines_file = getenv('SUBTRACTOH_DIR')+'/emgal_lines.dat'
+    if (file_test(emgal_lines_file,/regular) eq 0L) then begin
+       splog, 'Unable to find line-list file '+emgal_lines_file+'.'
+       return, -1L
+    endif
+    
+    splog, 'Opening '+qaplotname+'.'
+    postthick = 2.1
+    !p.thick = postthick & !x.thick = postthick & !y.thick = postthick
+    !p.charthick = postthick & !p.charsize = 2.0
+    
+    dfpsplot, qaplotname, /color
+
+    newdata = data             ; initialize the output data structure 
+    
+; --------------------------------------------------
+; only consider wavelengths redward of WAVE_CUT
+; --------------------------------------------------
+
+    wave_cut = 6700.0
+    wave_indx = where(data.wave gt wave_cut,npix)
+ 
+    skyflux = data.skyflux[wave_indx,*]
+    skyerr = data.skyferr[wave_indx,*]
+    wave = data.wave[wave_indx]
+    nsky = (size(data.skyflux,/dimensions))[1]
+
+    flux = data.flux[wave_indx,*]
+    ferr = data.ferr[wave_indx,*]
+
+; --------------------------------------------------
+; distinguish sky/non-sky pixels
+; --------------------------------------------------
+
+    rms = fltarr(npix)
+    for i=0L, npix-1L do rms[i] = djsig(skyflux[i,*],sigrej=4.0) ; jm06jan22uofa
+;   for i=0L, npix-1L do rms[i] = SQRT((moment(skyflux[i,*]))[1])
+
+    !p.multi=[0,1,3]
+    plot, wave, rms, title='identifying bad sky pixels: sky-fibre rms/pixel'
+
+    med2 = medfilt(rms,findgen(npix),75)
+    plot, wave, rms/med2, title='same as above, with continuum taken out'
+    djs_oplot, !x.crange, [1,1], line=0, color='green'
+
+; these levels can be tweaked to get more/fewer pixels identified, but
+; pushing the limit too low won't in any way improve things (PCA can't
+; do anything with Poisson noise) and might hinder.  the second
+; criteria at wave<7500 was I think because of some wacky pixels
+; somewhere.
+
+    nonskypix = where((rms/med2 lt 1.2) or (rms/med2 gt 4.0),compl=skypix)
+;   nonskypix = where(rms/med2 lt 1.2 or (rms/med2 gt 4 and wave lt 7500),compl=skypix)
+
+    print,'skypix,noskypix',n_elements(skypix),n_elements(nonskypix)
+
+; plot it out to check it's sensible
+
+    djs_plot, wave[nonskypix], rms[nonskypix]/med2[nonskypix], yrange=[0.2,6], $
+      title='sky pixels (red), nonsky pixels (black)'
+    djs_oplot, wave[skypix], rms[skypix]/med2[skypix], color='red', ps=4, syms=0.5
+
+    array = fltarr(npix,ngalaxy)   ; array for PCA
+    med_gal = fltarr(npix,ngalaxy)
+
+; --------------------------------------------------
+; now prepare each galaxy spectrum
+; --------------------------------------------------
+
+    for i=0L, ngalaxy-1L do begin
+
+; median filter and normalise spectrum
+
+       tmpflux = fltarr(npix)
+       mask = masklines(flux[*,i],wave/(1+info[i].z),/silent,$
+         emgal_lines_file,tmpflux)
+       medflux = medfilt(tmpflux,findgen(npix),75)
+       
+       array[*,i] = tmpflux - medflux ; first pass, just mask lines
+       med_gal[*,i] = medflux
+
+; divide by errors
+
+       ind = where(ferr[*,i] gt 0.0,compl=compl,ncompl=ncompl)
+       array[ind,i] = array[ind,i]/ferr[ind,i]
+       
+; replace the bad pixels and pixels likely to have emission lines with
+; the mean/median/weighted mean (for that same pixel) of all the other
+; spectra with good values; jm06jan22uofa
+
+       if (compl[0] ne -1L) then begin
+;         array[compl,i] = 0.0  ; set error=0 pixels to 0
+          case i of
+             0L:         goodflux = flux[compl,1L:ngalaxy-1L]
+             ngalaxy-1L: goodflux = flux[compl,0L:ngalaxy-2L]
+             else:       goodflux = [ [flux[compl,0L:(i-1L)]], [flux[compl,(i+1L):(ngalaxy-1L)]] ]
+          endcase
+          array[compl,i] = djs_median(goodflux,2) ; median
+       endif 
+
+    endfor
+    
+; PCA; PCOMP is a standard IDL routine, with a few adaptations I made
+
+    pcs = PCOMP3(array[skypix,*],coeff=espec,/covariance,/nodiv,variances=var)
+
+; these variances are a check to see how much of the variance of the
+; data you are picking up in the top eigenspectra. i.e. give up if its
+; not a siginificant fraction - you've just got white noise.
+
+    print, 'variances: ', var[0:5]
+
+; plot the eigenspectra: hard work to spot what they are actually
+; telling you.
+
+    !p.multi = [0,1,5]
+    filter=uintarr(npix)
+    filter[skypix]=1
+
+    for i=0L, 9L do begin
+
+       plot, wave[skypix],espec[*,i],/nodata,title='eigenspectrum '+string(i,form='(I2)')
+       tmp = fltarr(npix)
+       tmp[skypix] = espec[*,i]
+       plotbits, wave, tmp, filter
+       plotbits2, wave, fltarr(npix), filter
+
+    endfor
+
+; these are useful. If the distribution is a very narrow spike, with a
+; single 'outlying' object with a very large value (negative or
+; positive), that one object is dominating the eigenspectrum. This
+; isn't any good for reconstructing general properties of the
+; dataset. I'm afraid you have to remove the spectrum and recalculate
+; the eigenspectra.
+
+; why are only the first 8 sky pixels checked?  jm06jan22uofa
+    
+    !p.multi = [0,2,2]
+
+    for i=0L, 7L do begin
+       plothist, pcs[i,*], title='distribution of PC amplitudes, PC '+$
+         string(i,form='(I2)'), charsize=1, /halfbin, xbin, ybin
+    endfor
+
+;   for i=0,7 do begin
+;      hist = histogram(pcs[i,*],nbin=10,loc=x)
+;      plot,x+(x[1]-x[0])/2.,hist,psym=10,title='distribution of PC amplitudes, PC '+string(i,form='(I2)'),charsize=1
+;   endfor
+
+; iteratively compute the eigentemplates until there are no more
+; 5-sigma outliers; jm06jan22uofa
+;
+;   eigenmask = intarr(n_elements(skypix))+1L
+;   eigencounter = 0L
+;   while (total(eigenmask) ne 0.0) begin
+;
+;      djs_iterstat, pcs, mask=msk, sigrej=5.0
+;      eigenmask = msk ne 1L
+;
+;      eigencounter = eigencounter + 1L
+;      if (eigencounter gt 30L) then message, 'Did not converge!'
+;
+;   endwhile
+
+; --------------------------------------------------
+; reconstruct sky: this would be a useful sanity check, but I didn't
+; get around to it.
+; --------------------------------------------------
+
+; --------------------------------------------------
+; reconstruct objects
+; --------------------------------------------------
+
+    flux2 = flux
+
+    !p.multi=[0,1,4]
+    for i=0L, ngalaxy-1L do begin
+       
+; mask lines and subtract continuum
+
+       tmpflux = fltarr(npix)
+       mask = masklines(flux[*,i],wave/(1+info[i].z),/silent,$
+         emgal_lines_file,tmpflux)
+       
+       newflux = flux[*,i]-med_gal[*,i]
+
+; divide by errors
+
+; I had to put this flux>-1e-16 in just to identify some odd pixels
+; which were messing things up. I guess there would be a better way to
+; identify bad pixels.
+
+;      ind = where((ferr[*,i] gt 0.0) and (flux[*,i] gt 0.0),compl=compl)
+       ind = where(ferr[*,i] ne 0 and flux[*,i] gt -1.e-16,compl=compl)
+       newflux[ind] = newflux[ind]/ferr[ind,i]
+       if (compl[0] ne -1L) then mask[compl] = 2.0
+
+; --------------------------------------------------
+; reconstruct the sky noise
+; --------------------------------------------------
+
+; Here there should probably be a 'while' loop, calculating the
+; reconstruction one eigenspectrum at a time and checking for when the
+; rms over the sky pixels drops to the same as the rms over the
+; non-sky pixels in the spectrum (see SDSS code). The 13 eigenspectra
+; used here was a trial and error informed guestimate.
+
+; There will be a range of numbers of eigenspectra used, depending on
+; the quality of each individual spectrum. If something goes wrong,
+; the number of eigenspectra used will shoot up, for example if
+; there's a misplaced strong galaxy emission line its trying really
+; hard to reconstruct. PCA is simply a "least squares" procedure.
+
+       ind_good = where(mask[skypix] eq 0)
+       pcs = newflux[skypix[ind_good]] ## (TRANSPOSE(espec[ind_good,0:12]))
+       recon = pca_reconstruct(pcs, espec[*,0:12])
+
+; now subtract the reconstruction (remember the error normalisation)
+; from the flux. Note that you can subtract from all the sky pixels,
+; including those you masked during the reconstruction because of
+; possible presence of emission lines.
+
+       flux2[skypix,i] = flux[skypix,i]-(recon*ferr[skypix,i]) ; this is it!
+
+       newdata.flux[wave_indx,i] = flux2[*,i]
+
+; plot some of the results
+
+       if i/10 eq i/10. then begin
+
+          plot, wave,flux[*,i],title='original spectrum'+string(i,format='(I4)')+' + masked pixels (red)'
+          ind = where(mask eq 0,compl=compl)
+          mask[ind]=-10.
+          ind1 = where(mask eq 1)
+          ind2 = where(mask eq 2)
+          if compl[0] ne -1 then  mask[compl]=0.
+          djs_oplot, wave,mask,color='green'
+          if ind2[0] ne -1 then mask[ind2] = -10
+          djs_oplot, wave,mask,color='red'
+          
+          plot, wave[skypix],newflux[skypix],/nodata,title='same as above, only sky pixels,median filtered'
+          plotbits,wave,newflux,filter
+          plotbits2,wave,fltarr(npix),filter
+          
+          plot, wave[skypix],recon,/nodata,title='PCA reconstruction'
+          recon2 = fltarr(npix)
+          recon2[skypix]=recon
+          plotbits,wave,recon2,filter
+          plotbits2,wave,fltarr(npix),filter
+          
+          plot, wave,flux2[*,i],title='sky residual subtracted spectrum'
+
+       endif
+       
+    endfor
+
+; analysis plots: make sure you don't get "upside down hedgehogs"
+; anywhere, it means you've created a high pass filter and are
+; removing Poisson noise.
+
+    rms1 = fltarr(npix)
+    rms2 = rms1 & rms3 = rms1 & rms4 = rms1
+
+    for i=0L, npix-1L do rms1[i] = rms5((flux[i,*]-med_gal[i,*]))
+    for i=0L, npix-1L do rms2[i] = rms5((flux2[i,*]-med_gal[i,*])) 
+    for i=0L, npix-1L do begin
+       ind = where(ferr[i,*] gt 0.0)
+       rms3[i] = rms5((flux[i,ind]-med_gal[i,ind])/ferr[i,ind])
+    endfor
+    for i=0L, npix-1L do begin
+       ind = where(ferr[i,*] gt 0.0)
+       rms4[i] = rms5((flux2[i,ind]-med_gal[i,ind])/ferr[i,ind]) 
+    endfor
+
+    !p.multi=[0,1,2]
+    plot, wave, rms1,/ystyle,title='rms/pixel,67th percentile, before residual subtraction',$
+      yrange=minmax(rms1), charsize=1.0
+    plot, wave, rms2,/ystyle,title='rms/pixel,67th percentile, after residual subtraction',$
+      yrange=minmax(rms2), charsize=1.0
+    plot, wave, rms3,/ystyle,title='rms/pixel,error normalised,67th percentile, before',$
+      yrange=minmax(rms3), charsize=1.0
+    plot, wave, rms4,/ystyle,title='rms/pixel,error normalised,67th percentile, after',$
+      yrange=minmax(rms4), charsize=1.0
+
+    skysubflux = flux2 
+
+    cleanplot, /silent
+    dfpsclose
+
+return, newdata
+end

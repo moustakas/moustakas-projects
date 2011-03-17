@@ -1,0 +1,16 @@
+This file tabulates H-alpha and [N II] fluxes and equivalent widths,
+Balmer absorption corrections, and ancillary properties for the Ursa
+Major cluster.  Fluxes have been corrected for Galactic foreground
+extinction using the Schlegel et al. (1998) dust maps and the
+O'Connell (1994) extinction curve.  Fluxes have units of erg/s/cm2;
+EWs are in Angstroms, in the rest frame.  Upper limits are indicated
+with an error code of -3.0, non-measurements have an error code of
+-2.0, and "no information" is represented by a -999.  Absolute
+magnitudes are computed assuming H0 = 70 km/s/Mpc.  Galaxies observed
+during photometric or non-photometric conditions are indicated in
+column (09).  The aperture code in column (08) has the following
+meaning: 1 - fully integrated; 2 - missing low surface brightness
+features (e.g., tidal tails, outer spiral arms); 3 - central spectrum,
+not truly integrated.  Finally, column (23) indicates an whether the
+object is a star-forming galaxy (HII), an AGN (AGN), or
+un-classifiable (Unknown).

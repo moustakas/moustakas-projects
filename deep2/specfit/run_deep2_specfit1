@@ -1,0 +1,13 @@
+#!/bin/csh -f 
+
+# np is the number of processors
+
+# np = 6 & nmask = 385 & n1 = nmask/np & n2 = ceil(nmask/float(np))
+# niceprint, lindgen(np)*n2, lindgen(np)*n2+n1
+
+echo "deep2_specfit,   firstmask=0,  lastmask=64" | idl > & specfit.log.01 &
+echo "deep2_specfit,  firstmask=65, lastmask=129" | idl > & specfit.log.02 &
+echo "deep2_specfit, firstmask=130, lastmask=194" | idl > & specfit.log.03 &
+echo "deep2_specfit, firstmask=195, lastmask=259" | idl > & specfit.log.04 &
+echo "deep2_specfit, firstmask=260, lastmask=324" | idl > & specfit.log.05 &
+echo "deep2_specfit, firstmask=325, lastmask=384" | idl > & specfit.log.06 &

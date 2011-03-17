@@ -1,0 +1,12 @@
+#!/bin/csh -f 
+
+# 8 processors, with tweak, part 1
+
+echo "ages_specfit, firstpass=0, lastpass=5"   | idl > & specfit.log.01 &
+echo "ages_specfit, firstpass=6, lastpass=11"  | idl > & specfit.log.02 &
+echo "ages_specfit, firstpass=12, lastpass=17" | idl > & specfit.log.03 &
+echo "ages_specfit, firstpass=18, lastpass=23" | idl > & specfit.log.04 &
+echo "ages_specfit, firstpass=24, lastpass=29" | idl > & specfit.log.05 &
+echo "ages_specfit, firstpass=30, lastpass=35" | idl > & specfit.log.06 &
+echo "ages_specfit, firstpass=36, lastpass=41" | idl > & specfit.log.07 &
+echo "ages_specfit, firstpass=42, lastpass=48" | idl > & specfit.log.08 &

@@ -1,0 +1,164 @@
+###########################################################################
+rsync -auvnL saguaro.as.arizona.edu:"/saguaro/rcool/hectdata/2005.????/reduction/0051/sp*.fits*" /Volumes/WDexternal/data/ages/spectra/0051/
+###########################################################################
+
+###########################################################################
+rsync -auvnL saguaro.as.arizona.edu:"/saguaro/rcool/hectdata/2004.????*/reduction/0301/spObs-???-0301-????.fits*" /Volumes/WDexternal/data/ages/spectra/0301/
+rsync -auvnL saguaro.as.arizona.edu:"/saguaro/rcool/hectdata/2004.????*/reduction/0301/spHect-???-0301.fits*" /Volumes/WDexternal/data/ages/spectra/0301/
+rsync -auvnL saguaro.as.arizona.edu:"/saguaro/rcool/hectdata/2004.????*/reduction/0301/spZ*.fits*" /Volumes/WDexternal/data/ages/spectra/0301/
+rsync -auvnL saguaro.as.arizona.edu:"/saguaro/rcool/hectdata/2004.????*/reduction/0301/spFluxcorr-spObs-???-0301-????.fits*" /Volumes/WDexternal/data/ages/spectra/0301/
+rsync -auvnL saguaro.as.arizona.edu:"/saguaro/rcool/hectdata/2004.????*/reduction/0301/spHect-???-0301.fits*" /Volumes/WDexternal/data/ages/spectra/0301/
+
+rsync -auvnL saguaro.as.arizona.edu:"/saguaro/rcool/hectdata/2004.0416/reduction/0301/spHect-field3a_1-0301.fits.gz" /Volumes/WDexternal/data/ages/spectra/0301/spHect-103-0301.fits.gz
+rsync -auvnL saguaro.as.arizona.edu:"/saguaro/rcool/hectdata/2004.0416/reduction/0301/spHect-field4a_1-0301.fits.gz" /Volumes/WDexternal/data/ages/spectra/0301/spHect-104-0301.fits.gz
+rsync -auvnL saguaro.as.arizona.edu:"/saguaro/rcool/hectdata/2004.0416/reduction/0301/spHect-field11b_1-0301.fits.gz" /Volumes/WDexternal/data/ages/spectra/0301/spHect-111-0301.fits.gz
+rsync -auvnL saguaro.as.arizona.edu:"/saguaro/rcool/hectdata/2004.0416/reduction/0301/spHect-field13a_1-0301.fits.gz" /Volumes/WDexternal/data/ages/spectra/0301/spHect-113-0301.fits.gz
+###########################################################################
+
+# rsync -auvnL saguaro.as.arizona.edu:"/saguaro/rcool/hectdata/2004.????/reduction/0300/sp*.fits*" /Volumes/WDexternal/data/ages/spectra/0300/
+
+################
+0301
+################
+
+Delete spHect-1[3-4]?-0301.fits.gz
+Delete spObs-1[3-4]?-0301-????.fits.gz
+Delete spZ*-1[3-4]?-0301.fits.gz
+Delete spFluxcorr-spObs-1[3-4]?-0301-????.fits.gz
+Delete *spObs-310-0301-006[4-6].fits.gz
+
+Missing files (see above)
+
+  spHect-103-0301.fits.gz
+  spHect-104-0301.fits.gz
+  spHect-111-0301.fits.gz
+  spHect-113-0301.fits.gz
+
+###########################################################################
+
+Richard,
+
+> I looked at ages_coadd that you sent me earlier. It looks like it
+> should be fine.  My one suggestion is actually to try and run it with
+> noftweak  = 0.  In this case, the various exposures will be compared
+> against each other and low-order corrections will be applied to each
+> one to bring them all to the same system.  This is fine even if the
+> data are not really fluxed and should account decently well for
+> varrying airmass / transparency between the exposures.
+
+Can you help me find the following files?
+
+spFluxcorr-spObs-106-0301-0514.fits.gz
+spFluxcorr-spObs-106-0301-0515.fits.gz
+spFluxcorr-spObs-106-0301-0516.fits.gz
+
+spFluxcorr-spObs-110-0301-0511.fits.gz
+spFluxcorr-spObs-110-0301-0512.fits.gz
+spFluxcorr-spObs-110-0301-0513.fits.gz
+
+spFluxcorr-spObs-209-0301-0440.fits.gz
+spFluxcorr-spObs-209-0301-0441.fits.gz
+spFluxcorr-spObs-209-0301-0442.fits.gz
+
+spFluxcorr-spObs-310-0301-0511.fits.gz
+spFluxcorr-spObs-310-0301-0512.fits.gz
+spFluxcorr-spObs-310-0301-0513.fits.gz
+spFluxcorr-spObs-310-0301-0514.fits.gz
+
+spFluxcorr-spObs-311-0301-0586.fits.gz 
+spFluxcorr-spObs-311-0301-0587.fits.gz 
+spFluxcorr-spObs-311-0301-0588.fits.gz
+spFluxcorr-spObs-311-0301-0589.fits.gz
+
+Thanks!
+John
+
+###########################################################################
+
+Hi John,
+
+Sorry about that.
+
+I am not 100% sure why these names were not propogated, but the
+matched names are below.
+
+> Can you help me find the following files?
+>
+>  spHect-103-0301.fits.gz        -------->     spHect-
+> field3a_1-0301.fits.gz
+>  spHect-104-0301.fits.gz        -------->     spHect-
+> field3a_1-0301.fits.gz
+>  spHect-111-0301.fits.gz        -------->     spHect-
+> field3a_1-0301.fits.gz
+>  spHect-113-0301.fits.gz        -------->     spHect-
+> field3a_1-0301.fits.gz
+>
+> I realize that these are the fluxed data, but I would like to also
+> have the fluxed data with the correct scale factor applied.  Also, in
+> my last email I asked about the two sets of spObs-310- files:
+>
+> spObs-310-0301-0064.fits.gz
+> spObs-310-0301-0065.fits.gz
+> spObs-310-0301-0066.fits.gz
+>
+> and
+>
+> spObs-310-0301-0511.fits.gz
+> spObs-310-0301-0512.fits.gz
+> spObs-310-0301-0513.fits.gz
+> spObs-310-0301-0514.fits.gz
+>
+> Can I combine them all, or should I be ignoring one of the two sets?
+>
+
+For the spHect files, the hs_batch file will run a reduction of all
+of the images for a given night based on the lists inside each
+night's directory.  For the files you are working from, observations
+on separate nights were not coadded, so you will want to only combine
+the full night of exposures (the second list above).  We did coadd
+all of the multiple observations, but these are not included for the
+individual plates.
+
+I hope that helps - let  me know if there is anything else that you
+need or if I missed anything.
+Richard
+
+
+Richard Cool 	
+to me
+	
+show details
+	 Apr 13 (21 hours ago) 
+Hey John,
+
+I'm glad this is helping.
+
+I took a look at these exposures, and you should not use 329 - it was an observation offset from the others in order to measure the sky to test various skysubtraction  ideas.  This was not included in my coadd of the data, but the spObs was created for some test.  That is the only one that I noticed as being obviously bad.  
+
+If that doesn't solve your problem, let me know what you are seeing and I can see if I can track it down.
+
+Richard
+- Hide quoted text -
+
+On Apr 13, 2007, at 9:17 AM, John Moustakas wrote:
+
+> Richard,
+>
+> Working with the fluxed and unfluxed spectra in tandem has been very
+> successful/helpful.  I am happy to report that the emission-line EWs
+> measured from the two sets of spectra match nicely, which means your
+> fluxing is generally very good.  However, I am having trouble with one
+> plate, 606.  When I coadd all the unfluxed spectra I am including all
+> of the following, but I think some of them may be junk:  Can you help?
+>
+> Thanks,
+> John
+>
+> spObs-606-0051-0323.fits.gz
+> spObs-606-0051-0324.fits.gz
+> spObs-606-0051-0325.fits.gz
+> spObs-606-0051-0326.fits.gz
+> spObs-606-0051-0327.fits.gz
+> spObs-606-0051-0328.fits.gz
+> spObs-606-0051-0329.fits.gz
+>

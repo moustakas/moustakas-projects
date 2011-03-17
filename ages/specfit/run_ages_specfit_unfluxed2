@@ -1,0 +1,12 @@
+#!/bin/csh -f 
+
+# 8 processors, unfluxed
+
+echo "ages_specfit, firstpass=49,  lastpass=54, /unfluxed" | idl > & specfit.log.09 &
+echo "ages_specfit, firstpass=55,  lastpass=60, /unfluxed" | idl > & specfit.log.10 &
+echo "ages_specfit, firstpass=61,  lastpass=66, /unfluxed" | idl > & specfit.log.11 &
+echo "ages_specfit, firstpass=67,  lastpass=72, /unfluxed" | idl > & specfit.log.12 &
+echo "ages_specfit, firstpass=73,  lastpass=78, /unfluxed" | idl > & specfit.log.13 &
+echo "ages_specfit, firstpass=79,  lastpass=84, /unfluxed" | idl > & specfit.log.14 &
+echo "ages_specfit, firstpass=85,  lastpass=90, /unfluxed" | idl > & specfit.log.15 &
+echo "ages_specfit, firstpass=91, lastpass=100, /unfluxed" | idl > & specfit.log.16 &

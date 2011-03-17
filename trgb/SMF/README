@@ -1,0 +1,14 @@
+John Moustakas, 2000 September 6, UofA
+
+This directory contains the linked IDL and C programs to run
+a maximum likelihood analysis on Keck and HST TRGB data.  The
+C programs require the following files in the directory
+/deep1/ioannis/lib/c/:
+
+	nrutil.o (Numerical Recipes utilities)
+	nrutil.h (definitions for nrutil.c)
+	export.h (useful IDL conventions for C)
+
+The program FORM_G is called by the non-C version of TRGB_MLIKE.
+The shared object library mlike.so* is necessary for the C version
+of TRGB_MLIKE to run properly.

@@ -1,0 +1,10 @@
+#!/bin/csh -f 
+
+echo "ages_specfit, firstpass=0, lastpass=12, /notweak" | idl > & specfit.log.1 &
+echo "ages_specfit, firstpass=13, lastpass=25, /notweak" | idl > & specfit.log.2 &
+echo "ages_specfit, firstpass=26, lastpass=38, /notweak" | idl > & specfit.log.3 &
+echo "ages_specfit, firstpass=39, lastpass=51, /notweak" | idl > & specfit.log.4 &
+echo "ages_specfit, firstpass=52, lastpass=64, /notweak" | idl > & specfit.log.5 &
+echo "ages_specfit, firstpass=65, lastpass=77, /notweak" | idl > & specfit.log.6 &
+echo "ages_specfit, firstpass=78, lastpass=90, /notweak" | idl > & specfit.log.7 &
+echo "ages_specfit, firstpass=91, lastpass=100, /notweak" | idl > & specfit.log.8 &

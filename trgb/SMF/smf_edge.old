@@ -1,0 +1,18 @@
+pro smf_edge, lf, phi, resplin, resplog, noise, trgblin, trgblog
+
+; search for the maximum between lf.minmag and the peak of the LF
+
+        getelement_vector, lf.mag, lf.minmag, x1
+        getelement_vector, phi, max(phi), x2
+
+;       maxlin = max(smooth(resplin[x1:x2],4),linindx)
+;       maxlog = max(smooth(resplog[x1:x2],4),logindx)
+
+        maxlin = max(resplin[x1:x2],linindx)
+        maxlog = max(resplog[x1:x2],logindx)
+
+        trgblin = (lf.mag[x1:x2])[linindx]
+        trgblog = (lf.mag[x1:x2])[logindx]
+
+return
+end

@@ -1,0 +1,11 @@
+# SDSS [OII] electron density sample definitions
+
+typedef struct {
+  char sample[];
+  float zmin;
+  float zmax;
+  float faintcut;
+  float brightcut;
+} SAMPLE;
+
+SAMPLE zbin1 0.05 0.10 -19.8 -22.5

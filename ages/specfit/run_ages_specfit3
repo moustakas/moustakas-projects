@@ -1,0 +1,10 @@
+#!/bin/csh -f 
+
+# 6 processors, no tweak, part 1
+
+echo "ages_specfit, firstpass=0, lastpass=7, /notweak" | idl > & specfit.log.01 &
+echo "ages_specfit, firstpass=8, lastpass=15, /notweak" | idl > & specfit.log.02 &
+echo "ages_specfit, firstpass=16, lastpass=23, /notweak" | idl > & specfit.log.03 &
+echo "ages_specfit, firstpass=24, lastpass=31, /notweak" | idl > & specfit.log.04 &
+echo "ages_specfit, firstpass=32, lastpass=39, /notweak" | idl > & specfit.log.05 &
+echo "ages_specfit, firstpass=40, lastpass=47, /notweak" | idl > & specfit.log.06 &

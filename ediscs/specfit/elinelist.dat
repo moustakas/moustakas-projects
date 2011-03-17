@@ -1,0 +1,16 @@
+#     NAME    WAVELENGTH    ZINDEX     WINDEX      FINDEX    FVALUE
+   OII_3727_1  3726.032    zemission  wemission    f3727_1   1.0
+   OII_3727_2  3728.815    zemission  wemission    f3727_2   1.0
+#  NeIII_3869  3869.06     zemission  wemission	   f3869     1.0
+#  NeIII_3968  3967.79     zemission  wemission	   f3968     1.0
+#  H_epsilon   3970.072    zemission  wemission    f3970     1.0
+#  H_delta     4101.734    zemission  wemission    f4101     1.0
+   H_gamma     4340.464    zemission  wemission    f4340     1.0
+   H_beta      4861.325    zemission  wemission    f4861     1.0
+   OIII_4959   4958.911    zemission  wemission    f5007     1.0
+   OIII_5007   5006.843    zemission  wemission    f5007   2.984
+   NII_6548    6548.04     zemission  wemission    f6584     1.0
+   H_alpha     6562.80     zemission  wemission    f6563     1.0
+   NII_6584    6583.46     zemission  wemission    f6584   3.054
+   SII_6716    6716.14     zemission  wemission    f6716     1.0
+   SII_6731    6730.81     zemission  wemission    f6731     1.0

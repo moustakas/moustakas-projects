@@ -1,0 +1,9 @@
+CC = gcc
+LD = ld
+
+mlike : 
+	cc -c smf_lf.c smf_lf_wrap.c /deep1/ioannis/lib/c/nrutil.o
+	ld -G -o smf_lf.so smf_lf.o smf_lf_wrap.o /deep1/ioannis/lib/c/nrutil.o
+
+clean :
+	$(RM) *.o smf_lf.o smf_lf_wrap.o smf_lf.so

@@ -1,0 +1,120 @@
+pro integrated_abundances_match, write=write
+; jm05may13uofa
+; cross-match the integrated atlas with the HII-region NED data
+
+    outpath = atlas_path(/projects)+'abundances/'
+
+; read the spectral atlas; recompute the reddenings and metallicities
+; using lower S/N thresholds    
+    
+;   atlasdust = read_integrated(linefitnodust=atlasnodust)
+    atlasdust = read_integrated()
+    abunddust = im_abundance(atlasdust,snrcut=2.0)
+    atlasdust = struct_addtags(struct_trimtags(atlasdust,except='Zstrong_*'),abunddust)
+
+    atlasnodust = iunred_linedust(atlasdust,snrcut=3.0,/nopropagate)
+    abundnodust = im_abundance(atlasnodust,snrcut=2.0)
+    atlasnodust = struct_addtags(struct_trimtags(atlasnodust,except='Zstrong_*'),abundnodust)
+
+; read the HII-region database    
+
+    bighii = read_hii_regions(hiined=bighiined)
+
+    ra = 15.0*im_hms2dec(atlasdust.ra)
+    dec = im_hms2dec(atlasdust.dec)
+    
+    hiira = 15.0D*im_hms2dec(bighiined.ra)
+    hiidec = im_hms2dec(bighiined.dec)
+
+    ntot = im_djs_angle_match(ra,dec,hiira,hiidec,dtheta=5.0/3600.0,$
+      units='degrees',mcount=mcount,mindx=mindx,mdist=mdist)
+    match = where(mindx ne -1L,nmatch,comp=nomatch,ncomp=nnomatch)
+    splog, 'Matched '+string(nmatch,format='(I0)')+' galaxies with HII-region data.'
+
+    adust = atlasdust[match]
+    anodust = atlasnodust[match]
+    hiined = bighiined[mindx[match]]
+    
+    niceprint, adust.galaxy, hiined.galaxy, adust.lit_type, adust.m_b
+
+; crop the HII region lineflux structure to only include those objects
+; that match our integrated atlas
+
+    for imatch = 0L, nmatch-1L do begin
+
+       indx = where(strtrim(hiined[imatch].galaxy,2) eq strtrim(bighii.hii_galaxy,2),nindx)
+       if (nindx ne 0L) then begin
+
+          newtags = replicate({atlas_galaxy: adust[imatch].galaxy, ned_galaxy: hiined[imatch].nedgalaxy},nindx)
+          newhii = struct_addtags(bighii[indx],newtags)
+          if (n_elements(hii) eq 0L) then hii = newhii else hii = struct_append(hii,newhii)
+
+; distinguish between objects with gradients (spirals) and dwarfs with
+; just multiple HII-region measurements; define a "spiral" galaxy as
+; one that has radii measured: otherwise it's a dwarf!
+          
+          if (min(newhii.radius) ne max(newhii.radius)) then begin ; spiral galaxy
+
+             if (n_elements(adust_spiral) eq 0L) then begin
+                adust_spiral = adust[imatch]
+                anodust_spiral = anodust[imatch]
+             endif else begin
+                adust_spiral = [ [adust_spiral], [adust[imatch]] ]
+                anodust_spiral = [ [anodust_spiral], [anodust[imatch]] ]
+             endelse
+                
+          endif else begin ; dwarf!
+
+             if (n_elements(adust_dwarf) eq 0L) then begin
+                adust_dwarf = adust[imatch]
+                anodust_dwarf = anodust[imatch]
+             endif else begin
+                adust_dwarf = [ [adust_dwarf], [adust[imatch]] ]
+                anodust_dwarf = [ [anodust_dwarf], [anodust[imatch]] ]
+             endelse
+                
+          endelse 
+
+       endif 
+       
+    endfor
+
+    if keyword_set(write) then begin
+
+; spirals       
+       
+       atlasfile_spiral = 'atlas_spiral_abundances_dust.fits'
+       atlasfile_spiral_nodust = 'atlas_spiral_abundances_nodust.fits'
+       
+       splog, 'Writing '+outpath+atlasfile_spiral+'.'
+       mwrfits, adust_spiral, outpath+atlasfile_spiral, /create
+       spawn, ['gzip -f '+outpath+atlasfile_spiral], /sh
+
+       splog, 'Writing '+outpath+atlasfile_spiral_nodust+'.'
+       mwrfits, anodust_spiral, outpath+atlasfile_spiral_nodust, /create
+       spawn, ['gzip -f '+outpath+atlasfile_spiral_nodust], /sh
+
+; dwarfs       
+       
+       atlasfile_dwarf = 'atlas_dwarf_abundances_dust.fits'
+       atlasfile_dwarf_nodust = 'atlas_dwarf_abundances_nodust.fits'
+       splog, 'Writing '+outpath+atlasfile_dwarf+'.'
+       mwrfits, adust_dwarf, outpath+atlasfile_dwarf, /create
+       spawn, ['gzip -f '+outpath+atlasfile_dwarf], /sh
+
+       splog, 'Writing '+outpath+atlasfile_dwarf_nodust+'.'
+       mwrfits, anodust_dwarf, outpath+atlasfile_dwarf_nodust, /create
+       spawn, ['gzip -f '+outpath+atlasfile_dwarf_nodust], /sh
+
+; HII regions
+       
+       hiifile = 'hii_abundances.fits'
+       splog, 'Writing '+outpath+hiifile+'.'
+       mwrfits, hii, outpath+hiifile, /create
+       spawn, ['gzip -f '+outpath+hiifile], /sh
+       
+    endif
+
+return
+end
+    

@@ -1,0 +1,54 @@
+AGES/MZ README
+
+### Build the samples ###
+
+[1] Build the parent AGES and SDSS samples:
+  build_mz_parent, sdss=sdss
+
+[2] Build the AGES and SDSS emission-line samples and also classify
+into AGN, SF, etc.
+  build_mz_emline, sdss=sdss
+
+[3] Compute oxygen abundances for the star-forming galaxies:
+  build_mz_log12oh, sdss=sdss, agn=agn
+
+[4] Build the SDSS2AGES comparison sample, with and without evolution:
+  build_sdss2ages
+  build_sdss2ages, /evolve
+  
+  
+### Analysis plots (in approximate order of appearance in the paper) ###
+
+[1] mzplot_sample - sample selection issues
+[2] mzplot_agn - AGN identification
+[3] 
+
+
+
+
+
+
+
+[5] Fit the local and evolving MZ/LZ relations
+  fit_mzlzlocal, /clobber
+  mlfit_mzlzevol, /clobber
+
+
+###
+Simple modeling
+* build_mz_pegase_models
+* get_pegase_info - parse the output from build_mz_pegase_models
+* mz_galform_model - simple galaxy formation model
+* qaplot_mz_pegase_models - build some simple QAplots
+
+
+# Make the plots
+
+* mzplot_sample - sample properties
+* mzplot_ohcalib - investigating the effect of various abundance calibrations 
+* mzplot_mzlzlocal - establishing the local LZ and MZ relations
+* mzplot_mzlzevol - evolution of the LZ and MZ relations
+
+mzsampleplots:
+* EWs measured from fluxed/unfluxed plates
+* redshift vs absolute magnitude and stellar mass

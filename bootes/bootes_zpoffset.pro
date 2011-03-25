@@ -1,7 +1,36 @@
-function bootes_zpoffset, nozpoffset=nozpoffset
+function bootes_zpoffset, nozpoffset=nozpoffset, absolute=absolute
 ; jm10jan05ucsd - zeropoint offsets for BwRI were derived in
 ; BOOTES_ZEROPOINTS; assume the JHKs zeropoint corrections are
 ; negligible
+
+    if keyword_set(nozpoffset) then return, $
+      fltarr(n_elements(bootes_filterlist()))
+
+; deal with UBwRIzJHKs
+    filt = bootes_filterlist(/noirac)
+    nfilt = n_elements(filt)
+    zpoffset = fltarr(nfilt)
+
+    zfile = ages_path(/mycatalogs)+'zptoffsets/ages_zptoffsets.fits.gz'
+    if file_test(zfile) then begin
+       splog, 'Reading '+zfile
+       zpt = mrdfits(zfile,1)
+       match, strtrim(filt,2), strtrim(zpt[0].filterlist,2), m1, m2
+       if keyword_set(absolute) then $
+         zpoffset[m1] = total(zpt.zptoffset[m2],2) else $
+           zpoffset[m1] = total(zpt.relative_zptoffset[m2],2)
+    endif else splog, 'Zeropoint corrections file '+zfile+' not found!'
+
+;; old!!
+;    ubriz_zpoffset = [0.0,-0.129,-0.066,-0.029,0.0] 
+;    jhks_zpoffset = [0.0,0.0,0.0]
+;    if keyword_set(nozpoffset) then begin
+;       ubriz_zpoffset = ubriz_zpoffset*0.0
+;       jhks_zpoffset = jhks_zpoffset*0.0
+;    endif
+;    zpoffset = [ubriz_zpoffset,jhks_zpoffset,irac_apercor]
+;;   splog, zpoffset
+
 
 ; for IRAC the code below deals with *aperture corrections* (not
 ; zeropoint corrections, but they're effectively the same);
@@ -31,16 +60,7 @@ function bootes_zpoffset, nozpoffset=nozpoffset
 ;   irac_apercor = +2.5*alog10([0.736,0.716,0.606,0.543]) ; SWIRE/DR2 document
 ;   irac_apercor = -alog10([1.205,1.221,1.363,1.571])     ; IRAC website
 
-; now deal with BwRIJHKs    
-    splog, 'Ignoring zeropoint offsets!'
-    bwri_zpoffset = [-0.129,-0.066,-0.029]*0.0
-    jhks_zpoffset = [0.0,0.0,0.0]
-    if keyword_set(nozpoffset) then begin
-       bwri_zpoffset = bwri_zpoffset*0.0
-       jhks_zpoffset = jhks_zpoffset*0.0
-    endif
-    zpoffset = [bwri_zpoffset,jhks_zpoffset,irac_apercor]
-;   splog, zpoffset
+    zpoffset = [zpoffset,irac_apercor]
     
 return, zpoffset
 end

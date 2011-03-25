@@ -38,16 +38,22 @@ function mz_filterlist, bands=bands, vega2ab=vega2ab, zpoffset=zpoffset, $
     endif
        
 ; -------------------------    
-; zeropoint offsets; use the results of DERIVE_MZ_ZPTOFFSETS 
+; zeropoint offsets; use the results of AGES_DERIVE_ZPTOFFSETS 
     if arg_present(zpoffset) then begin
        zpoffset = fltarr(nfilt)
        if (keyword_set(nozpoffset) eq 0) then begin
-          zfile = ages_path(/projects)+'mz/zptoffsets/'+$
-            'ages_kcorrect_zptoffsets.fits.gz'
+          zfile = ages_path(/mycatalogs)+'zptoffsets/'+$
+            'ages_zptoffsets.fits.gz'
           if file_test(zfile) then begin
              splog, 'Reading '+zfile
-             zptout = mrdfits(zfile,1)
-             zpoffset = total(zptout.zptoffset,2) ; cumulative correction
+             zpt = mrdfits(zfile,1)
+
+             match, strtrim(filterlist,2), strtrim(zpt[0].filterlist,2), m1, m2
+
+             if keyword_set(absolute) then $
+               zpoffset[m1] = total(zpt.zptoffset[m2],2) else $
+                 zpoffset[m1] = total(zpt.relative_zptoffset[m2],2)
+;            niceprint, zptoffset, filterlist
           endif else begin
              splog, 'Zeropoint corrections file '+zfile+' not found!'
           endelse

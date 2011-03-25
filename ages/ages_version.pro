@@ -57,6 +57,8 @@
 ;     v3.0 - 2010b version of M. Brown's aperture-matched
 ;       catalogs; now includes U- and z-band photometry, improved PSF
 ;       magnitudes, background subtraction, and zeropoints
+;     v3.1 - removed IMAFLAGS and SEGFLAGS tags and some of the
+;       unnecessary aperture magnitudes
 ;
 ;   ispec_specfit
 ;     v1.0 - earlier effort
@@ -113,7 +115,7 @@ function ages_version, ancillary=ancillary, photometry=photometry, $
 
     version = -1.0
 
-    if keyword_set(photometry) then version = 'v3.0'
+    if keyword_set(photometry) then version = 'v3.1'
     if keyword_set(kcorrect) then version = 'v4.0'
 
     if keyword_set(ispec_specfit) then version = 'v2.1'

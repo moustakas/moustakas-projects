@@ -43,7 +43,8 @@
 ;-
 
 pro bootes_to_maggies, bootes, maggies, ivar, psf=psf, use_aper=use_aper, $
-  totalmag=totalmag, itot=itot, filterlist=filterlist
+  totalmag=totalmag, itot=itot, filterlist=filterlist, nominerror=nominerror, $
+  nozpoffset=nozpoffset
 
     ngal = n_elements(bootes)    
     if (ngal le 0L) then begin
@@ -53,7 +54,7 @@ pro bootes_to_maggies, bootes, maggies, ivar, psf=psf, use_aper=use_aper, $
 
     filterlist = bootes_filterlist()
     vega2ab = bootes_vega2ab()
-;   zpoffset = bootes_zpoffset(nozpoffset=nozpoffset)
+    zpoffset = bootes_zpoffset(nozpoffset=nozpoffset)
     nbands = n_elements(filterlist)
 
 ; correct for Galactic extinction    
@@ -118,9 +119,9 @@ pro bootes_to_maggies, bootes, maggies, ivar, psf=psf, use_aper=use_aper, $
              magerr = bootes[good].(utag)
              if keyword_set(totalmag) then begin
                 mag = bootes[good].(itottag) + (bootes[good].(ftag)-bootes[good].(iapertag)) + $
-                  vega2ab[ii] - kl[ii]*ebv[good]; + zpoffset[ii]
+                  vega2ab[ii] - kl[ii]*ebv[good] + zpoffset[ii]
              endif else begin
-                mag = bootes[good].(ftag) + vega2ab[ii] - kl[ii]*ebv[good]; + zpoffset[ii] 
+                mag = bootes[good].(ftag) + vega2ab[ii] - kl[ii]*ebv[good] + zpoffset[ii] 
              endelse
              maggies[ii,good] = 10.0^(-0.4*mag)
              notzero = where((maggies[ii,good] gt 0.0),nnotzero)
@@ -131,9 +132,11 @@ pro bootes_to_maggies, bootes, maggies, ivar, psf=psf, use_aper=use_aper, $
     endfor
 
 ; apply a minimum photometric error
-    minerr = bootes_minerror()
-    if (n_elements(minerr) ne nbands) then message, 'Problem here!'
-    k_minerror, maggies, ivar, minerr
+    if (keyword_set(nominerror) eq 0) then begin
+       minerr = bootes_minerror()
+       if (n_elements(minerr) ne nbands) then message, 'Problem here!'
+       k_minerror, maggies, ivar, minerr
+    endif
 
 return   
 end

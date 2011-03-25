@@ -36,21 +36,17 @@ function init_zptout, nfilt, niter=niter
 return, zptout
 end
 
-pro derive_mz_zptoffsets, isedfit=isedfit, clobber=clobber
+pro derive_mz_zptoffsets, clobber=clobber
 ; jm10oct19ucsd - iteratively fit the AGES galaxies with either
 ; isedfit or K-correct to derive zeropoint offsets, if any 
 
     zptpath = ages_path(/projects)+'mz/zptoffsets/'
     niter = 15
 
-    if keyword_set(isedfit) then $
-      suffix = '_isedfit_zptoffsets' else $
-        suffix = '_kcorrect_zptoffsets'
-
 ;   paramfile = isedpath+field[ii]+'_isedfit.par'
 ;   params = read_isedfit_paramfile(paramfile,sfhgrid='02')
 
-    outfile = zptpath+'ages'+suffix+'.fits'
+    outfile = zptpath+'ages_zptoffsets.fits'
     logfile = repstr(outfile,'.fits','.log')
     if file_test(outfile+'.gz') and (keyword_set(clobber) eq 0) then begin
        splog, 'Output file '+outfile+' exists; use /CLOBBER!'

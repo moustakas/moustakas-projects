@@ -44,7 +44,7 @@
 ;-
 
 pro mz_to_maggies, cat, maggies, ivar, psf=psf, use_aper=use_aper, $
-  totalmag=totalmag, itot=itot, filterlist=filterlist
+  totalmag=totalmag, itot=itot, filterlist=filterlist, nozpoffset=nozpoffset
 
     ngal = n_elements(cat)    
     if (ngal le 0L) then begin

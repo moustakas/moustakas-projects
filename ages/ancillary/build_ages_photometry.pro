@@ -222,6 +222,9 @@ pro build_ages_photometry, phot, clobber=clobber
 ; add the BOOTES photometry; do not use M. Brown's FUV/NUV
 ; photometry  
     splog, 'Adding BOOTES UBwRIzJHKs[ch1-4]'
+
+stop
+    
     phot = struct_addtags(temporary(phot),bootes1)
 ;   phot = struct_addtags(temporary(phot),struct_trimtags(bootes1,$
 ;     except=['fuv*','nuv*','field']))

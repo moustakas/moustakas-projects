@@ -1,6 +1,5 @@
-pro mz_isedfit, sfhgrid=sfhgrid, imf=imf, synthmodels=synthmodels, $
-  redcurve=redcurve, models=models, isedfit=isedfit, qaplot=qaplot, $
-  measure=measure, clobber=clobber, sdss=sdss, debug=debug
+pro mz_isedfit, sdss=sdss, sfhgrid=sfhgrid, imf=imf, synthmodels=synthmodels, $
+  redcurve=redcurve, models=models, isedfit=isedfit, clobber=clobber
 ; jm10jul29ucsd - derive stellar masses for the MZ AGES and SDSS
 ; samples 
 
@@ -26,7 +25,7 @@ pro mz_isedfit, sfhgrid=sfhgrid, imf=imf, synthmodels=synthmodels, $
     endif else begin
        field = 'ages'
        igm = '0'
-       nzz = '60'
+       nzz = '50'
        zbins = mz_zbins(zmin=zmin,zmax=zmax)
        zminmax = [zmin,zmax]
     endelse
@@ -80,7 +79,7 @@ pro mz_isedfit, sfhgrid=sfhgrid, imf=imf, synthmodels=synthmodels, $
 
           isedfit, paramfile, maggies, ivarmaggies, zobj, iopath=isedpath, $
             clobber=clobber, sfhgrid_paramfile=sfhgrid_paramfile, $
-            sfhgrid_basedir=sfhgrid_basedir, debug=debug, outprefix=outprefix, $
+            sfhgrid_basedir=sfhgrid_basedir, outprefix=outprefix, $
             galchunksize=750, index=index
        endif 
     endfor ; close SFHGRID loop

@@ -18,7 +18,7 @@ function mz_get_maggies, phot, sdss=sdss, ivarmaggies=ivarmaggies, $
        twomass_to_maggies, sdsstwomass, tmaggies, tivarmaggies
        maggies = [smaggies,tmaggies]
        ivarmaggies = [sivarmaggies,tivarmaggies]
-       filterlist = [sdss_filterlist(),twomass_filterlist()]
+       filterlist = mz_filterlist(/sdss)
     endif else begin
        mz_to_maggies, phot, maggies, ivarmaggies, /itot, $
          filterlist=filterlist, use_aper='04', /totalmag

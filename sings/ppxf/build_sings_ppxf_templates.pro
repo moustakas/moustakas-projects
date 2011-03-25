@@ -24,8 +24,10 @@ pro build_sings_ppxf_templates, debug=debug
     bc03 = [bc03_Z004,bc03_Z02,bc03_Z05]
 
 ; resample to be constant in linear wavelength    
-    minwave = 3500.0D
-    maxwave = 7000.0D
+    minwave = 912.0D
+    maxwave = 3D4
+;   minwave = 3500.0D ; v2.0 template wavelength range
+;   maxwave = 7000.0D
     dwave = 1.0D
     wave = im_array(minwave,maxwave,dwave,/double)
     npix = n_elements(wave)

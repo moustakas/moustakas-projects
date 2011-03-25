@@ -1,7 +1,12 @@
 function mz_filterlist, bands=bands, vega2ab=vega2ab, zpoffset=zpoffset, $
-  minerr=minerr, nozpoffset=nozpoffset
+  minerr=minerr, nozpoffset=nozpoffset, sdss=sdss
 ; jm10oct18ucsd
 
+    if keyword_set(sdss) then begin ; needed by mz_isedfit
+       return, [sdss_filterlist(),twomass_filterlist()]
+    endif
+
+; now do ages below    
     filterlist = ['lbc_blue_ufilter','ndwfs_'+['Bw','R','I'],$
       'bok_90prime_z','newfirm_'+['J','H','Ks']]+'.par'
     nfilt = n_elements(filterlist)

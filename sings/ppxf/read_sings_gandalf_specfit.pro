@@ -1,6 +1,6 @@
 function read_sings_gandalf_specfit, specdata, unfluxed=unfluxed, $
   test=test, observed=observed, linear=linear, silent=silent, $
-  nuclear=nuclear, drift20=drift20, drift56=drift56
+  nuclear=nuclear, drift20=drift20, drift56=drift56, solar=solar
 ; jm10mar04ucsd - based on READ_SINGS_SPECFIT; default is to return
 ;   *rest-frame* ln-binned spectra; use /OBSERVED to convert to the
 ;   observed frame, and /LINEAR to convert to linear wavelength

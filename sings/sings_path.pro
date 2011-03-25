@@ -3,8 +3,8 @@ function sings_path, spec1d=spec1d, spec2d=spec2d, ascii=ascii, analysis=analysi
   dss=dss, web=web, papers=papers, ppxf=ppxf
 ; jm03jan16uofa
 
-    datapath = getenv('RESEARCHPATH')+'/projects/sings/'
-    paperspath = getenv('PAPERSPATH')+'/projects/sings/'
+    datapath = getenv('IM_RESEARCH_DIR')+'/projects/sings/'
+    paperspath = getenv('IM_PAPERS_DIR')+'/projects/sings/'
 
     if keyword_set(spec1d) then return, datapath+'spec1d/' 
     if keyword_set(ascii) then return, datapath+'ascii/' 

@@ -222,13 +222,10 @@ pro build_ages_photometry, phot, clobber=clobber
 ; add the BOOTES photometry; do not use M. Brown's FUV/NUV
 ; photometry  
     splog, 'Adding BOOTES UBwRIzJHKs[ch1-4]'
-
-stop
-    
-    phot = struct_addtags(temporary(phot),bootes1)
-;   phot = struct_addtags(temporary(phot),struct_trimtags(bootes1,$
-;     except=['fuv*','nuv*','field']))
-;   phot = struct_addtags(temporary(phot),struct_trimtags(bootes1,except=['field']))
+;   phot = struct_addtags(temporary(phot),bootes1)
+    phot = struct_addtags(temporary(phot),struct_trimtags(bootes1,$
+      except=['*segflags*','*imaflags*','*_aper_05','*_aper_07','*_aper_08',$
+      '*_aper_09','*_aper_10','*_aper_15','*_aper_20']))
 
 ; store the old observed photometry; also, until M. Brown fixes a
 ; problem with the *new* mag_auto values, use the old ones

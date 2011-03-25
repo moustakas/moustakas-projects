@@ -6,7 +6,7 @@ function sdss_path, mpa_dr4=mpa_dr4, mpa_dr7=mpa_dr7, $
 ; jm09feb23nyu - added MPA_DR7 keyword    
 
 ;   datapath = getenv('CATALOGS_DIR')+'/sdss/'
-    datapath = getenv('IM_PROJECTS_DIR')+'/sdss/'
+    datapath = getenv('IM_RESEARCH_DIR')+'/projects/sdss/'
 
     if keyword_set(isedfit) then datapath = getenv('IM_RESEARCH_DIR')+'/projects/sdss/isedfit/'
     if keyword_set(projects) then datapath = getenv('IM_RESEARCH_DIR')+'/projects/sdss/projects/'

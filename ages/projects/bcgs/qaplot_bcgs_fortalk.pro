@@ -1,5 +1,5 @@
-pro qaplot_bcgs_seds, all=all
-; jm10jul23ucsd - make some pretty plots
+pro qaplot_bcgs_fortalk, all=all
+; jm10jul23ucsd - make some pretty plots for talks
 
     bcgspath = ages_path(/projects)+'bcgs/'
     paramfile = bcgspath+'bcgs_isedfit.par'

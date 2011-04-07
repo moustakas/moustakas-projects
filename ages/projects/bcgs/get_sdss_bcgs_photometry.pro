@@ -29,24 +29,23 @@ pro get_sdss_bcgs_photometry
 ;   djs_plot, sdss.ra, sdss.dec, psym=3, xsty=3, ysty=3              
 ;   djs_oplot, data.ra, data.dec, psym=6, color='red'
 
-; use the modelmaggies, but scale the r-band flux to the Petrosian
-; flux     
     out = struct_addtags(data[m2],replicate({maggies: fltarr(8), $
-      ivarmaggies: fltarr(8)},n_elements(m1)))
-    sdss_to_maggies, modelmaggies, imodelmaggies, calib=sdss[m1], flux='model'
-    sdss_to_maggies, petromaggies, ipetromaggies, calib=sdss[m1], flux='petro'
-    factor = rebin(petromaggies[2,*]/modelmaggies[2,*],5,n_elements(m1))
-    maggies = modelmaggies*factor
-    imaggies = imodelmaggies/factor^2
-    
+      ivarmaggies: fltarr(8), rmag: 0.0, object_position: 0L},$
+      n_elements(m1)))
+    sdss_to_maggies, maggies, ivarmaggies, calib=sdss[m1], flux='cmodel'
+
+    out.object_position = m1
     out.maggies[0:4] = maggies
-    out.ivarmaggies[0:4] = imaggies
+    out.ivarmaggies[0:4] = ivarmaggies
     
-;    out = struct_addtags(data[m2],im_struct_trimtags(sdss[m1],$
-;      except=['ra','dec',flux_type+'flux',flux_type+'flux_ivar'],$
-;      newtags=
-;    out = struct_addtags(out,replicate({object_position: 0L},n_elements(m1)))
-;    out.object_position = m1
+    sdss_to_maggies, petromaggies, calib=sdss[m1], flux='petro'
+    out.rmag = reform(-2.5*alog10(petromaggies[2,*])-(primus_sdss_zpoffset())[2])
+    
+;   out = struct_addtags(data[m2],im_struct_trimtags(sdss[m1],$
+;     except=['ra','dec',flux_type+'flux',flux_type+'flux_ivar'],$
+;     newtags=
+;   out = struct_addtags(out,replicate({object_position: 0L},n_elements(m1)))
+;   out.object_position = m1
 
     twomass_to_maggies, twomass[m1], mm, ii
     out.maggies[5:7] = mm

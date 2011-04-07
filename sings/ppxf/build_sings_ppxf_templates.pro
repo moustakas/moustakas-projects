@@ -25,7 +25,7 @@ pro build_sings_ppxf_templates, debug=debug
 
 ; resample to be constant in linear wavelength    
     minwave = 912.0D
-    maxwave = 3D4
+    maxwave = 1D5 ; 3D4
 ;   minwave = 3500.0D ; v2.0 template wavelength range
 ;   maxwave = 7000.0D
     dwave = 1.0D

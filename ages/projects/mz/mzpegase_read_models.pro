@@ -1,13 +1,13 @@
-function get_pegase_info
+function mzpegase_read_models
 ; jm10nov05ucsd - gather the info we need from the precomputed Pegase
-; grid (see build_mz_pegase_models)
+; grid (see mzpegase_build_models)
 
     zsun = 0.0134 ; Asplund+09
     log12ohsun = 8.69
     maxzform = 4.0 ; maximum zf allowed
     
     pegpath = ages_path(/projects)+'mz/pegase/'
-    taufile = file_search(pegpath+'kroupa_tau_*.fits.gz',count=ntau)
+    taufile = file_search(pegpath+'kroupa01_tau_*.fits.gz',count=ntau)
 
     nage = 100
     info = {$

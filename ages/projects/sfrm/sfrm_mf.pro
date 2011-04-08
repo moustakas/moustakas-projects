@@ -122,81 +122,81 @@ pro sfrm_mf, quiescent=quiescent, active=active, $
           cc = get_kbrd(1)
        endif
        
-;; jackknife the MF to get the cosmic variance errors on the
-;; parameters; for the jackknife error equation see
-;; http://www.physics.utah.edu/~detar/phycs6730/handouts/jackknife/jackknife
-;       allfield = sample.field
-;       field = allfield[uniq(allfield,sort(allfield))]
-;       nfield = n_elements(field)
-;       init_mf_results, nfield, mf_fit=mf_jfit, mf_data=mf_jdata
-;       for ff = 0, nfield-1 do begin
-;          keep = where(allfield ne field[ff],ngal)
-;          mf_vmax, sample[keep].k_mass, sample[keep].final_weight/vmax[keep]/binsize, $
-;            binsize=binsize, histmin=histmin, histmax=histmax, $
-;            binmass=binmass, phi=phi, errphi=phierr, $
-;            minmass=limits.minmass[ii], fullbin=fullbin, number=number
-;          full = where(fullbin)
-;          if keyword_set(double_schechter) then begin
-;             mf_fit_schechter_plus, binmass[full], phi[full], $
-;               phierr[full], jfit1, parinfo=parinfo
-;          endif else begin
-;             mf_fit_schechter, binmass[full], phi[full], $
-;               phierr[full], jfit1, parinfo=parinfo
-;          endelse
-;          fill_sfrm_results, ff, ngal, mf_jfit, mf_jdata, $
-;            jfit1, binmass, phi, phierr, fullbin, number
-;       endfor
-;; jacknife errors on the *parameters*
-;       jfactor = sqrt((nfield-1)/float(nfield))
-;       mf_fit[ii].phistar_cv_err = jfactor*sqrt(total((mf_jfit.phistar-fit.phistar)^2))
-;       mf_fit[ii].mstar_cv_err = jfactor*sqrt(total((mf_jfit.mstar-fit.mstar)^2))
-;       mf_fit[ii].alpha_cv_err = jfactor*sqrt(total((mf_jfit.alpha-fit.alpha)^2))
-;       if keyword_set(double_schechter) then begin
-;          mf_fit[ii].phiplus_cv_err = jfactor*sqrt(total((mf_jfit.phiplus-fit.phiplus)^2))
-;          mf_fit[ii].alphaplus_cv_err = jfactor*sqrt(total((mf_jfit.alphaplus-fit.alphaplus)^2))
-;       endif
-;; jacknife errors on the *MFs* themselves
-;       splog, 'Fix the errors when there are fewer than 3 points!!'
-;       for jj = 0, mf_jdata[0].nbins-1 do begin
-;          good = where(mf_jdata.fullbin[jj] eq 1,ngood)
-;;         if (ngood gt 0) and (ngood le 3) then stop ; splog, 'Need statistics!'
-;          if (ngood gt 0) then mf_data[ii].phierr_cv[jj] = djsig(mf_jdata.phi[jj])/sqrt(ngood)
-;       endfor
+; jackknife the MF to get the cosmic variance errors on the
+; parameters; for the jackknife error equation see
+; http://www.physics.utah.edu/~detar/phycs6730/handouts/jackknife/jackknife
+       allfield = sample.field
+       field = allfield[uniq(allfield,sort(allfield))]
+       nfield = n_elements(field)
+       init_mf_results, nfield, mf_fit=mf_jfit, mf_data=mf_jdata
+       for ff = 0, nfield-1 do begin
+          keep = where(allfield ne field[ff],ngal)
+          mf_vmax, sample[keep].k_mass, sample[keep].final_weight/vmax[keep]/binsize, $
+            binsize=binsize, histmin=histmin, histmax=histmax, $
+            binmass=binmass, phi=phi, errphi=phierr, $
+            minmass=limits.minmass[ii], fullbin=fullbin, number=number
+          full = where(fullbin)
+          if keyword_set(double_schechter) then begin
+             mf_fit_schechter_plus, binmass[full], phi[full], $
+               phierr[full], jfit1, parinfo=parinfo
+          endif else begin
+             mf_fit_schechter, binmass[full], phi[full], $
+               phierr[full], jfit1, parinfo=parinfo
+          endelse
+          fill_sfrm_results, ff, ngal, mf_jfit, mf_jdata, $
+            jfit1, binmass, phi, phierr, fullbin, number
+       endfor
+; jacknife errors on the *parameters*
+       jfactor = sqrt((nfield-1)/float(nfield))
+       mf_fit[ii].phistar_cv_err = jfactor*sqrt(total((mf_jfit.phistar-fit.phistar)^2))
+       mf_fit[ii].mstar_cv_err = jfactor*sqrt(total((mf_jfit.mstar-fit.mstar)^2))
+       mf_fit[ii].alpha_cv_err = jfactor*sqrt(total((mf_jfit.alpha-fit.alpha)^2))
+       if keyword_set(double_schechter) then begin
+          mf_fit[ii].phiplus_cv_err = jfactor*sqrt(total((mf_jfit.phiplus-fit.phiplus)^2))
+          mf_fit[ii].alphaplus_cv_err = jfactor*sqrt(total((mf_jfit.alphaplus-fit.alphaplus)^2))
+       endif
+; jacknife errors on the *MFs* themselves
+       splog, 'Fix the errors when there are fewer than 3 points!!'
+       for jj = 0, mf_jdata[0].nbins-1 do begin
+          good = where(mf_jdata.fullbin[jj] eq 1,ngood)
+;         if (ngood gt 0) and (ngood le 3) then stop ; splog, 'Need statistics!'
+          if (ngood gt 0) then mf_data[ii].phierr_cv[jj] = djsig(mf_jdata.phi[jj])/sqrt(ngood)
+       endfor
 
-;; vary the way we derive stellar masses to get the errors on mass
-;; fitting 
-;       nmodel = n_elements(sample[0].model_mass)
-;       init_mf_results, nmodel, mf_fit=mf_mfit, mf_data=mf_mdata
-;       for mm = 0, nmodel-1 do begin
-;          mf_vmax, sample.model_mass[mm], sample.final_weight/vmax/binsize, $
-;            binsize=binsize, histmin=histmin, histmax=histmax, $
-;            binmass=binmass, phi=phi, errphi=phierr, $
-;            minmass=limits.minmass[ii], fullbin=fullbin, number=number
-;          full = where(fullbin)
-;          if keyword_set(double_schechter) then begin
-;             mf_fit_schechter_plus, binmass[full], phi[full], $
-;               phierr[full], mfit1, parinfo=parinfo
-;          endif else begin
-;             mf_fit_schechter, binmass[full], phi[full], $
-;               phierr[full], mfit1, parinfo=parinfo
-;          endelse
-;          fill_sfrm_results, mm, ngal, mf_mfit, mf_mdata, $
-;            mfit1, binmass, phi, phierr, fullbin, number
-;       endfor
-;; formal model errors on the parameters
-;       mf_fit[ii].phistar_model_err = djsig(mf_mfit.phistar)
-;       mf_fit[ii].mstar_model_err = djsig(mf_mfit.mstar)
-;       mf_fit[ii].alpha_model_err = djsig(mf_mfit.alpha)
-;       if keyword_set(double_schechter) then begin
-;          mf_fit[ii].phiplus_model_err = djsig(mf_mfit.phiplus)
-;          mf_fit[ii].alphaplus_model_err = djsig(mf_mfit.alphaplus)
-;       endif
-;; model errors on the *MFs* themselves
-;       for jj = 0, mf_mdata[0].nbins-1 do begin
-;          good = where(mf_mdata.fullbin[jj] eq 1,ngood)
-;          if (ngood gt 0) and (ngood le 3) then splog, 'Need statistics!'
-;          if (ngood gt 0) then mf_data[ii].phierr_model[jj] = djsig(mf_mdata.phi[jj])/sqrt(ngood)
-;       endfor
+; vary the way we derive stellar masses to get the errors on mass
+; fitting 
+       nmodel = n_elements(sample[0].model_mass)
+       init_mf_results, nmodel, mf_fit=mf_mfit, mf_data=mf_mdata
+       for mm = 0, nmodel-1 do begin
+          mf_vmax, sample.model_mass[mm], sample.final_weight/vmax/binsize, $
+            binsize=binsize, histmin=histmin, histmax=histmax, $
+            binmass=binmass, phi=phi, errphi=phierr, $
+            minmass=limits.minmass[ii], fullbin=fullbin, number=number
+          full = where(fullbin)
+          if keyword_set(double_schechter) then begin
+             mf_fit_schechter_plus, binmass[full], phi[full], $
+               phierr[full], mfit1, parinfo=parinfo
+          endif else begin
+             mf_fit_schechter, binmass[full], phi[full], $
+               phierr[full], mfit1, parinfo=parinfo
+          endelse
+          fill_sfrm_results, mm, ngal, mf_mfit, mf_mdata, $
+            mfit1, binmass, phi, phierr, fullbin, number
+       endfor
+; formal model errors on the parameters
+       mf_fit[ii].phistar_model_err = djsig(mf_mfit.phistar)
+       mf_fit[ii].mstar_model_err = djsig(mf_mfit.mstar)
+       mf_fit[ii].alpha_model_err = djsig(mf_mfit.alpha)
+       if keyword_set(double_schechter) then begin
+          mf_fit[ii].phiplus_model_err = djsig(mf_mfit.phiplus)
+          mf_fit[ii].alphaplus_model_err = djsig(mf_mfit.alphaplus)
+       endif
+; model errors on the *MFs* themselves
+       for jj = 0, mf_mdata[0].nbins-1 do begin
+          good = where(mf_mdata.fullbin[jj] eq 1,ngood)
+          if (ngood gt 0) and (ngood le 3) then splog, 'Need statistics!'
+          if (ngood gt 0) then mf_data[ii].phierr_model[jj] = djsig(mf_mdata.phi[jj])/sqrt(ngood)
+       endfor
     endfor ; close ZBINS
 
 ; write out

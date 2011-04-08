@@ -2,7 +2,7 @@ pro qaplot_mz_pegase_models
 ; jm10oct20ucsd - build some simple QAplots of the Pegase models 
     
     mzpath = ages_path(/projects)+'mz/'
-    peginfo = get_pegase_info()
+    peginfo = mzpegase_read_models()
 
     mzlocal = mrdfits(mzpath+'mzlocal_sdss_brokenpl.fits.gz',1)
     massaxis = range(8.8,11.0,500)

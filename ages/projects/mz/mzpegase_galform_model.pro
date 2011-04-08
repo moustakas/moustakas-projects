@@ -1,7 +1,7 @@
-function mz_galform_model, in_info, alpha=alpha, mass0=mass0, tau0=tau0
+function mzpegase_galform_model, in_info, alpha=alpha, mass0=mass0, tau0=tau0
 ; jm10nov05ucsd - generate a very simple galaxy formation model,
 ; whereby tau is a simple power-law function of the total baryonic
-; mass; IN_INFO is the output from get_pegase_info()
+; mass; IN_INFO is the output from mzpegase_read_models()
 
 ; galaxy formation model:    
 ;   tau = tau0*(M/M0)^alpha

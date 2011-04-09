@@ -3,8 +3,8 @@ pro build_mz_parent, sdss=sdss, clobber=clobber
 ; jm10jan07ucsd - updated to use the GANDALF catalog
 ; jm10may03ucsd - lots of updates
 
-    common com_sdss_photometry, sdssphot, sdsstwomass
-    
+    common com_sdss_photometry, sdssphot, sdsstwomass ; from mz_get_maggies
+
     mzpath = ages_path(/projects)+'mz/'
     isedpath = ages_path(/projects)+'mz/isedfit/'
     vagcpath = getenv('VAGC_REDUX')+'/'

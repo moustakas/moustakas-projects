@@ -80,7 +80,7 @@ pro mz_isedfit, sdss=sdss, sfhgrid=sfhgrid, imf=imf, synthmodels=synthmodels, $
           isedfit, paramfile, maggies, ivarmaggies, zobj, iopath=isedpath, $
             clobber=clobber, sfhgrid_paramfile=sfhgrid_paramfile, $
             sfhgrid_basedir=sfhgrid_basedir, outprefix=outprefix, $
-            galchunksize=750, index=index
+            galchunksize=1000, index=index
        endif 
     endfor ; close SFHGRID loop
     

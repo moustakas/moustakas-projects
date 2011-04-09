@@ -14,7 +14,7 @@ function mz_get_maggies, phot, sdss=sdss, ivarmaggies=ivarmaggies, $
          mrdfits(vagcpath+'object_twomass.fits.gz',$
          row=phot.object_position,1)
 
-       sdss_to_maggies, smaggies, sivarmaggies, calib=sdssphot
+       sdss_to_maggies, smaggies, sivarmaggies, calib=sdssphot, flux='cmodel'
        twomass_to_maggies, sdsstwomass, tmaggies, tivarmaggies
        maggies = [smaggies,tmaggies]
        ivarmaggies = [sivarmaggies,tivarmaggies]

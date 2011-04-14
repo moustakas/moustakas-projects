@@ -51,8 +51,8 @@ pro build_mz_log12oh, sdss=sdss, agn=agn, debug=debug, $
 ;   have been removed and the R23 abundances are well-behaved) 
 ; jm10jul29ucsd - near-total rewrite
 
-    mzpath = ages_path(/projects)+'mz/'
-    nmonte = 100
+    mzpath = mz_path()
+    if (n_elements(nmonte) eq 0) then nmonte = 100
 ;   nmonte = 250 ; 500
     
     if keyword_set(sdss) then begin ; SDSS
@@ -70,12 +70,14 @@ pro build_mz_log12oh, sdss=sdss, agn=agn, debug=debug, $
        mzagn_ancillary = 1
        mzhii_ancillary = 0
        rootfile = prefix+'_mz_agn_log12oh'
+       splog, mzpath+'build_mz_log12oh.'+prefix+'.agn.log'
     endif else begin
        mzagn_ispec = 0
        mzhii_ispec = 1
        mzagn_ancillary = 0
        mzhii_ancillary = 1
        rootfile = prefix+'_mz_hii_log12oh'
+       splog, mzpath+'build_mz_log12oh.'+prefix+'.log'
     endelse
 
     dust = read_mz_sample(mzhii_ispec=mzhii_ispec,$
@@ -165,6 +167,8 @@ pro build_mz_log12oh, sdss=sdss, agn=agn, debug=debug, $
 ; write out    
     im_mwrfits, ohdust, mzpath+rootfile+'.fits', clobber=clobber
     im_mwrfits, ohnodust, mzpath+rootfile+'_nodust.fits', clobber=clobber
+
+    splog, /close
 
 return
 end

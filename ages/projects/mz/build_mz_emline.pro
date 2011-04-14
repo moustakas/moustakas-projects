@@ -1,71 +1,3 @@
-function bpt_upper_limits, iratios, mz_ispec, doplot=doplot
-; classify using the BPT diagram and upper limits    
-
-    ngal = n_elements(iratios)
-    
-; deal with upper limits; consider three combinations of upper limits
-; on [NII]/Ha and/or [OIII]/Hb
-    iratios = struct_addtags(temporary(iratios),replicate($
-      {nii_ha_limit: -999.0, oiii_hb_limit: -999.0},ngal))
-    nii = where((mz_ispec.h_alpha[1] gt 0.0) and (mz_ispec.nii_6584[1] eq -1.0),nnii)
-    oiii = where((mz_ispec.oiii_5007[1] eq -1.0),noiii)
-    iratios[nii].nii_ha_limit = alog10(mz_ispec[nii].nii_6584_limit/mz_ispec[nii].h_alpha[0])
-    iratios[oiii].oiii_hb_limit = alog10(mz_ispec[oiii].oiii_5007_limit/mz_ispec[oiii].h_beta[0])
-
-    case1 = where((strtrim(iratios.final_class,2) eq 'UNKNOWN') and $ ; [NII] limit, [OIII] limit
-      (iratios.nii_ha_limit gt -900.0) and (iratios.oiii_hb_limit gt -900.0),ncase1)
-    case2 = where((strtrim(iratios.final_class,2) eq 'UNKNOWN') and $ ; [NII] limit, [OIII] good
-      (iratios.nii_ha_limit gt -900.0) and (iratios.oiii_hb gt -900.0),ncase2)
-    case3 = where((strtrim(iratios.final_class,2) eq 'UNKNOWN') and $ ; [NII] good, [OIII] limit
-      (iratios.nii_ha gt -900.0) and (iratios.oiii_hb_limit gt -900.0),ncase3)
-    splog, ncase1, ncase2, ncase3
-
-    if keyword_set(doplot) then begin
-       djs_oplot, iratios[case1].nii_ha_limit, iratios[case1].oiii_hb_limit, psym=6, sym=0.2, color='orange'
-       djs_oplot, iratios[case2].nii_ha_limit, iratios[case2].oiii_hb, psym=6, sym=0.2, color='cyan'
-       djs_oplot, iratios[case3].nii_ha, iratios[case3].oiii_hb_limit, psym=6, sym=0.2, color='green'
-    endif
-
-; classify        
-    kauffmann = kewley_bpt_lines(/kauffmann)
-
-    data = kewley_bpt_lines(ratio_nii=iratios[case1].nii_ha_limit,/nii,/kauffmann)
-    case1_sf = where((iratios[case1].oiii_hb_limit lt data.y_nii) and $
-      (iratios[case1].nii_ha_limit lt max(kauffmann.x_nii)),ncase1_sf)
-    iratios[case1[case1_sf]].final_class = 'BPT_SF_CASE1'
-
-    data = kewley_bpt_lines(ratio_nii=iratios[case2].nii_ha_limit,/nii,/kauffmann)
-    case2_sf = where((iratios[case2].oiii_hb lt data.y_nii) and $
-      (iratios[case2].nii_ha_limit lt max(kauffmann.x_nii)),ncase2_sf)
-    iratios[case2[case2_sf]].final_class = 'BPT_SF_CASE2'
-
-    data = kewley_bpt_lines(ratio_nii=iratios[case3].nii_ha,/nii,/kauffmann)
-    case3_sf = where((iratios[case3].oiii_hb_limit lt data.y_nii) and $
-      (iratios[case3].nii_ha lt max(kauffmann.x_nii)),ncase3_sf)
-    iratios[case3[case3_sf]].final_class = 'BPT_SF_CASE3'
-
-; debugging plot       
-    check1 = where((strtrim(iratios[case1].final_class,2) eq 'UNKNOWN'))
-    check2 = where((strtrim(iratios[case2].final_class,2) eq 'UNKNOWN'))
-    check3 = where((strtrim(iratios[case3].final_class,2) eq 'UNKNOWN'))
-;      djs_oplot, iratios[case1[check1]].nii_ha_limit, iratios[case1[check1]].oiii_hb_limit, psym=7, color='yellow'
-;      djs_oplot, iratios[case2[check2]].nii_ha_limit, iratios[case2[check2]].oiii_hb, psym=7, color='yellow'
-;      djs_oplot, iratios[case3[check3]].nii_ha, iratios[case3[check3]].oiii_hb_limit, psym=7, color='yellow'
-
-; finally, we can classify [OIII]/Hb limits with [NII]/Ha detections
-; having log([NII]/Ha)>-0.3
-    last = where((strtrim(iratios.final_class,2) eq 'UNKNOWN') and $
-      (iratios.nii_ha gt -900.0) and (iratios.oiii_hb_limit gt -900.0),nlast)
-    last_agn = where(iratios[last].nii_ha gt -0.3,nlast_agn)
-    iratios[last[last_agn]].final_class = 'BPT_AGN_NIIHACUT'
-    if keyword_set(doplot) then begin
-       djs_oplot, -0.3*[1,1], !y.crange, line=1
-       djs_oplot, iratios[last[last_agn]].nii_ha, iratios[last[last_agn]].oiii_hb_limit, psym=7, color='yellow'
-    endif
-
-return, iratios
-end
-
 function doclass, mz_ispec, iratios=iratios, snrcut1=snrcut1, doplot=doplot
 ; classify using various techniques
 
@@ -97,7 +29,7 @@ pro build_mz_emline, sdss=sdss, clobber=clobber, doplot=doplot
 ; jm09mar18nyu - build the AGES and SDSS emission-line samples; also
 ; classify into SF, AGN, SF/AGN, and UNKNOWN
 
-    mzpath = ages_path(/projects)+'mz/'
+    mzpath = mz_path()
     catpath = ages_path(/catalogs)
 
     parent = read_mz_sample(sdss=sdss,/parent)
@@ -118,12 +50,14 @@ pro build_mz_emline, sdss=sdss, clobber=clobber, doplot=doplot
     sdss_ewcut = 0.0
     sdss_snrcut = 1.0
     sdss_oiihbcut = -0.3
-    
+
     if keyword_set(sdss) then begin ; SDSS
+       splog, file=mzpath+'build_mz_emline.sdss.log'
        splog, '#########################'
        splog, 'Building SDSS emission-line sample'
 
-; POSTSTR/35: -17>Mr>-24; 0.033<z<0.25
+; POSTSTR/35: -17>Mr>-24; 0.033<z<0.25; there are a handful (9) of
+; objects with *ridiculous [OII] EWs (>10,000 A) - toss them here!
        vagc = mz_get_vagc(sample=sample,letter=letter,poststr=poststr)
        ispec = read_vagc_garching(sample=sample,$
          letter=letter,poststr=poststr,/ispec)
@@ -132,6 +66,7 @@ pro build_mz_emline, sdss=sdss, clobber=clobber, doplot=doplot
          (ispec.h_beta[0]/ispec.h_beta[1] gt sdss_snrcut) and $ ; nominal cut
 ;        (ispec.h_beta_ew[0] gt sdss_ewcut) and $
 ;        (ispec.h_beta_sigma[0] lt sdss_sigmacut) and $
+         (ispec.oii_3727_ew[0] lt 1000.0) and $
          (ispec.oii_3727[1] ne -2.0) and $
          (ispec.oiii_5007[1] ne -2.0) and $ ; nominal
          (ispec.nii_6584[1] ne -2.0) and $  ; nominal
@@ -150,24 +85,48 @@ pro build_mz_emline, sdss=sdss, clobber=clobber, doplot=doplot
 
 ; 1) BPT diagram, including upper limits; do not use the pure [NII]/Ha
 ; classification since we deal with upper limits below
-       iclass = iclassification(mz_ispec,ratios=iratios,$
+       iclass = iclassification(mz_ispec,ratios=iratios1,$
          snrcut_class=0.0,silent=0,doplot=doplot,/noniihaclass)
 ;      class = doclass(mz_ispec,iratios=iratios,$
 ;        snrcut1=sdss_snrcut,doplot=doplot)
-       bpt_agn = (strtrim(iratios.final_class,2) eq 'AGN') or $
-         (strtrim(iratios.final_class,2) eq 'SF/AGN')
-       bpt_sf = strtrim(iratios.final_class,2) eq 'SF'
+       bpt_agn = (strtrim(iratios1.final_class,2) eq 'AGN') or $
+         (strtrim(iratios1.final_class,2) eq 'SF/AGN')
+       bpt_sf = strtrim(iratios1.final_class,2) eq 'SF'
+       
+       iratios = mzbpt_upper_limits(iratios1,mz_ispec,doplot=doplot)
+       bpt_sf_limit = strmatch(iratios.final_class,'BPT_SF_*LIMIT*')
+       bpt_agn_limit = strmatch(iratios.final_class,'BPT_AGN_*LIMIT*')
 
-       iratios = bpt_upper_limits(iratios,mz_ispec,doplot=doplot)
-       bpt_sf_limit = strmatch(iratios.final_class,'BPT_SF_CASE*')
-       bpt_agn_niihacut = strmatch(iratios.final_class,'BPT_AGN_NIIHACUT')
+       splog, 'BPT-SF ', total(bpt_sf), total(bpt_sf)/float(ngal)
+       splog, 'BPT-AGN ', total(bpt_agn), total(bpt_agn)/float(ngal)
+       splog, 'BPT-SF-LIMITS ', total(bpt_sf_limit), total(bpt_sf_limit)/float(ngal)
+       splog, 'BPT-AGN-LIMITS ', total(bpt_agn_limit), total(bpt_agn_limit)/float(ngal)
 
+; note: a small fraction of objects (2080/198024=1.05%) cannot be
+; classified using the above techniques either because their position
+; in the BPT diagram was ambiguous or because H-alpha was not detected
+; (1289/2080=62%)
+       nobptclass = (strtrim(iratios.final_class,2) eq 'UNKNOWN')
+       noha = (mz_ispec[where(nobptclass)].h_alpha[1] ne -2.0) and $
+         (iratios[where(nobptclass)].nii_ha lt -900) and $
+         (iratios[where(nobptclass)].nii_ha_limit lt -900)
+
+       splog, 'No BPT classification = ', total(nobptclass), total(nobptclass)/float(ngal)
+       splog, '  Of these, no H-alpha = ', total(noha), total(noha)/total(nobptclass)
+       
 ; Yan diagram; all the [OIII]/Hb upper limits are consistent with
-; being star-forming
+; being star-forming, while the BPT-unclassified objects are
+; essentially all Yan-AGN
        ub = mz_parent.k_ubvrijhk_absmag_00[0]-mz_parent.k_ubvrijhk_absmag_00[1]
        yanagn = (iratios.oiii_hb ge ((1.4-1.2*ub)>(-0.1))) or $
          (iratios.oiii_hb_limit ge ((1.4-1.2*ub)>(-0.1)))
+       yanandnobpt = (yanagn eq 1) and (nobptclass)
+       yanandoiiilimit = (yanagn eq 1) and (iratios.oiii_hb_limit gt -900)
 
+       splog, 'Yan AGN', total(yanagn), total(yanagn)/float(ngal)
+       splog, '  Of these, no BPT class ', total(yanandnobpt), total(yanandnobpt)/float(ngal)
+       splog, '  Of these, [OIII]/Hb limit ', total(yanandoiiilimit), total(yanandoiiilimit)/float(ngal)
+       
 ; debugging plot
        if keyword_set(doplot) then begin
           det = where(iratios.oiii_hb gt -900.0,comp=lim)
@@ -189,7 +148,7 @@ pro build_mz_emline, sdss=sdss, clobber=clobber, doplot=doplot
          newtags=['bpt_d','bpt_phi','bpt_nii_ha','bpt_nii_ha_err','bpt_oiii_hb',$
          'bpt_oiii_hb_err','bpt_nii_ha_limit','bpt_oiii_hb_limit']))
 
-       class[where(bpt_agn or bpt_agn_niihacut)].bpt_agn = 1 ; 1=agn, 0=sf, -1=unclassified
+       class[where(bpt_agn or bpt_agn_limit)].bpt_agn = 1 ; 1=agn, 0=sf, -1=unclassified
        class[where(bpt_sf or bpt_sf_limit)].bpt_agn = 0
        class.yan_agn = yanagn
 
@@ -201,12 +160,13 @@ pro build_mz_emline, sdss=sdss, clobber=clobber, doplot=doplot
        if (nreset ne 0L) then class[reset].agn = 0
 
 ; some statistics
-       nclass = total(class.bpt_agn eq -1)
-       yclass = total(class.bpt_agn ne -1)
-       yagn = total((class.bpt_agn ne -1) and (class.bpt_agn eq 1))
-       ysf = total((class.bpt_agn ne -1) and (class.bpt_agn eq 0))
-       splog, nclass, ngal, nclass/float(ngal), yclass/float(ngal), $
-         ysf, yclass, ysf/yclass
+;      nclass = total(class.bpt_agn eq -1)
+;      yclass = total(class.bpt_agn ne -1)
+;      yagn = total((class.bpt_agn ne -1) and (class.bpt_agn eq 1))
+;      ysf = total((class.bpt_agn ne -1) and (class.bpt_agn eq 0))
+       splog, 'Final statistics:'
+       splog, 'AGN: ', total(class.agn eq 1), ngal, total(class.agn eq 1)/float(ngal)
+       splog, 'SF : ', total(class.agn eq 0), ngal, total(class.agn eq 0)/float(ngal)
        
 ; store the final classifications and then write out
        mz_ispec = struct_addtags(temporary(mz_ispec),class)
@@ -233,6 +193,7 @@ pro build_mz_emline, sdss=sdss, clobber=clobber, doplot=doplot
        im_mwrfits, mz_ispec[agn], mzpath+'sdss_mz_agn_ispec.fits', clobber=clobber
        im_mwrfits, mz_mass[agn], mzpath+'sdss_mz_agn_mass.fits', clobber=clobber
     endif else begin            ; AGES
+       splog, file=mzpath+'build_mz_emline.ages.log'
        splog, '#########################'
        splog, 'Building AGES emission-line sample'
 
@@ -285,33 +246,56 @@ pro build_mz_emline, sdss=sdss, clobber=clobber, doplot=doplot
 
 ; 1) broad lines 
        broad = (mz_ispec.isbroad eq 1) or (2.35*mz_ispec.h_beta_sigma[0] gt 800.0)
-       splog, 'Broad ', total(broad)
+       splog, 'Broad ', total(broad), total(broad)/float(ngal)
 
 ; 2) [Ne V]
        nev = intarr(ngal)
        nev[ages_isnev(mz_ispec)] = 1
-       splog, '[Ne V] ', total(nev)
+       splog, '[Ne V] ', total(nev), total(nev)/float(ngal)
 
 ; 3) BPT diagram, including upper limits; do not use the pure [NII]/Ha
 ; classification since we deal with upper limits below
-       iclass = iclassification(mz_ispec,ratios=iratios,$
+       iclass = iclassification(mz_ispec,ratios=iratios1,$
          snrcut_class=0.0,silent=0,doplot=doplot,/noniihaclass)
 ;      class = doclass(mz_ispec,iratios=iratios,$
 ;        snrcut1=ages_snrcut,doplot=doplot)
 ;      bpt_agn = strmatch(iratios.final_class,'*AGN*')
-       bpt_agn = (strtrim(iratios.final_class,2) eq 'AGN') or $
-         (strtrim(iratios.final_class,2) eq 'SF/AGN')
-       bpt_sf = strtrim(iratios.final_class,2) eq 'SF'
+       bpt_agn = (strtrim(iratios1.final_class,2) eq 'AGN') or $
+         (strtrim(iratios1.final_class,2) eq 'SF/AGN')
+       bpt_sf = strtrim(iratios1.final_class,2) eq 'SF'
 
-       iratios = bpt_upper_limits(iratios,mz_ispec,doplot=doplot)
-       bpt_sf_limit = strmatch(iratios.final_class,'BPT_SF_CASE*')
-       bpt_agn_niihacut = strmatch(iratios.final_class,'BPT_AGN_NIIHACUT')
+       iratios = mzbpt_upper_limits(iratios1,mz_ispec,doplot=doplot)
+       bpt_sf_limit = strmatch(iratios.final_class,'BPT_SF_*LIMIT*')
+       bpt_agn_limit = strmatch(iratios.final_class,'BPT_AGN_*LIMIT*')
 
+       splog, 'BPT-SF ', total(bpt_sf), total(bpt_sf)/float(ngal)
+       splog, 'BPT-AGN ', total(bpt_agn), total(bpt_agn)/float(ngal)
+       splog, 'BPT-SF-LIMITS ', total(bpt_sf_limit), total(bpt_sf_limit)/float(ngal)
+       splog, 'BPT-AGN-LIMITS ', total(bpt_agn_limit), total(bpt_agn_limit)/float(ngal)
+
+; note: a small fraction of objects (2080/198024=1.05%) cannot be
+; classified using the above techniques either because their position
+; in the BPT diagram was ambiguous or because H-alpha was not detected
+; (1289/2080=62%)
+       nobptclass = (strtrim(iratios.final_class,2) eq 'UNKNOWN')
+       noha = (mz_ispec[where(nobptclass)].h_alpha[1] ne -2.0) and $
+         (iratios[where(nobptclass)].nii_ha lt -900) and $
+         (iratios[where(nobptclass)].nii_ha_limit lt -900)
+
+       splog, 'No BPT classification = ', total(nobptclass), total(nobptclass)/float(ngal)
+       splog, '  Of these, no H-alpha = ', total(noha), total(noha)/total(nobptclass)
+       
 ; 4) Yan diagram; all the [OIII]/Hb upper limits are consistent with
 ; being star-forming
        ub = mz_parent.k_ubvrijhk_absmag_00[0]-mz_parent.k_ubvrijhk_absmag_00[1]
        yanagn = (iratios.oiii_hb ge ((1.4-1.2*ub)>(-0.1))) or $
          (iratios.oiii_hb_limit ge ((1.4-1.2*ub)>(-0.1)))
+       yanandnobpt = (yanagn eq 1) and (nobptclass)
+       yanandoiiilimit = (yanagn eq 1) and (iratios.oiii_hb_limit gt -900)
+
+       splog, 'Yan AGN', total(yanagn), total(yanagn)/float(ngal)
+       splog, '  Of these, no BPT class ', total(yanandnobpt), total(yanandnobpt)/float(ngal)
+       splog, '  Of these, [OIII]/Hb limit ', total(yanandoiiilimit), total(yanandoiiilimit)/float(ngal)
 
 ; debugging plot
        if keyword_set(doplot) then begin
@@ -330,9 +314,11 @@ pro build_mz_emline, sdss=sdss, clobber=clobber, doplot=doplot
 ; are likely star-forming, but they represent such a small number of
 ; objects that we do not bias our sample by excluding them
        xray = mz_parent.x_match eq 1
+       splog, 'Xray ', total(xray), total(xray)/float(ngal)
 
 ; 6) IRAC AGN
        irac = ages_irac_agn(mz_parent,debug=debug)
+       splog, 'IRAC ', total(irac), total(irac)/float(ngal)
 
 ; 7) radio AGN; convert from the radio flux at 1.4GHz in mJy to Power
 ; in W/Hz (see Hickox+09); assume a power-law intrinsic spectrum to
@@ -349,6 +335,7 @@ pro build_mz_emline, sdss=sdss, clobber=clobber, doplot=doplot
 ;         oplot, !x.crange, 10^23.7*[1,1]
           radio[isradio] = alog10(pradio) gt 23.8
        endif
+       splog, 'Radio ', total(radio), total(radio)/float(ngal)
 
 ; pack it all into a structure
        class = replicate({agn: 0, broad_agn: 0, nev_agn: 0, $
@@ -359,7 +346,7 @@ pro build_mz_emline, sdss=sdss, clobber=clobber, doplot=doplot
          newtags=['bpt_d','bpt_phi','bpt_nii_ha','bpt_nii_ha_err','bpt_oiii_hb',$
          'bpt_oiii_hb_err','bpt_nii_ha_limit','bpt_oiii_hb_limit']))
 
-       class[where(bpt_agn or bpt_agn_niihacut)].bpt_agn = 1 ; 1=agn, 0=sf, -1=unclassified
+       class[where(bpt_agn or bpt_agn_limit)].bpt_agn = 1 ; 1=agn, 0=sf, -1=unclassified
        class[where(bpt_sf or bpt_sf_limit)].bpt_agn = 0
        
        class.broad_agn = broad
@@ -380,12 +367,13 @@ pro build_mz_emline, sdss=sdss, clobber=clobber, doplot=doplot
        if (nreset ne 0L) then class[reset].agn = 0
        
 ; some statistics
-       nclass = total(class.bpt_agn eq -1)
-       yclass = total(class.bpt_agn ne -1)
-       yagn = total((class.bpt_agn ne -1) and (class.bpt_agn eq 1))
-       ysf = total((class.bpt_agn ne -1) and (class.bpt_agn eq 0))
-       splog, nclass, ngal, nclass/float(ngal), yclass/float(ngal), $
-         ysf, yclass, ysf/yclass
+;      nclass = total(class.bpt_agn eq -1)
+;      yclass = total(class.bpt_agn ne -1)
+;      yagn = total((class.bpt_agn ne -1) and (class.bpt_agn eq 1))
+;      ysf = total((class.bpt_agn ne -1) and (class.bpt_agn eq 0))
+       splog, 'Final statistics:'
+       splog, 'AGN: ', total(class.agn eq 1), ngal, total(class.agn eq 1)/float(ngal)
+       splog, 'SF : ', total(class.agn eq 0), ngal, total(class.agn eq 0)/float(ngal)
 ;      im_plothist, mz_ispec[where(class.bpt_agn ne -1)].z, bin=0.02, xr=[0,0.8]
 ;      im_plothist, mz_ispec[where(class.bpt_agn eq -1)].z, bin=0.02, /over, line=5, /fill
 
@@ -405,7 +393,8 @@ pro build_mz_emline, sdss=sdss, clobber=clobber, doplot=doplot
        im_mwrfits, mz_ispec[agn], mzpath+'ages_mz_agn_ispec.fits', clobber=clobber
        im_mwrfits, mz_mass[agn], mzpath+'ages_mz_agn_mass.fits', clobber=clobber
     endelse
-       
+    splog, /close
+    
 return
 end
 

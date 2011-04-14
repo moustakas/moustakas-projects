@@ -59,26 +59,25 @@ pro mztables, preprint=preprint
     sdssemline = read_mz_sample(/mz_ispec,/sdss)
 
 ; print some statistics for the paper    
+; SDSS    
+    nall = float(n_elements(sdssemline))
+    nsf = total(sdssemline.agn eq 0)
+    nagn = total(sdssemline.agn eq 1)
+    splog, 'SDSS: Total star-forming, AGN'
+    splog, nall, nsf, nsf/nall
+
 ; AGES
     nall = float(n_elements(agesemline))
-    ntot = total(agesemline.broad_agn eq 0)                  
-    nsf = total(agesemline.agn eq 0 and agesemline.broad_agn eq 0) 
-    nagn = total(agesemline.agn eq 1 and agesemline.broad_agn eq 0)
-    splog, 'AGESEMLINE: Total not broad-line; star-forming, AGN'
-    splog, nall, ntot, nsf, nsf/ntot, nsf/nall
+    nsf = total(agesemline.agn eq 0)
+    nagn = total(agesemline.agn eq 1)
+    splog, 'AGESEMLINE: Total star-forming, AGN'
+    splog, nall, nsf, nsf/nall
 
     splog, 'AGESEMLINE: Total classified as SF using the Yan diagram but *not* the BPT diagram'
     nyansf = total(agesemline.agn eq 0 and agesemline.bpt_agn eq -1 and agesemline.yan_agn eq 0)
     nyansf_hiz = total(agesemline.agn eq 0 and agesemline.bpt_agn eq -1 and $
       agesemline.yan_agn eq 0 and agesemline.z gt 0.4)    
     splog, nsf, nyansf, nyansf/nsf, nyansf_hiz, nyansf_hiz/nyansf
-
-; SDSS    
-    nall = float(n_elements(sdssemline))
-    nsf = total(sdssemline.agn eq 0)
-    nagn = total(sdssemline.agn eq 1)
-    splog, 'SDSS: Total total star-forming, AGN'
-    splog, nall, nsf, nsf/nall
 
 ; now make the table    
     colhead1 = mzget_colhead(['Sample','$N$\tablenotemark{a}','Section\tablenotemark{b}'],/nobreak)

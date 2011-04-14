@@ -1,11 +1,15 @@
 pro mzplot_agn, ps=ps
 ; jm09apr26nyu - AGN plots
 
-; read the data    
-    mzpath = ages_path(/projects)+'mz/'
-    pspath = ages_path(/papers)+'mz/FIG_MZ/'
+    mzpath = mz_path()
     qapath = mzpath+'qaplots/'
-    if keyword_set(ps) then suffix = '.ps' else suffix = '.eps'
+    if keyword_set(ps) then begin
+       pspath = qapath
+       suffix = '.ps'
+    endif else begin
+       pspath = mz_path(/paper)
+       suffix = '.eps'
+    endelse
 
     oiihbaxis = findgen(((1.449)-(-1.5))/0.01)*0.01+(-1.5)
     oiiihblama = 0.14/(oiihbaxis-1.45)+0.83
@@ -58,12 +62,16 @@ pro mzplot_agn, ps=ps
       levels=sdss_levels, cthick=6, /noout, cline=0, $
       xrange=xrange, yrange=yrange, /sdss, /nogrey, ccolor=fsc_color(agncolor,101), $
       outpsym=symcat(agnpsym,thick=8), outcolor=fsc_color(agncolor,101), outsymsize=sdss_outsymsize
-    djs_oplot, ub[unk], sdss[unk].bpt_oiii_hb, psym=symcat(unkpsym,thick=4), $
-      symsize=unksymsize, color=fsc_color(unkcolor,100)
+; for clarity do not plot the unclassified objects - 
+;   djs_oplot, ub[unk], sdss[unk].bpt_oiii_hb, psym=symcat(unkpsym,thick=4), $
+;     symsize=unksymsize, color=fsc_color(unkcolor,100)
     djs_oplot, ubaxis, yan, line=0, thick=7
     legend, 'SDSS', /left, /bottom, box=0, margin=0, charsize=1.6
 ;   legend, 'SDSS - 0.03<z<0.25', /right, /top, box=0, margin=0, charsize=1.6
     
+    xyouts, 0.5, 0.9, 'AGN', orientation=-40, align=0.5, charsize=1.3
+    xyouts, 0.4, 0.75, 'Star-Forming', orientation=-40, align=0.5, charsize=1.3
+
 ; AGES    
     ub = agesanc.k_ubvrijhk_absmag_00[0]-agesanc.k_ubvrijhk_absmag_00[1]
     agn = where(ages.bpt_agn eq 1 and ages.bpt_oiii_hb gt -900,nagn)
@@ -106,7 +114,7 @@ pro mzplot_agn, ps=ps
 ;   xyouts, 1.55, 1.1, 'AGN', align=0.5, charsize=1.6
 ;   xyouts, 0.4, -0.6, 'Star-!cForming', align=0.5, charsize=1.6
     
-    im_plotconfig, /psclose
+    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
 
 stop    
     
@@ -159,7 +167,7 @@ stop
     xyouts, 0.4, 0.45, 'AGN', align=0.5, charsize=1.8
     xyouts, -1.4, -0.55, 'Star-Forming', align=0.5, charsize=1.8
     
-    im_plotconfig, /psclose
+    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
 
 ; ------------------------------------------------------------
 ; EW([O III])/EW(Hb) vs EW([O II])/EW(Hb) - AGES + SDSS

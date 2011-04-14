@@ -11,47 +11,52 @@ pro mzplot_ohcalib, ps=ps
     agesispec = read_mz_sample(/mzhii_ispec)
     agesohdust = read_mz_sample(/mzhii_log12oh)
 
-    mzpath = ages_path(/projects)+'mz/'
-    pspath = ages_path(/papers)+'mz/FIG_MZ/'
-    if keyword_set(ps) then suffix = '.ps' else suffix = '.eps'
+    mzpath = mz_path()
+    qapath = mzpath+'qaplots/'
+    if keyword_set(ps) then begin
+       pspath = qapath
+       suffix = '.ps'
+    endif else begin
+       pspath = mz_path(/paper)
+       suffix = '.eps'
+    endelse
 
 ; ------------------------------------------------------------
 ; O/H_cor vs O/H_EW
     for ii = 0, 2 do begin
-       t04 = 0 & m91 = 0 & kk04 = 0
        case ii of
           0: begin
-             t04 = 1
+             t04 = 1 & m91 = 0 & kk04 = 0
              ohrange1 = [8.4,9.3]
+             calib = 't04'
           end
           1: begin
-             m91 = 1
+             t04 = 0 & m91 = 1 & kk04 = 0
              ohrange1 = [8.3,9.15]
+             calib = 'm91'
           end
           2: begin
-             kk04 = 1
-             ohrange1 = [8.4,9.3]
+             t04 = 0 & m91 = 0 & kk04 = 1
+             ohrange1 = [8.45,9.25]
+             calib = 'kk04'
           end
        endcase
-       if keyword_set(t04) then calib = 't04'
-       if keyword_set(m91) then calib = 'm91'
-       if keyword_set(kk04) then calib = 'kk04'
        
        cor = mzlz_grab_info(sdssohnodust,sdssancillary,sdssmass,$
-         kk04=kk04,t04=t04,m91=m91,/flux)
+         kk04=kk04,t04=t04,m91=m91,/flux,/nolimit)
        ew = mzlz_grab_info(sdssohdust,sdssancillary,sdssmass,$
-         kk04=kk04,t04=t04,m91=m91)
+         kk04=kk04,t04=t04,m91=m91,/nolimit)
        match, cor.id, ew.id, m1, m2
        ewoh = ew.oh[m2]
        coroh = cor.oh[m1]
        resid = ewoh-coroh
        gr = sdssancillary[ew.id[m2]].k_ugriz_absmag_01[1]-$
          sdssancillary[ew.id[m2]].k_ugriz_absmag_01[2]
-;   d4000 = sdssispec[ew.id[m2]].d4000_narrow[0]
 
        splog, calib
-       med = im_medxbin(coroh,resid,0.05,minx=8.5,/verbose)
-;      splog, calib, mean(resid), median(resid), djsig(resid)
+       med = im_medxbin(gr,resid,0.05,minpts=50,/verbose)
+;      med = im_medxbin(coroh,resid,0.05,minx=8.5,/verbose)
+       splog, calib, mean(resid), median(resid), djsig(resid)
        
        xtitle = textoidl('12 + log (O/H)_{'+strupcase(calib)+', cor}')
        ytitle = textoidl('12 + log (O/H)_{'+strupcase(calib)+', EW}')
@@ -63,17 +68,24 @@ pro mzplot_ohcalib, ps=ps
 ; main plot
        mzplot_scatterplot, coroh, ewoh, position=pos[*,0], $
          /sdss, xsty=1, ysty=1, xrange=ohrange1, yrange=ohrange1, $
-         xtitle=xtitle, ytitle=ytitle
-       djs_oplot, !x.crange, !y.crange, line=0, thick=5, color='red'
+         xtitle=xtitle, ytitle=ytitle, /nogrey, ccolor=djs_icolor('grey')
+       djs_oplot, !x.crange, !y.crange, line=0, thick=7;, color='red'
 ; residuals
-;   mzplot_scatterplot, d4000, resid, /noerase, position=pos[*,1], $
-;     /sdss, xsty=1, ysty=1, xrange=[0.8,2.0], yrange=0.4*[-1,1], $
-;     xtitle=textoidl('D_{n}(4000)'), ytitle='Residuals (dex)'
+;      mzplot_scatterplot, d4000, resid, /noerase, position=pos[*,1], $
+;        /sdss, xsty=1, ysty=1, xrange=[0.8,2.0], yrange=0.4*[-1,1], $
+;        xtitle=textoidl('D_{n}(4000)'), ytitle='Residuals (dex)'
        mzplot_scatterplot, gr, resid, /noerase, position=pos[*,1], $
-         /sdss, xsty=1, ysty=1, xrange=[0.0,1.1], yrange=0.4*[-1,1], $
-         xtitle=textoidl('^{0.1}(g-r)'), ytitle='Residuals (dex)'
-       djs_oplot, !x.crange, [0,0], line=0, thick=5, color='red'
-       im_plotconfig, /psclose
+         /sdss, xsty=1, ysty=1, xrange=[0.0,1.1], yrange=0.3*[-1,1], $
+         xtitle=textoidl('^{0.1}(g-r)'), ytitle='Residuals (dex)', $
+         /nogrey, ccolor=djs_icolor('grey'), ytickinterval=0.2
+       oploterror, med.xbin, med.medy, med.quant75-med.medy, psym=6, $
+         color=djs_icolor('navy'), errthick=6, thick=6, $
+         errcolor=djs_icolor('navy'), /hibar
+       oploterror, med.xbin, med.medy, med.medy-med.quant25, psym=6, $
+         color=djs_icolor('navy'), errthick=6, thick=6, $
+         errcolor=djs_icolor('navy'), /lobar
+       djs_oplot, !x.crange, [0,0], line=0, thick=7;, color='red'
+       im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
     endfor
 
 stop    
@@ -124,7 +136,7 @@ stop
     xyouts, -0.6, 1.05, 'Upper Branch', align=0.5, charsize=1.2, $
       charthick=2.5
     legend, 'AGES', /left, /bottom, box=0, charsize=1.6, margin=0
-    im_plotconfig, /psclose
+    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
 
 stop    
 
@@ -165,7 +177,7 @@ stop
       color=djs_icolor(color), textcolor=djs_icolor(color), line=line, $
       thick=8, pspacing=1.8
     
-    im_plotconfig, /psclose
+    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
 
 stop
 stop
@@ -260,7 +272,7 @@ stop
     im_legend, '\alpha-^{0.1}(g-r)', /left, /top, box=0, margin=0
     im_legend, xstr, /right, /bottom, box=0, margin=0
     
-    im_plotconfig, /psclose
+    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
 
 ; ------------------------------------------------------------
 ; calibrate the EW-alpha relation; see BUILD_MZ_LOG12OH_SAMPLE
@@ -332,7 +344,7 @@ stop
     djs_oplot, graxis, poly(graxis,alpha_gr_coeff), line=0, $
       thick=5.0, color='dark red'
 
-    im_plotconfig, /psclose
+    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
 
 ; ------------------------------------------------------------
 ; effect on LZ of EWs vs reddening-corrected fluxes 
@@ -417,7 +429,7 @@ stop
     im_legend, '\sigma='+string(lzfit[3].scatter,format='(F4.2)'), $
       /right, /bottom, box=0, charsize=1.4, margin=0
 
-    im_plotconfig, /psclose
+    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
 
 return
 end

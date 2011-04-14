@@ -1,6 +1,7 @@
 function fit_mz_closedbox, mass, oh, weight, oh_err=oh_err, $
   binsize=binsize, minmass=minmass, maxmass=maxmass, $
-  mingal=mingal, fit_minmass=fit_minmass, verbose=verbose
+  mingal=mingal, fit_minmass=fit_minmass, fit_maxmass=fit_maxmass, $
+  verbose=verbose
 ; jm10nov09ucsd - fit the MZ relation using a model motivated by
 ; closed-box chemical evolution
     
@@ -10,6 +11,7 @@ function fit_mz_closedbox, mass, oh, weight, oh_err=oh_err, $
     if (n_elements(maxmass) eq 0) then maxmass = max(mass)
     if (n_elements(mingal) eq 0) then mingal = 100
     if (n_elements(fit_minmass) eq 0) then fit_minmass = 9.0
+    if (n_elements(fit_maxmass) eq 0) then fit_maxmass = 9.0
 
 ; see MZ_CLOSEDBOX() for the model
     nparams = 3 ; 4
@@ -22,19 +24,29 @@ function fit_mz_closedbox, mass, oh, weight, oh_err=oh_err, $
 ;   parinfo[1].limits[0] = 0.0
     
 ; bin the MZ relation; let IM_MEDXBIN() deal with WEIGHT undefined 
-    mzbin = im_medxbin(mass,oh,binsize,weight=weight,$
+    mzbin = im_medxbin(mass,oh,binsize,weight=weight/oh_err^2,$
       minx=minmass,maxx=maxmass,minpts=mingal,verbose=verbose)
-
+;   djs_plot, mass, oh, psym=3, xsty=3, ysty=3
+;   djs_oplot, mzbin.xbin, mzbin.medy, psym=6, color='red'
+;   djs_oplot, mzbin.xbin, mzbin.meany, psym=6, color='orange'
+   
 ; fit to the full dataset *and* to the binned points
 ;   splog, 'Fitting binned points'
+    medweight = ((mzbin.xbin ge fit_minmass) and (mzbin.xbin le fit_maxmass))/mzbin.sigymean^2
     coeff = mpfitfun('mz_closedbox',mzbin.xbin,mzbin.medy,$
-      weight=(mzbin.xbin gt fit_minmass)/mzbin.sigymean^2,$
-      parinfo=parinfo,functargs=functargs,perror=coeff_err,$
-      dof=dof,covar=covar,status=mpstatus,quiet=1,bestnorm=chi2,$
-      yfit=yfit)
+      weight=medweight,parinfo=parinfo,functargs=functargs,$
+      perror=coeff_err,dof=dof,covar=covar,status=mpstatus,$
+      quiet=1,bestnorm=chi2,yfit=yfit)
     chi2 = chi2/float(dof)
     scatter = djsig(oh-mz_closedbox(mass,coeff))
 
+;   splog, coeff, chi2
+;   used = where(medweight gt 0,comp=ign)
+;   djs_plot, mass, oh, psym=3, xsty=3, ysty=3, yr=[8,9.6]
+;   djs_oplot, mzbin[used].xbin, mzbin[used].medy, psym=symcat(16), symsize=2, color='red'
+;   if (ign[0] ne -1) then djs_oplot, mzbin[ign].xbin, mzbin[ign].medy, psym=symcat(6), symsize=2, color='green'
+;   djs_oplot, mzbin.xbin, yfit, line=0, color='yellow'
+    
 ;   djs_plot, mzbin.xbin, mzbin.medy, psym=-6, ysty=3, yr=[8.4,9.5]
 ;   djs_oplot, mzbin.xbin, yfit, psym=6, color='red'
 ;   cc = get_kbrd(1)
@@ -42,9 +54,9 @@ function fit_mz_closedbox, mass, oh, weight, oh_err=oh_err, $
 ;   splog, 'Fitting all points'    
     if (n_elements(oh_err) ne ngal) then message, 'Need uncertainties on O/H'
     if (n_elements(weight) eq 0L) then weight = mass*0.0+1.0
-    weighted_oh_err = oh_err/sqrt(weight)
+    oh_weight = weight/oh_err^2
     coeff_all = mpfitfun('mz_closedbox',mass,oh,$
-      weight=(mass gt fit_minmass)/weighted_oh_err^2,$
+      weight=((mass ge fit_minmass) and (mass le fit_maxmass))*oh_weight,$
       parinfo=parinfo,functargs=functargs,perror=coeff_err_all,$
       dof=dof_all,covar=covar_all,status=mpstatus_all,quiet=1,$
       bestnorm=chi2_all,yfit=yfit_all)
@@ -73,7 +85,14 @@ function fit_mz_closedbox, mass, oh, weight, oh_err=oh_err, $
       chi2_all:      chi2_all, $
       bin_mass:      mzbin.xbin, $
       bin_oh:        mzbin.medy,$
-      bin_oh_err:    mzbin.sigymean}
+      bin_oh_mean:   mzbin.meany,$
+      bin_oh_err:    mzbin.sigymean,$
+      bin_oh_used:   medweight gt 0,$
+      mingal:        mingal, $
+      minmass:       minmass,$
+      maxmass:       maxmass,$
+      fit_minmass:   fit_minmass,$
+      fit_maxmass:   fit_maxmass}      
     
 return, fit
 end

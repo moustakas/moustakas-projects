@@ -9,15 +9,238 @@ end
 pro mzplot_sample, ps=ps
 ; jm09mar25nyu - sample definition plots
 
-    common com_quick, sdss_dfactor
+    common com_quick, sdss_dfactor, taumodel
     
-    mzpath = ages_path(/projects)+'mz/'
-    pspath = ages_path(/papers)+'mz/FIG_MZ/'
+    mzpath = mz_path()
     qapath = mzpath+'qaplots/'
-    if keyword_set(ps) then suffix = '.ps' else suffix = '.eps'
+    if keyword_set(ps) then begin
+       pspath = qapath
+       suffix = '.ps'
+    endif else begin
+       pspath = mz_path(/paper)
+       suffix = '.eps'
+    endelse
 
     ocor = 1.0 + 1.0/2.984 ; intrinsic 5007/4959 ratio
+    lsun = 3.826D33        ; [erg/s]
+    dist = 3.085678D19     ; fiducial distance [10 pc in cm]
 
+; ------------------------------------------------------------
+; redshift vs absolute magnitude and stellar mass
+    ageskcorr = read_mz_sample(/mzhii_ancillary)
+    agesmass = read_mz_sample(/mzhii_mass)
+
+; compute the tau model
+    if (n_elements(taumodel) eq 0) then begin
+       tau = 3.0
+       ssp = im_read_bc03(bc03_extras=ext,/silent)
+       tauflux = im_convolve_sfh(ssp,tau=tau,mstar=ext.m_,cspmstar=taumstar)
+       tauflux = lsun*tauflux/(4.0*!dpi*dist^2.0)/rebin(reform(taumstar,1,220),6900,220) ; [erg/s/cm2/A/Msun]
+       taumodel = {tau: tau, age: ssp.age, wave: ssp.wave, flux: tauflux, mstar: taumstar}
+    endif
+
+; interpolate    
+    nz = 100 
+    zz = range(0.02,1.0,nz)
+    tauzform = 2.0
+
+    tauindx = findex(taumodel.age/1D9,getage(zz)-getage(tauzform))
+    tauflux = interpolate(taumodel.flux,tauindx)
+    taumstar = interpolate(taumodel.mstar,tauindx)
+  
+    mbfilter = 'bessell_B.par'
+    ifaint = mz_ifaint(select_filter=ifilter)
+    maggies = rebin(reform(10^(-0.4*ifaint),1,1),1,nz)
+
+    model = replicate({z: 0.0, tau_MB: 0.0, tau_mstar: 0.0},nz)
+    model.z = zz
+    
+    kk = im_simple_kcorrect(zz,maggies,maggies*0.0+1.0,$
+      ifilter,mbfilter,taumodel.wave,tauflux,absmag=abs,$
+      scale=tauscale)
+    model.tau_mstar = alog10(taumstar*(dluminosity(zz,/cm)/3.085678D19)^2*tauscale)
+    model.tau_MB = reform(abs)
+
+; now make the plot    
+    psfile = pspath+'z_vs_mb_mass'+suffix
+    im_plotconfig, 6, pos, psfile=psfile, height=3.0*[1,1], xmargin=[1.3,0.2], $
+      ymargin=[0.8,1.0], charsize=1.9, width=5.5
+
+    xrange = [0.03,0.77]
+    yrange1 = [-15.3,-23.4]
+    yrange2 = [7.7,11.9]
+
+; redshift vs absolute magnitude
+    plot, [0], [0], /nodata, ysty=1, xsty=1, xrange=xrange, yrange=yrange1, $
+      xtitle='', ytitle=mzplot_mbtitle(), xtickname=replicate(' ',10), $
+      position=pos[*,0], yminor=4
+    ages_oplot, ageskcorr.z, ageskcorr.k_ubvrijhk_absmag_00[1]
+    djs_oplot, model.z, model.tau_MB, line=0, $
+      color=fsc_color('firebrick',101), thick=8
+
+; redshift vs stellar mass
+    plot, [0], [0], /nodata, /noerase, ysty=1, xsty=9, $
+      xrange=xrange, yrange=yrange2, xtitle='Redshift', $
+      ytitle=mzplot_masstitle(), position=pos[*,1], yminor=5
+    ages_oplot, ageskcorr.z, agesmass.mass_50
+    djs_oplot, model.z, model.tau_mstar, line=0, $
+      color=fsc_color('firebrick',101), thick=8
+    im_legend, ['\tau = 3 Gyr'], /right, /bottom, box=0, $
+      pspacing=1.4, color='firebrick', line=0, charsize=1.5, thick=8
+
+    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
+
+stop    
+    
+; ------------------------------------------------------------
+; distribution of global properties - AGES & SDSS
+;   sdssparent = read_mz_sample(/parent,/sdss)
+    sdsskcorr = read_mz_sample(/mzhii_ancillary,/sdss)
+    sdssmass = read_mz_sample(/mzhii_mass,/sdss)
+
+    agesparent = read_mz_sample(/parent)
+    agesparentmass = read_mz_sample(/mass)
+    ageskcorr = read_mz_sample(/mzhii_ancillary)
+    agesmass = read_mz_sample(/mzhii_mass)
+
+    psfile = pspath+'ages_histograms'+suffix
+    im_plotconfig, 5, pos, psfile=psfile, height=[3.0,3.0], $
+      width=[3.0,3.0], xmargin=[1.2,1.2], xspace=0.1, yspace=1.0, $
+      charsize=1.7
+
+    zbinsize = 0.02 ; 0.01
+    absmagbinsize = 0.2 ; 0.25
+    colorbinsize = 0.03 ; 0.04
+    massbinsize = 0.1 ; 0.15
+    yfactor = 1.1
+
+    splog, weighted_quantile(ageskcorr.z,ageskcorr.final_weight,quant=0.5), $
+      im_weighted_mean(ageskcorr.z,weight=ageskcorr.final_weight)
+    splog, median(sdsskcorr.z), mean(sdsskcorr.z)
+
+    histthick1 = 5.0
+    fspacing = 0.04
+    snorm = 20.0
+;   snorm = 15.0 ; 20.0
+;   snorm = n_elements(sdsskcorr.z)/float(n_elements(ageskcorr.z))
+    scolor = 'firebrick'
+    sline = 5
+
+; ####################
+; Redshift
+; ####################
+
+    im_plothist, agesparent.z, xbin, ybin, bin=zbinsize, $
+      weight=agesparent.final_weight, /noplot
+
+    xtitle = 'Redshift'
+    ytitle = 'Number'
+    xrange = [0.0,0.8]
+    yrange = [0,max(ybin)*yfactor]
+    
+    djs_plot, [0], [0], /nodata, xsty=5, ysty=5, xrange=xrange, yrange=yrange, $
+      position=pos[*,0], xtickname=replicate(' ',10), ytickname=replicate(' ',10)
+    im_plothist, agesparent.z, bin=zbinsize, weight=agesparent.final_weight, $
+      /overplot, /fill, fcolor=djs_icolor('grey'), /fline, $
+      forientation=45, fspacing=fspacing, color=djs_icolor('grey')
+    im_plothist, ageskcorr.z, bin=zbinsize, weight=ageskcorr.final_weight, $
+      /overplot, thick=histthick1
+    im_plothist, sdsskcorr.z, bin=zbinsize, /overplot, thick=histthick1, $
+      line=sline, color=fsc_color(scolor,101), norm=snorm
+    djs_plot, [0], [0], /nodata, /noerase, xtitle=xtitle, ytitle=ytitle, $
+      xsty=1, ysty=1, xrange=xrange, yrange=yrange, position=pos[*,0], $
+      ytickinterval=500
+;   im_legend, '(a)', /left, /top, box=0, margin=0
+
+; ####################
+; MB
+; ####################
+    
+    im_plothist, agesparent.k_ubvrijhk_absmag_00[1], bin=absmagbinsize, xbin, ybin, $
+      weight=agesparent.final_weight, /noplot
+
+    xtitle = mzplot_mbtitle()
+    ytitle = 'Number'
+    xrange = reverse([-16.1,-23.9])
+    yrange = [0,max(ybin)*yfactor]
+    
+    djs_plot, [0], [0], /nodata, /noerase, xsty=5, ysty=5, xrange=xrange, yrange=yrange, $
+      position=pos[*,1], xtickname=replicate(' ',10), ytickname=replicate(' ',10)
+    im_plothist, agesparent.k_ubvrijhk_absmag_00[1], bin=absmagbinsize, weight=agesparent.final_weight, $
+      /overplot, /fill, fcolor=djs_icolor('grey'), /fline, $
+      forientation=45, fspacing=fspacing, color=djs_icolor('grey')
+    im_plothist, ageskcorr.k_ubvrijhk_absmag_00[1], bin=absmagbinsize, $
+      weight=ageskcorr.final_weight, /overplot, thick=histthick1
+    im_plothist, sdsskcorr.k_ubvrijhk_absmag_00[1], bin=absmagbinsize, $
+      /overplot, thick=histthick1, line=sline, color=fsc_color(scolor,101), norm=snorm
+    djs_plot, [0], [0], /nodata, /noerase, xtitle=xtitle, ytitle='', xsty=1, $
+      ysty=1, xrange=xrange, yrange=yrange, position=pos[*,1], $
+      ytickname=replicate(' ',10)
+    axis, /yaxis, yrange=yrange, ystyle=1, ytitle=textoidl(ytitle), $
+      ytickinterval=500
+;   im_legend, '(b)', /left, /top, box=0, margin=0
+
+; ####################
+; ^{0.1} (g-r) color
+; ####################
+
+    ub_parent = agesparent.k_ubvrijhk_absmag_00[0]-agesparent.k_ubvrijhk_absmag_00[1]
+    ub = ageskcorr.k_ubvrijhk_absmag_00[0]-ageskcorr.k_ubvrijhk_absmag_00[1]
+    sdss_ub = sdsskcorr.k_ubvrijhk_absmag_00[0]-sdsskcorr.k_ubvrijhk_absmag_00[1]
+
+    im_plothist, ub_parent, xbin, ybin, bin=colorbinsize, $
+      weight=agesparent.final_weight, /noplot
+
+    xtitle = 'U - B'
+    ytitle = 'Number'
+    xrange = [0.45,1.55]
+    yrange = [0,max(ybin)*yfactor]
+    
+    djs_plot, [0], [0], /nodata, /noerase, xsty=5, ysty=5, xrange=xrange, yrange=yrange, $
+      position=pos[*,2], xtickname=replicate(' ',10), ytickname=replicate(' ',10)
+    im_plothist, ub_parent, bin=colorbinsize, weight=agesparent.final_weight, $
+      /overplot, /fill, fcolor=djs_icolor('grey'), /fline, forientation=45, $
+      fspacing=fspacing, color=djs_icolor('grey')
+    im_plothist, ub, bin=colorbinsize, weight=ageskcorr.final_weight, /overplot, $
+      thick=histthick1
+    im_plothist, sdss_ub, bin=colorbinsize, /overplot, thick=histthick1, $
+      line=sline, color=fsc_color(scolor,101), norm=snorm
+    djs_plot, [0], [0], /nodata, /noerase, xtitle=xtitle, xrange=xrange, ytitle=ytitle, $
+      xsty=1, ysty=1, yrange=yrange, position=pos[*,2], ytickinterval=500
+;   im_legend, '(c)', /left, /top, box=0, margin=0
+
+; ####################
+; Stellar Mass
+; ####################
+
+    im_plothist, agesparentmass.mass_50, xbin, ybin, bin=massbinsize, $
+      weight=agesparent.final_weight, /noplot
+
+    xtitle = mzplot_masstitle()
+    ytitle = 'Number'
+    xrange = [8.1,11.9]
+    yrange = [0,max(ybin)*yfactor]
+    
+    djs_plot, [0], [0], /nodata, /noerase, xsty=5, ysty=5, xrange=xrange, yrange=yrange, $
+      position=pos[*,3], xtickname=replicate(' ',10), ytickname=replicate(' ',10)
+    im_plothist, agesparentmass.mass_50, bin=massbinsize, weight=agesparent.final_weight, $
+      /overplot, /fill, fcolor=djs_icolor('grey'), /fline, forientation=45, $
+      fspacing=fspacing, color=djs_icolor('grey')
+    im_plothist, agesmass.mass_50, bin=massbinsize, /overplot, $
+      weight=ageskcorr.final_weight, thick=histthick1
+    im_plothist, sdssmass.mass_50, bin=massbinsize, /overplot, $
+      thick=histthick1, line=sline, color=fsc_color(scolor,101), norm=snorm
+    djs_plot, [0], [0], /nodata, /noerase, xtitle=xtitle, ytitle='', $
+      xsty=1, ysty=1, xrange=xrange, yrange=yrange, $
+      position=pos[*,3], yminor=3, ytickname=replicate(' ',10)
+    axis, /yaxis, yrange=yrange, ystyle=1, ytitle=textoidl(ytitle), $
+      ytickinterval=500
+;   im_legend, '(d)', /left, /top, box=0, margin=0
+
+    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
+
+stop    
+    
 ; ------------------------------------------------------------
 ; H-beta selection - AGES & SDSS
 
@@ -221,7 +444,7 @@ stop
     djs_oplot, agesispec[rej1].z, agesispec[rej1].h_beta_ew[0], $
       psym=symcat(9,thick=6), symsize=0.5, color=fsc_color('dodger blue',101)
 ;   djs_oplot, zaxis, ages_hbcut*4.0*!dpi*dluminosity(zaxis,/cm)^2/ages_l4861_limit, line=0, thick=6
-    im_plotconfig, /psclose
+    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
 
 ; ##### plot 2 - [OII]/Hb and [OIII]/Hb vs redshift
     psfile = pspath+'z_vs_oiihb_oiiihb'+suffix
@@ -255,7 +478,7 @@ stop
     djs_oplot, agesispec[sel2[lim]].z, alog10(agesispec[sel2[lim]].oiii_5007_limit/$
       agesispec[sel2[lim]].h_beta[0]), psym=8, color=fsc_color('orange red',101)
     
-    im_plotconfig, /psclose
+    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
 
 stop    
     
@@ -281,7 +504,7 @@ stop
       yrange=uvrange;, npix=24
     djs_oplot, mass[lim], uv[lim], psym=6, sym=0.2, color=fsc_color('dodger blue',101)
     
-    im_plotconfig, /psclose, /gzip
+    im_plotconfig, /psclose, /gzip, psfile=psfile
 
 ; ------------------------------------------------------------
 ; EW(Hb), EW([OII]), EW([O III]) and EW(R23) measured from our fluxed
@@ -432,7 +655,7 @@ stop
 ;   im_legend, '(d)', /left, /top, box=0, charsize=1.4, margin=0
 ;   im_legend, '(d) R_{23}', /left, /top, box=0, charsize=1.4, margin=0
     
-    im_plotconfig, /psclose
+    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
 ;;
 
 ; ------------------------------------------------------------
@@ -495,207 +718,6 @@ stop
 ;   im_legend, '(d)', /left, /top, box=0, charsize=1.4, margin=0
     
     im_plotconfig, /psclose, /gzip, psfile=psfile
-
-; ------------------------------------------------------------
-; redshift vs absolute magnitude and stellar mass
-    psfile = pspath+'z_vs_mb_mass'+suffix
-    im_plotconfig, 6, pos, psfile=psfile, height=3.0*[1,1], xmargin=[1.3,0.2], $
-      ymargin=[0.8,1.0], charsize=1.9, width=5.5
-
-; compute some simple models    
-    tauzform = 2.0
-    nz = 100 
-    zz = range(0.02,1.0,nz)
-
-    modelspath = getenv('ISEDFIT_SFHGRID_DIR')+'/basemodels/bc03/'
-    tau = mrdfits(modelspath+'chab_Z0.02_tau_03.0Gyr.fits.gz',1,/silent)
-    tauflux = interpolate(tau.flux,findex(tau.age/1D9,getage(zz)-getage(tauzform)))
-
-    ifaint = mz_ifaint(select_filter=ifilter)
-    maggies = reform(10^(-0.4*(ifaint)),1,1)
-
-    mbfilter = 'bessell_B.par'
-    solarmag = k_solar_magnitudes(filterlist=mbfilter,/silent)
-
-    model = replicate({z: 0.0, tau_MB: 0.0, tau_mass: 0.0},nz)
-    model.z = zz
-    for ii = 0L, nz-1L do begin
-       kk = im_simple_kcorrect(zz[ii],maggies,maggies*0.0+1.0,$
-         ifilter,mbfilter,tau.wave,tauflux[*,ii],absmag=abs)
-       model[ii].tau_MB = abs
-       model[ii].tau_mass = 10^(-0.4*(abs-solarmag))
-    endfor
-
-; now make the plot    
-    xrange = [0.03,0.77]
-    yrange1 = [-15.3,-23.4]
-    yrange2 = [7.7,11.9]
-
-; redshift vs absolute magnitude
-    plot, [0], [0], /nodata, ysty=1, xsty=1, xrange=xrange, yrange=yrange1, $
-      xtitle='', ytitle=mzplot_mbtitle(), xtickname=replicate(' ',10), $
-      position=pos[*,0], yminor=4
-    ages_oplot, ageskcorr.z, ageskcorr.k_ubvrijhk_absmag_00[1]
-    djs_oplot, model.z, model.tau_MB, line=0, $
-      color=fsc_color('firebrick',101), thick=8
-
-; redshift vs stellar mass
-    plot, [0], [0], /nodata, /noerase, ysty=1, xsty=9, $
-      xrange=xrange, yrange=yrange2, xtitle='Redshift', $
-      ytitle=mzplot_masstitle(), position=pos[*,1], yminor=5
-    ages_oplot, ageskcorr.z, agesmass.mass_avg
-    djs_oplot, model.z, alog10(model.tau_mass), line=0, $
-      color=fsc_color('firebrick',101), thick=8
-    im_legend, ['\tau = 4 Gyr'], /right, /bottom, box=0, $
-      pspacing=1.4, color='firebrick', line=0, charsize=1.5, thick=8
-
-    im_plotconfig, /psclose
-
-; ------------------------------------------------------------
-; distribution of global properties - AGES & SDSS
-;   sdssparent = read_mz_sample(/parent,/sdss)
-    sdsskcorr = read_mz_sample(/mzhii_ancillary,/sdss)
-    sdssmass = read_mz_sample(/mzhii_mass,/sdss)
-
-    agesparent = read_mz_sample(/parent)
-    agesparentmass = read_mz_sample(/mass)
-    ageskcorr = read_mz_sample(/mzhii_ancillary)
-    agesmass = read_mz_sample(/mzhii_mass)
-
-    psfile = pspath+'ages_histograms'+suffix
-    im_plotconfig, 5, pos, psfile=psfile, height=[3.0,3.0], $
-      width=[3.0,3.0], xmargin=[1.2,1.2], xspace=0.1, yspace=1.0, $
-      charsize=1.7
-
-    zbinsize = 0.02 ; 0.01
-    absmagbinsize = 0.2 ; 0.25
-    colorbinsize = 0.03 ; 0.04
-    massbinsize = 0.1 ; 0.15
-    yfactor = 1.1
-
-    splog, weighted_quantile(ageskcorr.z,ageskcorr.final_weight,quant=0.5), $
-      im_weighted_mean(ageskcorr.z,weight=ageskcorr.final_weight)
-    splog, median(sdsskcorr.z), mean(sdsskcorr.z)
-
-    histthick1 = 5.0
-    fspacing = 0.04
-    snorm = 15.0 ; 20.0
-;   snorm = n_elements(sdsskcorr.z)/float(n_elements(ageskcorr.z))
-    scolor = 'firebrick'
-    sline = 5
-
-; ####################
-; Redshift
-; ####################
-
-    im_plothist, agesparent.z, xbin, ybin, bin=zbinsize, $
-      weight=agesparent.final_weight, /noplot
-
-    xtitle = 'Redshift'
-    ytitle = 'Number'
-    xrange = [0.0,0.8]
-    yrange = [0,max(ybin)*yfactor]
-    
-    djs_plot, [0], [0], /nodata, xsty=5, ysty=5, xrange=xrange, yrange=yrange, $
-      position=pos[*,0], xtickname=replicate(' ',10), ytickname=replicate(' ',10)
-    im_plothist, agesparent.z, bin=zbinsize, weight=agesparent.final_weight, $
-      /overplot, /fill, fcolor=djs_icolor('grey'), /fline, $
-      forientation=45, fspacing=fspacing, color=djs_icolor('grey')
-    im_plothist, ageskcorr.z, bin=zbinsize, weight=ageskcorr.final_weight, $
-      /overplot, thick=histthick1
-    im_plothist, sdsskcorr.z, bin=zbinsize, /overplot, thick=histthick1, $
-      line=sline, color=fsc_color(scolor,101), norm=snorm
-    djs_plot, [0], [0], /nodata, /noerase, xtitle=xtitle, ytitle=ytitle, $
-      xsty=1, ysty=1, xrange=xrange, yrange=yrange, position=pos[*,0], $
-      ytickinterval=500
-;   im_legend, '(a)', /left, /top, box=0, margin=0
-
-; ####################
-; ^{0.1} M_r
-; ####################
-    
-    im_plothist, agesparent.k_ubvrijhk_absmag_00[1], bin=absmagbinsize, xbin, ybin, $
-      weight=agesparent.final_weight, /noplot
-
-    xtitle = mzplot_mbtitle()
-    ytitle = 'Number'
-    xrange = reverse([-16.1,-23.9])
-    yrange = [0,max(ybin)*yfactor]
-    
-    djs_plot, [0], [0], /nodata, /noerase, xsty=5, ysty=5, xrange=xrange, yrange=yrange, $
-      position=pos[*,1], xtickname=replicate(' ',10), ytickname=replicate(' ',10)
-    im_plothist, agesparent.k_ubvrijhk_absmag_00[1], bin=absmagbinsize, weight=agesparent.final_weight, $
-      /overplot, /fill, fcolor=djs_icolor('grey'), /fline, $
-      forientation=45, fspacing=fspacing, color=djs_icolor('grey')
-    im_plothist, ageskcorr.k_ubvrijhk_absmag_00[1], bin=absmagbinsize, $
-      weight=ageskcorr.final_weight, /overplot, thick=histthick1
-    im_plothist, sdsskcorr.k_ubvrijhk_absmag_00[1], bin=absmagbinsize, $
-      /overplot, thick=histthick1, line=sline, color=fsc_color(scolor,101), norm=snorm
-    djs_plot, [0], [0], /nodata, /noerase, xtitle=xtitle, ytitle='', xsty=1, $
-      ysty=1, xrange=xrange, yrange=yrange, position=pos[*,1], $
-      ytickname=replicate(' ',10)
-    axis, /yaxis, yrange=yrange, ystyle=1, ytitle=textoidl(ytitle), $
-      ytickinterval=500
-;   im_legend, '(b)', /left, /top, box=0, margin=0
-
-; ####################
-; ^{0.1} (g-r) color
-; ####################
-
-    ub_parent = agesparent.k_ubvrijhk_absmag_00[0]-agesparent.k_ubvrijhk_absmag_00[1]
-    ub = ageskcorr.k_ubvrijhk_absmag_00[0]-ageskcorr.k_ubvrijhk_absmag_00[1]
-    sdss_ub = sdsskcorr.k_ubvrijhk_absmag_00[0]-sdsskcorr.k_ubvrijhk_absmag_00[1]
-
-    im_plothist, ub_parent, xbin, ybin, bin=colorbinsize, $
-      weight=agesparent.final_weight, /noplot
-
-    xtitle = 'U - B'
-    ytitle = 'Number'
-    xrange = [0.45,1.55]
-    yrange = [0,max(ybin)*yfactor]
-    
-    djs_plot, [0], [0], /nodata, /noerase, xsty=5, ysty=5, xrange=xrange, yrange=yrange, $
-      position=pos[*,2], xtickname=replicate(' ',10), ytickname=replicate(' ',10)
-    im_plothist, ub_parent, bin=colorbinsize, weight=agesparent.final_weight, $
-      /overplot, /fill, fcolor=djs_icolor('grey'), /fline, forientation=45, $
-      fspacing=fspacing, color=djs_icolor('grey')
-    im_plothist, ub, bin=colorbinsize, weight=ageskcorr.final_weight, /overplot, $
-      thick=histthick1
-    im_plothist, sdss_ub, bin=colorbinsize, /overplot, thick=histthick1, $
-      line=sline, color=fsc_color(scolor,101), norm=snorm
-    djs_plot, [0], [0], /nodata, /noerase, xtitle=xtitle, xrange=xrange, ytitle=ytitle, $
-      xsty=1, ysty=1, yrange=yrange, position=pos[*,2], ytickinterval=500
-;   im_legend, '(c)', /left, /top, box=0, margin=0
-
-; ####################
-; Stellar Mass
-; ####################
-
-    im_plothist, agesparentmass.mass_avg, xbin, ybin, bin=massbinsize, $
-      weight=agesparent.final_weight, /noplot
-
-    xtitle = mzplot_masstitle()
-    ytitle = 'Number'
-    xrange = [8.1,11.9]
-    yrange = [0,max(ybin)*yfactor]
-    
-    djs_plot, [0], [0], /nodata, /noerase, xsty=5, ysty=5, xrange=xrange, yrange=yrange, $
-      position=pos[*,3], xtickname=replicate(' ',10), ytickname=replicate(' ',10)
-    im_plothist, agesparentmass.mass_avg, bin=massbinsize, weight=agesparent.final_weight, $
-      /overplot, /fill, fcolor=djs_icolor('grey'), /fline, forientation=45, $
-      fspacing=fspacing, color=djs_icolor('grey')
-    im_plothist, agesmass.mass_avg, bin=massbinsize, /overplot, $
-      weight=ageskcorr.final_weight, thick=histthick1
-    im_plothist, sdssmass.mass_avg, bin=massbinsize, /overplot, $
-      thick=histthick1, line=sline, color=fsc_color(scolor,101), norm=snorm
-    djs_plot, [0], [0], /nodata, /noerase, xtitle=xtitle, ytitle='', $
-      xsty=1, ysty=1, xrange=xrange, yrange=yrange, $
-      position=pos[*,3], yminor=3, ytickname=replicate(' ',10)
-    axis, /yaxis, yrange=yrange, ystyle=1, ytitle=textoidl(ytitle), $
-      ytickinterval=500
-;   im_legend, '(d)', /left, /top, box=0, margin=0
-
-    im_plotconfig, /psclose
 
 return
 end

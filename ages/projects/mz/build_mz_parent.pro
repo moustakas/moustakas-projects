@@ -5,8 +5,8 @@ pro build_mz_parent, sdss=sdss, clobber=clobber
 
     common com_sdss_photometry, sdssphot, sdsstwomass ; from mz_get_maggies
 
-    mzpath = ages_path(/projects)+'mz/'
-    isedpath = ages_path(/projects)+'mz/isedfit/'
+    mzpath = mz_path()
+    isedpath = mz_path(/isedfit)
     vagcpath = getenv('VAGC_REDUX')+'/'
 
     h100 = mz_h100()
@@ -15,6 +15,10 @@ pro build_mz_parent, sdss=sdss, clobber=clobber
     if keyword_set(sdss) then begin
        splog, '#########################'
        splog, 'Building the SDSS comparison sample'
+
+; read and write out the stellar masses; just use the fiducial grid (01) 
+       ised = mrdfits(isedpath+'sdss_bc03_chab_charlot_sfhgrid01.fits.gz',1)
+       im_mwrfits, ised, mzpath+'sdss_parent_mass.fits', /clobber
 
 ; POSTSTR/35: -17>Mr>-24; 0.033<z<0.25; note that if POSTSTR changes
 ; then SDSS_ISEDFIT needs to be rerun
@@ -73,7 +77,7 @@ pro build_mz_parent, sdss=sdss, clobber=clobber
 
        phot = read_ages(/photo)
        ppxf = read_ages(/ppxf)
-       ised = mrdfits(isedpath+'UBwRIzJHKs_bc03_chab_calzetti_sfhgrid02.fits.gz',1)
+       ised = mrdfits(isedpath+'ages_bc03_chab_charlot_sfhgrid01.fits.gz',1)
 
 ; identify main sample galaxies and apply additional sample cuts:
 ; 0.05<z<0.75; 15<Itot<19.95; reject unfluxed plates and require that
@@ -97,7 +101,6 @@ pro build_mz_parent, sdss=sdss, clobber=clobber
        iparent = (phot.imain eq 1) and (phot.i_tot le ifaint) and (phot.i_tot ge ibright) and $
          (ippxf eq 1) and (phot.z ge sample_zmin) and (phot.z le sample_zmax) and $
          (total(allmaggies gt 0,1) ge nminphot) and $
-         (ised.mass_avg gt 0.0) and $
          (phot.pass ne rejplates[0]) and (phot.pass ne rejplates[1]) and $
          (phot.pass ne rejplates[2]) and (phot.pass ne rejplates[3]) and $
          (phot.pass ne rejplates[4]) and (phot.pass ne rejplates[5]) and $

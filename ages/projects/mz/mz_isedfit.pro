@@ -34,7 +34,7 @@ pro mz_isedfit, sdss=sdss, sfhgrid=sfhgrid, imf=imf, synthmodels=synthmodels, $
        
 ; loop on each grid
     for gg = 0, ngrid-1 do begin
-       redcurvestring = redcurve2string(redcurve,params=mzgrid[gg])
+       redcurvestring = redcurve2string(redcurve)
        sfhgridstring = strtrim(mzgrid[gg].sfhgrid,2)
 
 ; --------------------------------------------------

@@ -56,7 +56,11 @@ function fit_mz_doublepl, mass, oh, weight, oh_err=oh_err, binsize=binsize, $
       chi2_all:      chi2_all, $
       bin_mass:      mzbin.xbin, $
       bin_oh:        mzbin.medy,$
-      bin_oh_err:    mzbin.sigymean}
+      bin_oh_err:    mzbin.sigymean,$
+      mingal:        mingal, $
+      minmass:       minmass,$
+      maxmass:       maxmass,$
+      fit_minmass:   fit_minmass}
     
 return, fit
 end

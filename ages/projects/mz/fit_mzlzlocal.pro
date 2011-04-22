@@ -21,8 +21,8 @@ pro fit_mzlzlocal, clobber=clobber, debug=debug, verbose=verbose
 ; --------------------------------------------------    
 ; fit the SDSS and low-redshift AGES LZ relations using all three
 ; abundance calibrations  
-    faintmag = -18.0
-    brightmag = -23.0
+;   faintmag = -18.0
+;   brightmag = -23.0
     binsize = 0.1
 
     for kk = 0, 1 do begin ; loop on the sample
@@ -79,7 +79,6 @@ pro fit_mzlzlocal, clobber=clobber, debug=debug, verbose=verbose
                 1: begin
                    info = mzlz_grab_info(stroh,agesancillary,agesmass,$
                      flux=flux,t04=t04,m91=m91,kk04=kk04,zmin=0.05,zmax=0.15,/nolimit)
-                   stop
                 end
              endcase
              lzfit1 = fit_lz(info.mb_ab,info.oh,info.weight,oh_err=info.oh_err,$

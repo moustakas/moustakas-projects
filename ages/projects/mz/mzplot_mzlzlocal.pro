@@ -33,11 +33,9 @@ pro mzplot_mzlzlocal, ps=ps
     alzbinsize = 0.2
 
 ; ---------------------------------------------------------------------------    
-; QAplot - SDSS and low-redshift AGES LZ relations at z~0.1 for all
-; three calibrations
-    magrange1 = [-16.3,-22.9]
-    ohrange1 = [8.4,9.3]
-;   ohrange1 = [8.25,9.45] ; T04
+; paper plot - SDSS and low-redshift AGES LZ relations at z~0.1 for
+; all three calibrations
+    magrange1 = [-16.5,-22.7]
     verbose = 1
     magaxis = range(-17,-23,300)
     
@@ -51,21 +49,18 @@ pro mzplot_mzlzlocal, ps=ps
        case ii of
           0: begin
              t04 = 1 & m91 = 0 & kk04 = 0
-             ohrange1 = [8.4,9.35]
              calib = 't04'
-             ohrange1 = [8.35,9.35]
+             ohrange1 = [8.3,9.35]
           end
           1: begin
              t04 = 0 & m91 = 1 & kk04 = 0
-             ohrange1 = [8.3,9.15]
              calib = 'm91'
-             ohrange1 = [8.4,9.2]
+             ohrange1 = [8.3,9.2]
           end
           2: begin
              t04 = 0 & m91 = 0 & kk04 = 1
-             ohrange1 = [8.5,9.25]
              calib = 'kk04'
-             ohrange1 = [8.4,9.3]
+             ohrange1 = [8.55,9.35]
           end
        endcase
        ohtitle1 = mzplot_ohtitle(t04=t04,m91=m91,kk04=kk04,/fluxcor)
@@ -73,12 +68,13 @@ pro mzplot_mzlzlocal, ps=ps
 ; best-fitting LZ relations
        sdss_lzfit = mrdfits(mzpath+'lzlocal_sdss_fluxcor_'+calib+'.fits.gz',1)
        ages_lzfit = mrdfits(mzpath+'lzlocal_ages_fluxcor_'+calib+'.fits.gz',1)
+       splog, ages_lzfit.coeff
        
        sinfo = mzlz_grab_info(sdssohnodust,sdssancillary,sdssmass,$
          t04=t04,m91=m91,kk04=kk04,/nolimit,/flux,/errcut)
        ainfo = mzlz_grab_info(agesohnodust,agesancillary,agesmass,$
-         t04=t04,m91=m91,kk04=kk04,zmin=0.05,zmax=0.15,/nolimit,/flux)
-stop       
+         t04=t04,m91=m91,kk04=kk04,zmin=0.05,zmax=0.15,/nolimit,/flux);,/errcut)
+
 ;      abin = im_medxbin(ainfo.mb_ab,ainfo.oh,alzbinsize,$
 ;        weight=ainfo.weight,minpts=15,verbose=verbose,$
 ;        minx=-23.0)
@@ -86,14 +82,14 @@ stop
 ;        weight=sinfo.weight,minpts=500,verbose=verbose,$
 ;        minx=-23.0)
        
-       psfile = qapath+'lzlocal_'+calib+'.ps' 
+       psfile = pspath+'lzlocal_'+calib+suffix
        im_plotconfig, 12, pos, psfile=psfile, charsize=1.9, $
          height=5.0, width=[4.5,4.5]
 ; LZ: SDSS
        mzplot_scatterplot, /sdss, sinfo.mb_ab, sinfo.oh, weight=sinfo.weight, $
          position=pos[*,0], xstyle=1, ystyle=1, xtitle=mzplot_mbtitle(), $
          ytitle=ohtitle1, xrange=magrange1, yrange=ohrange1, $
-         levels=sdsslevels, ccolor=djs_icolor('grey'), /nogrey, $
+         levels=sdsslevels, $;ccolor=djs_icolor('grey'), $ ; /nogrey, $
          outcolor=fsc_color('medium grey',101)
 ;       oploterror, abin.xbin, abin.medy, abin.sigymean, psym=symcat(16,thick=7), $
 ;         symsize=1.1, thick=6, color=fsc_color('blue',101), $
@@ -106,14 +102,17 @@ stop
 
        im_legend, ['SDSS - 0.033<z<0.25'], /left, /top, box=0, thick=8, $
          charsize=1.5, margin=0, line=sline, color=scolor, pspacing=1.9
-;      im_legend, ['SDSS - 0.033<z<0.25'], /left, /top, box=0, $
-;        charsize=1.5, margin=0, psym=symcat(15,thick=7), color='firebrick'
 ; LZ: low-redshift AGES
        mzplot_scatterplot, /ages, ainfo.mb_ab, ainfo.oh, weight=ainfo.weight, $
          /noerase, position=pos[*,1], xstyle=1, ystyle=1, xtitle=mzplot_mbtitle(), $
          ytitle='', xrange=magrange1, yrange=ohrange1, ytickname=replicate(' ',10), $
-         levels=ageslevels, npix=16, ccolor=djs_icolor('grey'), /nogrey
-       
+         levels=ageslevels, npix=14;, ccolor=djs_icolor('grey');, /nogrey
+
+;      sixlin, ainfo.mb_ab-lz_pivotmag(), ainfo.oh, a, $
+;        siga, b, sigb, weight=ainfo.weight
+;      ccoeff = [a[2],b[2]]
+;      djs_oplot, magaxis, poly(magaxis-lz_pivotmag(),ccoeff), color='dark green', thick=4
+
 ;       oploterror, abin.xbin, abin.medy, abin.sigymean, psym=symcat(16,thick=7), $
 ;         symsize=1.1, thick=6, color=fsc_color('blue',101), $
 ;         errcolor=fsc_color('blue',101)
@@ -125,9 +124,7 @@ stop
        
        im_legend, ['AGES - 0.05<z<0.15'], /left, /top, box=0, thick=8, $
          charsize=1.5, margin=0, line=aline, color=acolor, pspacing=1.9
-;      im_legend, ['AGES - 0.05<z<0.15'], /left, /top, box=0, $
-;        charsize=1.5, margin=0, psym=symcat(16,thick=7), color='blue'
-       im_plotconfig, /psclose, psfile=psfile, /gzip; , gzip=keyword_set(ps)
+       im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
     endfor
 
 stop    
@@ -154,7 +151,7 @@ stop
     kk04color = 'blue'  & kk04line = 5
     tremonticolor = 'orange' & tremontiline = 4
 
-    psfile = pspath+'mzlocal_compare.ps'
+    psfile = qapath+'mzlocal_compare.ps'
     im_plotconfig, 0, pos, psfile=psfile, height=5.8
 
     djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $

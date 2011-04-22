@@ -1,31 +1,34 @@
-function get_mzlzfit_info, fluxcor=fluxcor, ncalib=ncalib
-    mzpath = ages_path(/projects)+'mz/'
+function get_mzlzfit_info, fluxcor=fluxcor
+    mzpath = mz_path()
 
-    if keyword_set(fluxcor) then suffix = '_fluxcor' else suffix = ''
-    brokenpl = mrdfits(mzpath+'mzlocal_sdss'+suffix+'_brokenpl.fits.gz',1)
-    lzfit = mrdfits(mzpath+'lzlocal_sdss'+suffix+'.fits.gz',1)
+    if keyword_set(fluxcor) then begin
+       suffix = 'fluxcor' 
+       calib = ['T04','M91','KK04','MPA-JHU']
+    endif else begin
+       suffix = 'ews'
+       calib = ['T04','M91','KK04']
+    endelse
+    ncalib = n_elements(calib)
 
-    ncalib = 3
     info = replicate({calib: '', empty1: ' ', $
-      ohstar: '', mstar: '', gamma1: '', gamma2: '', empty2: ' ', $
+      ohstar: '', mstar: '', gamma: '', empty2: ' ', $
       c0: '', c1: ''},ncalib)
-    info.calib = strupcase(strtrim(lzfit.calib,2))
-; MZ/brokenpl
-;   format_flux_error, brokenpl.coeff_bin[0], brokenpl.coeff_bin_err[0], f1, e1
-;   info.ohstar = '$'+f1+'\pm'+e1+'$'
-    info.ohstar = '$'+im_sigfigs(brokenpl.coeff_bin[0],4)+'$'
-    info.mstar  = '$'+im_sigfigs(brokenpl.coeff_bin[1],4)+'$'
-    info.gamma1 = '$'+im_sigfigs(brokenpl.coeff_bin[2],3)+'$'
-    info.gamma2 = '$'+im_sigfigs(brokenpl.coeff_bin[3],3)+'$'
-; LZ
-;   format_flux_error, lzfit.coeff[0], lzfit.coeff_err[0], f1, e1
-;   info.c0 = '$'+f1+'\pm'+e1+'$'
-;   format_flux_error, lzfit.coeff[1], lzfit.coeff_err[1], f1, e1
-;   info.c1 = '$'+f1+'\pm'+e1+'$'
+    info.calib = calib
 
-    info.c0 = '$'+im_sigfigs(lzfit.coeff[0],4)+'$'
-    info.c1 = '$'+im_sigfigs(lzfit.coeff[1],3)+'$'
-    
+    for ii = 0, ncalib-1 do begin
+       calib1 = repstr(strlowcase(calib[ii]),'-','')
+
+; MZ/closed box
+       mzfit = mrdfits(mzpath+'mzlocal_sdss_'+suffix+'_'+calib1+'.fits.gz',1)
+       info[ii].ohstar = '$'+im_sigfigs(mzfit.coeff[0],4)+'$'
+       info[ii].mstar  = '$'+im_sigfigs(mzfit.coeff[1],4)+'$'
+       info[ii].gamma = '$'+im_sigfigs(mzfit.coeff[2],3)+'$'
+
+; LZ
+       lzfit = mrdfits(mzpath+'lzlocal_sdss_'+suffix+'_'+calib1+'.fits.gz',1)
+       info[ii].c0 = '$'+im_sigfigs(lzfit.coeff[0],4)+'$'
+       info[ii].c1 = '$'+im_sigfigs(lzfit.coeff[1],3)+'$'
+    endfor
     struct_print, info
 
 return, info
@@ -51,6 +54,84 @@ pro mztables, preprint=preprint
     mzpath = ages_path(/projects)+'mz/'
     paperpath = ages_path(/papers)+'mz/'
 
+; ---------------------------------------------------------------------------    
+; SDSS MZ/LZ relations
+    texfile = paperpath+'mztable_mzlzlocal'+filesuffix+'.tex'
+    splog, 'Writing '+texfile
+    
+; read the fitting results and gather the information we need based on
+; both the reddening-corrected fluxes and the EWs
+    fluxinfo = get_mzlzfit_info(/flux)
+    ewinfo = get_mzlzfit_info()
+
+    ncalib = n_elements(fluxinfo)
+    ntags = n_tags(ewinfo)
+
+    colhead1 = mzget_colhead(['','',$
+      '\multicolumn{3}{c}{\mz\tablenotemark{b}}','',$
+      '\multicolumn{2}{c}{\lz\tablenotemark{c}}'])
+    colhead2 = '\cline{3-5}\cline{7-8}'
+    colhead3 = mzget_colhead(['Calibration\tablenotemark{a}','',$
+      'log\,\ohstar','log\,(\mstar/\msun)','$\gamma$','',$
+      '$c_{0}$','$c_{1}$'],/nobreak)
+    texcenter = ['l','c',$
+      replicate('c',3),'c',$
+      replicate('c',2)]
+
+    tablenotetext = [$
+      '{a}{Results derived using three different strong-line calibrations of the '+$
+      'reddening-corrected \pagel{} parameter: '+$
+      '\citet[T04]{tremonti04a}, \citet[M91]{mcgaugh91a}, and \citet[KK04]{kobulnicky04a}.  For '+$
+      'comparison, we also derive the \mz{} and \lz{} relations using the oxygen abundances '+$
+      'published by the MPA-JHU team (see \S\ref{sec:oh}).  '+$
+      'Note that the formal, statistical uncertainties on the derived coefficients are negligible.}',$  
+      '{b}{\mz{} relation given by '+$
+      '$\log\,(\textrm{O}/\textrm{H}) = \log\,(\textrm{O}/\textrm{H})^{\ast} -'+$
+      '\log\, [1+(\mstar/\mass)^{\gamma}]$.}',$
+      '{c}{$B$-band \lz{} relation given by $\logoh=c_{0}+c_{1}(\mb+20.5)$.}']
+;     '{d}{\mz{} and \lz{} relations have been constructed using both reddening-corrected '+$
+;     'fluxes and equivalent widths (see \S\ref{sec:oh} for details).}']
+    
+    openw, lun, texfile, /get_lun
+    printf, lun, '\begin{deluxetable*}{'+strjoin(texcenter)+'}'
+    printf, lun, '\tablecaption{SDSS \mz{} and \lz{} Relations\label{table:mzlzlocal}}'   
+    printf, lun, '\tablewidth{0pt}'
+    printf, lun, '\tablehead{'
+    niceprintf, lun, colhead1
+    niceprintf, lun, colhead2
+    niceprintf, lun, colhead3
+    printf, lun, '}'
+    printf, lun, '\startdata'
+
+;   printf, lun, '\multicolumn{2}{c}{} & \multicolumn{6}{c}{Reddening-Corrected Fluxes\tablenotemark{d}} \\'
+;   printf, lun, '\cline{1-8}'
+    for ii = 0, ncalib-1 do begin
+       for jj = 0, ntags-1 do begin
+          if (jj eq ntags-1) then if (ii eq ncalib-1) then suffix = '' else $
+            suffix = ' \\' else suffix = ' & '
+          printf, lun, fluxinfo[ii].(jj)+suffix
+       endfor
+    endfor
+;   printf, lun, '\\'
+;
+;   printf, lun, '\multicolumn{2}{c}{} & \multicolumn{6}{c}{Equivalent Widths\tablenotemark{d}} \\'
+;   printf, lun, '\cline{1-8}'
+;   for ii = 0, ncalib-1 do begin
+;      for jj = 0, ntags-1 do begin
+;         if (jj eq ntags-1) then if (ii eq ncalib-1) then suffix = '' else $
+;           suffix = ' \\' else suffix = ' & '
+;         printf, lun, ewinfo[ii].(jj)+suffix
+;      endfor
+;   endfor
+    
+    printf, lun, '\enddata'
+;   printf, lun, '\tablecomments{'+tablecomments+'}'
+    niceprintf, lun, '\tablenotetext'+tablenotetext
+    printf, lun, '\end{deluxetable*}'
+    free_lun, lun
+
+stop    
+    
 ; ---------------------------------------------------------------------------    
 ; Table: samples and numbers of galaxies
     agesparent = read_mz_sample(/parent)
@@ -198,85 +279,6 @@ pro mztables, preprint=preprint
     free_lun, lun
 
 stop
-
-; ---------------------------------------------------------------------------    
-; SDSS MZ/LZ relations
-    texfile = paperpath+'mztable_mzlzlocal'+filesuffix+'.tex'
-    splog, 'Writing '+texfile
-    
-; read the fitting results and gather the information we need based on
-; both the reddening-corrected fluxes and the EWs
-    fluxinfo = get_mzlzfit_info(ncalib=ncalib,/flux)
-    ewinfo = get_mzlzfit_info()
-    ntags = n_tags(ewinfo)
-
-    colhead1 = mzget_colhead(['','',$
-      '\multicolumn{4}{c}{\mz{} Relation\tablenotemark{b}}','',$
-      '\multicolumn{2}{c}{\lz{} Relation\tablenotemark{c}}'])
-    colhead2 = '\cline{3-6}\cline{8-9}'
-    colhead3 = mzget_colhead(['Calibration\tablenotemark{a}','',$
-      '\ohstar','\mstar','$\gamma_{1}$','$\gamma_{2}$','',$
-      '$c_{0}$','$c_{1}$'],/nobreak)
-    texcenter = ['l','c',$
-      replicate('c',4),'c',$
-      replicate('c',2)]
-
-    tablenotetext = [$
-      '{a}{Results based on three different strong-line calibrations of \pagel: '+$
-      '\citet[T04]{tremonti04a}; \citet[KK04]{kobulnicky04a}; and \citet[M91]{mcgaugh91a}.}',$ 
-      '{b}{Broken power-law fit to the SDSS \mz{} relation given by '+$
-      '$\oh = \ohstar\,(\mass/\mstar)^{\gamma_{1}}$ for $\mass<\mstar$ and '+$ 
-      '$\oh = \ohstar\,(\mass/\mstar)^{\gamma_{2}}$ for $\mass>\mstar$ with '+$
-      'all stellar masses in units of \msun.}',$
-      '{c}{Linear $B$-band \lz{} relation given by $\logoh=c_{0}+c_{1}(\mb+20.5)$, '+$
-      'with \mb{} in AB magnitudes.}',$
-      '{d}{\mz{} and \lz{} relations have been constructed using both reddening-corrected '+$
-      'fluxes and equivalent widths (see \S\ref{sec:oh} for details).}']
-    
-    openw, lun, texfile, /get_lun
-    printf, lun, '\begin{deluxetable}{'+strjoin(texcenter)+'}'
-    printf, lun, '\tablecaption{SDSS \mz{} and \lz{} Relations\label{table:mzlzlocal}}'   
-    printf, lun, '\tablewidth{0pt}'
-    printf, lun, '\tablehead{'
-    niceprintf, lun, colhead1
-    niceprintf, lun, colhead2
-    niceprintf, lun, colhead3
-    printf, lun, '}'
-    printf, lun, '\startdata'
-
-;   printf, lun, '\multicolumn{9}{l}{Reddening-Corrected Fluxes} \\'
-;   printf, lun, '\multicolumn{9}{c}{Reddening-Corrected Fluxes\tablenotemark{d}} \\'
-    printf, lun, '\multicolumn{2}{c}{} & \multicolumn{7}{c}{Reddening-Corrected Fluxes} \\'
-    printf, lun, '\cline{1-9}'
-;   printf, lun, '\multicolumn{2}{c}{} & \multicolumn{7}{c}{Reddening-Corrected Fluxes} \\'
-;   printf, lun, '\cline{3-9}'
-    for ii = 0, ncalib-1 do begin
-       for jj = 0, ntags-1 do begin
-          if (jj eq ntags-1) then if (ii eq ncalib-1) then suffix = '' else $
-            suffix = ' \\' else suffix = ' & '
-          printf, lun, fluxinfo[ii].(jj)+suffix
-       endfor
-    endfor
-    printf, lun, '\\'
-
-;   printf, lun, '\multicolumn{9}{c}{Equivalent Widths\tablenotemark{d}} \\'
-    printf, lun, '\multicolumn{2}{c}{} & \multicolumn{7}{c}{Equivalent Widths} \\'
-    printf, lun, '\cline{1-9}'
-;   printf, lun, '\multicolumn{2}{c}{} & \multicolumn{7}{c}{Equivalent Widths} \\'
-;   printf, lun, '\cline{3-9}'
-    for ii = 0, ncalib-1 do begin
-       for jj = 0, ntags-1 do begin
-          if (jj eq ntags-1) then if (ii eq ncalib-1) then suffix = '' else $
-            suffix = ' \\' else suffix = ' & '
-          printf, lun, ewinfo[ii].(jj)+suffix
-       endfor
-    endfor
-    
-    printf, lun, '\enddata'
-;   printf, lun, '\tablecomments{'+tablecomments+'}'
-    niceprintf, lun, '\tablenotetext'+tablenotetext
-    printf, lun, '\end{deluxetable}'
-    free_lun, lun
 
 stop
 stop    
@@ -711,120 +713,6 @@ stop
 stop    
     
 ; ---------------------------------------------------------------------------    
-; Table: samples and numbers of galaxies
-
-    table = {sample: '', ngal: '', remark: ''}
-    nages = 8 & nsdss = 7
-    table = replicate(table,nages+nsdss)
-    ntable = n_elements(table)
-    ntags = n_tags(table)
-
-    table.sample = [$
-      'AGES',$
-      '\hspace{0.2cm}Parent',$
-      '\hspace{0.2cm}Emission-Line',$
-      '\hspace{0.5cm}SF\tablenotemark{b}',$
-      '\hspace{0.5cm}AGN\tablenotemark{d}',$
-      '\hspace{0.5cm}Unclassified\tablenotemark{e}',$
-      '\hspace{0.5cm}SF+Unclassified',$
-      '\hspace{0.2cm}Abundance\tablenotemark{g}',$
-      'SDSS',$
-      '\hspace{0.2cm}Parent',$
-      '\hspace{0.2cm}Emission-Line',$
-      '\hspace{0.5cm}SF\tablenotemark{b}',$
-      '\hspace{0.5cm}AGN',$
-      '\hspace{0.5cm}Unclassified\tablenotemark{f}',$
-      '\hspace{0.2cm}Abundance\tablenotemark{g}']
-
-    table.ngal = [$
-      '',$
-      '$11121$',$
-      '$4151$',$
-      '$2347$',$
-      '$884$',$
-      '$920$',$
-      '$3267$',$
-      '$3047$',$
-      '',$
-      '$489337$',$
-      '$119834$',$
-      '$94619$',$
-      '$25215$',$
-      '$848$',$
-      '$93516$']
-
-    table.remark = [$
-      '',$
-      '$0.05<z<0.75$; $14<I_{\rm Vega}<19.95$',$
-      '$\snr(\oii,\hb,\oiii)>4$; $\ewhb>2$~\AA',$
-      'BPT diagram\tablenotemark{c}',$
-      'Optical, X-ray, radio, mid-IR',$
-      'Assumed to be SF; $\lesssim20\%$ may be AGN',$
-      'Union of SF and Unclassified subsamples',$
-      'Unambiguous; upper \pagel{} branch',$
-      '',$
-      '$0.033<z<0.25$; $14.5<r_{\rm AB}<17.6$',$
-      '$\snr(\oii,\hb,\oiii)>4$; $\ewhb>2$~\AA',$
-      'BPT diagram\tablenotemark{c}',$
-      'BPT diagram\tablenotemark{c}',$
-      '$\snr(\nii)<4$',$
-      'Unambiguous; upper \pagel{} branch']
-    
-    colhead1 = $
-      '\colhead{Sample} & '+$
-      '\colhead{$N_{\rm gal}$\tablenotemark{a}} & '+$
-      '\colhead{Remarks}'
-    colhead2 = '\cline{1-3}'
-    texcenter = ['l','c','c']
- 
-;   tablecomments = ['AGES and SDSS sample definitions and sizes.']
-    caption = 'AGES and SDSS Sample Definitions and Sizes\label{table:samples}'
-
-    tablenotetext = [$
-      '{a}{Number of galaxies in each sample.}',$
-      '{b}{Star-forming galaxies.}',$
-      '{c}{The BPT diagram \citep{baldwin81a} refers to the '+$
-      '\oiii/\hb{} vs.~\nii/\ha{} emission-line diagnostic diagram (see Fig.~\ref{fig:bpt}).}',$
-      '{d}{AGN in AGES were identified using various multiwavelength '+$
-      'criteria (see \S\ref{sec:agn}).}',$
-      '{e}{No classification possible.}',$
-      '{f}{Unclassifed SDSS galaxies are removed from subsequent analysis.}',$
-      '{g}{Number of galaxies with well-defined oxygen abundances (see \S\ref{sec:oh}).}']
-      
-; write out
-    texfile = paperpath+'mztable_samples_'+filesuffix+'.tex'
-    splog, 'Writing '+texfile
-    openw, lun, texfile, /get_lun
-    if keyword_set(emulateapj) then begin
-;      printf, lun, '\LongTables'
-    endif
-    printf, lun, '\begin{deluxetable}{'+strjoin(texcenter)+'}'
-;   printf, lun, '\tabletypesize{\small}'
-    printf, lun, '\tablecaption{'+caption+'}'
-    printf, lun, '\tablewidth{0pt}'
-    printf, lun, '\tablehead{'
-    niceprintf, lun, colhead1
-    printf, lun, '}'
-    printf, lun, '\startdata'
-    for ii = 0, ntable-1 do begin
-       line = strarr(ntags)
-       for jj = 0L, ntags-1 do begin
-          if (jj lt ntags-1) then suffix = ' & ' else if (ii lt ntable-1) then $
-            suffix = ' \\ ' else suffix = ''
-          line[jj] = table[ii].(jj)+suffix
-       endfor
-       printf, lun, line
-       if (ii eq nages-1) then printf, lun, colhead2
-    endfor
-    printf, lun, '\enddata'
-;   printf, lun, '\tablecomments{'+tablecomments+'}'
-    niceprintf, lun, '\tablenotetext'+tablenotetext
-    printf, lun, '\end{deluxetable}'
-    free_lun, lun
-
-stop
-
-; ---------------------------------------------------------------------------    
 ; Table: delta-log(O/H) with redshift
 
 ; read the output from FIT_MZLZEVOL
@@ -1140,7 +1028,6 @@ stop
     
 ; ---------------------------------------------------------------------------    
 ; Table: measured properties
-; ---------------------------------------------------------------------------    
 
     ngalaxy = n_elements(agesdust)
     srt = sort(agesancillary.ages_id)
@@ -1414,3 +1301,120 @@ end
 ;;
 
 
+
+
+;;
+;;; ---------------------------------------------------------------------------    
+;;; Table: samples and numbers of galaxies
+;;
+;;    table = {sample: '', ngal: '', remark: ''}
+;;    nages = 8 & nsdss = 7
+;;    table = replicate(table,nages+nsdss)
+;;    ntable = n_elements(table)
+;;    ntags = n_tags(table)
+;;
+;;    table.sample = [$
+;;      'AGES',$
+;;      '\hspace{0.2cm}Parent',$
+;;      '\hspace{0.2cm}Emission-Line',$
+;;      '\hspace{0.5cm}SF\tablenotemark{b}',$
+;;      '\hspace{0.5cm}AGN\tablenotemark{d}',$
+;;      '\hspace{0.5cm}Unclassified\tablenotemark{e}',$
+;;      '\hspace{0.5cm}SF+Unclassified',$
+;;      '\hspace{0.2cm}Abundance\tablenotemark{g}',$
+;;      'SDSS',$
+;;      '\hspace{0.2cm}Parent',$
+;;      '\hspace{0.2cm}Emission-Line',$
+;;      '\hspace{0.5cm}SF\tablenotemark{b}',$
+;;      '\hspace{0.5cm}AGN',$
+;;      '\hspace{0.5cm}Unclassified\tablenotemark{f}',$
+;;      '\hspace{0.2cm}Abundance\tablenotemark{g}']
+;;
+;;    table.ngal = [$
+;;      '',$
+;;      '$11121$',$
+;;      '$4151$',$
+;;      '$2347$',$
+;;      '$884$',$
+;;      '$920$',$
+;;      '$3267$',$
+;;      '$3047$',$
+;;      '',$
+;;      '$489337$',$
+;;      '$119834$',$
+;;      '$94619$',$
+;;      '$25215$',$
+;;      '$848$',$
+;;      '$93516$']
+;;
+;;    table.remark = [$
+;;      '',$
+;;      '$0.05<z<0.75$; $14<I_{\rm Vega}<19.95$',$
+;;      '$\snr(\oii,\hb,\oiii)>4$; $\ewhb>2$~\AA',$
+;;      'BPT diagram\tablenotemark{c}',$
+;;      'Optical, X-ray, radio, mid-IR',$
+;;      'Assumed to be SF; $\lesssim20\%$ may be AGN',$
+;;      'Union of SF and Unclassified subsamples',$
+;;      'Unambiguous; upper \pagel{} branch',$
+;;      '',$
+;;      '$0.033<z<0.25$; $14.5<r_{\rm AB}<17.6$',$
+;;      '$\snr(\oii,\hb,\oiii)>4$; $\ewhb>2$~\AA',$
+;;      'BPT diagram\tablenotemark{c}',$
+;;      'BPT diagram\tablenotemark{c}',$
+;;      '$\snr(\nii)<4$',$
+;;      'Unambiguous; upper \pagel{} branch']
+;;    
+;;    colhead1 = $
+;;      '\colhead{Sample} & '+$
+;;      '\colhead{$N_{\rm gal}$\tablenotemark{a}} & '+$
+;;      '\colhead{Remarks}'
+;;    colhead2 = '\cline{1-3}'
+;;    texcenter = ['l','c','c']
+;; 
+;;;   tablecomments = ['AGES and SDSS sample definitions and sizes.']
+;;    caption = 'AGES and SDSS Sample Definitions and Sizes\label{table:samples}'
+;;
+;;    tablenotetext = [$
+;;      '{a}{Number of galaxies in each sample.}',$
+;;      '{b}{Star-forming galaxies.}',$
+;;      '{c}{The BPT diagram \citep{baldwin81a} refers to the '+$
+;;      '\oiii/\hb{} vs.~\nii/\ha{} emission-line diagnostic diagram (see Fig.~\ref{fig:bpt}).}',$
+;;      '{d}{AGN in AGES were identified using various multiwavelength '+$
+;;      'criteria (see \S\ref{sec:agn}).}',$
+;;      '{e}{No classification possible.}',$
+;;      '{f}{Unclassifed SDSS galaxies are removed from subsequent analysis.}',$
+;;      '{g}{Number of galaxies with well-defined oxygen abundances (see \S\ref{sec:oh}).}']
+;;      
+;;; write out
+;;    texfile = paperpath+'mztable_samples_'+filesuffix+'.tex'
+;;    splog, 'Writing '+texfile
+;;    openw, lun, texfile, /get_lun
+;;    if keyword_set(emulateapj) then begin
+;;;      printf, lun, '\LongTables'
+;;    endif
+;;    printf, lun, '\begin{deluxetable}{'+strjoin(texcenter)+'}'
+;;;   printf, lun, '\tabletypesize{\small}'
+;;    printf, lun, '\tablecaption{'+caption+'}'
+;;    printf, lun, '\tablewidth{0pt}'
+;;    printf, lun, '\tablehead{'
+;;    niceprintf, lun, colhead1
+;;    printf, lun, '}'
+;;    printf, lun, '\startdata'
+;;    for ii = 0, ntable-1 do begin
+;;       line = strarr(ntags)
+;;       for jj = 0L, ntags-1 do begin
+;;          if (jj lt ntags-1) then suffix = ' & ' else if (ii lt ntable-1) then $
+;;            suffix = ' \\ ' else suffix = ''
+;;          line[jj] = table[ii].(jj)+suffix
+;;       endfor
+;;       printf, lun, line
+;;       if (ii eq nages-1) then printf, lun, colhead2
+;;    endfor
+;;    printf, lun, '\enddata'
+;;;   printf, lun, '\tablecomments{'+tablecomments+'}'
+;;    niceprintf, lun, '\tablenotetext'+tablenotetext
+;;    printf, lun, '\end{deluxetable}'
+;;    free_lun, lun
+;;
+;;stop
+;;

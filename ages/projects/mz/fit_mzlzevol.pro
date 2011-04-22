@@ -84,7 +84,7 @@ function mlfit_mzevol, mass, oh, oh_err, weight, z, $
 return, fit
 end
 
-pro mlfit_mzlzevol, clobber=clobber
+pro fit_mzlzevol, clobber=clobber
 ; jm10may14ucsd - maximum likelihood fit of the metallicity evolution
 
     qz0 = 0.1 ; reference redshift

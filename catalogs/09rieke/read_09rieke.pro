@@ -57,13 +57,15 @@ function read_09rieke, local=local
 ; optionally return the local SEDs and return    
     if keyword_set(local) then begin
        file = 'table3_localseds.txt' 
-       data = im_read_fmr(path+file)
+       data = read_fmr(path+file)
+       data = data.data
        return, data
     endif
 
 ; read the models and pack them into a more convenient format; store
 ; the nominal L(IR) and invert eq. (A6) to get L(24)
-    temp1 = im_read_fmr(path+'table4_avgtemplates.txt')
+    temp1 = read_fmr(path+'table4_avgtemplates.txt')
+    temp1 = temp1.data
     npix = n_elements(temp1.wavelength)
     nmodel = n_tags(temp1)-1
     temp = {lir: fltarr(nmodel), l24: fltarr(nmodel), $

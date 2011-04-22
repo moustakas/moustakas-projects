@@ -1,4 +1,4 @@
-pro wise_sdss_readspec, getinfo=getinfo, getspec=getspec
+pro wise_sdss_getspec, getinfo=getinfo, getspec=getspec
 ; jm11apr13ucsd - get the SDSS spectra of WISE galaxies
 
     path = wise_path()

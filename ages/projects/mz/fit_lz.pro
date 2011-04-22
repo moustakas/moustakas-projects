@@ -18,9 +18,10 @@ function fit_lz, mag, oh, weight, oh_err=oh_err, binsize=binsize, $
     if (n_elements(faintmag) eq 0L) then faintmag = max(mag)
     if (n_elements(weight) eq 0L) then weight = mag*0.0+1.0
 
-    these = where((mag lt faintmag) and (mag gt brightmag),number)
-    sixlin, mag[these]-pivotmag, oh[these], a, $
-      siga, b, sigb, weight=weight[these]/oh_err[these]^2
+    sixlin, mag-pivotmag, oh, a, siga, b, sigb, weight=weight;/oh_err[these]^2
+;   these = where((mag lt faintmag) and (mag gt brightmag),number)
+;   sixlin, mag[these]-pivotmag, oh[these], a, $
+;     siga, b, sigb, weight=weight[these];/oh_err[these]^2
 
     lindx = 2L ; ordinary least-squares bisector
     coeff = [a[lindx],b[lindx]]

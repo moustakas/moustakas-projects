@@ -5,7 +5,7 @@ pro oplot_lzfit, coeff, band=band, linestyle=linestyle, linecolor=linecolor, $
     pivotmag = lz_pivotmag()
     
     ohrange = !y.crange
-    ohoffset = 0.1
+    ohoffset = 0.07 ; 1
 
     case band of
        'B': magaxis = im_array(-24.0,-15.0,0.05)

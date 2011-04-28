@@ -51,7 +51,7 @@ function read_vagc_garching, sample=sample, letter=letter, $
     vagcpath = getenv('LSS_REDUX')+'/'+sample+'/'+letter+'/'+poststr+'/'
 
     if keyword_set(postlss) then begin
-       thisfile = vagcpath+'post_catalog.'+suffix+'.fits'
+       thisfile = vagcpath+'post_catalog.'+suffix+'.fits.gz'
        if (size(sdss_postlss,/type) ne 8) or (sample ne sdss_sample) or $
          (letter ne sdss_letter) or (poststr ne sdss_poststr) then begin
           if (keyword_set(silent) eq 0) then splog, 'Reading '+thisfile
@@ -103,7 +103,7 @@ function read_vagc_garching, sample=sample, letter=letter, $
     endif
     
     if keyword_set(vmax_noevol) then begin
-       thisfile = vagcpath+'vmax/vmax-noevol.'+suffix+'.fits'
+       thisfile = vagcpath+'vmax/vmax-noevol.'+suffix+'.fits.gz'
        if (size(sdss_vmax_noevol,/type) ne 8) or (sample ne sdss_sample) or $
          (letter ne sdss_letter) or (poststr ne sdss_poststr) then begin
           if (keyword_set(silent) eq 0) then splog, 'Reading '+thisfile
@@ -117,7 +117,7 @@ function read_vagc_garching, sample=sample, letter=letter, $
 
     if keyword_set(vmax_evol) then begin
        if (sample eq 'dr72') then evol_params = 'q2.00a-1.00' else message, 'Update me!'
-       thisfile = vagcpath+'vmax/vmax-'+evol_params+'.'+suffix+'.fits'
+       thisfile = vagcpath+'vmax/vmax-'+evol_params+'.'+suffix+'.fits.gz'
        if (size(sdss_vmax_evol,/type) ne 8) or (sample ne sdss_sample) or $
          (letter ne sdss_letter) or (poststr ne sdss_poststr) then begin
           if (keyword_set(silent) eq 0) then splog, 'Reading '+thisfile

@@ -1,8 +1,38 @@
-function hizea_filterlist
-; jm10dec20ucsd
-    filterlist = [galex_filterlist(),sdss_filterlist(),(irac_filterlist())[0:1]]
+function clash_filterlist, short_filter=short_filter
+; jm11apr24ucsd 
+    filterlist = [$
+      'clash_wfc3_f225w.par',$
+      'clash_wfc3_f275w.par',$
+      'clash_wfc3_f336w.par',$
+      'clash_wfc3_f390w.par',$
+      'clash_acs_f435w.par',$
+      'clash_acs_f475w.par',$
+      'clash_acs_f606w.par',$
+      'clash_acs_f625w.par',$
+      'clash_acs_f775w.par',$
+      'clash_acs_f814w.par',$
+      'clash_acs_f850lp.par',$
+      'clash_wfc3_f105w.par',$
+      'clash_wfc3_f110w.par',$
+      'clash_wfc3_f125w.par',$
+      'clash_wfc3_f140w.par',$
+      'clash_wfc3_f160w.par']
+    short_filter = [$
+      'f225w',$ 
+      'f275w',$
+      'f336w',$
+      'f390w',$
+      'f435w',$
+      'f475w',$
+      'f606w',$
+      'f625w',$
+      'f775w',$
+      'f814w',$
+      'f850lp',$
+      'f105w',$
+      'f110w',$
+      'f125w',$
+      'f140w',$
+      'f160w']
 return, filterlist
 end
-a383_f105w_bcg.cat      a383_f140w_bcg.cat      a383_f390w_bcg.cat      a383_f606w_bcg.cat      a383_f814w_bcg.cat
-a383_f110w_bcg.cat      a383_f160w_bcg.cat      a383_f435w_bcg.cat      a383_f625w_bcg.cat      a383_f850lp_bcg.cat
-a383_f125w_bcg.cat      a383_f336w_bcg.cat      a383_f475w_bcg.cat      a383_f775w_bcg.cat      a383bcg.tar.gz

@@ -29,6 +29,7 @@ pro parse_mpa
 ;   indxfile = datapath+'gal_idxfix_'+suffix+'.fit.gz'
     ohfile = datapath+'gal_fiboh_'+suffix+'.fits.gz'
     massfile = datapath+'totlgm_'+suffix+'.fit.gz'
+    sfrfile = datapath+'gal_totsfr_'+suffix+'.fits.gz'
 
 ; output file names    
     ispeclinefile = datapath+'ispecline_'+suffix+'.fits'
@@ -39,6 +40,28 @@ pro parse_mpa
     mpainfo = mrdfits(infofile,1)
     moretags = struct_trimtags(temporary(mpainfo),$
       select=['plateid','mjd','fiberid','ra','dec','z'])
+
+; parse the stellar mass, metallicity, and SFR files
+    splog, 'Reading '+massfile
+    mpamass = mrdfits(massfile,1)
+    splog, 'Reading '+ohfile
+    mpaoh = mrdfits(ohfile,1)
+    splog, 'Reading '+sfrfile
+    mpasfr = mrdfits(sfrfile,1)
+
+    ohtags = tag_names(mpaoh)
+    sfrtags = tag_names(mpasfr)
+    masstags = tag_names(mpamass)
+    massoh = struct_addtags(im_struct_trimtags(mpamass,select=masstags,$
+      newtags='mass_'+masstags),im_struct_trimtags(mpaoh,select=ohtags,$
+      newtags='oh_'+ohtags))
+    massoh = struct_addtags(temporary(massoh),im_struct_trimtags(mpasfr,$
+      select=sfrtags,newtags='sfr_'+sfrtags))
+    
+    massoh = struct_addtags(moretags,temporary(massoh))
+    im_mwrfits, temporary(massoh), massohfile, /clobber
+    
+stop    
     
 ; parse the emission- and absorption-line files into ispec format 
     splog, 'Reading '+linefile ; this file is big!
@@ -50,19 +73,5 @@ pro parse_mpa
 
     im_mwrfits, temporary(ispecline), ispeclinefile, /clobber
 
-; parse the stellar mass and metallicity files
-    splog, 'Reading '+massfile
-    mpamass = mrdfits(massfile,1)
-    splog, 'Reading '+ohfile
-    mpaoh = mrdfits(ohfile,1)
-
-    ohtags = tag_names(mpaoh)
-    masstags = tag_names(mpamass)
-    massoh = struct_addtags(im_struct_trimtags(mpamass,select=masstags,$
-      newtags='mass_'+masstags),im_struct_trimtags(mpaoh,select=ohtags,$
-      newtags='oh_'+ohtags))
-    massoh = struct_addtags(moretags,temporary(massoh))
-    im_mwrfits, temporary(massoh), massohfile, /clobber
-    
 return
 end

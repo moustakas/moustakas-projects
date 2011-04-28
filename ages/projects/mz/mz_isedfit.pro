@@ -35,11 +35,12 @@ pro mz_isedfit, sdss=sdss, sfhgrid=sfhgrid, imf=imf, synthmodels=synthmodels, $
 ; loop on each grid
     for gg = 0, ngrid-1 do begin
        redcurvestring = redcurve2string(redcurve)
-       sfhgridstring = strtrim(mzgrid[gg].sfhgrid,2)
+       sfhgridstring = string(mzgrid[gg].sfhgrid,format='(I2.2)')
+;      sfhgridstring = strtrim(mzgrid[gg].sfhgrid,2)
 
 ; --------------------------------------------------
 ; always make the parameter file 
-       paramfile = isedpath+'mz_'+field+'_isedfit.par'
+       paramfile = isedpath+'mz_'+field+'_sfhgrid'+sfhgridstring+'_isedfit.par'
        if im_file_test(paramfile,clobber=clobber) then return
        splog, 'Writing '+paramfile
        zrange = string(zminmax[0],format='(F4.2)')+','+string(zminmax[1],$

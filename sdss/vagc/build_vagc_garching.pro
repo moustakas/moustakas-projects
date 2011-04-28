@@ -48,7 +48,7 @@ pro build_vagc_garching, sample=sample, letter=letter, poststr=poststr
     massoh_outfile = vagcpath+'mpamassoh.'+suffix+'.fits'
 
 ; read the VAGC/postlss catalog
-    post = mrdfits(vagcpath+'post_catalog.'+suffix+'.fits',1)
+    post = mrdfits(vagcpath+'post_catalog.'+suffix+'.fits.gz',1)
     ngal = n_elements(post)
 
 ; parse the info structure; matching to POST effectively removes

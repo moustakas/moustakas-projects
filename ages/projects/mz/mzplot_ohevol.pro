@@ -45,92 +45,259 @@ pro mzplot_ohevol, ps=ps
 ; jm09mar27nyu - plots of the evolution of (O/H)
 ; jm10nov02ucsd - major update
 
-    mzpath = ages_path(/projects)+'mz/'
-    pspath = ages_path(/papers)+'mz/FIG_MZ/'
-    litpath = getenv('PAPERSPATH')+'/literature/data/'
-    if keyword_set(ps) then suffix = '.ps' else suffix = '.eps'
+    litpath = getenv('IM_PAPERS_DIR')+'/literature/data/'
 
-    timelabel1 = [1.0,3.0,5.0] ; [Gyr]
-    timelabel2 = [1.0,3.0,5.0,7.0,10.0,12.0] ; [Gyr]
-    nzaxis1 = 100
-    zaxis1 = range(-0.05,0.8,nzaxis1)
-    zz = im_array(0.0,1.0,0.02)
+    mzpath = mz_path()
+    qapath = mzpath+'qaplots/'
+    if keyword_set(ps) then begin
+       pspath = qapath
+       suffix = '.ps'
+    endif else begin
+       pspath = mz_path(/paper)
+       suffix = '.eps'
+    endelse
 
     zbins = mz_zbins(nz)
-    qz0 = 0.1
-    
-; some constants
-    h100 = mz_h100()
-    Bvega2ab = (k_vega2ab(filterlist='bessell_B.par',/kurucz,/silent))[0]
-    B2r01 = -0.6429 ; ^{0.1}r = B-0.6429-1.0845*[(B-V)-0.5870] [AB, Blanton & Roweis]
-    B2g01 = +0.0759 ; ^{0.1}g = B+0.0759+0.0620*[(B-V)-0.5870] [AB, Blanton & Roweis]
+    massbins = mz_massbins(nmassbins)
 
-    mzlocal = mrdfits(mzpath+'mzlocal_sdss_brokenpl.fits.gz',1)
-    lzlocal = mrdfits(mzpath+'lzlocal_sdss.fits.gz',1)
-    mzevol = mrdfits(mzpath+'mzevol.fits.gz',1)
-    lzevol = mrdfits(mzpath+'lzevol_B.fits.gz',1)
-    ncalib = n_elements(mzevol)
-    
 ; --------------------------------------------------
-; evolution of Delta-log (O/H)* with redshift
-    ztitle1 = 'Redshift'
-    dohtitle1 = textoidl('<\Delta'+'log(O/H)> from !8M-Z!6')
-    dohtitle2 = textoidl('<\Delta'+'log(O/H)> from !8L-Z!6')
-
-    zrange = [-0.02,0.8]
-    dohrange = [-0.49,0.09]
-
-    r0 = [0.0,0.5]
-    q0 = [0.0,2.0]
-;   r0 = [0.0,0.25,0.5]
-;   q0 = [0.0,1.2,1.6,2.0]
+; plot the evolution of the MZ relation on a single panel
+    mzavg = mrdfits(mzpath+'mzevol_avg.fits.gz',1,/silent)
+    mzlocal = mrdfits(mzpath+'mzlocal_sdss_ews_t04.fits.gz',1)
     
-    r0color = ['orange','firebrick','tan']
-    r0line = [0,5] & r0psym = [15,17] & r0symsize = [2.5,2.8]
-    q0color = ['forest green','dodger blue']
-    q0line = [0,5] & q0psym = [15,17] & q0symsize = [2.5,2.8]
-    
-    psfile = pspath+'z_vs_dlogoh'+suffix
-    im_plotconfig, 6, pos, psfile=psfile, charsize=1.8, yspace=0.9, $
-      height=4.0*[1,1], xmargin=[1.4,0.4], width=6.7
+    psfile = pspath+'mzevol_model'+suffix
+    im_plotconfig, 0, pos, psfile=psfile, height=4.7, width=6.5, $
+      xmargin=[1.6,0.4]
 
-; dlogoh from MZ relation for various values of r0
-    djs_plot, [0], [0], /nodata, ysty=1, xsty=1, xrange=zrange, $
-      yrange=dohrange, xtitle=ztitle1, ytitle=dohtitle1, position=pos[*,0]
-;   im_legend, ['R='+string(r0,format='(F4.1)')], /left, $
-    im_legend, ['R='+string(r0,format='(F3.1)')+' dex z^{-1}'], /left, $
-      /bottom, box=0, charsize=1.6, pspacing=1.9, line=r0line, thick=8, $
-      psym=-r0psym, color=r0color, symsize=r0symsize*0.7
+    xrange = [9.3,11.5]
+    yrange = [8.55,9.15]
+    xtitle1 = mzplot_masstitle()
+    ytitle1 = mzplot_ohtitle()+'_{T04}'
+    maxis = range(xrange[0]+0.05,xrange[1]-0.05,100)
+
+    zval = [0.1,0.3,0.5,0.7,0.9]
+    zlabel = 'z='+string(zval,format='(F3.1)')
+    zline = [0,3,5,4,2]
+    zcolor = ['black','firebrick','dodger blue','forest green','orange']
     
-    for ii = 0, n_elements(r0)-1 do begin
-       get_element, mzevol[0].coeffs[5,*], r0[ii], r0indx
-       oploterror, zbins.zbin, mzevol[0].dlogoh_avg[*,r0indx], mzevol[0].dlogoh_avg_err[*,r0indx], $
-         psym=symcat(r0psym[ii],thick=8), symsize=r0symsize[ii], errthick=8, $
-         color=fsc_color(r0color[ii],101), errcolor=fsc_color(r0color[ii],101)
-       djs_oplot, zaxis1, poly(zaxis1-qz0,[0.0,mzevol[0].pavg[r0indx]]), line=r0line[ii], $
-         color=fsc_color(r0color[ii],101), thick=8
+    djs_plot, [0], [0], /nodata, ysty=1, xsty=1, position=pos, $
+      xrange=xrange, yrange=yrange, xtitle=xtitle1, ytitle=ytitle1
+    im_legend, zlabel, /right, /bottom, box=0, line=zline, $
+      color=zcolor, pspacing=1.8, thick=6, margin=0, $
+      charsize=1.6
+    for ii = 0, n_elements(zval)-1 do begin
+       ohmodel = mz_closedbox(maxis,mzlocal.coeff) + (zval[ii]-mzavg.qz0)*$
+         poly(maxis-mzavg.dlogohdz_normmass,mzavg.dlogohdz_coeff)
+       keep = where((ohmodel gt yrange[0]+0.03))
+       djs_oplot, maxis[keep], ohmodel[keep], line=zline[ii], $
+         color=fsc_color(zcolor[ii],101), thick=7
     endfor
+    
+    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
+
+; --------------------------------------------------
+; metallicity evolution rate (slope) vs stellar mass
+    mzavg = mrdfits(mzpath+'mzevol_avg.fits.gz',1,/silent)
+    slopemass = massbins[0:nmassbins-2].massbin
+    slope = mzavg.coeffs_bymass[1,0:nmassbins-2]
+    slopeerr = mzavg.coeffs_bymass_err[1,0:nmassbins-2]
+    
+    psfile = pspath+'mass_vs_dlogohdz'+suffix
+    im_plotconfig, 0, pos, psfile=psfile, height=4.7, width=6.5, $
+      xmargin=[1.6,0.4]
+
+    xrange = [9.5,11.5]
+    yrange = [-0.45,0.0]
+    xtitle1 = mzplot_masstitle()
+    ytitle1 = textoidl('d[log(O/H)] / dz (dex z^{-1})')
+    maxis = range(xrange[0]+0.1,xrange[1]-0.1,50)
+
+    djs_plot, [0], [0], /nodata, ysty=1, xsty=1, position=pos, $
+      xrange=xrange, yrange=yrange, xtitle=xtitle1, ytitle=ytitle1
+    legend, ['z=0.0-0.75'], /right, /bottom, box=0
+    oploterror, slopemass, slope, slopeerr, psym=symcat(6,thick=8), $
+      sym=4, errthick=8
+
+;; overplot the 1-sigma models
+;    rand = mrandomn(seed,covar,1000)
+;    rand[*,0] = rand[*,0] + coeff[0]
+;    rand[*,1] = rand[*,1] + coeff[1]
+;    
+;    ell = covar2ellipse(covar,nsigma=1.0) ; get models within 1-sigma
+;    indx = get_ellipse_indices(rand[*,0],rand[*,1],$
+;      major=ell.major,minor=ell.minor,angle=ell.angle, $
+;      xcenter=coeff[0],ycenter=coeff[1],/deb)
+;    nindx = n_elements(indx)
+;
+;    allgrad = fltarr(n_elements(maxis),nindx)
+;    for jj = 0, nindx-1 do allgrad[*,jj] = poly(maxis-normmass,rand[indx[jj],*])
+;    mingrad = min(allgrad,dim=2)
+;    maxgrad = max(allgrad,dim=2)
+;    polyfill, [maxis,reverse(maxis)],[mingrad,reverse(maxgrad)], $
+;      /data, /fill, color=fsc_color('powder blue',100), noclip=0
+
+;   maxmodel = poly(maxis-normmass,coeff+coeff_err/2)
+;   minmodel = poly(maxis-normmass,coeff-coeff_err/2)
+;   polyfill, [maxis,reverse(maxis)], [minmodel,reverse(maxmodel)], $
+;     /data, /fill, color=fsc_color('tan',101), noclip=0
+    djs_oplot, maxis, poly(maxis-mzavg.dlogohdz_normmass,mzavg.dlogohdz_coeff), line=0, $
+      color=fsc_color('firebrick',101), thick=7
+    
+    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
+
+; --------------------------------------------------
+; average dlog-O/H vs redshift in bins of mass
+    mzavg = mrdfits(mzpath+'mzevol_avg.fits.gz',1,/silent)
+    
+    psfile = pspath+'z_vs_dlogoh_avg'+suffix
+    im_plotconfig, 0, pos, psfile=psfile, height=5.0, width=6.7, $
+      xmargin=[1.4,0.4]
+
+    xrange = [-0.02,0.7]
+    yrange = [-0.3,0.08]
+    xtitle1 = 'Redshift'
+    ytitle1 = textoidl('log (O/H)_{z} - log (O/H)_{z=0.1}')
+;   ytitle1 = textoidl('<\Delta'+'log(O/H)>')
+
+    zaxis = range(0.0,xrange[1]-0.03,50)
+
+    djs_plot, [0], [0], /nodata, ysty=1, xsty=1, position=pos, $
+      xrange=xrange, yrange=yrange, xtitle=xtitle1, ytitle=ytitle1
+;   maxmodel = poly(zaxis-mzavg.qz0,mzavg.coeffs+mzavg.coeffs_err/2)
+;   minmodel = poly(zaxis-mzavg.qz0,mzavg.coeffs-mzavg.coeffs_err/2)
+;   polyfill, [zaxis,reverse(zaxis)], [minmodel,reverse(maxmodel)], $
+;     /data, /fill, color=fsc_color('tan',101), noclip=0
+
+    djs_oplot, !x.crange, [0,0], line=5, thick=3
+;   oploterror, mzavg.zbin, mzavg.dlogoh, mzavg.dlogoh_err, $
+;     psym=symcat(15,thick=5), symsize=2.0, color=fsc_color('firebrick',101), $
+;     errcolor=fsc_color('firebrick',101)
+    im_legend, massbins[0:nmassbins-2].label, /left, /bottom, box=0, $
+      charsize=1.3, psym=-massbins[0:nmassbins-2].psym, $
+      color=massbins[0:nmassbins-2].color, line=massbins[0:nmassbins-2].line, $
+      thick=6, pspacing=1.8
+
+    for mm = 0, nmassbins-2 do begin
+; AGES
+       good = where(mzavg.dlogoh_bymass[mm,*] gt -900.0,ngood)
+       oploterror, mzavg.medz_bymass[mm,good], $
+         mzavg.dlogoh_bymass[mm,good], mzavg.dlogoh_bymass_err[mm,good], $
+         psym=symcat(massbins[mm].psym,thick=7), symsize=massbins[mm].symsize, $
+         color=fsc_color(massbins[mm].color,101), errcolor=fsc_color(massbins[mm].color,101), $
+         errthick=!p.thick
+; SDSS
+       oploterror, mzavg.sdss_medz_bymass[mm], $
+         mzavg.sdss_dlogoh_bymass[mm], mzavg.sdss_dlogoh_bymass_err[mm,good], $
+         psym=symcat(massbins[mm].psym,thick=7), symsize=massbins[mm].symsize, $
+         color=fsc_color(massbins[mm].color,101), errcolor=fsc_color(massbins[mm].color,101), $
+         errthick=!p.thick
+; the model fit
+       djs_oplot, zaxis, poly(zaxis-mzavg.qz0,mzavg.coeffs_bymass[*,mm])-$
+         poly(0.0,mzavg.coeffs_bymass[*,mm]), thick=4, $
+         color=fsc_color(massbins[mm].color,101), line=massbins[mm].line
+    endfor
+
+;   djs_oplot, zaxis, poly(zaxis-mzavg.qz0,mzavg.coeffs), line=0
+;   djs_oplot, zaxis, poly(zaxis-mzavg.qz0,mzavg.coeffs+mzavg.coeffs_err/2), line=0
+;   djs_oplot, zaxis, poly(zaxis-mzavg.qz0,mzavg.coeffs-mzavg.coeffs_err/2), line=0
+    
+    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
+
+; --------------------------------------------------
+; metallicity vs redshift in bins of mass - all three calibrations
+    psfile = pspath+'z_vs_oh_bymass'+suffix
+    im_plotconfig, 5, pos, psfile=psfile, height=2.6*[1,1], $
+      charsize=1.6
+
+    calib = ['kk04','t04','m91']
+    calibcolor = ['forest green','orange','firebrick']
+;   calibcolor = ['black','black','black']
+    polycolor = ['forest green','orange','firebrick']
+    calibpsym = [6,5,9]
+    sdss_calibpsym = [15,17,16]
+;   calibpsym = [15,17,16]
+    calibsymsize = [1.5,1.8,1.5]*1.1
+    calibline = [0,5,3]
+    ncalib = n_elements(calib)
+
+    xrange = [-0.02,0.75]
+    yrange = [8.6,9.26]
+    xtitle1 = 'Redshift'
+    ytitle1 = mzplot_ohtitle()
+
+    zaxis = range(0.0,xrange[1]-0.03,50)
+    
+    for mm = 0, n_elements(massbins)-2 do begin
+       if (mm lt 2) then begin
+          xtitle = ''
+          xtickname = replicate(' ',10)
+       endif else begin
+          xtitle = xtitle1
+          delvarx, xtickname
+       endelse
+       if odd(mm) then begin
+          ytitle = ''
+          ytickname = replicate(' ',10)
+       endif else begin
+          ytitle = ytitle1
+          delvarx, ytickname
+       endelse
        
-; dlogoh from LZ relation for various values of q0
-    djs_plot, [0], [0], /nodata, /noerase, ysty=1, xsty=1, xrange=zrange, $
-      yrange=dohrange, xtitle=ztitle1, ytitle=dohtitle2, position=pos[*,1]
-;   im_legend, ['Q='+string(q0,format='(F3.1)')], /left, $
-    im_legend, ['Q_{B}='+string(q0,format='(F3.1)')+' mag z^{-1}'], /left, $
-      /bottom, box=0, charsize=1.6, pspacing=1.9, line=q0line, thick=8, $
-      psym=-q0psym, color=q0color, symsize=q0symsize*0.7
+       djs_plot, [0], [0], /nodata, noerase=(mm gt 0), ysty=1, xsty=1, xrange=xrange, $
+         yrange=yrange, xtitle=xtitle, ytitle=ytitle, position=pos[*,mm], $
+         xtickname=xtickname, ytickname=ytickname, yminor=2
+       im_legend, massbins[mm].label, /right, /top, box=0, margin=0, $
+         charsize=1.3
+       if (mm eq 0) then begin
+          im_legend, strupcase(calib), /left, /bottom, box=0, margin=0, $
+            charsize=1.2, pspacing=1.9, line=calibline, thick=8, $
+            psym=-calibpsym, color=calibcolor, symsize=calibsymsize*0.8, $
+            symthick=4.0
+       endif
+;; overplot the model assuming no evolution in M*
+;       for ii = 0, ncalib-1 do begin
+;          mzevol = mrdfits(mzpath+'mzevol_'+calib[ii]+'.fits.gz',1,/silent)
+;          minmodel = mzevol_func(zaxis*0+massbins[mm].massbin,$
+;            mzevol.coeffs_r0zero-mzevol.coeffs_r0zero_err/2.0,z=zaxis,qz0=mzevol.qz0)
+;          maxmodel = mzevol_func(zaxis*0+massbins[mm].massbin,$
+;            mzevol.coeffs_r0zero+mzevol.coeffs_r0zero_err/2.0,z=zaxis,qz0=mzevol.qz0)
+;          polyfill, [zaxis,reverse(zaxis)], [minmodel,reverse(maxmodel)], $
+;            /data, /fill, color=fsc_color(polycolor[ii],101), noclip=0
+;;         polyfill, [zaxis,reverse(zaxis)], [minmodel,reverse(maxmodel)], $
+;;           /data, /line_fill, spacing=0.05, orientation=135, $
+;;           color=fsc_color(polycolor[ii],101), noclip=0
+;        endfor
+; and now the data
+       for ii = 0, ncalib-1 do begin
+          mzevol = mrdfits(mzpath+'mzevol_'+calib[ii]+'.fits.gz',1,/silent)
+          good = where(mzevol.ohmean_bymass[mm,*] gt -900.0)
+;         djs_oplot, zbins[good].zbin, mzevol.ohmean[mm,good], $
+;           psym=symcat(calibpsym[ii],thick=5), symsize=calibsymsize[ii], $
+;           color=fsc_color(calibcolor[ii],101)
 
-    for ii = 0, n_elements(q0)-1 do begin
-       get_element, lzevol[0].coeffs[3,*], q0[ii], q0indx
-       oploterror, zbins.zbin, lzevol[0].dlogoh_avg[*,q0indx], lzevol[0].dlogoh_avg_err[*,q0indx], $
-         psym=symcat(q0psym[ii],thick=8), symsize=q0symsize[ii], errthick=8, $
-         color=fsc_color(q0color[ii],101), errcolor=fsc_color(q0color[ii],101)
-       djs_oplot, zaxis1, poly(zaxis1-qz0,[0.0,lzevol[0].savg[q0indx]]), line=q0line[ii], $
-         color=fsc_color(q0color[ii],101), thick=8
+; AGES          
+          oploterror, mzevol.medz_bymass[mm,good], mzevol.ohmean_bymass[mm,good], $
+            mzevol.ohmean_bymass_err[mm,good], $
+            psym=symcat(calibpsym[ii],thick=5), symsize=calibsymsize[ii], $
+            color=fsc_color(calibcolor[ii],101), errcolor=fsc_color(calibcolor[ii],101)
+; SDSS
+          oploterror, mzevol.sdss_medz_bymass[mm], mzevol.sdss_ohmean_bymass[mm], $
+            mzevol.sdss_ohmean_bymass_err[mm], $
+            psym=symcat(sdss_calibpsym[ii],thick=5), symsize=calibsymsize[ii], $
+            color=fsc_color(calibcolor[ii],101), errcolor=fsc_color(calibcolor[ii],101)          
+          
+          djs_oplot, zaxis, poly(zaxis-mzevol.qz0,mzevol.coeffs_bymass[*,mm]), $
+            line=calibline[ii], color=fsc_color(calibcolor[ii],101)
+;         djs_oplot, zaxis, mzevol_func(zaxis*0+massbins[mm].massbin,mzevol.coeffs,$
+;           z=zaxis,qz0=mzevol.qz0), line=calibline[ii], color=fsc_color(calibcolor[ii],101)
+       endfor
     endfor
 
-    im_plotconfig, /psclose
+    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
 
-stop    
+stop
+stop
+stop
     
 ; --------------------------------------------------
 ; evolution of (O/H)* and c0 with redshift
@@ -194,8 +361,74 @@ stop
 stop
 stop
 stop    
+
+; --------------------------------------------------
+; evolution of Delta-log (O/H)* with redshift
+    ztitle1 = 'Redshift'
+    dohtitle1 = textoidl('<\Delta'+'log(O/H)> from !8M-Z!6')
+    dohtitle2 = textoidl('<\Delta'+'log(O/H)> from !8L-Z!6')
+
+    zrange = [-0.02,0.8]
+    dohrange = [-0.49,0.09]
+
+    r0 = [0.0,0.5]
+    q0 = [0.0,2.0]
+;   r0 = [0.0,0.25,0.5]
+;   q0 = [0.0,1.2,1.6,2.0]
     
+    r0color = ['orange','firebrick','tan']
+    r0line = [0,5] & r0psym = [15,17] & r0symsize = [2.5,2.8]
+    q0color = ['forest green','dodger blue']
+    q0line = [0,5] & q0psym = [15,17] & q0symsize = [2.5,2.8]
     
+    psfile = pspath+'z_vs_dlogoh'+suffix
+    im_plotconfig, 6, pos, psfile=psfile, charsize=1.8, yspace=0.9, $
+      height=4.0*[1,1], xmargin=[1.4,0.4], width=6.7
+
+; dlogoh from MZ relation for various values of r0
+    djs_plot, [0], [0], /nodata, ysty=1, xsty=1, xrange=zrange, $
+      yrange=dohrange, xtitle=ztitle1, ytitle=dohtitle1, position=pos[*,0]
+;   im_legend, ['R='+string(r0,format='(F4.1)')], /left, $
+    im_legend, ['R='+string(r0,format='(F3.1)')+' dex z^{-1}'], /left, $
+      /bottom, box=0, charsize=1.6, pspacing=1.9, line=r0line, thick=8, $
+      psym=-r0psym, color=r0color, symsize=r0symsize*0.7
+    
+    for ii = 0, n_elements(r0)-1 do begin
+       get_element, mzevol[0].coeffs[5,*], r0[ii], r0indx
+       oploterror, zbins.zbin, mzevol[0].dlogoh_avg[*,r0indx], mzevol[0].dlogoh_avg_err[*,r0indx], $
+         psym=symcat(r0psym[ii],thick=8), symsize=r0symsize[ii], errthick=8, $
+         color=fsc_color(r0color[ii],101), errcolor=fsc_color(r0color[ii],101)
+       djs_oplot, zaxis1, poly(zaxis1-qz0,[0.0,mzevol[0].pavg[r0indx]]), line=r0line[ii], $
+         color=fsc_color(r0color[ii],101), thick=8
+    endfor
+       
+; dlogoh from LZ relation for various values of q0
+    djs_plot, [0], [0], /nodata, /noerase, ysty=1, xsty=1, xrange=zrange, $
+      yrange=dohrange, xtitle=ztitle1, ytitle=dohtitle2, position=pos[*,1]
+;   im_legend, ['Q='+string(q0,format='(F3.1)')], /left, $
+    im_legend, ['Q_{B}='+string(q0,format='(F3.1)')+' mag z^{-1}'], /left, $
+      /bottom, box=0, charsize=1.6, pspacing=1.9, line=q0line, thick=8, $
+      psym=-q0psym, color=q0color, symsize=q0symsize*0.7
+
+    for ii = 0, n_elements(q0)-1 do begin
+       get_element, lzevol[0].coeffs[3,*], q0[ii], q0indx
+       oploterror, zbins.zbin, lzevol[0].dlogoh_avg[*,q0indx], lzevol[0].dlogoh_avg_err[*,q0indx], $
+         psym=symcat(q0psym[ii],thick=8), symsize=q0symsize[ii], errthick=8, $
+         color=fsc_color(q0color[ii],101), errcolor=fsc_color(q0color[ii],101)
+       djs_oplot, zaxis1, poly(zaxis1-qz0,[0.0,lzevol[0].savg[q0indx]]), line=q0line[ii], $
+         color=fsc_color(q0color[ii],101), thick=8
+    endfor
+
+    im_plotconfig, /psclose
+
+stop    
+    
+    timelabel1 = [1.0,3.0,5.0] ; [Gyr]
+    timelabel2 = [1.0,3.0,5.0,7.0,10.0,12.0] ; [Gyr]
+    nzaxis1 = 100
+    zaxis1 = range(-0.05,0.8,nzaxis1)
+    zz = im_array(0.0,1.0,0.02)
+
 ; representative Pegase models
     splog, 'Reading the Pegase models'
     pegpath = getenv('PEGASE_HR_SFHGRID_DIR')+'/measure/'
@@ -379,7 +612,12 @@ stop
 
 ; ------------------------------------------------------------
 ; luminosity and mass evolution for blue galaxies (literature
-; compilation) 
+; compilation)
+
+    h100 = mz_h100()
+    Bvega2ab = (k_vega2ab(filterlist='bessell_B.par',/kurucz,/silent))[0]
+    B2r01 = -0.6429 ; ^{0.1}r = B-0.6429-1.0845*[(B-V)-0.5870] [AB, Blanton & Roweis]
+    B2g01 = +0.0759 ; ^{0.1}g = B+0.0759+0.0620*[(B-V)-0.5870] [AB, Blanton & Roweis]
 
     psfile = pspath+'z_vs_mr_mass_lit'+suffix
     im_plotconfig, 6, pos, psfile=psfile, charsize=1.8, $
@@ -939,4 +1177,36 @@ end
 ;;    djs_oplot, plot_sfrd_zaxis, plot_sfrd_frac1, line=0, thick=12
 ;;    
 ;;    im_plotconfig, /psclose
+;;
+
+;;
+;;; --------------------------------------------------
+;;; average dlog-O/H vs redshift in bins of mass
+;;    mzavg = mrdfits(mzpath+'mzevol_avg.fits.gz',1,/silent)
+;;    
+;;    psfile = pspath+'z_vs_dlogoh_avg'+suffix
+;;    im_plotconfig, 0, pos, psfile=psfile, height=5.0, width=6.7, $
+;;      xmargin=[1.4,0.4]
+;;
+;;    xrange = [-0.02,0.75]
+;;    yrange = [-0.4,0.15]
+;;    xtitle1 = 'Redshift'
+;;    ytitle1 = textoidl('<\Delta'+'log(O/H)>')
+;;
+;;    zaxis = range(0.0,xrange[1]-0.03,50)
+;;
+;;    djs_plot, [0], [0], /nodata, ysty=1, xsty=1, position=pos, $
+;;      xrange=xrange, yrange=yrange, xtitle=xtitle1, ytitle=ytitle1
+;;    djs_oplot, !x.crange, [0,0], line=5, thick=3
+;;    im_legend, massbins[0:nmassbins-2].label, /left, /bottom, box=0, $
+;;      charsize=1.3, psym=massbins[0:nmassbins-2].psym, color=massbins[0:nmassbins-2].color
+;;    
+;;    for mm = 0, nmassbins-2 do begin
+;;       good = where(mzavg.dlogoh[mm] gt -900.0)
+;;       oploterror, zbins[good].zbin, mzavg[good].dlogoh[mm], mzavg[good].dlogoh_err[mm], $
+;;         psym=symcat(massbins[mm].psym,thick=5), symsize=massbins[mm].symsize, $
+;;         color=fsc_color(massbins[mm].color,101), errcolor=fsc_color(massbins[mm].color,101)
+;;    endfor
+;;    
+;;    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
 ;;

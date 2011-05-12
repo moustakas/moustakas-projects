@@ -8,6 +8,8 @@ function mzlz_grab_info, stroh, stranc, strmass, flux=flux, $
 
     id = lindgen(n_elements(stroh))
     masstag = tag_indx(strmass,'mass_50')
+;   masstag = tag_indx(strmass,'mass_avg')
+    masserrtag = tag_indx(strmass,'mass_err')
     
 ; special case for the SDSS - grab the MPA-JHU metallicities
     if keyword_set(mpajhu) then begin
@@ -103,6 +105,7 @@ function mzlz_grab_info, stroh, stranc, strmass, flux=flux, $
 ;     ub_ab:     fltarr(nindx),$
 ;     gr_ab:     fltarr(nindx),$
       mass:      strmass[indx].(masstag),$
+      mass_err:  strmass[indx].(masserrtag),$
       ohlimit:   ohlimit,$
       tremonti_oh: tremonti_oh,$
       kauffmann_mass: kauffmann_mass}

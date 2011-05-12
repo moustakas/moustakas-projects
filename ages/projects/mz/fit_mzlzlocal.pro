@@ -19,6 +19,125 @@ pro fit_mzlzlocal, clobber=clobber, debug=debug, verbose=verbose
     mzpath = mz_path()
 
 ; --------------------------------------------------    
+; fit the SDSS MZ relation using three different models, all three
+; abundance calibrations, and using both EWs and reddening-corrected
+; fluxes
+    fit_minmass = 8.8
+    fit_maxmass = 11.2
+    minmass = 8.0 ; 8.7
+    maxmass = 12.0 ; 11.0
+    binsize = 0.05
+    mingal = 50
+    nmonte = 30
+    
+    for jj = 0, 1 do begin
+       case jj of
+          0: begin
+             suffix = 'ews' ; EWs, the default
+             flux = 0
+             sdssoh = sdssohdust
+          end
+          1: begin
+             suffix = 'fluxcor' ; reddening-corrected fluxes
+             flux = 1
+             sdssoh = sdssohnodust
+          end
+       endcase 
+       
+       for ii = 0, 2+jj do begin ; loop on each calibration, including mpa-jhu
+          case ii of
+             0: begin
+                t04 = 1 & m91 = 0 & kk04 = 0 & mpajhu = 0
+                calib = 't04'
+             end
+             1: begin
+                t04 = 0 & m91 = 1 & kk04 = 0 & mpajhu = 0
+                calib = 'm91'
+             end
+             2: begin
+                t04 = 0 & m91 = 0 & kk04 = 1 & mpajhu = 0
+                calib = 'kk04'
+             end
+             3: begin
+                t04 = 0 & m91 = 0 & kk04 = 0 & mpajhu = 1
+                calib = 'mpajhu'
+             end
+          endcase
+
+          closed_file = mzpath+'mzlocal_sdss_'+suffix+'_'+calib+'.fits'
+;          poly_file = mzpath+'mzlocal_sdss_'+calib+suffix+'_poly.fits'
+;          doublepl_file = mzpath+'mzlocal_sdss_'+calib+suffix+'_doublepl.fits'
+;          brokenpl_file = mzpath+'mzlocal_sdss_'+calib+suffix+'_brokenpl.fits'
+
+          info = mzlz_grab_info(sdssoh,sdssancillary,sdssmass,$
+            flux=flux,t04=t04,m91=m91,kk04=kk04,mpajhu=mpajhu,$
+            /nolimit);,/errcut)   ; note!
+
+; fit the closed-box model          
+          closed1 = fit_mz_closedbox(info.mass,info.oh,info.weight,$
+            oh_err=info.oh_err,binsize=binsize,minmass=minmass,$
+            maxmass=maxmass,mingal=mingal,fit_minmass=fit_minmass,$
+            fit_maxmass=fit_maxmass,verbose=verbose)
+
+;; Monte Carlo the abundances to get the errors on the parameters of
+;; the local MZ relation
+;          coeff = fltarr(3,nmonte)
+;          coeff_err = fltarr(3)
+;          for mm = 0, nmonte-1 do begin
+;             newoh = info.oh + randomn(seed,n_elements(info.oh))*info.oh_err
+;             newmass = info.mass + randomn(seed,n_elements(info.oh))*info.mass_err
+;             monte_closed1 = fit_mz_closedbox(newmass,newoh,info.weight,$
+;               oh_err=info.oh_err,binsize=binsize,minmass=minmass,$
+;               maxmass=maxmass,mingal=mingal,fit_minmass=fit_minmass,$
+;               fit_maxmass=fit_maxmass,verbose=verbose)
+;             coeff[*,mm] = monte_closed1.coeff
+;          endfor
+;          for mm = 0, 2 do coeff_err[mm] = djsig(coeff[mm,*])
+          
+; the code below is fine, just relegated          
+          
+;; fit a simple polynomial
+;          polyfit1 = fit_mz_poly(info.mass,info.oh,info.weight,$
+;            oh_err=info.oh_err,binsize=binsize,minmass=minmass,$
+;            maxmass=maxmass,mingal=mingal,fit_minmass=fit_minmass,$
+;            verbose=verbose)
+;; fit a smooth double-powerlaw
+;          doublepl1 = fit_mz_doublepl(info.mass,info.oh,info.weight,$
+;            oh_err=info.oh_err,binsize=binsize,minmass=minmass,$
+;            maxmass=maxmass,mingal=mingal,fit_minmass=fit_minmass,$
+;            verbose=0)
+;; fit a broken powerlaw
+;          brokenpl1 = fit_mz_brokenpl(info.mass,info.oh,info.weight,$
+;            oh_err=info.oh_err,binsize=binsize,minmass=minmass,$
+;            maxmass=maxmass,mingal=mingal,fit_minmass=fit_minmass,$
+;            verbose=0)
+
+          closed1 = struct_addtags({calib: calib},closed1)
+;          polyfit1 = struct_addtags({calib: calib},polyfit1)
+;          doublepl1 = struct_addtags({calib: calib},doublepl1)
+;          brokenpl1 = struct_addtags({calib: calib},brokenpl1)
+;          if (ii eq 0) then begin
+;             closed = closed1
+;             polyfit = polyfit1
+;             doublepl = doublepl1
+;             brokenpl = brokenpl1
+;          endif else begin
+;             closed = [closed,closed1]
+;             polyfit = [polyfit,polyfit1]
+;             doublepl = [doublepl,doublepl1]
+;             brokenpl = [brokenpl,brokenpl1]
+;          endelse
+          im_mwrfits, closed1, closed_file, clobber=clobber
+       endfor          
+;       im_mwrfits, closed, closed_file, /clobber
+;       im_mwrfits, polyfit, poly_file, /clobber
+;       im_mwrfits, doublepl, doublepl_file, /clobber
+;       im_mwrfits, brokenpl, brokenpl_file, /clobber
+    endfor
+
+stop    
+    
+; --------------------------------------------------    
 ; fit the SDSS and low-redshift AGES LZ relations using all three
 ; abundance calibrations  
 ;   faintmag = -18.0
@@ -96,107 +215,6 @@ pro fit_mzlzlocal, clobber=clobber, debug=debug, verbose=verbose
 
 stop    
     
-; --------------------------------------------------    
-; fit the SDSS MZ relation using three different models, all three
-; abundance calibrations, and using both EWs and reddening-corrected
-; fluxes
-    fit_minmass = 8.8
-    fit_maxmass = 11.2
-    minmass = 8.0 ; 8.7
-    maxmass = 12.0 ; 11.0
-    binsize = 0.05
-    mingal = 50
-    
-    for jj = 0, 1 do begin
-       case jj of
-          0: begin
-             suffix = 'ews' ; EWs, the default
-             flux = 0
-             sdssoh = sdssohdust
-          end
-          1: begin
-             suffix = 'fluxcor' ; reddening-corrected fluxes
-             flux = 1
-             sdssoh = sdssohnodust
-          end
-       endcase 
-       
-       for ii = 0, 2+jj do begin ; loop on each calibration, including mpa-jhu
-          case ii of
-             0: begin
-                t04 = 1 & m91 = 0 & kk04 = 0 & mpajhu = 0
-                calib = 't04'
-             end
-             1: begin
-                t04 = 0 & m91 = 1 & kk04 = 0 & mpajhu = 0
-                calib = 'm91'
-             end
-             2: begin
-                t04 = 0 & m91 = 0 & kk04 = 1 & mpajhu = 0
-                calib = 'kk04'
-             end
-             3: begin
-                t04 = 0 & m91 = 0 & kk04 = 0 & mpajhu = 1
-                calib = 'mpajhu'
-             end
-          endcase
-
-          closed_file = mzpath+'mzlocal_sdss_'+suffix+'_'+calib+'.fits'
-;          poly_file = mzpath+'mzlocal_sdss_'+calib+suffix+'_poly.fits'
-;          doublepl_file = mzpath+'mzlocal_sdss_'+calib+suffix+'_doublepl.fits'
-;          brokenpl_file = mzpath+'mzlocal_sdss_'+calib+suffix+'_brokenpl.fits'
-
-          info = mzlz_grab_info(sdssoh,sdssancillary,sdssmass,$
-            flux=flux,t04=t04,m91=m91,kk04=kk04,mpajhu=mpajhu,$
-            /nolimit);,/errcut)   ; note!
-
-; fit the closed-box model          
-          closed1 = fit_mz_closedbox(info.mass,info.oh,info.weight,$
-            oh_err=info.oh_err,binsize=binsize,minmass=minmass,$
-            maxmass=maxmass,mingal=mingal,fit_minmass=fit_minmass,$
-            fit_maxmass=fit_maxmass,verbose=verbose)
-
-; the code below is fine, just relegated          
-          
-;; fit a simple polynomial
-;          polyfit1 = fit_mz_poly(info.mass,info.oh,info.weight,$
-;            oh_err=info.oh_err,binsize=binsize,minmass=minmass,$
-;            maxmass=maxmass,mingal=mingal,fit_minmass=fit_minmass,$
-;            verbose=verbose)
-;; fit a smooth double-powerlaw
-;          doublepl1 = fit_mz_doublepl(info.mass,info.oh,info.weight,$
-;            oh_err=info.oh_err,binsize=binsize,minmass=minmass,$
-;            maxmass=maxmass,mingal=mingal,fit_minmass=fit_minmass,$
-;            verbose=0)
-;; fit a broken powerlaw
-;          brokenpl1 = fit_mz_brokenpl(info.mass,info.oh,info.weight,$
-;            oh_err=info.oh_err,binsize=binsize,minmass=minmass,$
-;            maxmass=maxmass,mingal=mingal,fit_minmass=fit_minmass,$
-;            verbose=0)
-
-          closed1 = struct_addtags({calib: calib},closed1)
-;          polyfit1 = struct_addtags({calib: calib},polyfit1)
-;          doublepl1 = struct_addtags({calib: calib},doublepl1)
-;          brokenpl1 = struct_addtags({calib: calib},brokenpl1)
-;          if (ii eq 0) then begin
-;             closed = closed1
-;             polyfit = polyfit1
-;             doublepl = doublepl1
-;             brokenpl = brokenpl1
-;          endif else begin
-;             closed = [closed,closed1]
-;             polyfit = [polyfit,polyfit1]
-;             doublepl = [doublepl,doublepl1]
-;             brokenpl = [brokenpl,brokenpl1]
-;          endelse
-          im_mwrfits, closed1, closed_file, clobber=clobber
-       endfor          
-;       im_mwrfits, closed, closed_file, /clobber
-;       im_mwrfits, polyfit, poly_file, /clobber
-;       im_mwrfits, doublepl, doublepl_file, /clobber
-;       im_mwrfits, brokenpl, brokenpl_file, /clobber
-    endfor
-
 return
 end
     

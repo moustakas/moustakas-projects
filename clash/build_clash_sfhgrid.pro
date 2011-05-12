@@ -1,24 +1,27 @@
-pro build_hizea_sfhgrid, sfhgrid=sfhgrid, make_montegrid=make_montegrid, $
-  imf=imf, synthmodels=synthmodels, redcurve=redcurve, clobber=clobber
-; jm10jan28ucsd - build all the SFH grids we are going to need
+pro build_clash_sfhgrid, supergrid=supergrid, make_montegrid=make_montegrid, clobber=clobber
+; jm11may05ucsd - build all the SFH grids we are going to need using
+; the supergrid parameter file
 
-    sfhgrid_basedir = hizea_path(/monte)
-    sfhgrid_paramfile = hizea_path(/mass)+'hizea_sfhgrid.par'
+    sfhgrid_basedir = clash_path(/monte)
+    sfhgrid_paramfile = clash_path(/ised)+'clash_sfhgrid.par'
 
-; defaults    
-    if (n_elements(imf) eq 0) then imf = 'chab'
-    if (n_elements(synthmodels) eq 0) then synthmodels = 'bc03'
-    if (n_elements(redcurve) eq 0) then redcurve = 1 ; charlot
+    supergrid_paramfile = clash_path(/ised)+'clash_supergrid.par'
+    super = yanny_readone(supergrid_paramfile)
+    if (n_elements(supergrid) ne 0) then begin
+       match2, super.supergrid, supergrid, m1, m2
+       if (total(m2 eq -1) ne 0) then message, 'Unknown supergrid!'
+       match, super.supergrid, supergrid, m1, m2
+       srt = sort(m2) & m1 = m1[srt] & m2 = m2[srt]
+       super = super[m1]
+    endif
+    struct_print, super
+    nsuper = n_elements(super)
 
-    hizeagrid = read_sfhgrid_paramfile(sfhgrid,sfhgrid_paramfile=sfhgrid_paramfile)
-    ngrid = n_elements(hizeagrid)
-
-    for ii = 0, ngrid-1 do begin
-       build_isedfit_sfhgrid, hizeagrid[ii].sfhgrid, synthmodels=synthmodels, imf=imf, $
-         redcurve=redcurve, make_montegrid=make_montegrid, clobber=clobber, $
-         sfhgrid_basedir=sfhgrid_basedir, sfhgrid_paramfile=sfhgrid_paramfile
+    for ii = 0, nsuper-1 do begin
+       build_isedfit_sfhgrid, super[ii].sfhgrid, synthmodels=strtrim(super[ii].synthmodels,2), $
+         imf=strtrim(super[ii].imf,2), redcurve=super[ii].redcurve, make_montegrid=make_montegrid, $
+         clobber=clobber, sfhgrid_basedir=sfhgrid_basedir, sfhgrid_paramfile=sfhgrid_paramfile
     endfor
-       
+
 return
 end
-    

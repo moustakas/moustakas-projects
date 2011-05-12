@@ -3,16 +3,16 @@ function get_mzlzfit_info, fluxcor=fluxcor
 
     if keyword_set(fluxcor) then begin
        suffix = 'fluxcor' 
-       calib = ['T04','M91','KK04','MPA-JHU']
+       calib = ['KK04','M91','T04','MPA-JHU']
     endif else begin
        suffix = 'ews'
-       calib = ['T04','M91','KK04']
+       calib = ['KK04','M91','T04']
     endelse
     ncalib = n_elements(calib)
 
     info = replicate({calib: '', empty1: ' ', $
-      ohstar: '', mstar: '', gamma: '', empty2: ' ', $
-      c0: '', c1: ''},ncalib)
+      ohstar: '', mstar: '', gamma: '', mzscatter: '', empty2: ' ', $
+      c0: '', c1: '', lzscatter: ''},ncalib)
     info.calib = calib
 
     for ii = 0, ncalib-1 do begin
@@ -23,11 +23,14 @@ function get_mzlzfit_info, fluxcor=fluxcor
        info[ii].ohstar = '$'+im_sigfigs(mzfit.coeff[0],4)+'$'
        info[ii].mstar  = '$'+im_sigfigs(mzfit.coeff[1],4)+'$'
        info[ii].gamma = '$'+im_sigfigs(mzfit.coeff[2],3)+'$'
+       info[ii].mzscatter = '$'+string(mzfit.scatter,format='(F4.2)')+'$'
+;      info[ii].mzscatter = '$'+im_sigfigs(mzfit.scatter,3)+'$'
 
 ; LZ
        lzfit = mrdfits(mzpath+'lzlocal_sdss_'+suffix+'_'+calib1+'.fits.gz',1)
        info[ii].c0 = '$'+im_sigfigs(lzfit.coeff[0],4)+'$'
        info[ii].c1 = '$'+im_sigfigs(lzfit.coeff[1],3)+'$'
+       info[ii].lzscatter = '$'+im_sigfigs(lzfit.scatter,3)+'$'
     endfor
     struct_print, info
 
@@ -68,32 +71,30 @@ pro mztables, preprint=preprint
     ntags = n_tags(ewinfo)
 
     colhead1 = mzget_colhead(['','',$
-      '\multicolumn{3}{c}{\mz\tablenotemark{b}}','',$
-      '\multicolumn{2}{c}{\lz\tablenotemark{c}}'])
-    colhead2 = '\cline{3-5}\cline{7-8}'
+      '\multicolumn{4}{c}{\mz\tablenotemark{b}}','',$
+      '\multicolumn{3}{c}{\lz\tablenotemark{c}}'])
+    colhead2 = '\cline{3-6}\cline{8-10}'
     colhead3 = mzget_colhead(['Calibration\tablenotemark{a}','',$
-      'log\,\ohstar','log\,(\mstar/\msun)','$\gamma$','',$
-      '$c_{0}$','$c_{1}$'],/nobreak)
+      '12+log\,\ohstar','$log\,(\mstar/10^{9}\, \msun$)','$\gamma$','$\sigma$\tablenotemark{d}','',$
+      '$c_{0}$','$c_{1}$','$\sigma$\tablenotemark{d}'],/nobreak)
     texcenter = ['l','c',$
-      replicate('c',3),'c',$
-      replicate('c',2)]
+      replicate('c',4),'c',$
+      replicate('c',3)]
 
     tablenotetext = [$
-      '{a}{Results derived using three different strong-line calibrations of the '+$
-      'reddening-corrected \pagel{} parameter: '+$
-      '\citet[T04]{tremonti04a}, \citet[M91]{mcgaugh91a}, and \citet[KK04]{kobulnicky04a}.  For '+$
-      'comparison, we also derive the \mz{} and \lz{} relations using the oxygen abundances '+$
-      'published by the MPA-JHU team (see \S\ref{sec:oh}).  '+$
-      'Note that the formal, statistical uncertainties on the derived coefficients are negligible.}',$  
+      '{a}{Results derived using the \citet[T04]{tremonti04a}, \citet[M91]{mcgaugh91a}, and '+$
+      '\citet[KK04]{kobulnicky04a} calibrations of the \pagel{} parameter, using both '+$
+      'reddening-corrected line-fluxes and equivalent widths (see \S\ref{sec:oh} for details). '+$
+      'For comparison, we also derive the \mz{} and \lz{} relations using the oxygen abundances '+$
+      'published by the MPA-JHU team (see \S\ref{sec:mzlzlocal}).}',$  
       '{b}{\mz{} relation given by '+$
-      '$\log\,(\textrm{O}/\textrm{H}) = \log\,(\textrm{O}/\textrm{H})^{\ast} -'+$
-      '\log\, [1+(\mstar/\mass)^{\gamma}]$.}',$
-      '{c}{$B$-band \lz{} relation given by $\logoh=c_{0}+c_{1}(\mb+20.5)$.}']
-;     '{d}{\mz{} and \lz{} relations have been constructed using both reddening-corrected '+$
-;     'fluxes and equivalent widths (see \S\ref{sec:oh} for details).}']
+      '$12+\log\,(\textrm{O}/\textrm{H}) = 12+\log\,(\textrm{O}/\textrm{H})^{\ast} -'+$
+      '\log\, [1+(\mstar/10^{9}\mass)^{\gamma}]$.}',$
+      '{c}{$B$-band \lz{} relation given by $\logoh=c_{0}+c_{1}(\mb+20.5)$.}',$
+      '{d}{Residual scatter about the best-fitting relation.}']
     
     openw, lun, texfile, /get_lun
-    printf, lun, '\begin{deluxetable*}{'+strjoin(texcenter)+'}'
+    printf, lun, '\begin{deluxetable*}{'+strjoin(texcenter)+'}[!h]'
     printf, lun, '\tablecaption{SDSS \mz{} and \lz{} Relations\label{table:mzlzlocal}}'   
     printf, lun, '\tablewidth{0pt}'
     printf, lun, '\tablehead{'
@@ -103,8 +104,8 @@ pro mztables, preprint=preprint
     printf, lun, '}'
     printf, lun, '\startdata'
 
-;   printf, lun, '\multicolumn{2}{c}{} & \multicolumn{6}{c}{Reddening-Corrected Fluxes\tablenotemark{d}} \\'
-;   printf, lun, '\cline{1-8}'
+    printf, lun, '\multicolumn{2}{c}{} & \multicolumn{8}{c}{Reddening-Corrected Fluxes\tablenotemark{a}} \\'
+    printf, lun, '\cline{1-10}'
     for ii = 0, ncalib-1 do begin
        for jj = 0, ntags-1 do begin
           if (jj eq ntags-1) then if (ii eq ncalib-1) then suffix = '' else $
@@ -112,17 +113,18 @@ pro mztables, preprint=preprint
           printf, lun, fluxinfo[ii].(jj)+suffix
        endfor
     endfor
-;   printf, lun, '\\'
-;
-;   printf, lun, '\multicolumn{2}{c}{} & \multicolumn{6}{c}{Equivalent Widths\tablenotemark{d}} \\'
-;   printf, lun, '\cline{1-8}'
-;   for ii = 0, ncalib-1 do begin
-;      for jj = 0, ntags-1 do begin
-;         if (jj eq ntags-1) then if (ii eq ncalib-1) then suffix = '' else $
-;           suffix = ' \\' else suffix = ' & '
-;         printf, lun, ewinfo[ii].(jj)+suffix
-;      endfor
-;   endfor
+    printf, lun, '\\'
+    printf, lun, '\cline{1-10}'
+
+    printf, lun, '\multicolumn{2}{c}{} & \multicolumn{8}{c}{Equivalent Widths\tablenotemark{a}} \\'
+    printf, lun, '\cline{1-10}'
+    for ii = 0, ncalib-2 do begin
+       for jj = 0, ntags-1 do begin
+          if (jj eq ntags-1) then if (ii eq ncalib-2) then suffix = '' else $
+            suffix = ' \\' else suffix = ' & '
+          printf, lun, ewinfo[ii].(jj)+suffix
+       endfor
+    endfor
     
     printf, lun, '\enddata'
 ;   printf, lun, '\tablecomments{'+tablecomments+'}'

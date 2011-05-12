@@ -1,79 +1,112 @@
-pro hizea_isedfit, models=models, write_paramfile=write_paramfile, $
-  isedfit=isedfit, qaplot=qaplot, clobber=clobber, debug=debug, $
-  noirac=noirac
-; jm10dec20ucsd - derive stellar masses for the HIZEA sample
-; jm11apr06ucsd - major updates
+pro clash_write_paramfile, paramfile, prefix=prefix, zminmax=zminmax, nzz=nzz, $
+  filters=filters, igm=igm, super=super
 
-    iopath = hizea_path(/isedfit)
-    paramfile = iopath+'hizea_isedfit.par'
+    sfhgridstring = strtrim(super.sfhgrid,2)
+    redcurvestring = redcurve2string(super.redcurve)
+    synthmodels = strtrim(super.synthmodels,2)
+    imf = strtrim(super.imf,2)
+    
+    splog, 'Writing '+paramfile
+    zrange = string(zminmax[0],format='(f4.2)')+','+string(zminmax[1],$
+      format='(f4.2)')+','+nzz+' # [minz,maxz,dz]'
+    openw, lun, paramfile, /get_lun
+    printf, lun, 'synthmodels          '+synthmodels
+    printf, lun, 'imf                  '+imf
+    printf, lun, 'sfhgrid              '+sfhgridstring
+    printf, lun, 'redcurve             '+redcurvestring
+    printf, lun, 'prefix               '+prefix
+    printf, lun, 'redshift             '+zrange
+    printf, lun, 'igm                  '+igm+' # [0=no, 1=yes]'
+    printf, lun, 'maxold               0 # [0=no, 1=yes]'
+    printf, lun, 'filterlist           '+strjoin(filters,',')
+    free_lun, lun 
 
-    sfhgrid_basedir = hizea_path(/monte)
-    sfhgrid_paramfile = hizea_path(/mass)+'hizea_sfhgrid.par'
+return
+end
 
-; --------------------------------------------------
-; write the parameter file
-    if keyword_set(write_paramfile) then begin
-       splog, 'Writing '+paramfile
-       openw, lun, paramfile, /get_lun
-       printf, lun, 'synthmodels          bc03'
-       printf, lun, 'imf                  chab'
-       printf, lun, 'sfhgrid              1'
-       printf, lun, 'redcurve             charlot'
-       printf, lun, 'prefix               hizea'
-       printf, lun, 'redshift             0.35,0.91,30'
-       printf, lun, 'igm                  1'
-       printf, lun, 'maxold               0 # [0=no, 1=yes]'
-       printf, lun, 'filterlist           '+strjoin(hizea_filterlist(),',')
-       free_lun, lun 
+pro clash_isedfit, supergrid=supergrid, models=models, isedfit=isedfit, $
+  qaplot=qaplot, clobber=clobber
+; jm11may05ucsd -
+
+; clash_isedfit, /model, /ised, /clob, supergrid=[1,2,3]    
+    
+    isedpath = clash_path(/ised)
+    catpath = clash_path(/cat)
+    sfhgrid_basedir = clash_path(/monte)
+    sfhgrid_paramfile = isedpath+'clash_sfhgrid.par'
+
+; read the supergrid parameter file    
+    supergrid_paramfile = isedpath+'clash_supergrid.par'
+    super = yanny_readone(supergrid_paramfile)
+    if (n_elements(supergrid) ne 0) then begin
+       match2, super.supergrid, supergrid, m1, m2
+       if (total(m2 eq -1) ne 0) then message, 'Unknown supergrid!'
+       match, super.supergrid, supergrid, m1, m2
+       srt = sort(m2) & m1 = m1[srt] & m2 = m2[srt]
+       super = super[m1]
     endif
+    struct_print, super
+    nsuper = n_elements(super)
 
+; isedfit parameters
+    igm = '1'
+    nzz = '3'
+    prefix = 'a383'
+    zminmax = [1.0,1.1]
+
+; loop on each supergrid
+    for gg = 0, nsuper-1 do begin
+       splog, 'working on grid '+strtrim(super[gg].supergrid,2)
+
+       filters = clash_filterlist()
+       nfilt = n_elements(filters)
+
+       paramfile = isedpath+prefix+'_supergrid'+string(super[gg].supergrid,$
+         format='(i2.2)')+'_isedfit.par'
+       if im_file_test(paramfile,clobber=clobber) then return
+       
 ; --------------------------------------------------
 ; build the models
-    if keyword_set(models) then isedfit_models, paramfile, $
-      iopath=iopath, sfhgrid_basedir=sfhgrid_basedir, clobber=clobber
-
-; --------------------------------------------------
-; do the fitting!  
-    if keyword_set(isedfit) then begin
-       phot = mrdfits(hizea_path(/sdss)+'hizea_galex_sdss_spitzer.fits.gz',1)
-       maggies = phot.maggies
-       ivarmaggies = phot.ivarmaggies
-       zobj = phot.z
-       filt = hizea_filterlist()
-
-       if keyword_set(noirac) then begin
-          toss = where(strmatch(filt,'*irac*'))
-          ivarmaggies[toss,*] = 0.0
-          outprefix = 'hizea_noirac'
+       if keyword_set(models) then begin
+          clash_write_paramfile, paramfile, prefix=prefix, zminmax=zminmax, $
+            nzz=nzz, filters=filters, igm=igm, super=super[gg]
+          isedfit_models, paramfile, iopath=isedpath, clobber=clobber, $
+            sfhgrid_basedir=sfhgrid_basedir
        endif
-       isedfit, paramfile, maggies, ivarmaggies, zobj, result, $
-         iopath=iopath, outprefix=outprefix, galchunksize=galchunk, $
-         sfhgrid_paramfile=sfhgrid_paramfile, sfhgrid_basedir=sfhgrid_basedir, $
-         clobber=clobber, debug=debug, index=index
-    endif 
 
 ; --------------------------------------------------
-; make a QAplot
-    if keyword_set(qaplot) then begin
-       if keyword_set(noirac) then outprefix = 'hizea_noirac'
+; do the fitting!
+       if keyword_set(isedfit) then begin
+          clash_write_paramfile, paramfile, prefix=prefix, zminmax=zminmax, $
+            nzz=nzz, filters=filters, igm=igm, super=super[gg]
+; read the catalog, and fit both with and without the first two bands
+          cat = mrdfits(catpath+'a383.fits.gz',1)
+          cat = [cat,cat]
+          clash_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist
+          ivarmaggies[0:1,1] = 0 ; do not use!
 
-       sample = mrdfits(hizea_path(/sdss)+'hizea_galex_sdss_spitzer.fits.gz',1)
-;      index = where(sample.maggies[8] gt 0) ; has ch1 flux
-;      galaxy = sample[index].galaxy
+          isedfit, paramfile, maggies, ivarmaggies, cat.z, iopath=isedpath, $
+            clobber=clobber, sfhgrid_paramfile=sfhgrid_paramfile, $
+            sfhgrid_basedir=sfhgrid_basedir, debug=debug, outprefix=outprefix
+       endif       
 
-       keck = rsex(hizea_path(/sdss)+'keckao_sample.sex')
-
-       ra = 15D*im_hms2dec(keck.ra) 
-       dec = im_hms2dec(keck.dec)
-       spherematch, sample.ra, sample.dec, ra, dec, 3.0/3600.0, m1, m2
-       srt = sort(m2) & m1 = m1[srt] & m2 = m2[srt]
-       index = m1
-       galaxy = sample[index].galaxy
+; --------------------------------------------------
+; make some QAplots
+       if keyword_set(qaplot) then begin
+          cat = mrdfits(catpath+'a383.fits.gz',1)
+          cat = [cat,cat]
+          isedfit_qaplot, paramfile, result, iopath=iopath, galaxy=cat.galaxy, $
+            index=index, clobber=clobber, sfhgrid_basedir=sfhgrid_basedir, $
+            outprefix=outprefix
+       endif
        
-       isedfit_qaplot, paramfile, isedfit, iopath=iopath, galaxy=galaxy, $
-         index=index, sfhgrid_basedir=sfhgrid_basedir, clobber=clobber, $
-         outprefix=outprefix
-    endif
+; --------------------------------------------------
+; measure rest-frame quantities
+       if keyword_set(measure) then begin
+          isedfit_measure, paramfile, measure, isedfit, iopath=iopath, $
+         clobber=clobber, outprefix=outprefix
+       endif
+    endfor                      ; close SFHGRID loop
 
 return
 end

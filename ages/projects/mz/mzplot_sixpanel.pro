@@ -34,10 +34,10 @@ pro mzplot_sixpanel, zobj, xall, yall, weightall, oh_err=oh_err, $
             position=pos[*,iz], xrange=xrange, yrange=yrange, xsty=1, ysty=1, $
             xtitle=xtitle, ytitle=ytitle, xtickname=xtickname, $
             ytickname=ytickname, _extra=extra, ccolor=djs_icolor('grey'), /nogrey
-          abin = im_medxbin(xx,yy,0.15,weight=ww/ee^2,/verbose,minpts=3)
-          oploterror, abin.xbin, abin.meany, abin.sigymean, psym=symcat(9,thick=5), $
-            symsize=1.1, thick=6, color=fsc_color('blue',101), $
-            errcolor=fsc_color('blue',101)
+;         abin = im_medxbin(xx,yy,0.15,weight=ww/ee^2,/verbose,minpts=3)
+;         oploterror, abin.xbin, abin.meany, abin.sigymean, psym=symcat(9,thick=5), $
+;           symsize=1.1, thick=6, color=fsc_color('blue',101), $
+;           errcolor=fsc_color('blue',101)
 ;         djs_oplot, mm.xbin, mm.medy, psym=6, symsize=0.5
        endif else begin
           djs_plot, [0], [0], /nodata, noerase=(iz gt 0), $
@@ -54,24 +54,37 @@ pro mzplot_sixpanel, zobj, xall, yall, weightall, oh_err=oh_err, $
 ; ----------
 ; MZ relation
        if (n_elements(mzlocal) ne 0) then begin
-          djs_oplot, massaxis, mz_closedbox(massaxis,mzlocal.coeff), $
+          ohlocal = mz_closedbox(massaxis,mzlocal.coeff)
+          good = where(ohlocal gt !y.crange[0]+0.07)
+          djs_oplot, massaxis[good], ohlocal[good], $
             line=localline, color=localcolor, thick=8
+; overplot the evolutionary model derived in FIT_MZLZEVOL (see also
+; MZPLOT_OHEVOL)
+          if (iz gt 0) then begin
+             ohmodel = ohlocal + (zbins[iz].zbin-mzevol.qz0)*$
+               poly(massaxis-mzevol.dlogohdz_normmass,mzevol.dlogohdz_coeff)
+             keep = where((ohmodel gt !y.crange[0]+0.07))
+             djs_oplot, massaxis[keep], ohmodel[keep], line=evolline, $
+               color=fsc_color(evolcolor,101), thick=8
+          endif
        endif
-       if (n_elements(mzevol) ne 0) then begin
-;          djs_oplot, massaxis, mzevol_func(massaxis,mzevol.coeffs[*,0]*[1,1,1,0,0],$
-;            z=zbins[iz].zbin,qz0=mzevol.qz0), line=localline, $
-;            color=fsc_color(localcolor,101), thick=8
+       
+;       if (n_elements(mzevol) ne 0) then begin
 ;          if (iz gt 0) then begin
-;; r0=0.0 dex/z
-;             djs_oplot, massaxis, mzevol_func(massaxis,mzevol.coeffs[*,0],$
-;               z=zbins[iz].zbin,qz0=mzevol.qz0), line=evolline, $
+;;; free R0
+;;             ohmodel = mzevol_func(massaxis,mzevol.coeffs,$
+;;               z=zbins[iz].zbin,qz0=mzevol.qz0)
+;;             good = where(ohmodel gt !y.crange[0]+0.07)
+;;             djs_oplot, massaxis[good], ohmodel[good], line=3, $
+;;               color=fsc_color('navy',101), thick=8
+;; R0=0
+;             ohmodel = mzevol_func(massaxis,mzevol.coeffs_r0zero,$
+;               z=zbins[iz].zbin,qz0=mzevol.qz0)
+;             good = where(ohmodel gt !y.crange[0]+0.07)
+;             djs_oplot, massaxis[good], ohmodel[good], line=5, $
 ;               color=fsc_color(evolcolor,101), thick=8
-;; r0=-0.5 dex/z
-;             djs_oplot, massaxis, mzevol_func(massaxis,mzevol.coeffs[*,2],$;*[1,1,1,0,1],$
-;               z=zbins[iz].zbin,qz0=mzevol.qz0), line=1, $
-;               color=fsc_color(evolcolor,101), thick=8
-;          endif
-       endif
+;          endif 
+;      endif
 ; ----------
 ; LZ relation
 ;      if (n_elements(lzlocal) ne 0) then begin

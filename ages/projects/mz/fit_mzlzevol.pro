@@ -34,14 +34,13 @@ return, fit
 end
 
 function mlfit_mzevol, mass, oh, oh_err, weight, z, $
-  r0=r0, qz0=qz0, mzlocal=mzlocal
+  r0=r0, qz0=qz0, nmzparams=nparams, mzlocal=mzlocal
 ; fit the MZ relation with redshift
 
-    if (n_elements(r0) eq 0) then r0 = 0.0 ; mass evolution [dex/z]
+    functargs = {z: z, qz0: qz0}
 
-; closed-box model with linear evolution in (O/H)* and M* (so five
-; total parameters)
-    nparams = 5
+; closed-box model with linear evolution in log (O/H)* and log M* (so
+; five total parameters)
     parinfo = {value: 1D, limited: [0,0], limits: [0D,0D], fixed: 0}
     parinfo = replicate(parinfo,nparams)
 
@@ -49,193 +48,392 @@ function mlfit_mzevol, mass, oh, oh_err, weight, z, $
     parinfo[0:2].value = mzlocal.coeff
     parinfo[0:2].fixed = 1
 
+; P[3]: log M*(z) = log M*(z=0.1) + R*(z-qz0)
+    if (n_elements(r0) eq 0) then begin ; M* evolution [dex/z]
+       parinfo[3].value = +0.5          ; [dex/z]
+       parinfo[3].fixed = 0
+    endif else begin
+       parinfo[3].value = r0            ; [dex/z]
+       parinfo[3].fixed = 1
+    endelse
+
 ; P[4]: (O/H)*(z) = (O/H)*(z=0.1) + P*(z-qz0)
-;   parinfo[3].value = -0.0 ; [dex/z]
-;   parinfo[3].fixed = 1
-    parinfo[3].value = -0.1 ; [dex/z]
-    parinfo[3].fixed = 0
-
-;   parinfo[3].value = -0.1     ; [dex/z]
-;   parinfo[4].limited = 1
-;   parinfo[4].limits = [-1.0,0.0]
+    parinfo[4].value = -0.1 ; [dex/z]
+;   parinfo[4].value = 0.05
+;   parinfo[5].value = -0.1 ; [dex/z]
     
-; P[5]: M*(z) = M*(z=0.1) + R*(z-qz0)
-    parinfo[4].value = r0 ; [dex/z]
-    parinfo[4].fixed = 1    
-;   parinfo[4].fixed = 0
-;   parinfo[4].limited[1] = 1
-;   parinfo[4].limits[1] = 0.0
-
 ; do the fit, pack it in, and return
-    functargs = {z: z, qz0: qz0}
-;   params = mpfitfun('mzevol_func',mass,oh,weight=weight*0.0+1.0,$
-;     parinfo=parinfo,functargs=functargs,perror=perror,dof=dof,$
-;     covar=covar,status=mpstatus,quiet=0,bestnorm=chi2,yfit=yfit)
-
-;   oh_err1 = sqrt((oh_err/sqrt(weight))^2+0.01^2)
-    oh_err1 = oh_err/sqrt(weight)
-    params = mpfitfun('mzevol_func',mass,oh,oh_err1,$
+    ohweight = weight/oh_err^2
+    params = mpfitfun('mzevol_func',mass,oh,weight=ohweight,$
       parinfo=parinfo,functargs=functargs,perror=perror,dof=dof,$
-      covar=covar,status=mpstatus,quiet=0,bestnorm=chi2,yfit=yfit)
-    fit = {params: params, perror: perror, chi2: chi2, $
-      dof: dof};, covar: covar}
-;   print
+      covar=covar,status=mpstatus,quiet=1,bestnorm=chi2,yfit=yfit)
+    fit = {params: params, perror: perror, $
+      chi2: chi2, dof: dof, covar: covar}
     
+;; Monte Carlo to get the errors on the parameters
+;    nmonte = 30
+;    params_monte = fltarr(nparams,nmonte)
+;    params_err = fltarr(nparams)
+;    parinfo_monte = parinfo
+;    for mm = 0, nmonte-1 do begin
+;       parinfo_monte[0:2].value = mzlocal.coeff+randomn(seed,n_elements(mzlocal.coeff))*mzlocal.coeff_err
+;       newoh = oh + randomn(seed,n_elements(oh))*oh_err
+;       params_monte[*,mm] = mpfitfun('mzevol_func',mass,newoh,weight=ohweight,$
+;         parinfo=parinfo_monte,functargs=functargs,quiet=1)
+;    endfor
+;    for mm = 0, nparams-1 do params_err[mm] = djsig(params_monte[mm,*])
+;    
+;    fit = {params: params, perror: params_err, $ ; perror, $
+;      chi2: chi2, dof: dof, covar: covar}
+
 return, fit
 end
 
-pro fit_mzlzevol, clobber=clobber
+function get_mzevol, ohdust, ancillary, mass, calib=calib, $
+  t04=t04, m91=m91, kk04=kk04, qz0=qz0, mzlocal=mzlocal, $
+  sdssohdust=sdssohdust, sdssancillary=sdssancillary, $
+  sdssmass=sdssmass
+; internal support routine to measure the MZ evolution
+
+    nmzparams = 5 ; see MLFIT_MZEVOL
+    zbins = mz_zbins(nz)
+    sdss_zbins = mz_zbins(/sdss)
+    massbins = mz_massbins(nmassbins)
+    
+    mzevol = {calib: calib, ngal: n_elements(ohdust), qz0: qz0, $
+;     coeffs: fltarr(nmzparams), coeffs_err: fltarr(nmzparams), $
+;     coeffs_r0free: fltarr(nmzparams), coeffs_r0free_err: fltarr(nmzparams), $
+;     covar_r0free: fltarr(nmzparams,nmzparams), $
+; AGES #########################
+; ngal, median mass, and median redshift in each mass & redshift bin
+      ngal_bymass: lonarr(nmassbins,nz), medmass_bymass: fltarr(nmassbins,nz)-999, $
+      medz_bymass: fltarr(nmassbins,nz)-999, $
+; average metallicity in bins of mass and redshift
+      ohmean_bymass: fltarr(nmassbins,nz)-999.0, ohmean_bymass_err: fltarr(nmassbins,nz)-999.0, $
+      ohmean_bymass_sigma: fltarr(nmassbins,nz)-999.0, $
+; change in metallicity with respect to the metallicity at z=0.1
+      dlogoh_bymass: fltarr(nmassbins,nz)-999.0, dlogoh_bymass_err: fltarr(nmassbins,nz)-999.0, $
+; SDSS #########################
+      sdss_ngal_bymass: lonarr(nmassbins), sdss_medmass_bymass: fltarr(nmassbins)-999, $
+      sdss_medz_bymass: fltarr(nmassbins)-999, $
+      sdss_ohmean_bymass: fltarr(nmassbins)-999.0, sdss_ohmean_bymass_err: fltarr(nmassbins)-999.0, $
+      sdss_ohmean_bymass_sigma: fltarr(nmassbins)-999.0, $
+      sdss_dlogoh_bymass: fltarr(nmassbins)-999.0, sdss_dlogoh_bymass_err: fltarr(nmassbins)-999.0, $
+; fit the dlogoh evolution      
+      coeffs_bymass: fltarr(2,nmassbins)-999.0, coeffs_bymass_err: fltarr(2,nmassbins)-999.0}
+
+; compute the mean metallicity offset from the local MZ relation in
+; bins of redshift and stellar mass
+    for iz = 0, nz-1 do begin
+       zinfo = mzlz_grab_info(ohdust,ancillary,mass,t04=t04,m91=m91,$
+         kk04=kk04,zmin=zbins[iz].zlo,zmax=zbins[iz].zup,/nolimit)
+
+; --------------------------------------------------
+; the following code block computes dlogoh wrt the local MZ relation;
+; it works fine, but we adopt a different procedure, below     
+
+; delta-(O/H) for galaxies with M>10^9; use Monte Carlo to account for
+; the uncertainty in the local MZ relation
+;          these = where(zinfo.mass gt 9.5,nobj)
+;          ohlocal = mz_closedbox(zinfo.mass[these],mzlocal.coeff)
+;          mzevol.dlogoh[iz] = im_weighted_mean(zinfo.oh[these]-ohlocal,$
+;            weight=zinfo.weight[these]/zinfo.oh_err[these]^2,$
+;            wmean_err=wmean_err,wsigma=wsigma)
+;          mzevol.dlogoh_sigma[iz] = wsigma
+;;         mzevol.dlogoh_err[iz] = wmean_err
+;
+;          nmonte = 30
+;          dlogoh_monte = fltarr(nmonte)
+;          for mm = 0, nmonte-1 do begin
+;             ohlocal_monte = mz_closedbox(zinfo.mass,mzlocal.coeff+$
+;               randomn(seed,n_elements(mzlocal.coeff))*mzlocal.coeff_err)
+;             ohmonte = zinfo.oh + randomn(seed,n_elements(zinfo.oh))*zinfo.oh_err
+;             dlogoh_monte[mm] = im_weighted_mean(ohmonte-ohlocal_monte,$
+;               weight=zinfo.weight/zinfo.oh_err^2)
+;          endfor
+;          mzevol.dlogoh_err[iz] = sqrt(wmean_err^2+djsig(dlogoh_monte)^2)
+; --------------------------------------------------
+
+; mean metallicity in bins of mass
+       for jj = 0, nmassbins-1 do begin
+          these = where((zinfo.mass ge massbins[jj].lomass) and $
+            (zinfo.mass lt massbins[jj].himass),nobj)
+          mzevol.ngal_bymass[jj,iz] = nobj
+          if (nobj ge 9) then begin
+             mzevol.medmass_bymass[jj,iz] = djs_median(zinfo.mass[these])
+             mzevol.medz_bymass[jj,iz] = djs_median(zinfo.z[these])
+
+             mzevol.ohmean_bymass[jj,iz] = im_weighted_mean(zinfo.oh[these],$
+               weight=zinfo.weight[these]/zinfo.oh_err[these]^2,$
+               wmean_err=wmean_err,wsigma=wsigma)
+             mzevol.ohmean_bymass_err[jj,iz] = wmean_err
+             mzevol.ohmean_bymass_sigma[jj,iz] = wsigma
+;            print, mzevol.ohmean_ngal[jj,iz], mzevol.ohmean[jj,iz], $
+;              mzevol.ohmean_err[jj,iz], mzevol.ohmean_sigma[jj,iz]
+
+; --------------------------------------------------
+; the following code block computes dlogoh in bins of mass wrt the
+; local MZ relation; it works fine, but we adopt a different
+; procedure, below
+             
+;; delta-(O/H) in bins of mass
+;            ohlocal = mz_closedbox(zinfo.mass[these],mzlocal.coeff)
+;            mzevol.dlogoh_bymass[jj,iz] = im_weighted_mean(zinfo.oh[these]-ohlocal,$
+;              weight=zinfo.weight[these]/zinfo.oh_err[these]^2,$
+;              wmean_err=wmean_err,wsigma=wsigma)
+;            mzevol.dlogoh_bymass_err[jj,iz] = wmean_err
+;            mzevol.dlogoh_bymass_sigma[jj,iz] = wsigma
+;;           ohevol = mzevol_func(zinfo.mass[these],mz.params,z=zbins[iz].zbin,qz0=qz0)
+;;           ploterror, zinfo.mass[these], zinfo.oh[these], zinfo.oh_err[these], $
+;;             psym=6, xr=[9,12], yr=[8,9.5], xsty=3, ysty=3
+;;           djs_oplot, zinfo.mass[these], ohevol, line=0, color='blue'
+;;           djs_oplot, zinfo.mass[these], ohlocal, line=0, color='red'
+; --------------------------------------------------
+          endif
+       endfor
+    endfor
+
+; do the same for the SDSS sample    
+    zinfo = mzlz_grab_info(sdssohdust,sdssancillary,sdssmass,$
+      t04=t04,m91=m91,kk04=kk04,/nolimit)
+    for jj = 0, nmassbins-1 do begin
+       these = where((zinfo.mass ge massbins[jj].lomass) and $
+         (zinfo.mass lt massbins[jj].himass),nobj)
+       mzevol.sdss_ngal_bymass[jj] = nobj
+       if (nobj gt 5) then begin
+          mzevol.sdss_medmass_bymass[jj] = djs_median(zinfo.mass[these])
+          mzevol.sdss_medz_bymass[jj] = djs_median(zinfo.z[these])
+          
+          mzevol.sdss_ohmean_bymass[jj] = im_weighted_mean(zinfo.oh[these],$
+            weight=zinfo.weight[these]/zinfo.oh_err[these]^2,$
+            wmean_err=wmean_err,wsigma=wsigma)
+          mzevol.sdss_ohmean_bymass_err[jj] = wmean_err
+          mzevol.sdss_ohmean_bymass_sigma[jj] = wsigma
+       endif
+    endfor
+
+; now loop back through and fit a linear model to the mean metallicity
+; in each mass bin; compute dlogoh as the difference between the
+; metallicities at each redshift and the metallicity of the *model*
+; fit at z=0.1
+    zbin = [sdss_zbins.zbin,zbins.zbin]
+    for mm = 0, nmassbins-1 do begin
+       ohmean = [mzevol.sdss_ohmean_bymass[mm],reform(mzevol.ohmean_bymass[mm,*])]
+       ohmean_err = [mzevol.sdss_ohmean_bymass_err[mm],reform(mzevol.ohmean_bymass_err[mm,*])]
+       medz = [mzevol.sdss_medz_bymass[mm],reform(mzevol.medz_bymass[mm,*])]
+; ignore the highest redshift point in the log(M)>11 subsample
+       gd = where(ohmean gt -900.0,ngd)
+       if (massbins[mm].massbin gt 11.0) then $
+         fitgd = where((ohmean gt -900.0) and (zbin lt 0.6),nfitgd) else fitgd = gd
+
+       if (ngd ne 0) then begin
+          mzevol.coeffs_bymass[*,mm] = linfit(medz[fitgd]-qz0,$
+            ohmean[fitgd],measure_err=ohmean_err[fitgd],sigma=sig)
+          mzevol.coeffs_bymass_err[*,mm] = sig
+
+; AGES          
+          agd = where(mzevol.ohmean_bymass[mm,*] gt -900.0,nagd)
+          if (nagd ne 0) then mzevol.dlogoh_bymass[mm,agd] = mzevol.ohmean_bymass[mm,agd]-mzevol.coeffs_bymass[0,mm]
+; SDSS
+          if (mzevol.sdss_ohmean_bymass[mm] gt -900.0) then mzevol.sdss_dlogoh_bymass[mm] = $
+            mzevol.sdss_ohmean_bymass[mm]-mzevol.coeffs_bymass[0,mm]
+          
+;         zaxis = range(0.0,0.8,50)
+;         ploterror, mzevol.medz_bymass[mm,gd], mzevol.ohmean_bymass[mm,gd], $
+;           mzevol.ohmean_bymass_err[mm,gd], psym=-6, sym=3, xr=[0,0.7], yr=[8.6,9.1]
+;         djs_oplot, zaxis, poly(zaxis-qz0,mzevol.coeffs_bymass[*,mm]), line=0
+;         kbrd = get_kbrd(1)
+       endif
+    endfor
+    
+return, mzevol
+end
+
+pro fit_mzlzevol, mzavg, clobber=clobber
 ; jm10may14ucsd - maximum likelihood fit of the metallicity evolution
 
-    qz0 = 0.1 ; reference redshift
+    mzpath = mz_path()
 
-; read the local MZ/LZ relations (see FIT_MZLZLOCAL)
-    mzpath = ages_path(/projects)+'mz/'
-    mzlocal = mrdfits(mzpath+'mzlocal_sdss_closedbox.fits.gz',1)
-;   mzlocal = mrdfits(mzpath+'mzlocal_sdss_brokenpl.fits.gz',1)
-    lzlocal = mrdfits(mzpath+'lzlocal_sdss.fits.gz',1)
-    ncalib = n_elements(lzlocal)
-
-    mzfile = mzpath+'mzevol.fits'
-    lzfile = mzpath+'lzevol_B.fits'
-
-    zbins = mz_zbins(nz)
-    
 ; read the data    
     agesancillary = read_mz_sample(/mzhii_ancillary)
     agesmass = read_mz_sample(/mzhii_mass)
     agesohdust = read_mz_sample(/mzhii_log12oh)
 
+    sdssancillary = read_mz_sample(/mzhii_ancillary,/sdss)
+    sdssmass = read_mz_sample(/mzhii_mass,/sdss)
+    sdssohdust = read_mz_sample(/mzhii_log12oh,/sdss)
+
 ; grid of evolutionary parameters
-    nmzparams = 5 ; see MLFIT_MZEVOL
-    nlzparams = 4 ; see MLFIT_LZEVOL
-
-    nr0grid = 3 ; 9
-    nq0grid = 4 ; 6
-    r0grid = range(0.0,0.5,nr0grid)
-    q0grid = [0.0,range(1.2,2.0,nq0grid-1)]
-
-    mzevol = replicate({calib: '', ngal: 0, qz0: qz0, $
-      ohstar: fltarr(nz,nr0grid), ohstar_err: fltarr(nz,nr0grid), $
-      dlogoh: fltarr(nz,nr0grid), $ ; dlogoh_err: fltarr(nz,nr0grid), $
-      dlogoh_avg: fltarr(nz,nr0grid), dlogoh_avg_err: fltarr(nz,nr0grid), $
-      coeffs: fltarr(nmzparams,nr0grid), $
-      pavg: fltarr(nr0grid), pavg_err: fltarr(nr0grid)},ncalib)
-    lzevol = replicate({calib: '', ngal: 0, qz0: qz0, $
-      ohstar: fltarr(nz,nq0grid), ohstar_err: fltarr(nz,nq0grid), $
-      dlogoh: fltarr(nz,nq0grid), $ ; dlogoh_err: fltarr(nz,nq0grid), $
-      dlogoh_avg: fltarr(nz,nq0grid), dlogoh_avg_err: fltarr(nz,nq0grid), $
-      coeffs: fltarr(nlzparams,nq0grid), $
-      savg: fltarr(nq0grid), savg_err: fltarr(nq0grid)},ncalib)
-
-    mzevol.calib = mzlocal.calib
-    lzevol.calib = lzlocal.calib
+    qz0 = 0.1 ; reference redshift
+    ncalib = 3
+    zbins = mz_zbins(nz)
+    massbins = mz_massbins(nmassbins)
     
 ; fit each calibration separately
-;splog, 'Testing!!'
-;   for ii = 2, ncalib-1 do begin
     for ii = 0, ncalib-1 do begin
-       t04 = 0 & m91 = 0 & kk04 = 0
        case ii of
-          0: t04 = 1
-          1: m91 = 1
-          2: kk04 = 1
+          0: begin
+             t04 = 1 & m91 = 0 & kk04 = 0
+             calib = 't04'
+          end
+          1: begin
+             t04 = 0 & m91 = 1 & kk04 = 0
+             calib = 'm91'
+          end
+          2: begin
+             t04 = 0 & m91 = 0 & kk04 = 1
+             calib = 'kk04'
+          end
        endcase
-       if keyword_set(t04) then calib = 't04'
-       if keyword_set(m91) then calib = 'm91'
-       if keyword_set(kk04) then calib = 'kk04'
+       mzlocal = mrdfits(mzpath+'mzlocal_sdss_ews_'+calib+'.fits.gz',1)
+       lzlocal = mrdfits(mzpath+'lzlocal_sdss_ews_'+calib+'.fits.gz',1)
 
-       mzlocal1 = mzlocal[where(strtrim(mzlocal.calib,2) eq calib)]
-       lzlocal1 = lzlocal[where(strtrim(lzlocal.calib,2) eq calib)]
-       info = mzlz_grab_info(agesohdust,agesancillary,agesmass,$
-         flux=flux,t04=t04,m91=m91,kk04=kk04);,zmin=0.15)
-       mzevol[ii].ngal = info.ngal
-       lzevol[ii].ngal = info.ngal
+       mzfile = mzpath+'mzevol_'+calib+'.fits'
+       lzfile = mzpath+'lzevol_B_'+calib+'.fits'
+
+; #########################
+; MZ relation evolution - AGES
+       mzevol = get_mzevol(agesohdust,agesancillary,agesmass,calib=calib,$
+         t04=t04,m91=m91,kk04=kk04,qz0=qz0,mzlocal=mzlocal,$
+         sdssohdust=sdssohdust,sdssancillary=sdssancillary,sdssmass=sdssmass)
+       if (ii eq 0) then allmzevol = mzevol else allmzevol = [allmzevol,mzevol]
+       im_mwrfits, mzevol, mzfile, clobber=clobber
+
+    endfor           
+
+; average everything over the three calibrations
+    ncoeff = 2
+    mzavg = {qz0: qz0, coeffs: fltarr(ncoeff), coeffs_err: fltarr(ncoeff), $
+      coeffs_bymass: fltarr(ncoeff,nmassbins), coeffs_bymass_err: fltarr(ncoeff,nmassbins), $
+; AGES
+      medz: fltarr(nz), dlogoh: fltarr(nz), dlogoh_err: fltarr(nz), $
+      medz_bymass: fltarr(nmassbins,nz)-999, medmass_bymass: fltarr(nmassbins,nz)-999, $
+      dlogoh_bymass: fltarr(nmassbins,nz)-999, dlogoh_bymass_err: fltarr(nmassbins,nz)-999, $
+; SDSS
+      sdss_medz: 0.0, sdss_dlogoh: 0.0, sdss_dlogoh_err: 0.0, $
+      sdss_medz_bymass: fltarr(nmassbins)-999, sdss_medmass_bymass: fltarr(nmassbins)-999, $
+      sdss_dlogoh_bymass: fltarr(nmassbins)-999, sdss_dlogoh_bymass_err: fltarr(nmassbins)-999, $
+; metallicity evolution rate vs mass coefficients
+      dlogohdz_coeff: fltarr(2), dlogohdz_coeff_err: fltarr(2), dlogohdz_normmass: 0.0}
+
+; average the coefficients and dlog over the three calibrations at
+; fixed stellar mass
+    for mm = 0, nmassbins-1 do begin
+       mzavg.coeffs_bymass[0,mm] = djs_mean(allmzevol.coeffs_bymass[0,mm])
+       mzavg.coeffs_bymass[1,mm] = djs_mean(allmzevol.coeffs_bymass[1,mm])
+       mzavg.coeffs_bymass_err[0,mm] = djsig(allmzevol.coeffs_bymass[0,mm])
+       mzavg.coeffs_bymass_err[1,mm] = djsig(allmzevol.coeffs_bymass[1,mm])
+
+; SDSS: average over all the calibrations at fixed stellar mass
+       mzavg.sdss_medmass_bymass[mm] = djs_mean(allmzevol.sdss_medmass_bymass[mm])
+       mzavg.sdss_medz_bymass[mm] = djs_mean(allmzevol.sdss_medz_bymass[mm])
+       gd = where(allmzevol.sdss_dlogoh_bymass[mm] gt -900.0,ngd)
+       if (ngd ne 0) then begin
+          mzavg.sdss_dlogoh_bymass[mm] = djs_mean(allmzevol[gd].sdss_dlogoh_bymass[mm])
+          mzavg.sdss_dlogoh_bymass_err[mm] = djsig(allmzevol[gd].sdss_dlogoh_bymass[mm])
+       endif
        
-; MZ relation
-       for jj = 0, nr0grid-1 do begin
-          mz = mlfit_mzevol(info.mass,info.oh,info.oh_err,$
-            info.weight,info.z,r0=r0grid[jj],qz0=qz0,mzlocal=mzlocal1)
-          mzevol[ii].coeffs[*,jj] = mz.params
-          noevol_params = mz.params*[1,1,1,1,0.0,1]
-; compute the mean offset of the data from the evolving MZ model
-          for iz = 0, nz-1 do begin
-             zinfo = mzlz_grab_info(agesohdust,agesancillary,agesmass,$
-               flux=flux,t04=t04,m91=m91,kk04=kk04,zmin=zbins[iz].zlo,$
-               zmax=zbins[iz].zup)
-; (O/H) at log(M/Msun)=10.5
-             ohmodel_noevol = mzevol_func(zinfo.mass,noevol_params,z=zinfo.z,qz0=qz0)
-             mzevol[ii].dlogoh[iz,jj] = im_weighted_mean(zinfo.oh-ohmodel_noevol,$
-               errors=zinfo.oh_err/sqrt(zinfo.weight),wmean_err=wmean_err)
-             mzevol[ii].ohstar[iz,jj] = mzevol[ii].dlogoh[iz,jj] + $
-               mzevol_func(mz_pivotmass(),noevol_params,z=zbins[iz].zbin,qz0=qz0) ; O/H @10.5
-             mzevol[ii].ohstar_err[iz,jj] = wmean_err
-          endfor
-; adjust dlogoh to be relative to the first redshift bin
-          mzevol[ii].dlogoh[*,jj] = mzevol[ii].dlogoh[*,jj]-mzevol[ii].dlogoh[0,jj]
+; AGES: average over all the calibrations at fixed stellar mass and redshift
+       for iz = 0, nz-1 do begin
+          mzavg.medmass_bymass[mm,iz] = djs_mean(allmzevol.medmass_bymass[mm,iz])
+          mzavg.medz_bymass[mm,iz] = djs_mean(allmzevol.medz_bymass[mm,iz])
+
+          gd = where(allmzevol.dlogoh_bymass[mm,iz] gt -900.0,ngd)
+          if (ngd ne 0) then begin
+             mzavg.dlogoh_bymass[mm,iz] = djs_mean(allmzevol[gd].dlogoh_bymass[mm,iz])
+             mzavg.dlogoh_bymass_err[mm,iz] = djsig(allmzevol[gd].dlogoh_bymass[mm,iz])
+          endif
        endfor
-
-;      mzevol[ii].ohstar[iz,jj] = weighted_quantile(zinfo.oh-ohmodel_noevol,zinfo.weight)+ $
-;        mzevol_func(mz_pivotmass(),noevol_params,z=zbins[iz].zbin,qz0=qz0) ; O/H @10.5
-
-; LZ relation       
-       for jj = 0, nq0grid-1 do begin
-          lz = mlfit_lzevol(info.mb_ab,info.oh,info.oh_err,$
-            info.weight,info.z,q0=q0grid[jj],qz0=qz0,lzlocal=lzlocal1)
-          lzevol[ii].coeffs[*,jj] = lz.params
-          noevol_params = lz.params*[1,1,0,1]
-;         splog, lz.params
-; compute the mean offset of the data from the evolving LZ model
-          for iz = 0, nz-1 do begin
-             zinfo = mzlz_grab_info(agesohdust,agesancillary,agesmass,$
-               flux=flux,t04=t04,m91=m91,kk04=kk04,zmin=zbins[iz].zlo,$
-               zmax=zbins[iz].zup)
-             ohmodel_noevol = lzevol_func(zinfo.mb_ab,noevol_params,z=zinfo.z,$
-               qz0=qz0,pivotmag=lz_pivotmag())
-             lzevol[ii].dlogoh[iz,jj] = im_weighted_mean(zinfo.oh-ohmodel_noevol,$
-               errors=zinfo.oh_err/sqrt(zinfo.weight),wmean_err=wmean_err)
-             lzevol[ii].ohstar[iz,jj] = lzevol[ii].dlogoh[iz,jj] + $
-               lzevol_func(lz_pivotmag(),noevol_params,z=zbins[iz].zbin,$
-               qz0=qz0,pivotmag=lz_pivotmag()) ; O/H @-20.5
-             lzevol[ii].ohstar_err[iz,jj] = wmean_err
-; if (jj eq 2) and (iz eq 4) then stop
-;            print, q0grid[jj], mean(zinfo.oh-ohmodel_noevol), $
-;              lzevol_func(lz_pivotmag(),noevol_params,z=zbins[iz].zbin,$
-;              qz0=qz0,pivotmag=lz_pivotmag()), mean(zinfo.oh-ohmodel_noevol)+$
-;              lzevol_func(lz_pivotmag(),noevol_params,z=zbins[iz].zbin,$
-;              qz0=qz0,pivotmag=lz_pivotmag())
-          endfor
-; adjust dlogoh to be relative to the first redshift bin
-          lzevol[ii].dlogoh[*,jj] = lzevol[ii].dlogoh[*,jj]-lzevol[ii].dlogoh[0,jj]
-       endfor 
-    endfor          
-
-; compute the average dlogoh across all three calibrations;
-; unfortunately we'll have three copies of the same numbers, but it's
-; easier than making a whole new structure
-    for ii = 0, ncalib-1 do for jj = 0, nr0grid-1 do for iz = 0, nz-1 do begin
-       mzevol[ii].dlogoh_avg[iz,jj] = djs_mean(mzevol.dlogoh[iz,jj])
-       mzevol[ii].dlogoh_avg_err[iz,jj] = djsig(mzevol.dlogoh[iz,jj])
-    endfor
-    for ii = 0, ncalib-1 do for jj = 0, nq0grid-1 do for iz = 0, nz-1 do begin
-       lzevol[ii].dlogoh_avg[iz,jj] = djs_mean(lzevol.dlogoh[iz,jj])
-       lzevol[ii].dlogoh_avg_err[iz,jj] = djsig(lzevol.dlogoh[iz,jj])
     endfor
 
-; finally also compute the mean evolution *rate* based on the MZ and
-; LZ relations, averaging across the three calibrations
-    for ii = 0, ncalib-1 do for jj = 0, nr0grid-1 do begin
-       mzevol[ii].pavg[jj] = djs_mean(mzevol.coeffs[4,jj]) ; mean metallicity evolution
-       mzevol[ii].pavg_err[jj] = djsig(mzevol.coeffs[4,jj])
+; now average over all the stellar mass bins
+    mzavg.sdss_medz = djs_mean(mzavg.sdss_medz_bymass)
+    gd = where(mzavg.sdss_dlogoh_bymass[*] gt -900.0,ngd)
+    if (ngd ne 0) then begin
+       mzavg.sdss_dlogoh = djs_mean(mzavg.sdss_dlogoh_bymass[gd])
+       mzavg.sdss_dlogoh_err = djsig(mzavg.sdss_dlogoh_bymass[gd])
+    endif
+
+    for iz = 0, nz-1 do begin
+       mzavg.medz[iz] = djs_mean(mzavg.medz_bymass[*,iz])
+       gd = where(mzavg.dlogoh_bymass[*,iz] gt -900.0,ngd)
+       if (ngd ne 0) then begin
+          mzavg.dlogoh[iz] = djs_mean(mzavg.dlogoh_bymass[gd,iz])
+          mzavg.dlogoh_err[iz] = djsig(mzavg.dlogoh_bymass[gd,iz])
+       endif
     endfor
-    for ii = 0, ncalib-1 do for jj = 0, nq0grid-1 do begin
-       lzevol[ii].savg[jj] = djs_mean(lzevol.coeffs[2,jj]) ; mean metallicity evolution
-       lzevol[ii].savg_err[jj] = djsig(lzevol.coeffs[2,jj])
-    endfor    
     
-; write out    
-    im_mwrfits, mzevol, mzfile, clobber=clobber
-    im_mwrfits, lzevol, lzfile, clobber=clobber
+; average over all masses and calibrations; ignore the lowest mass
+; bin; note that the intercept is defined to be zero at QZ0
+    mzavg.coeffs[1] = djs_mean(mzavg.coeffs_bymass[1,0:nmassbins-2])
+    mzavg.coeffs_err[1] = djsig(mzavg.coeffs_bymass[1,0:nmassbins-2])
 
+; there is a strong correlation between the rate of metallicity
+; evolution and stellar mass; fit it here, ignoring the lowest mass
+; bin 
+    mzavg.dlogohdz_normmass = 10.5
+    slopemass = massbins[0:nmassbins-2].massbin
+    slope = mzavg.coeffs_bymass[1,0:nmassbins-2]
+    slopeerr = mzavg.coeffs_bymass_err[1,0:nmassbins-2]
+
+    mzavg.dlogohdz_coeff = linfit(slopemass-mzavg.dlogohdz_normmass,slope,$
+      measure_err=slopererr,sigma=coeff_err,covar=covar,chisq=chi2)
+    mzavg.dlogohdz_coeff_err = coeff_err
+
+; the coefficients above give us the shape of the MZ relation as a
+; function of redshift; try to fit it here with a simple model that
+; allows for evolution in M* and (O/H)*; from the paper, solve for P
+; and R
+
+stop    
+    
+    mzfit = mlfit_mzevol(info.mass,info.oh,info.oh_err,r0=0.0,$ ; R0=0
+      info.weight,info.z,qz0=qz0,mzlocal=mzlocal,nmzparams=nmzparams)
+;   mzfit = mlfit_mzevol(info.mass,info.oh,info.oh_err,$ ; R0 free
+;     info.weight,info.z,qz0=qz0,mzlocal=mzlocal,nmzparams=nmzparams)
+    
+    mzevol.coeffs = mzfit.params
+    mzevol.coeffs_err = mzfit.perror
+
+    
+    
+    
+    
+; go write the paper!    
+    mzavgfile = mzpath+'mzevol_avg.fits'
+    im_mwrfits, mzavg, mzavgfile, clobber=clobber
+    
+;; LZ relation       
+;       for jj = 0, nq0grid-1 do begin
+;          lz = mlfit_lzevol(info.mb_ab,info.oh,info.oh_err,$
+;            info.weight,info.z,q0=q0grid[jj],qz0=qz0,lzlocal=lzlocal)
+;          lzevol[ii].coeffs[*,jj] = lz.params
+;          noevol_params = lz.params*[1,1,0,1]
+;;         splog, lz.params
+;; compute the mean offset of the data from the evolving LZ model
+;          for iz = 0, nz-1 do begin
+;             zinfo = mzlz_grab_info(agesohdust,agesancillary,agesmass,$
+;               flux=flux,t04=t04,m91=m91,kk04=kk04,zmin=zbins[iz].zlo,$
+;               zmax=zbins[iz].zup)
+;             ohmodel_noevol = lzevol_func(zinfo.mb_ab,noevol_params,z=zinfo.z,$
+;               qz0=qz0,pivotmag=lz_pivotmag())
+;             lzevol[ii].dlogoh[iz,jj] = im_weighted_mean(zinfo.oh-ohmodel_noevol,$
+;               errors=zinfo.oh_err/sqrt(zinfo.weight),wmean_err=wmean_err)
+;             lzevol[ii].ohstar[iz,jj] = lzevol[ii].dlogoh[iz,jj] + $
+;               lzevol_func(lz_pivotmag(),noevol_params,z=zbins[iz].zbin,$
+;               qz0=qz0,pivotmag=lz_pivotmag()) ; O/H @-20.5
+;             lzevol[ii].ohstar_err[iz,jj] = wmean_err
+;; if (jj eq 2) and (iz eq 4) then stop
+;;            print, q0grid[jj], mean(zinfo.oh-ohmodel_noevol), $
+;;              lzevol_func(lz_pivotmag(),noevol_params,z=zbins[iz].zbin,$
+;;              qz0=qz0,pivotmag=lz_pivotmag()), mean(zinfo.oh-ohmodel_noevol)+$
+;;              lzevol_func(lz_pivotmag(),noevol_params,z=zbins[iz].zbin,$
+;;              qz0=qz0,pivotmag=lz_pivotmag())
+;          endfor
+;; adjust dlogoh to be relative to the first redshift bin
+;          lzevol[ii].dlogoh[*,jj] = lzevol[ii].dlogoh[*,jj]-lzevol[ii].dlogoh[0,jj]
+;       endfor 
+
+    
 return
 end

@@ -309,14 +309,16 @@ return
 end
     
 
-;; read the 37 kpc K-band photometry and compute the aperture
-;; correction
-;    sample = rsex('bcgs_sample_v3.sex')
-;    phot = mrdfits(bcgspath+'bcgs_photometry_v3.fits.gz',1)
-;    all = djs_readlines(bcgspath+'all.Ks.out')
-;    ngal = n_elements(all)
-;    ktot = dblarr(ngal)
-;    for ii = 0, ngal-1 do ktot[ii] = (strsplit(all[ii],' ',/extract))[38]
-;
-;    im_plothist, 10^(-0.4*(phot.ks_mag_aper_08-ktot))
+; read the 37 kpc K-band photometry and compute the aperture
+; correction
+    sample = rsex('bcgs_sample_v3.sex')
+    phot = mrdfits('bcgs_photometry_v3.fits.gz',1)
+    all = djs_readlines('all.Ks.out')
+    ngal = n_elements(all)
+    ktot = dblarr(ngal)
+;   for ii = 0, ngal-1 do ktot[ii] = (strsplit(all[ii],' ',/extract))[3]
+    for ii = 0, ngal-1 do ktot[ii] = (strsplit(all[ii],' ',/extract))[38]
+    niceprint, lindgen(n_elements(sample)), sample.z, sample.dec, ktot
+
+    im_plothist, 10^(-0.4*(phot.ks_mag_aper_08-ktot))
     

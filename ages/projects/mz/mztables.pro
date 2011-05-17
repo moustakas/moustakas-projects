@@ -58,6 +58,190 @@ pro mztables, preprint=preprint
     paperpath = ages_path(/papers)+'mz/'
 
 ; ---------------------------------------------------------------------------    
+; coefficients of the linear fits to the mean metallicity vs redshift
+; plots (Fig 14) in bins of stellar mass and for each calibration 
+    texfile = paperpath+'mztable_z_vs_oh_bymass_coeff'+filesuffix+'.tex'
+    splog, 'Writing '+texfile
+    
+; read the fitting results
+    mzavg = mrdfits(mzpath+'mzevol_avg.fits.gz',1,/silent)
+    massbins = mz_massbins(nmassbins)
+
+    calib = ['kk04','t04','m91']
+    ncalib = n_elements(calib)
+
+    mass = '\log\,(\mass/\msun)'
+;   masslabel = ['\multicolumn{2}{c}{$'+mass+'>11$}','',$
+;     '\multicolumn{2}{c}{$10.5<'+mass+'<11$}','',$
+;     '\multicolumn{2}{c}{$10<'+mass+'<10.5$}','',$
+;     '\multicolumn{2}{c}{$9.5<'+mass+'<10$}']
+    masslabel = ['$'+mass+'>11$','$10.5<'+mass+'<11$','$10<'+mass+'<10.5$','$9.5<'+mass+'<10$']
+    
+    colhead1 = mzget_colhead(['','a','b','','a','b'])
+    colhead2 = mzget_colhead(['Calibration','(dex)','(dex $z^{-1}$)','','(dex)','(dex $z^{-1}$)'],/nobreak)
+    colhead3 = mzget_colhead(['','\multicolumn{2}{c}{'+masslabel[0]+'}','','\multicolumn{2}{c}{'+masslabel[1]+'}'])
+    colhead4 = mzget_colhead(['','\multicolumn{2}{c}{'+masslabel[2]+'}','','\multicolumn{2}{c}{'+masslabel[3]+'}'])
+    texcenter = replicate('c',6)
+    
+    tablenotetext = [$
+      '{a}{The mean metallicities listed in Table~\ref{table:oh_bymass} in each '+$
+      'stellar mass interval were fitted with a model of the form '+$
+      '$12+\log\,(\textrm{O}/\textrm{H}) = a + b\,(z-0.1)$, where $b$ gives the metallicity evolution '+$
+      'rate in dex per unit redshift, relative to $z=0.1$.}']
+    
+    openw, lun, texfile, /get_lun
+    printf, lun, '\begin{deluxetable*}{'+strjoin(texcenter)+'}[!h]'
+    printf, lun, '\tablecaption{Rate of Metallicity Evolution in Bins of Stellar '+$
+      'Mass\tablenotemark{a}\label{table:oh_bymass_coeff}}'
+    printf, lun, '\tablewidth{0pt}'
+    printf, lun, '\tablehead{'
+    niceprintf, lun, colhead1
+    niceprintf, lun, colhead2
+    printf, lun, '}'
+    printf, lun, '\startdata'
+    printf, lun, '\cline{1-6}'
+
+; -------------------------
+; M>11 and 10.5<M<11    
+    printf, lun, colhead3
+    printf, lun, '\cline{2-3}'
+    printf, lun, '\cline{5-6}'
+
+    for ii = 0, ncalib-1 do begin
+       mzevol = mrdfits(mzpath+'mzevol_'+calib[ii]+'.fits.gz',1,/silent)
+       printf, lun, strupcase(calib[ii])+' & '
+; M>11
+       printf, lun, $
+         '$'+string(mzevol.coeffs_bymass[0,0],format='(F5.3)')+'\pm'+$
+         string(mzevol.coeffs_bymass_err[0,0]>0.01,format='(F4.2)')+'$ & '+$
+         '$'+string(mzevol.coeffs_bymass[1,0],format='(F7.3)')+'\pm'+$
+         string(mzevol.coeffs_bymass_err[1,0],format='(F7.3)')+'$ & & '+$ ; space
+; 10.5<M<11
+         '$'+string(mzevol.coeffs_bymass[0,1],format='(F5.3)')+'\pm'+$
+         string(mzevol.coeffs_bymass_err[0,1]>0.01,format='(F4.2)')+'$ & '+$
+         '$'+string(mzevol.coeffs_bymass[1,1],format='(F7.3)')+'\pm'+$
+         string(mzevol.coeffs_bymass_err[1,1],format='(F7.3)')+'$ \\ '
+    endfor
+    printf, lun, '\cline{1-6}'
+    
+; -------------------------
+; 10<M<10.5 and 9.5<M<10
+    printf, lun, colhead4
+    printf, lun, '\cline{2-3}'
+    printf, lun, '\cline{5-6}'
+
+    for ii = 0, ncalib-1 do begin
+       if (ii eq ncalib-1) then suffix = '' else suffix = '\\'
+       mzevol = mrdfits(mzpath+'mzevol_'+calib[ii]+'.fits.gz',1,/silent)
+       printf, lun, strupcase(calib[ii])+' & '
+; 10<M<10.5
+       printf, lun, $
+         '$'+string(mzevol.coeffs_bymass[0,2],format='(F5.3)')+'\pm'+$
+         string(mzevol.coeffs_bymass_err[0,2]>0.01,format='(F4.2)')+'$ & '+$
+         '$'+string(mzevol.coeffs_bymass[1,2],format='(F7.3)')+'\pm'+$
+         string(mzevol.coeffs_bymass_err[1,2],format='(F7.3)')+'$ & & '+$ ; space
+; 9.5<M<10
+         '$'+string(mzevol.coeffs_bymass[0,3],format='(F5.3)')+'\pm'+$
+         string(mzevol.coeffs_bymass_err[0,3]>0.01,format='(F4.2)')+'$ & '+$
+         '$'+string(mzevol.coeffs_bymass[1,3],format='(F7.3)')+'\pm'+$
+         string(mzevol.coeffs_bymass_err[1,3],format='(F7.3)')+'$ '+suffix
+    endfor
+
+    printf, lun, '\enddata'
+;   printf, lun, '\tablecomments{'+tablecomments+'}'
+    niceprintf, lun, '\tablenotetext'+tablenotetext
+    printf, lun, '\end{deluxetable*}'
+    free_lun, lun
+
+stop    
+    
+; ---------------------------------------------------------------------------    
+; mean metallicity in bins of mass and redshift, for each calibration
+; (Fig 14)
+    texfile = paperpath+'mztable_z_vs_oh_bymass'+filesuffix+'.tex'
+    splog, 'Writing '+texfile
+    
+; read the fitting results
+    zbins = mz_zbins(nz)
+    sdss_zbins = mz_zbins(/sdss)
+    massbins = mz_massbins(nmassbins)
+
+    mass = '\log\,(\mass/\msun)'
+    masslabel = ['$'+mass+'>11$','$10.5<'+mass+'<11$','$10<'+mass+'<10.5$','$9.5<'+mass+'<10$']
+    
+;   colhead1 = mzget_colhead(['Redshift','Median','\multicolumn{3}{c}{$12+\log\,(\textrm{O}/\textrm{H})$}'])
+;   colhead2 = mzget_colhead(['Range','Redshift','KK04','T04','M91'],/nobreak)
+    colhead1 = mzget_colhead(['Redshift','Median','','',''])
+    colhead2 = mzget_colhead(['Range','Redshift','$\langle12+\log\,(\textrm{O}/\textrm{H})_{\rm KK04}\rangle$',$
+      '$\langle12+\log\,(\textrm{O}/\textrm{H})_{\rm T04}\rangle$',$
+      '$\langle12+\log\,(\textrm{O}/\textrm{H})_{\rm M91}\rangle$'],/nobreak)
+    texcenter = ['c','c','c','c','c']
+
+    tablenotetext = [$
+      '{a}{Variance weighted mean metallicity of galaxies in multiple bins of stellar mass and redshift, '+$
+      'based on the KK04, T04, and M91 calibrations.  Note that the metallicities in the first row of '+$
+      'each stellar mass interval correspond to our SDSS sample, while the metallicities in the other rows are based on '+$
+      'our AGES sample.}']
+    
+    openw, lun, texfile, /get_lun
+    printf, lun, '\begin{deluxetable*}{'+strjoin(texcenter)+'}[!h]'
+    printf, lun, '\tablecaption{Mean Oxygen Abundance in Bins of Mass \& Redshift\tablenotemark{a}\label{table:oh_bymass}}'   
+    printf, lun, '\tablewidth{0pt}'
+    printf, lun, '\tablehead{'
+    niceprintf, lun, colhead1
+    niceprintf, lun, colhead2
+    printf, lun, '}'
+    printf, lun, '\startdata'
+
+    calib = ['kk04','t04','m91']
+    ncalib = n_elements(calib)
+    
+    for mm = 0, nmassbins-2 do begin
+       printf, lun, '\multicolumn{5}{c}{'+masslabel[mm]+'} \\'
+       printf, lun, '\cline{1-5}'
+
+       info = replicate({zrange: '\nodata', medz: '\nodata', oh_kk04: '\nodata', $
+         oh_t04: '\nodata', oh_m91: '\nodata'},nz+1) ; SDSS+AGES
+
+       for ii = 0, ncalib-1 do begin
+          mzevol = mrdfits(mzpath+'mzevol_'+calib[ii]+'.fits.gz',1,/silent)
+          good = where(mzevol.ohmean_bymass[mm,*] gt -900.0)
+
+          if (ii eq 0) then begin
+             info.zrange = '$'+string([sdss_zbins.zlo,zbins.zlo],format='(F4.2)')+'-'+$
+               string([sdss_zbins.zup,zbins.zup],format='(F4.2)')+'$'
+             info[[0,good+1]].medz = '$'+string([mzevol.sdss_medz_bymass[mm],$
+               reform(mzevol.medz_bymass[mm,good])],format='(F4.2)')+'$'
+          endif
+
+          info[[0,good+1]].(ii+2) = '$'+string([mzevol.sdss_ohmean_bymass[mm],$ ; offset from the redshifts
+            reform(mzevol.ohmean_bymass[mm,good])],format='(F5.3)')+$
+            '\pm'+string([mzevol.sdss_ohmean_bymass_err[mm],$
+            reform(mzevol.ohmean_bymass_err[mm,good])]>0.01,format='(F4.2)')+'$'
+       endfor
+       struct_print, info
+
+       ntags = n_tags(info)
+       for kk = 0, nz do begin
+          for jj = 0, ntags-1 do begin
+             if (jj eq ntags-1) then if (kk eq nz) then suffix = '' else $
+               suffix = ' \\' else suffix = ' & '
+             printf, lun, info[kk].(jj)+suffix
+          endfor
+       endfor
+       printf, lun, '\\'
+       if (mm lt nmassbins-2) then printf, lun, '\cline{1-5}'
+    endfor
+
+    printf, lun, '\enddata'
+;   printf, lun, '\tablecomments{'+tablecomments+'}'
+    niceprintf, lun, '\tablenotetext'+tablenotetext
+    printf, lun, '\end{deluxetable*}'
+    free_lun, lun
+
+stop    
+    
+; ---------------------------------------------------------------------------    
 ; SDSS MZ/LZ relations
     texfile = paperpath+'mztable_mzlzlocal'+filesuffix+'.tex'
     splog, 'Writing '+texfile

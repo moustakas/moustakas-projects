@@ -88,18 +88,15 @@ pro mzplot_sixpanel, zobj, xall, yall, weightall, oh_err=oh_err, $
 ; ----------
 ; LZ relation
 ;      if (n_elements(lzlocal) ne 0) then begin
-;         oplot_lzfit, lzlocal.coeff, band='B', linestyle=localline, $
+;         oplot_lzfit, lzlocal.coeff, linestyle=localline, $
 ;           linecolor=localcolor
 ;      endif
        if (n_elements(lzevol) ne 0) then begin
-          oplot_lzfit, lzevol.coeffs[*,0]*[1,1,0,1], band='B', linestyle=localline, $
-            linecolor=localcolor, z=zbins[iz].zbin, qz0=lzevol.qz0, /evol 
+          oplot_lzfit, lzevol.coeff, linestyle=localline, $
+            linecolor=localcolor, z=zbins[0].zbin, qz0=lzevol.qz0, /evol
           if (iz gt 0) then begin
-; q0=0.0 mag/z
-             oplot_lzfit, lzevol.coeffs[*,0], band='B', linestyle=evolline, $
-               linecolor=evolcolor, z=zbins[iz].zbin, qz0=lzevol.qz0, /evol
-; q0=1.6 mag/z
-             oplot_lzfit, lzevol.coeffs[*,2]*[1,1,0,1], band='B', linestyle=1, $
+; assumes no luminosity evolution
+             oplot_lzfit, lzevol.coeff, linestyle=evolline, $
                linecolor=evolcolor, z=zbins[iz].zbin, qz0=lzevol.qz0, /evol
           endif
        endif

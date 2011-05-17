@@ -34,7 +34,7 @@ pro mzplot_mzlzevol, ps=ps
     evolcolor = 'firebrick'
     
     mzevol = mrdfits(mzpath+'mzevol_avg.fits.gz',1)
-    for ii = 2, 2 do begin
+    for ii = 0, 2 do begin
        case ii of
           0: begin
              t04 = 1 & m91 = 0 & kk04 = 0
@@ -56,7 +56,7 @@ pro mzplot_mzlzevol, ps=ps
 
        mzlocal = mrdfits(mzpath+'mzlocal_sdss_ews_'+calib+'.fits.gz',1)
        lzlocal = mrdfits(mzpath+'lzlocal_sdss_ews_'+calib+'.fits.gz',1)
-;      mzevol = mrdfits(mzpath+'mzevol_'+calib+'.fits.gz',1)
+       lzevol = mrdfits(mzpath+'lzevol_'+calib+'.fits.gz',1)
 
 ;      ainfo = mzlz_grab_info(agesohnodust,agesancillary,agesmass,$
 ;        t04=t04,m91=m91,kk04=kk04,/nolimit,/flux,zmin=0.05,zmax=0.15)
@@ -75,12 +75,10 @@ pro mzplot_mzlzevol, ps=ps
        mzplot_sixpanel, ainfo.z, ainfo.mb_ab, ainfo.oh, ainfo.weight, $
          oh_err=ainfo.oh_err, psfile=psfile, xtitle=mzplot_mbtitle(), $
          ytitle=ohtitle, /ages, xrange=magrange1, yrange=ohrange1, npix=10, $
-         lzlocal=lzlocal, lzevol=lzevol[ii], localline=localline, $
+         lzlocal=lzlocal, lzevol=lzevol, localline=localline, $
          localcolor=localcolor, evolline=evolline, evolcolor=evolcolor, $
          postscript=keyword_set(ps)
     endfor
        
-stop
-    
 return
 end

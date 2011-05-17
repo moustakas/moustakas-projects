@@ -57,27 +57,68 @@ pro mzplot_ohevol, ps=ps
        suffix = '.eps'
     endelse
 
+; read the super-important output of FIT_MZLZEVOL()    
+    mzavg = mrdfits(mzpath+'mzevol_avg.fits.gz',1,/silent)
+
     zbins = mz_zbins(nz)
     massbins = mz_massbins(nmassbins)
 
+;; --------------------------------------------------
+;; QB (luminosity evolution rate) vs redshift for various bins of
+;; stellar mass
+;    mzlocal = mrdfits(mzpath+'mzlocal_sdss_ews_t04.fits.gz',1)
+;    psfile = pspath+'mzevol_model'+suffix
+;    im_plotconfig, 0, pos, psfile=psfile, height=4.7, width=6.5, $
+;      xmargin=[1.6,0.4]
+;
+;    xrange = [9.4,11.5]
+;    yrange = [8.55,9.15]
+;    xtitle1 = mzplot_masstitle()
+;    ytitle1 = mzplot_ohtitle()+'_{T04}'
+;    maxis = range(9.5,xrange[1]-0.05,100)
+;
+;    zval = [0.1,0.3,0.5,0.7,0.9]
+;    zlabel = 'z='+string(zval,format='(F3.1)')
+;    zline = [0,3,5,4,2]*0
+;    zline2 = zval*0+5
+;    zcolor = ['black','firebrick','dodger blue','forest green','orange']
+;    
+;    djs_plot, [0], [0], /nodata, ysty=1, xsty=1, position=pos, $
+;      xrange=xrange, yrange=yrange, xtitle=xtitle1, ytitle=ytitle1
+;    im_legend, zlabel, /right, /bottom, box=0, line=zline, $
+;      color=zcolor, pspacing=1.8, thick=6, margin=0, $
+;      charsize=1.6
+;    for ii = 0, n_elements(zval)-1 do begin
+;       ohmodel = mz_closedbox(maxis,mzlocal.coeff) + (zval[ii]-mzavg.qz0)*$
+;         poly(maxis-mzavg.dlogohdz_normmass,mzavg.dlogohdz_coeff)
+;       keep = where((ohmodel gt yrange[0]+0.03))
+;       djs_oplot, maxis[keep], ohmodel[keep], line=zline[ii], $
+;         color=fsc_color(zcolor[ii],101), thick=7
+;; P,R model
+;       djs_oplot, maxis, mzevol_func(maxis,mzavg.mlfit_coeffs,z=zval[ii],qz0=mzavg.qz0), $
+;         line=zline2[ii], color=fsc_color(zcolor[ii],101), thick=7
+;    endfor
+;    
+;    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
+
 ; --------------------------------------------------
 ; plot the evolution of the MZ relation on a single panel
-    mzavg = mrdfits(mzpath+'mzevol_avg.fits.gz',1,/silent)
     mzlocal = mrdfits(mzpath+'mzlocal_sdss_ews_t04.fits.gz',1)
     
     psfile = pspath+'mzevol_model'+suffix
     im_plotconfig, 0, pos, psfile=psfile, height=4.7, width=6.5, $
       xmargin=[1.6,0.4]
 
-    xrange = [9.3,11.5]
+    xrange = [9.4,11.5]
     yrange = [8.55,9.15]
     xtitle1 = mzplot_masstitle()
     ytitle1 = mzplot_ohtitle()+'_{T04}'
-    maxis = range(xrange[0]+0.05,xrange[1]-0.05,100)
+    maxis = range(9.5,xrange[1]-0.05,100)
 
     zval = [0.1,0.3,0.5,0.7,0.9]
     zlabel = 'z='+string(zval,format='(F3.1)')
-    zline = [0,3,5,4,2]
+    zline = [0,3,5,4,2]*0
+    zline2 = zval*0+5
     zcolor = ['black','firebrick','dodger blue','forest green','orange']
     
     djs_plot, [0], [0], /nodata, ysty=1, xsty=1, position=pos, $
@@ -91,13 +132,15 @@ pro mzplot_ohevol, ps=ps
        keep = where((ohmodel gt yrange[0]+0.03))
        djs_oplot, maxis[keep], ohmodel[keep], line=zline[ii], $
          color=fsc_color(zcolor[ii],101), thick=7
+; P,R model
+       djs_oplot, maxis, mzevol_func(maxis,mzavg.mlfit_coeffs,z=zval[ii],qz0=mzavg.qz0), $
+         line=zline2[ii], color=fsc_color(zcolor[ii],101), thick=7
     endfor
     
     im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
 
 ; --------------------------------------------------
 ; metallicity evolution rate (slope) vs stellar mass
-    mzavg = mrdfits(mzpath+'mzevol_avg.fits.gz',1,/silent)
     slopemass = massbins[0:nmassbins-2].massbin
     slope = mzavg.coeffs_bymass[1,0:nmassbins-2]
     slopeerr = mzavg.coeffs_bymass_err[1,0:nmassbins-2]
@@ -114,7 +157,7 @@ pro mzplot_ohevol, ps=ps
 
     djs_plot, [0], [0], /nodata, ysty=1, xsty=1, position=pos, $
       xrange=xrange, yrange=yrange, xtitle=xtitle1, ytitle=ytitle1
-    legend, ['z=0.0-0.75'], /right, /bottom, box=0
+    legend, ['z=0.03-0.75'], /right, /bottom, box=0
     oploterror, slopemass, slope, slopeerr, psym=symcat(6,thick=8), $
       sym=4, errthick=8
 
@@ -147,8 +190,6 @@ pro mzplot_ohevol, ps=ps
 
 ; --------------------------------------------------
 ; average dlog-O/H vs redshift in bins of mass
-    mzavg = mrdfits(mzpath+'mzevol_avg.fits.gz',1,/silent)
-    
     psfile = pspath+'z_vs_dlogoh_avg'+suffix
     im_plotconfig, 0, pos, psfile=psfile, height=5.0, width=6.7, $
       xmargin=[1.4,0.4]

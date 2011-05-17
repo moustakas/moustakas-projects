@@ -35,11 +35,6 @@ pro build_mz_emline, sdss=sdss, clobber=clobber, doplot=doplot
     parent = read_mz_sample(sdss=sdss,/parent)
     mass = read_mz_sample(sdss=sdss,/mass)
 
-;   ewcut1 = 0.0
-;   ewhbcut1 = 0.0
-;   sdss_snrcut = 5.0
-;   ages_snrcut = 2.0
-
 ; see MZPLOT_SAMPLE for details    
     ages_hbcut = mz_hbcut()
     ages_ewcut = 0.0
@@ -61,6 +56,8 @@ pro build_mz_emline, sdss=sdss, clobber=clobber, doplot=doplot
        vagc = mz_get_vagc(sample=sample,letter=letter,poststr=poststr)
        ispec = read_vagc_garching(sample=sample,$
          letter=letter,poststr=poststr,/ispec)
+       ispec = ispec[parent.vagc_object_position]
+       
        mz = where($
          (ispec.h_beta[0] gt sdss_hbcut) and $
          (ispec.h_beta[0]/ispec.h_beta[1] gt sdss_snrcut) and $ ; nominal cut

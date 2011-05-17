@@ -74,6 +74,7 @@ function mzlz_grab_info, stroh, stranc, strmass, flux=flux, $
     if tag_exist(stranc,'FINAL_WEIGHT') then $
       weight = stranc[indx].final_weight else $
         weight = oh*0.0+1.0
+
     if tag_exist(stranc,'OH_AVG') then $
       tremonti_oh = stranc[indx].oh_avg else $
         tremonti_oh = oh*0.0

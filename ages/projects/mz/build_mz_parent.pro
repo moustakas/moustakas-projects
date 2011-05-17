@@ -16,16 +16,12 @@ pro build_mz_parent, sdss=sdss, clobber=clobber
        splog, '#########################'
        splog, 'Building the SDSS comparison sample'
 
-; read and write out the stellar masses; just use the fiducial grid (01) 
-       ised = mrdfits(isedpath+'sdss_bc03_chab_charlot_sfhgrid01.fits.gz',1)
-       im_mwrfits, ised, mzpath+'sdss_parent_mass.fits', /clobber
-
 ; POSTSTR/35: -17>Mr>-24; 0.033<z<0.25; note that if POSTSTR changes
 ; then SDSS_ISEDFIT needs to be rerun
 ; 
 ; area=2.1187566 sr or 6955.47 deg^2 (see
 ; $VAGC_LSS/bsafe/35/lss/README.dr72bsafe35) 
-; 
+;
 ; total volume = jhnvol(0.033,0.25)*6955.47*3600.0 = 7.23E+08 Mpc^3  
        vagc = mz_get_vagc(sample=sample,letter=letter,poststr=poststr)
        post = read_vagc_garching(sample=sample,$
@@ -39,13 +35,38 @@ pro build_mz_parent, sdss=sdss, clobber=clobber
          letter=letter,poststr=poststr,/vmax_noevol)
        vmax_evol = read_vagc_garching(sample=sample,$
          letter=letter,poststr=poststr,/vmax_evol)
-       ngal = n_elements(post)
 
+; apply the window
+       windowfile = mzpath+'dr72bsafe35.ply'
+       keep = where(im_is_in_window(windowfile,ra=post.ra,$
+         dec=post.dec,polyid=allpolyid),ngal)
+       polyid = allpolyid[keep]
+
+       post = post[keep]
+       massoh = massoh[keep]
+       vmax_noevol = vmax_noevol[keep]
+       vmax_evol = vmax_evol[keep]
+       
+       maggies = maggies[*,keep]
+       ivarmaggies = ivarmaggies[*,keep]
+
+; read and write out the stellar masses; just use the fiducial grid (01) 
+       ised = mrdfits(isedpath+'sdss_bc03_chab_charlot_sfhgrid01.fits.gz',1,row=keep)
+       im_mwrfits, ised, mzpath+'sdss_parent_mass.fits', /clobber
+
+; add fgot as the statistical weight
+       post = struct_addtags(temporary(post),replicate({vagc_object_position: 0L, $
+         final_weight: 1.0},ngal))
+       read_mangle_polygons, windowfile, win
+       post.vagc_object_position = keep
+       post.final_weight = win[polyid].weight
+       
 ; build the final catalog by keeping just the tags we want
-       sample = struct_trimtags(post,select=['object_position','ra','dec','z'])
+       sample = struct_trimtags(post,select=['object_position','ra','dec',$
+         'z','vagc_object_position','final_weight'])
        sample = struct_addtags(temporary(sample),struct_trimtags(massoh,$
          except=['ra','dec','z','oh_entropy']))
-       sample = struct_addtags(temporary(sample),struct_trimtags(sdssphot,$
+       sample = struct_addtags(temporary(sample),struct_trimtags(sdssphot[keep],$
          select=['modelflux*','petroflux*','fiberflux*','extinction','petror*']))
 
        sample = struct_addtags(temporary(sample),$
@@ -58,7 +79,7 @@ pro build_mz_parent, sdss=sdss, clobber=clobber
          newtags=['zmin','zmax','vmax']+'_evol'))
        sample.vmax_noevol = sample.vmax_noevol/h100^3.0 ; h=1-->h=0.7
        sample.vmax_evol = sample.vmax_evol/h100^3.0 ; h=1-->h=0.7
-
+       
 ; compute K-corrections
        splog, 'Computing K-corrections'
        kcorr = mz_kcorrect(sample.z,maggies,ivarmaggies,filterlist=filterlist)

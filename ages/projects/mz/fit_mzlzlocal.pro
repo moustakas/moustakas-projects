@@ -135,8 +135,6 @@ pro fit_mzlzlocal, clobber=clobber, debug=debug, verbose=verbose
 ;       im_mwrfits, brokenpl, brokenpl_file, /clobber
     endfor
 
-stop    
-    
 ; --------------------------------------------------    
 ; fit the SDSS and low-redshift AGES LZ relations using all three
 ; abundance calibrations  
@@ -213,8 +211,6 @@ stop
        endfor
     endfor
 
-stop    
-    
 return
 end
     

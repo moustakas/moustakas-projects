@@ -105,8 +105,6 @@ pro mzplot_mzlzlocal, ps=ps
     
     im_plotconfig, /psclose, psfile=psfile, /gzip
 
-stop    
-    
 ; ---------------------------------------------------------------------------    
 ; paper plot - SDSS LZ relation showing four separate calibrations
     magrange = [-17,-22.7]
@@ -198,8 +196,6 @@ stop
 
     im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
 
-stop    
-    
 ; ---------------------------------------------------------------------------    
 ; paper plot - SDSS MZ relation showing four separate calibrations;
 ; see FIT_MZLZLOCAL for the adopted sample cuts
@@ -435,8 +431,6 @@ stop
        im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
     endfor
 
-stop    
-    
 ; ---------------------------------------------------------------------------    
 ; QAplot - local MZ relation using the MPA metallicities and compare
 ; with Tremonti et al. 2004

@@ -13,15 +13,20 @@
 ;   J. Moustakas, 2010 Mar 07, UCSD 
 ;-
 
-pro parse_mpa
+pro parse_mpa, dr4=dr4
 
 ; I/O path and data file names; there are a few choices for the
 ; "indices" file: idxfix has been corrected for sky-line
 ; contamination; I don't know what "newidx" is, so I don't use it
 ; here; and "indx" is the table of raw measurements; for more details
 ; see http://www.mpa-garching.mpg.de/SDSS/DR7/raw_data.html#errors
-    datapath = sdss_path(/mpa_dr7)
-    suffix = 'dr7_v5_2'
+    if keyword_set(dr4) then begin
+       datapath = sdss_path(/mpa_dr4)
+       suffix = 'dr4_v5_1b'
+    endif else begin
+       datapath = sdss_path(/mpa_dr7)
+       suffix = 'dr7_v5_2'
+    endelse
     
     infofile = datapath+'gal_info_'+suffix+'.fit.gz'
     linefile = datapath+'gal_line_'+suffix+'.fit.gz'
@@ -60,8 +65,6 @@ pro parse_mpa
     
     massoh = struct_addtags(moretags,temporary(massoh))
     im_mwrfits, temporary(massoh), massohfile, /clobber
-    
-stop    
     
 ; parse the emission- and absorption-line files into ispec format 
     splog, 'Reading '+linefile ; this file is big!

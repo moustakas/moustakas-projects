@@ -77,22 +77,26 @@ pro mztables, preprint=preprint
 ;     '\multicolumn{2}{c}{$9.5<'+mass+'<10$}']
     masslabel = ['$'+mass+'>11$','$10.5<'+mass+'<11$','$10<'+mass+'<10.5$','$9.5<'+mass+'<10$']
     
-    colhead1 = mzget_colhead(['','a','b','','a','b'])
+    colhead1 = mzget_colhead(['','$\langle12+\log\,(\textrm{O}/\textrm{H})\rangle_{z=0.1}$',$
+      '${\mathrm d}\log\,(\textrm{O}/\textrm{H})/{\mathrm d}z$','',$
+      '$\langle12+\log\,(\textrm{O}/\textrm{H})\rangle_{z=0.1}$',$
+      '${\mathrm d}\log\,(\textrm{O}/\textrm{H})/{\mathrm d}z$'])
     colhead2 = mzget_colhead(['Calibration','(dex)','(dex $z^{-1}$)','','(dex)','(dex $z^{-1}$)'],/nobreak)
     colhead3 = mzget_colhead(['','\multicolumn{2}{c}{'+masslabel[0]+'}','','\multicolumn{2}{c}{'+masslabel[1]+'}'])
     colhead4 = mzget_colhead(['','\multicolumn{2}{c}{'+masslabel[2]+'}','','\multicolumn{2}{c}{'+masslabel[3]+'}'])
     texcenter = replicate('c',6)
     
     tablenotetext = [$
-      '{a}{The mean metallicities listed in Table~\ref{table:oh_bymass} in each '+$
-      'stellar mass interval were fitted with a model of the form '+$
-      '$12+\log\,(\textrm{O}/\textrm{H}) = a + b\,(z-0.1)$, where $b$ gives the metallicity evolution '+$
-      'rate in dex per unit redshift, relative to $z=0.1$.}']
+      '{a}{The adopted linear model is given by: $\langle 12+\log\,(\textrm{O}/\textrm{H})\rangle = '+$
+      '\langle 12+\log\,(\textrm{O}/\textrm{H})\rangle_{z=0.1} + {\mathrm d}\log\,(\textrm{O}/\textrm{H})/'+$
+      '{\mathrm d}z\times(z-0.1)$, where $\langle12+\log\,(\textrm{O}/\textrm{H})\rangle_{z=0.1}$ is '+$
+      'the mean metallicity at $z=0.1$ and ${\mathrm d}\log\,(\textrm{O}/\textrm{H})/{\mathrm d}z$ is the '+$
+      'logarithmic rate of metallicity evolution.}']
     
     openw, lun, texfile, /get_lun
     printf, lun, '\begin{deluxetable*}{'+strjoin(texcenter)+'}[!h]'
-    printf, lun, '\tablecaption{Rate of Metallicity Evolution in Bins of Stellar '+$
-      'Mass\tablenotemark{a}\label{table:oh_bymass_coeff}}'
+    printf, lun, '\tablecaption{Mass-Dependent Evolution of the Mean Metallicity of '+$
+      'Galaxies at $z=0.03-0.75$ \tablenotemark{a}\label{table:oh_bymass_coeff}}'
     printf, lun, '\tablewidth{0pt}'
     printf, lun, '\tablehead{'
     niceprintf, lun, colhead1
@@ -153,8 +157,6 @@ pro mztables, preprint=preprint
     printf, lun, '\end{deluxetable*}'
     free_lun, lun
 
-stop    
-    
 ; ---------------------------------------------------------------------------    
 ; mean metallicity in bins of mass and redshift, for each calibration
 ; (Fig 14)
@@ -171,24 +173,28 @@ stop
     
 ;   colhead1 = mzget_colhead(['Redshift','Median','\multicolumn{3}{c}{$12+\log\,(\textrm{O}/\textrm{H})$}'])
 ;   colhead2 = mzget_colhead(['Range','Redshift','KK04','T04','M91'],/nobreak)
-    colhead1 = mzget_colhead(['Redshift','Median','','',''])
-    colhead2 = mzget_colhead(['Range','Redshift','$\langle12+\log\,(\textrm{O}/\textrm{H})_{\rm KK04}\rangle$',$
+;   colhead1 = mzget_colhead(['Redshift','','','','',''])
+    colhead2 = mzget_colhead(['Redshift Range','$N_{\rm gal}$\tablenotemark{b}','$z_{\rm med}$\tablenotemark{c}',$
+      '$\langle12+\log\,(\textrm{O}/\textrm{H})_{\rm KK04}\rangle$',$
       '$\langle12+\log\,(\textrm{O}/\textrm{H})_{\rm T04}\rangle$',$
       '$\langle12+\log\,(\textrm{O}/\textrm{H})_{\rm M91}\rangle$'],/nobreak)
-    texcenter = ['c','c','c','c','c']
+    texcenter = ['c','c','c','c','c','c']
 
     tablenotetext = [$
-      '{a}{Variance weighted mean metallicity of galaxies in multiple bins of stellar mass and redshift, '+$
+      '{a}{Weighted mean metallicity of galaxies in multiple bins of stellar mass and redshift, '+$
       'based on the KK04, T04, and M91 calibrations.  Note that the metallicities in the first row of '+$
       'each stellar mass interval correspond to our SDSS sample, while the metallicities in the other rows are based on '+$
-      'our AGES sample.}']
+      'our AGES sample.}',$
+      '{b}{Number of galaxies in this redshift interval and stellar mass bin.}',$
+      '{c}{Median redshift of the subsample.}']
     
     openw, lun, texfile, /get_lun
     printf, lun, '\begin{deluxetable*}{'+strjoin(texcenter)+'}[!h]'
-    printf, lun, '\tablecaption{Mean Oxygen Abundance in Bins of Mass \& Redshift\tablenotemark{a}\label{table:oh_bymass}}'   
+    printf, lun, '\tablecaption{Mean Oxygen Abundance in Bins of Stellar Mass \& '+$
+      'Redshift\tablenotemark{a}\label{table:oh_bymass}}'   
     printf, lun, '\tablewidth{0pt}'
     printf, lun, '\tablehead{'
-    niceprintf, lun, colhead1
+;   niceprintf, lun, colhead1
     niceprintf, lun, colhead2
     printf, lun, '}'
     printf, lun, '\startdata'
@@ -197,11 +203,23 @@ stop
     ncalib = n_elements(calib)
     
     for mm = 0, nmassbins-2 do begin
-       printf, lun, '\multicolumn{5}{c}{'+masslabel[mm]+'} \\'
-       printf, lun, '\cline{1-5}'
+       printf, lun, '\multicolumn{6}{c}{'+masslabel[mm]+'} \\'
+       printf, lun, '\cline{1-6}'
 
-       info = replicate({zrange: '\nodata', medz: '\nodata', oh_kk04: '\nodata', $
-         oh_t04: '\nodata', oh_m91: '\nodata'},nz+1) ; SDSS+AGES
+       info = replicate({zrange: '\nodata', ngal: '\nodata', medz: '\nodata', $
+         oh_kk04: '\nodata', oh_t04: '\nodata', oh_m91: '\nodata'},nz+1) ; SDSS+AGES
+
+; get the mean number of galaxies       
+       allngal = lonarr(nz+1,ii)
+       for ii = 0, ncalib-1 do begin
+          mzevol = mrdfits(mzpath+'mzevol_'+calib[ii]+'.fits.gz',1,/silent)
+          good = where(mzevol.ohmean_bymass[mm,*] gt -900.0)
+;         print, [mzevol.sdss_ngal_bymass[mm],reform(mzevol.ngal_bymass[mm,*])]
+          print, [mzevol.sdss_ngal_bymass[mm],reform(mzevol.ngal_bymass[mm,good])]
+          allngal[[0,good+1],ii] = [mzevol.sdss_ngal_bymass[mm],reform(mzevol.ngal_bymass[mm,good])]
+       endfor
+       ngal = lonarr(nz+1)
+       for zz = 0, nz do ngal[zz] = djs_median(allngal[zz,*])
 
        for ii = 0, ncalib-1 do begin
           mzevol = mrdfits(mzpath+'mzevol_'+calib[ii]+'.fits.gz',1,/silent)
@@ -210,11 +228,11 @@ stop
           if (ii eq 0) then begin
              info.zrange = '$'+string([sdss_zbins.zlo,zbins.zlo],format='(F4.2)')+'-'+$
                string([sdss_zbins.zup,zbins.zup],format='(F4.2)')+'$'
+             info[[0,good+1]].ngal = '$'+string(ngal[[0,good+1]],format='(I0)')+'$'
              info[[0,good+1]].medz = '$'+string([mzevol.sdss_medz_bymass[mm],$
                reform(mzevol.medz_bymass[mm,good])],format='(F4.2)')+'$'
           endif
-
-          info[[0,good+1]].(ii+2) = '$'+string([mzevol.sdss_ohmean_bymass[mm],$ ; offset from the redshifts
+          info[[0,good+1]].(ii+3) = '$'+string([mzevol.sdss_ohmean_bymass[mm],$ ; offset from the redshifts
             reform(mzevol.ohmean_bymass[mm,good])],format='(F5.3)')+$
             '\pm'+string([mzevol.sdss_ohmean_bymass_err[mm],$
             reform(mzevol.ohmean_bymass_err[mm,good])]>0.01,format='(F4.2)')+'$'
@@ -239,8 +257,6 @@ stop
     printf, lun, '\end{deluxetable*}'
     free_lun, lun
 
-stop    
-    
 ; ---------------------------------------------------------------------------    
 ; SDSS MZ/LZ relations
     texfile = paperpath+'mztable_mzlzlocal'+filesuffix+'.tex'

@@ -201,7 +201,8 @@ function get_mzevol, ohdust, ancillary, mass, calib=calib, $
           these = where((zinfo.mass ge massbins[jj].lomass) and $
             (zinfo.mass lt massbins[jj].himass),nobj)
           mzevol.ngal_bymass[jj,iz] = nobj
-          if (nobj ge 9) then begin
+          if (massbins[jj].lomass ge 11.0) and (zbins[iz].zbin gt 0.6) then mingal = 11 else mingal = 9 ; special case 
+          if (nobj ge mingal) then begin
              mzevol.medmass_bymass[jj,iz] = djs_median(zinfo.mass[these])
              mzevol.medz_bymass[jj,iz] = djs_median(zinfo.z[these])
 
@@ -242,16 +243,14 @@ function get_mzevol, ohdust, ancillary, mass, calib=calib, $
        these = where((zinfo.mass ge massbins[jj].lomass) and $
          (zinfo.mass lt massbins[jj].himass),nobj)
        mzevol.sdss_ngal_bymass[jj] = nobj
-       if (nobj gt 5) then begin
-          mzevol.sdss_medmass_bymass[jj] = djs_median(zinfo.mass[these])
-          mzevol.sdss_medz_bymass[jj] = djs_median(zinfo.z[these])
-          
-          mzevol.sdss_ohmean_bymass[jj] = im_weighted_mean(zinfo.oh[these],$
-            weight=zinfo.weight[these]/zinfo.oh_err[these]^2,$
-            wmean_err=wmean_err,wsigma=wsigma)
-          mzevol.sdss_ohmean_bymass_err[jj] = wmean_err
-          mzevol.sdss_ohmean_bymass_sigma[jj] = wsigma
-       endif
+       mzevol.sdss_medmass_bymass[jj] = djs_median(zinfo.mass[these])
+       mzevol.sdss_medz_bymass[jj] = djs_median(zinfo.z[these])
+       
+       mzevol.sdss_ohmean_bymass[jj] = im_weighted_mean(zinfo.oh[these],$
+         weight=zinfo.weight[these]/zinfo.oh_err[these]^2,$
+         wmean_err=wmean_err,wsigma=wsigma)
+       mzevol.sdss_ohmean_bymass_err[jj] = wmean_err
+       mzevol.sdss_ohmean_bymass_sigma[jj] = wsigma
     endfor
 
 ; now loop back through and fit a linear model to the mean metallicity

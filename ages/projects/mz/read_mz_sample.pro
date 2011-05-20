@@ -40,18 +40,18 @@
 ;-
 
 function read_mz_sample, sdss=sdss, silent=silent, nodust=nodust, parent=parent, $
-  mass=mass, mz_ancillary=mz_ancillary, mz_mass=mz_mass, mz_ispec=mz_ispec, $
+  mass=mass, sfrs=sfrs, mz_ancillary=mz_ancillary, mz_mass=mz_mass, mz_ispec=mz_ispec, $
   mzhii_ancillary=mzhii_ancillary, mzhii_mass=mzhii_mass, mzhii_ispec=mzhii_ispec, $
   mzhii_log12oh=mzhii_log12oh, mzagn_ancillary=mzagn_ancillary, mzagn_mass=mzagn_mass, $
   mzagn_ispec=mzagn_ispec, mzagn_log12oh=mzagn_log12oh
 
     common mz_parent, $
-      ages_parent, ages_mass, ages_mz_ancillary, ages_mz_mass, ages_mz_ispec, $
+      ages_parent, ages_mass, ages_sfrs, ages_mz_ancillary, ages_mz_mass, ages_mz_ispec, $
       ages_mzhii_ancillary, ages_mzhii_mass, ages_mzhii_ispec, ages_mzhii_log12oh, $
       ages_mzhii_log12oh_nodust, ages_mzagn_ancillary, ages_mzagn_mass, $
       ages_mzagn_ispec, ages_mzagn_log12oh, ages_mzagn_log12oh_nodust, $
 
-      sdss_parent, sdss_mass, sdss_mz_ancillary, sdss_mz_mass, sdss_mz_ispec, $
+      sdss_parent, sdss_mass, sdss_sfrs, sdss_mz_ancillary, sdss_mz_mass, sdss_mz_ispec, $
       sdss_mzhii_ancillary, sdss_mzhii_mass, sdss_mzhii_ispec, sdss_mzhii_log12oh, $
       sdss_mzhii_log12oh_nodust, sdss_mzagn_ancillary, sdss_mzagn_mass, $
       sdss_mzagn_ispec, sdss_mzagn_log12oh, sdss_mzagn_log12oh_nodust
@@ -78,6 +78,15 @@ function read_mz_sample, sdss=sdss, silent=silent, nodust=nodust, parent=parent,
              sdss_mass = mrdfits(thisfile,1,silent=0)
           endif else if (keyword_set(silent) eq 0) then splog, 'Restoring '+file_basename(thisfile)
           return, sdss_mass
+       endif 
+; see BUILD_MZ_SFRS
+       if keyword_set(sfrs) then begin
+          thisfile = mzpath+'sdss_parent_sfrs.fits.gz'
+          if (size(sdss_sfrs,/type) ne 8) then begin
+             if (keyword_set(silent) eq 0) then splog, 'Reading '+thisfile
+             sdss_sfrs = mrdfits(thisfile,1,silent=0)
+          endif else if (keyword_set(silent) eq 0) then splog, 'Restoring '+file_basename(thisfile)
+          return, sdss_sfrs
        endif 
 ; MZ/ancillary - see BUILD_MZ_EMLINE_SAMPLE
        if keyword_set(mz_ancillary) then begin
@@ -218,6 +227,15 @@ function read_mz_sample, sdss=sdss, silent=silent, nodust=nodust, parent=parent,
              ages_mass = mrdfits(thisfile,1,silent=0)
           endif else if (keyword_set(silent) eq 0) then splog, 'Restoring '+file_basename(thisfile)
           return, ages_mass
+       endif 
+; see BUILD_MZ_SFRS
+       if keyword_set(sfrs) then begin
+          thisfile = mzpath+'ages_parent_sfrs.fits.gz'
+          if (size(ages_sfrs,/type) ne 8) then begin
+             if (keyword_set(silent) eq 0) then splog, 'Reading '+thisfile
+             ages_sfrs = mrdfits(thisfile,1,silent=0)
+          endif else if (keyword_set(silent) eq 0) then splog, 'Restoring '+file_basename(thisfile)
+          return, ages_sfrs
        endif 
 ; MZ/ancillary
        if keyword_set(mz_ancillary) then begin

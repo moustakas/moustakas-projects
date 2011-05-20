@@ -264,7 +264,7 @@ pro mzplot_ohevol, ps=ps
     xrange = [-0.02,0.75]
     yrange = [8.6,9.26]
     xtitle1 = 'Redshift'
-    ytitle1 = mzplot_ohtitle()
+    ytitle1 = mzplot_ohtitle(/mean)
 
     zaxis = range(0.0,xrange[1]-0.03,50)
     

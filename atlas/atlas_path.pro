@@ -8,7 +8,7 @@ function atlas_path, atlas1d=atlas1d, atlas2d=atlas2d, ascii=ascii, web=web, $
 ; jm02apr15uofa
 ; jm09dec17uofa - added PPXF support
 
-    home = getenv('RESEARCHPATH')+'/projects/atlas'
+    home = getenv('IM_RESEARCH_DIR')+'/projects/atlas'
     
     path = home+'/'
     if keyword_set(spectral_atlas) then path = home+'/spectral_atlas/'

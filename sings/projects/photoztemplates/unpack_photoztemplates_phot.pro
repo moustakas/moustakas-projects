@@ -1,21 +1,44 @@
 pro unpack_photoztemplates_phot
 
     path = sings_path(/proj)+'photoztemplates/'
-    ff = file_search('NGC*.phot',count=nff)
 
-    phot = {galaxy: '', z: 0.0, maggies: fltarr(17), ivarmaggies: fltarr(17)}
-    phot = replicate(phot,nff)
-    phot.galaxy = repstr(ff,'.phot','')
+;   ff = file_search('NGC*.phot',count=ngal)
+    allphot = rsex(path+'locals.phot')
+    ngal = n_elements(allphot)
+
+    filters = photoztemplates_filterlist()
+    nfilt = n_elements(filters)
+;   kl = k_lambda(k_lambda_eff(filterlist=filters),/odon)
+    kl = 3.1*ext_ccm(k_lambda_eff(filterlist=filters))
     
-    for ii = 0, nff-1 do begin
-       all = djs_readilines(ff[ii])
-       nrow = n_elements(all)
-       mag = fltarr(nrow)
-       for jj = 0, nrow-1 do mag[jj] = float((strsplit(all[jj],' ',/extract))[1])
+    phot = {galaxy: '', z: 0.0, maggies: fltarr(nfilt), ivarmaggies: fltarr(nfilt)}
+    phot = replicate(phot,ngal)
 
-       phot[ii].maggies[0:nrow-1] = mag2maggies(mag,magerr=mag*0+0.05,ivarmaggies=ivar)
-       phot[ii].ivarmaggies[0:nrow-1] = ivar
+;   phot.galaxy = repstr(ff,'.phot','')
+    phot.galaxy = strtrim(allphot.name,2)
+    mag = allphot.(tag_indx(allphot,'abmag'))
+    gd = where((mag gt 0.0) and (mag lt 90.0))
+    phot[gd].maggies[0] = mag2maggies(mag[gd]-allphot[gd].ebv*kl[0],$
+      magerr=mag[gd]*0+0.05,ivarmaggies=ivar)
+    phot[gd].ivarmaggies[0] = ivar
+
+    for ii = 1, nfilt-1 do begin
+       mag = allphot.(tag_indx(allphot,'abmag'+strtrim(ii,2)))
+       gd = where((mag gt 0.0) and (mag lt 90.0))
+       phot[gd].maggies[ii] = mag2maggies(mag[gd]-allphot[gd].ebv*kl[ii],$
+         magerr=mag[gd]*0+0.05,ivarmaggies=ivar)
+       phot[gd].ivarmaggies[ii] = ivar
     endfor
+
+;   for ii = 0, nff-1 do begin
+;      all = djs_readilines(ff[ii])
+;      nrow = n_elements(all)
+;      mag = fltarr(nrow)
+;      for jj = 0, nrow-1 do mag[jj] = float((strsplit(all[jj],' ',/extract))[1])
+;
+;      phot[ii].maggies[0:nrow-1] = mag2maggies(mag,magerr=mag*0+0.05,ivarmaggies=ivar)
+;      phot[ii].ivarmaggies[0:nrow-1] = ivar
+;   endfor
 
 ; get the redshifts and also write out the optical spectra
 ;   info = read_sings_gandalf(/drift56)
@@ -27,13 +50,12 @@ pro unpack_photoztemplates_phot
     phot[m2].z = d56.zabs[m1]
 
 ; normalize the optical spectrum to the g-band flux and convert to mAB 
-    filters = photoztemplates_filterlist()
     normfilt = 'sdss_g0.par'
     this = (where(normfilt eq filters))[0]
 
     wave = d56.wave
-    flux = fltarr(n_elements(wave),nff)
-    isdata = intarr(n_elements(wave),nff)
+    flux = fltarr(n_elements(wave),ngal)
+    isdata = intarr(n_elements(wave),ngal)
 
     flux[*,m2] = d56.flux[*,m1]
     isdata[*,m2] = d56.isdata[*,m1]

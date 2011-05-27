@@ -39,47 +39,69 @@ function get_lzevol_mock, lzlocal, qz0=qz0
 ; of faint galaxies at higher redshift
 
 ; doesn't seem to matter!!    
+
+    zbins = mz_zbins(nz,zmin=zmin,zmax=zmax)
+    qb = 1.5
     
-    nmock = 1000
+    nmock = 5000
+    zz = randomu(seed,nmock)*(zmax-zmin)+zmin
     mb = randomu(seed,nmock)*(lzlocal.faintmag-lzlocal.brightmag)+lzlocal.brightmag
     oh = poly(mb-lz_pivotmag(),lzlocal.coeff)+randomn(seed,nmock)*lzlocal.scatter
+    mb_evol = mb - qb*(zz-qz0)
 
-    mbaxis = range(lzlocal.faintmag,lzlocal.brightmag,100) ; for the plot
+    dmod = dmodulus(zz)
+    keep = where((mb_evol lt 20.4-dmod^1.01) and (mb_evol gt 15.0-dmod))
+    zz = zz[keep]
+    mb = mb[keep]
+    oh = oh[keep]
+    mb_evol = mb_evol[keep]
 
-    zbins = mz_zbins(nz)
-    mbcut = [-17.0,-18.0,-19.0,-19.5,-20.5,-21]
+    plot, zz, mb_evol, psym=6, yrange=[-16,-25]
 
+    lzevol = mlfit_lzevol(mb_evol,oh,oh*0+0.1,oh*0.0+1,$
+      zz,q0=0.0,qz0=qz0,lzlocal=lzlocal,quiet=0)
+    
+    
+stop
+    
+    
+;   mbaxis = range(lzlocal.faintmag,lzlocal.brightmag,100) ; for the plot
+;   mbcut = [-17.0,-18.0,-19.0,-19.5,-20.5,-21]
+
+    qb = 1.5
     for iz = 0, nz-1 do begin
        keep = where(mb lt mbcut[iz],nkeep)
+       zfit1 = randomu(seed,nkeep)*(zbins[iz].zup-zbins[iz].zlo)+zbins[iz].zlo
+       mb1 = mb[keep] - qb*(zfit1-qz0)
+       oh1 = oh[keep]
        if (iz eq 0) then begin
-          mbfit = mb[keep]
-          ohfit = oh[keep]
+          mbfit = mb1
+          ohfit = oh1
 ;         zfit = keep*0+zbins[iz].zbin
-          zfit = randomu(seed,nkeep)*(zbins[iz].zup-zbins[iz].zlo)+zbins[iz].zlo
+          zfit = zfit1 
        endif else begin
-          mbfit = [mbfit,mb[keep]]
-          ohfit = [ohfit,oh[keep]]
+          mbfit = [mbfit,mb1]
+          ohfit = [ohfit,oh1]
 ;         zfit = [zfit,keep*0+zbins[iz].zbin]
-          zfit = [zfit,randomu(seed,nkeep)*(zbins[iz].zup-zbins[iz].zlo)+zbins[iz].zlo]
+          zfit = [zfit,zfit1]
        endelse
-    endfor       
+;      djs_plot, mb, oh, psym=6, xsty=3, ysty=3
+;      djs_oplot, mb1, oh1, psym=6, color='orange'
+;      djs_oplot, mbaxis, poly(mbaxis-lz_pivotmag(),lzlocal.coeff), line=0
+;      djs_oplot, mbaxis, lzevol_func(mbaxis,lzevol.params,z=zbins[iz].zbin,$
+;        qz0=qz0,pivotmag=lz_pivotmag())
+    endfor
 
 ; no apparent evolution!!    
     lzevol = mlfit_lzevol(mbfit,ohfit,ohfit*0+0.1,$
       ohfit*0.0+1,zfit,q0=0.0,qz0=qz0,lzlocal=lzlocal,quiet=0)
 stop
 
-;   djs_plot, mb, oh, psym=6, xsty=3, ysty=3
-;   djs_oplot, mb[keep], oh[keep], psym=6, color='orange'
-;   djs_oplot, mbaxis, poly(mbaxis-lz_pivotmag(),lzlocal.coeff), line=0
-;   djs_oplot, mbaxis, lzevol_func(mbaxis,lzevol.params,z=zbins[iz].zbin,$
-;     qz0=qz0,pivotmag=lz_pivotmag())
-
 return, mock
 end
 
 function mlfit_mzevol, mass, oh, oh_err, weight, z, $
-  r0=r0, qz0=qz0, mzlocal=mzlocal, quiet=quiet
+  p0=p0, r0=r0, qz0=qz0, mzlocal=mzlocal, quiet=quiet
 ; fit the MZ relation with redshift
 
     nparams = 5 ; see MLFIT_MZEVOL
@@ -96,18 +118,25 @@ function mlfit_mzevol, mass, oh, oh_err, weight, z, $
 
 ; P[3]: log M*(z) = log M*(z=0.1) + R*(z-qz0)
     if (n_elements(r0) eq 0) then begin ; M* evolution [dex/z]
-       parinfo[3].value = +0.5          ; [dex/z]
+       parinfo[3].value = +1.0          ; [dex/z]
        parinfo[3].fixed = 0
+;      parinfo[3].limited[0] = 1
     endif else begin
        parinfo[3].value = r0            ; [dex/z]
        parinfo[3].fixed = 1
     endelse
 
 ; P[4]: (O/H)*(z) = (O/H)*(z=0.1) + P*(z-qz0)
-    parinfo[4].value = -0.1 ; [dex/z]
-;   parinfo[4].value = 0.05
-;   parinfo[5].value = -0.1 ; [dex/z]
-    
+    if (n_elements(p0) eq 0) then begin
+       parinfo[4].value = -0.1  ; [dex/z]
+       parinfo[4].fixed = 0
+;      parinfo[4].limited[1] = 1
+    endif else begin
+       parinfo[4].value = p0
+       parinfo[4].fixed = 1
+    endelse
+    struct_print, parinfo
+       
 ; do the fit, pack it in, and return
     ohweight = weight/oh_err^2
     params = mpfitfun('mzevol_func',mass,oh,weight=ohweight,$
@@ -115,6 +144,9 @@ function mlfit_mzevol, mass, oh, oh_err, weight, z, $
       covar=covar,status=mpstatus,quiet=quiet,bestnorm=chi2,yfit=yfit)
     fit = {params: params, perror: perror, $
       chi2: chi2, dof: dof, covar: covar}
+
+;   djs_plot, mass, oh, psym=6, ysty=3
+;   djs_oplot, mass, yfit, psym=6, color='red'
     
 ;; Monte Carlo to get the errors on the parameters
 ;    nmonte = 30
@@ -368,12 +400,13 @@ pro fit_mzlzevol, mzavg, clobber=clobber
       sdss_medz_bymass: fltarr(nmassbins)-999, sdss_medmass_bymass: fltarr(nmassbins)-999, $
       sdss_dlogoh_bymass: fltarr(nmassbins)-999, sdss_dlogoh_bymass_err: fltarr(nmassbins)-999, $
 ; metallicity evolution rate vs mass coefficients
-      dlogohdz_coeff: fltarr(2), dlogohdz_coeff_err: fltarr(2), dlogohdz_normmass: 0.0, $
+      dlogohdz_medmass: fltarr(nmassbins)-999, dlogohdz_normmass: 0.0, $
+      dlogohdz_coeff: fltarr(2), dlogohdz_coeff_err: fltarr(2), $
 ; evolutionary coefficients for both P and R
       mlfit_coeffs: fltarr(5), mlfit_coeffs_err: fltarr(5), $
 ; B-band metallicity and luminosity evolution
       lz_slope: 0.0, lz_slope_err: 0.0, lz_dlogohdz: 0.0, lz_dlogohdz_err: 0.0, $
-      qb_bymass: fltarr(nmassbins,nz)-999.0, qb_bymass_err: fltarr(nmassbins,nz)-999.0}
+      dmb_bymass: fltarr(nmassbins,nz)-999.0, dmb_bymass_err: fltarr(nmassbins,nz)-999.0}
 
 ; average the coefficients and dlog over the three calibrations at
 ; fixed stellar mass
@@ -431,7 +464,13 @@ pro fit_mzlzevol, mzavg, clobber=clobber
 ; evolution and stellar mass; fit it here, ignoring the lowest mass
 ; bin 
     mzavg.dlogohdz_normmass = 10.5
-    slopemass = massbins[0:nmassbins-2].massbin
+    for mm = 0, nmassbins-1 do begin       
+       gd = where(mzavg.medmass_bymass[mm,*] gt -900.0,ngd)
+       if (ngd ne 0) then mzavg.dlogohdz_medmass[mm] = $
+         djs_median(mzavg.medmass_bymass[mm,gd])
+    endfor
+;   slopemass = massbins[0:nmassbins-2].massbin
+    slopemass = mzavg.dlogohdz_medmass[0:nmassbins-2]
     slope = mzavg.coeffs_bymass[1,0:nmassbins-2]
     slopeerr = mzavg.coeffs_bymass_err[1,0:nmassbins-2]
 
@@ -442,19 +481,20 @@ pro fit_mzlzevol, mzavg, clobber=clobber
 ; the coefficients above give us the shape of the MZ relation as a
 ; function of redshift; fit that evolution here with a simple model
 ; that allows for evolution in M* and (O/H)*; basically, we want to
-; solve for P and R
+; solve for P and R, averaged over all three calibrations
     mzlocal = mrdfits(mzpath+'mzlocal_sdss_ews_t04.fits.gz',1)
 
-    nz = 5
-    nmass = 100
-    mass = rebin(reform(range(9.3,11.5,nmass),nmass,1),nmass,nz)
-    zval = rebin(reform([0.1,0.3,0.5,0.7,0.9],1,nz),nmass,nz)
-    ohmodel = mass*0.0
-    for ii = 0, nz-1 do ohmodel[*,ii] = mz_closedbox(mass[*,ii],mzlocal.coeff) + $
-      (zval[*,ii]-qz0)*poly(mass[*,ii]-mzavg.dlogohdz_normmass,mzavg.dlogohdz_coeff)
-    ohmodel_err = ohmodel*0.0+0.05
-    
-    mzfit = mlfit_mzevol(mass,ohmodel,ohmodel_err,$
+    nfake = 2000
+    zmin = 0.1 & zmax = 0.9
+    minmass = 9.3 & maxmass = 11.5
+    zval = randomu(seed,nfake)*(zmax-zmin)+zmin
+    mass = randomu(seed,nfake)*(maxmass-minmass)+minmass
+
+    ohmodel = mz_closedbox(mass,mzlocal.coeff) + (zval-qz0)*$
+      poly(mass-mzavg.dlogohdz_normmass,mzavg.dlogohdz_coeff)
+    ohmodel_err = ohmodel*0.0+0.01
+
+    mzfit = mlfit_mzevol(mass,ohmodel,ohmodel_err,p0=0.0,$
       ohmodel*0+1,zval,qz0=qz0,mzlocal=mzlocal,quiet=0)
     mzavg.mlfit_coeffs = mzfit.params
     mzavg.mlfit_coeffs_err = mzfit.perror
@@ -483,8 +523,8 @@ pro fit_mzlzevol, mzavg, clobber=clobber
        denom = abs(mzavg.lz_slope)
        denom_err = mzavg.lz_slope_err
        
-       mzavg.qb_bymass[gd,iz] = numer/denom ; [mag/z]
-       mzavg.qb_bymass_err[gd,iz] = im_compute_error(numer,numer_err,$
+       mzavg.dmb_bymass[gd,iz] = numer/denom ; [mag/z]
+       mzavg.dmb_bymass_err[gd,iz] = im_compute_error(numer,numer_err,$
          denom,denom_err,/quotient)
     endfor
 

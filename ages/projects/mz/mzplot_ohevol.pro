@@ -141,7 +141,8 @@ pro mzplot_ohevol, ps=ps
 
 ; --------------------------------------------------
 ; metallicity evolution rate (slope) vs stellar mass
-    slopemass = massbins[0:nmassbins-2].massbin
+;   slopemass = massbins[0:nmassbins-2].massbin
+    slopemass = mzavg.dlogohdz_medmass[0:nmassbins-2]
     slope = mzavg.coeffs_bymass[1,0:nmassbins-2]
     slopeerr = mzavg.coeffs_bymass_err[1,0:nmassbins-2]
     
@@ -152,12 +153,15 @@ pro mzplot_ohevol, ps=ps
     xrange = [9.5,11.5]
     yrange = [-0.45,0.0]
     xtitle1 = mzplot_masstitle()
-    ytitle1 = textoidl('d[log(O/H)] / dz (dex z^{-1})')
+    ytitle1 = textoidl('d log(O/H) / dz (dex z^{-1})')
     maxis = range(xrange[0]+0.1,xrange[1]-0.1,50)
 
     djs_plot, [0], [0], /nodata, ysty=1, xsty=1, position=pos, $
       xrange=xrange, yrange=yrange, xtitle=xtitle1, ytitle=ytitle1
-    legend, ['z=0.03-0.75'], /right, /bottom, box=0
+    legend, ['z=0.03-0.75'], /left, /top, box=0
+    legend, textoidl('dlog(O/H)/dz = '+string(mzavg.dlogohdz_coeff[0],format='(F6.3)')+'+'+$
+      string(mzavg.dlogohdz_coeff[1],format='(F5.3)')+' log (M/10^{10.5} M_{'+sunsymbol()+'})'), $
+      /right, /bottom, box=0, charsize=1.4
     oploterror, slopemass, slope, slopeerr, psym=symcat(6,thick=8), $
       sym=4, errthick=8
 
@@ -195,28 +199,35 @@ pro mzplot_ohevol, ps=ps
       xmargin=[1.4,0.4]
 
     xrange = [-0.02,0.7]
-    yrange = [-0.3,0.08]
+    yrange = [-0.15,0.03]
     xtitle1 = 'Redshift'
-    ytitle1 = textoidl('log (O/H)_{z} - log (O/H)_{z=0.1}')
-;   ytitle1 = textoidl('<\Delta'+'log(O/H)>')
+;   ytitle1 = textoidl('log (O/H)_{z} - log (O/H)_{z=0.1}')
+    ytitle1 = textoidl('\Delta'+'<12 + log (O/H)>')
 
-    zaxis = range(0.0,xrange[1]-0.03,50)
+    zaxis = range(0.0,xrange[1]-0.02,50)
 
     djs_plot, [0], [0], /nodata, ysty=1, xsty=1, position=pos, $
-      xrange=xrange, yrange=yrange, xtitle=xtitle1, ytitle=ytitle1
+      xrange=xrange, yrange=yrange, xtitle=xtitle1, ytitle=ytitle1, $
+      ytickname=['-0.15','-0.10','-0.05','0.00']
+    djs_oplot, zaxis, zaxis*0, line=0, thick=3, color='grey'
 ;   maxmodel = poly(zaxis-mzavg.qz0,mzavg.coeffs+mzavg.coeffs_err/2)
 ;   minmodel = poly(zaxis-mzavg.qz0,mzavg.coeffs-mzavg.coeffs_err/2)
 ;   polyfill, [zaxis,reverse(zaxis)], [minmodel,reverse(maxmodel)], $
 ;     /data, /fill, color=fsc_color('tan',101), noclip=0
-
-    djs_oplot, !x.crange, [0,0], line=5, thick=3
 ;   oploterror, mzavg.zbin, mzavg.dlogoh, mzavg.dlogoh_err, $
 ;     psym=symcat(15,thick=5), symsize=2.0, color=fsc_color('firebrick',101), $
 ;     errcolor=fsc_color('firebrick',101)
+
+;   xyouts, 0.15, -0.10, textoidl('log (M/M_{'+sunsymbol()+'})'), align=0.5, $
+;     /data, charsize=1.4
+;   im_legend, ['>11','10.5-11','10-10.5','9.5-10'], /left, /bottom, box=0, $
+;     charsize=1.3, psym=-massbins[0:nmassbins-2].psym, $
+;     color=massbins[0:nmassbins-2].color, line=massbins[0:nmassbins-2].line, $
+;     thick=6, pspacing=1.8
     im_legend, massbins[0:nmassbins-2].label, /left, /bottom, box=0, $
       charsize=1.3, psym=-massbins[0:nmassbins-2].psym, $
       color=massbins[0:nmassbins-2].color, line=massbins[0:nmassbins-2].line, $
-      thick=6, pspacing=1.8
+      thick=6, pspacing=1.8, spacing=1.9, margin=0
 
     for mm = 0, nmassbins-2 do begin
 ; AGES
@@ -234,7 +245,7 @@ pro mzplot_ohevol, ps=ps
          errthick=!p.thick
 ; the model fit
        djs_oplot, zaxis, poly(zaxis-mzavg.qz0,mzavg.coeffs_bymass[*,mm])-$
-         poly(0.0,mzavg.coeffs_bymass[*,mm]), thick=4, $
+         poly(0.0,mzavg.coeffs_bymass[*,mm]), thick=7, $
          color=fsc_color(massbins[mm].color,101), line=massbins[mm].line
     endfor
 
@@ -261,12 +272,12 @@ pro mzplot_ohevol, ps=ps
     calibline = [0,5,3]
     ncalib = n_elements(calib)
 
-    xrange = [-0.02,0.75]
-    yrange = [8.6,9.26]
+    xrange = [0.0,0.72]
+    yrange = [8.67,9.22]
     xtitle1 = 'Redshift'
     ytitle1 = mzplot_ohtitle(/mean)
 
-    zaxis = range(0.0,xrange[1]-0.03,50)
+    zaxis = range(xrange[0]+0.01,xrange[1]-0.01,50)
     
     for mm = 0, n_elements(massbins)-2 do begin
        if (mm lt 2) then begin
@@ -286,7 +297,7 @@ pro mzplot_ohevol, ps=ps
        
        djs_plot, [0], [0], /nodata, noerase=(mm gt 0), ysty=1, xsty=1, xrange=xrange, $
          yrange=yrange, xtitle=xtitle, ytitle=ytitle, position=pos[*,mm], $
-         xtickname=xtickname, ytickname=ytickname, yminor=2
+         xtickname=xtickname, ytickname=ytickname, yminor=2, xtickinterval=0.2
        im_legend, massbins[mm].label, /right, /top, box=0, margin=0, $
          charsize=1.3
        if (mm eq 0) then begin

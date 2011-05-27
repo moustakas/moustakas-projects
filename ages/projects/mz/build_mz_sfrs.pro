@@ -18,8 +18,13 @@ function init_sfrs, ngal, sdss=sdss
       f24_err:     -999.0,$ 
       sfr24:       -999.0,$     ; 24-micron SFR
       sfr24_err:   -999.0,$ 
-      mass:        -999.0,$
+
+      mass_50:     -999.0,$
+      mass_avg:    -999.0,$
       mass_err:    -999.0,$
+      massmpa_50:  -999.0,$
+      massmpa_avg: -999.0,$
+      massmpa_err: -999.0,$
       
       sfr_50:  -999.0,$         ; from iSEDfit; instantaneous
       sfr_avg: -999.0,$
@@ -60,16 +65,17 @@ pro build_mz_sfrs, sfrs, sdss=sdss, clobber=clobber
     sfrs.dec = parent.dec
     sfrs.weight = parent.final_weight
 
-    sfrs.mass = mass.mass_50
+    sfrs.mass_50 = mass.mass_50
+    sfrs.mass_avg = mass.mass_avg
     sfrs.mass_err = mass.mass_err
 
-    sfrs.sfr_50 = alog10(mass.sfr_50)
-    sfrs.sfr_avg = alog10(mass.sfr_avg)
-    sfrs.sfr_err = mass.sfr_err/mass.sfr_50/alog(10)
+    sfrs.sfr_50 = mass.sfr_50
+    sfrs.sfr_avg = mass.sfr_avg
+    sfrs.sfr_err = mass.sfr_err
 
-    sfrs.sfr100_50 = alog10(mass.sfr100_50)
-    sfrs.sfr100_avg = alog10(mass.sfr100_avg)
-    sfrs.sfr100_err = mass.sfr100_err/mass.sfr100_50/alog(10)
+    sfrs.sfr100_50 = mass.sfr100_50
+    sfrs.sfr100_avg = mass.sfr100_avg
+    sfrs.sfr100_err = mass.sfr100_err
 
     if keyword_set(sdss) then begin ; SDSS
        splog, file=mzpath+'build_mz_sfrs.sdss.log'
@@ -95,6 +101,10 @@ pro build_mz_sfrs, sfrs, sdss=sdss, clobber=clobber
        sfrs[m1].ohsample = 1
 
 ; get the MPA SFRs, including, for comparison, the DR4 estimates 
+       sfrs.massmpa_50 = parent.mass_median-0.07 ; Kroupa-->Chabrier
+       sfrs.massmpa_avg = parent.mass_avg-0.07
+       sfrs.massmpa_err = (parent.mass_p84-parent.mass_p16)/2.0
+
        sfrs.sfrmpa_50 = parent.sfr_median-0.07 ; Kroupa-->Chabrier
        sfrs.sfrmpa_avg = parent.sfr_avg-0.07
        sfrs.sfrmpa_err = (parent.sfr_p84-parent.sfr_p16)/2.0

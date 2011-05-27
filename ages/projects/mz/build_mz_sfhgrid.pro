@@ -2,8 +2,8 @@ pro build_mz_sfhgrid, sfhgrid=sfhgrid, make_montegrid=make_montegrid, $
   imf=imf, synthmodels=synthmodels, redcurve=redcurve, clobber=clobber
 ; jm10jan28ucsd - build all the SFH grids we are going to need
 
-    sfhgrid_basedir = ages_path(/projects)+'mz/isedfit/montegrids/'
-    sfhgrid_paramfile = mz_sfhgrid_parfile()
+    sfhgrid_basedir = mz_path(/monte)
+    sfhgrid_paramfile = mz_path(/ised)+'mz_sfhgrid.par'
 
 ; defaults    
     if (n_elements(imf) eq 0) then imf = 'chab'

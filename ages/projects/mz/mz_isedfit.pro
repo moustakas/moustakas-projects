@@ -3,15 +3,15 @@ pro mz_isedfit, sdss=sdss, sfhgrid=sfhgrid, imf=imf, synthmodels=synthmodels, $
 ; jm10jul29ucsd - derive stellar masses for the MZ AGES and SDSS
 ; samples 
 
-    isedpath = ages_path(/projects)+'mz/isedfit/'
-    sfhgrid_basedir = isedpath+'montegrids/'
+    isedpath = mz_path(/ised)
+    sfhgrid_basedir = mz_path(/montegrids)
+    sfhgrid_paramfile = isedpath+'mz_sfhgrid.par'
     
 ; defaults    
     if (n_elements(imf) eq 0) then imf = 'chab'
     if (n_elements(synthmodels) eq 0) then synthmodels = 'bc03'
     if (n_elements(redcurve) eq 0) then redcurve = 1 ; charlot
 
-    sfhgrid_paramfile = mz_sfhgrid_parfile()
     mzgrid = read_sfhgrid_paramfile(sfhgrid,sfhgrid_paramfile=sfhgrid_paramfile)
     ngrid = n_elements(mzgrid)
 

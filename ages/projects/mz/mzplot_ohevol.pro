@@ -133,8 +133,10 @@ pro mzplot_ohevol, ps=ps
        djs_oplot, maxis[keep], ohmodel[keep], line=zline[ii], $
          color=fsc_color(zcolor[ii],101), thick=7
 ; P,R model
-       djs_oplot, maxis, mzevol_func(maxis,mzavg.mlfit_coeffs,z=zval[ii],qz0=mzavg.qz0), $
-         line=zline2[ii], color=fsc_color(zcolor[ii],101), thick=7
+       djs_oplot, maxis, mzevol_func(maxis,[mzlocal.coeff,mzavg.r0[1],mzavg.p0[1]],$ ; =T04
+         z=zval[ii],qz0=mzavg.qz0),line=zline2[ii], color=fsc_color(zcolor[ii],101), thick=7
+;      djs_oplot, maxis, mzevol_func(maxis,mzavg.mlfit_coeffs,z=zval[ii],qz0=mzavg.qz0), $
+;        line=zline2[ii], color=fsc_color(zcolor[ii],101), thick=7
     endfor
     
     im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)

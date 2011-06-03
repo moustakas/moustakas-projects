@@ -403,7 +403,11 @@ pro fit_mzlzevol, mzavg, clobber=clobber
       dlogohdz_medmass: fltarr(nmassbins)-999, dlogohdz_normmass: 0.0, $
       dlogohdz_coeff: fltarr(2), dlogohdz_coeff_err: fltarr(2), $
 ; evolutionary coefficients for both P and R
-      mlfit_coeffs: fltarr(5), mlfit_coeffs_err: fltarr(5), $
+      p0: fltarr(ncalib), r0: fltarr(ncalib), p0r0_chi2: fltarr(ncalib), $
+;     p0_err: fltarr(ncalib), r0_err: fltarr(ncalib), 
+      p0avg: 0.0, p0avg_err: 0.0, r0avg: 0.0, r0avg_err: 0.0, p0r0avg_chi2: 0.0, $
+      r0zero_p0avg: 0.0, r0zero_p0avg_err: 0.0, r0zero_chi2: 0.0, $
+      p0zero_r0avg: 0.0, p0zero_r0avg_err: 0.0, p0zero_chi2: 0.0, $
 ; B-band metallicity and luminosity evolution
       lz_slope: 0.0, lz_slope_err: 0.0, lz_dlogohdz: 0.0, lz_dlogohdz_err: 0.0, $
       dmb_bymass: fltarr(nmassbins,nz)-999.0, dmb_bymass_err: fltarr(nmassbins,nz)-999.0}
@@ -482,22 +486,59 @@ pro fit_mzlzevol, mzavg, clobber=clobber
 ; function of redshift; fit that evolution here with a simple model
 ; that allows for evolution in M* and (O/H)*; basically, we want to
 ; solve for P and R, averaged over all three calibrations
-    mzlocal = mrdfits(mzpath+'mzlocal_sdss_ews_t04.fits.gz',1)
-
     nfake = 2000
     zmin = 0.1 & zmax = 0.9
     minmass = 9.3 & maxmass = 11.5
     zval = randomu(seed,nfake)*(zmax-zmin)+zmin
     mass = randomu(seed,nfake)*(maxmass-minmass)+minmass
 
-    ohmodel = mz_closedbox(mass,mzlocal.coeff) + (zval-qz0)*$
-      poly(mass-mzavg.dlogohdz_normmass,mzavg.dlogohdz_coeff)
-    ohmodel_err = ohmodel*0.0+0.01
+    calib = ['kk04','t04','m91']
+    for ii = 0, ncalib-1 do begin
+       mzlocal = mrdfits(mzpath+'mzlocal_sdss_ews_'+calib[ii]+'.fits.gz',1)
 
-    mzfit = mlfit_mzevol(mass,ohmodel,ohmodel_err,p0=0.0,$
-      ohmodel*0+1,zval,qz0=qz0,mzlocal=mzlocal,quiet=0)
-    mzavg.mlfit_coeffs = mzfit.params
-    mzavg.mlfit_coeffs_err = mzfit.perror
+       ohmodel = mz_closedbox(mass,mzlocal.coeff) + (zval-qz0)*$
+         poly(mass-mzavg.dlogohdz_normmass,mzavg.dlogohdz_coeff)
+       ohmodel_err = ohmodel*0.0+0.01
+
+       mlfit1 = mlfit_mzevol(mass,ohmodel,ohmodel_err,$
+         ohmodel*0+1,zval,qz0=qz0,mzlocal=mzlocal,quiet=0)
+       mlfit_p0zero1 = mlfit_mzevol(mass,ohmodel,ohmodel_err,p0=0.0,$
+         ohmodel*0+1,zval,qz0=qz0,mzlocal=mzlocal,quiet=0)
+       mlfit_r0zero1 = mlfit_mzevol(mass,ohmodel,ohmodel_err,r0=0.0,$
+         ohmodel*0+1,zval,qz0=qz0,mzlocal=mzlocal,quiet=0)
+
+       if (ii eq 0) then begin
+          mlfit = mlfit1
+          mlfit_p0zero = mlfit_p0zero1
+          mlfit_r0zero = mlfit_r0zero1
+       endif else begin
+          mlfit = [mlfit,mlfit1]
+          mlfit_p0zero = [mlfit_p0zero,mlfit_p0zero1]
+          mlfit_r0zero = [mlfit_r0zero,mlfit_r0zero1]
+       endelse
+    endfor
+
+; each individual calibration; the errors are meaningless 
+    mzavg.p0r0_chi2 = mlfit.chi2/float(mlfit.dof)
+    mzavg.p0 = mlfit.params[4]
+    mzavg.r0 = mlfit.params[3]
+;   mzavg.p0_err = mlfit.perror[4]*sqrt(mzavg.p0r0_chi2)
+;   mzavg.r0_err = mlfit.perror[3]*sqrt(mzavg.p0r0_chi2)
+
+; average over all calibrations    
+    mzavg.p0avg = djs_mean(mlfit.params[4])
+    mzavg.r0avg = djs_mean(mlfit.params[3])
+    mzavg.p0avg_err = djsig(mlfit.params[4])
+    mzavg.r0avg_err = djsig(mlfit.params[3])
+    mzavg.p0r0avg_chi2 = djs_mean(mlfit.chi2/float(mlfit.dof))
+
+    mzavg.r0zero_p0avg = djs_mean(mlfit_r0zero.params[4])
+    mzavg.r0zero_p0avg_err = djsig(mlfit_r0zero.params[4])
+    mzavg.r0zero_chi2 = djs_mean(mlfit_r0zero.chi2/float(mlfit_r0zero.dof))
+
+    mzavg.p0zero_r0avg = djs_mean(mlfit_p0zero.params[3])
+    mzavg.p0zero_r0avg_err = djsig(mlfit_p0zero.params[3])
+    mzavg.p0zero_chi2 = djs_mean(mlfit_p0zero.chi2/float(mlfit_p0zero.dof))
 
 ; average metallicity evolution rate via the LZ relation (assuming no
 ; luminosity evolution); also compute the average LZ slope

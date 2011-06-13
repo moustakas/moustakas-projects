@@ -9,7 +9,6 @@ pro alpha_trace_emlines, info, mike, qafile=qafile
     endif
 
 ; some parameters
-
     linewave = [4861.0,4958.911,5006.843] ; rest wavelength [A]
     light = 299792.458D ; [km/s]
     deltav = 300.0      ; [km/s]
@@ -17,7 +16,6 @@ pro alpha_trace_emlines, info, mike, qafile=qafile
     snrmin = 4.0        ; minimum S/N for a line to be masked
     
 ; loop on each object       
-
     if (n_elements(qafile) ne 0L) then begin
        splog, 'Building QA-plot '+qafile
        dfpsplot, qafile, /landscape, /color
@@ -64,7 +62,7 @@ pro alpha_trace_emlines, info, mike, qafile=qafile
                (img_arc gt alog10((1.0+info[jj].z)*linewave[ll]*(1.0-deltav_zoom/light))) and $
                (img_arc lt alog10((1.0+info[jj].z)*linewave[ll]*(1.0+deltav_zoom/light))),nthese_zoom)
              if (nthese_zoom ne 0L) then begin
-;                  splog, '  Fitting a 2D Gaussian to '+string(linewave[ll],format='(G0.0)')
+;               splog, '  Fitting a 2D Gaussian to '+string(linewave[ll],format='(G0.0)')
                 xyindx_zoom = array_indices(size(img,/dim),these_zoom,/dim)
                 x1_zoom = min(xyindx_zoom[0,*]) & x2_zoom = max(xyindx_zoom[0,*])
                 y1_zoom = min(xyindx_zoom[1,*]) & y2_zoom = max(xyindx_zoom[1,*])
@@ -154,7 +152,7 @@ pro alpha_trace_emlines, info, mike, qafile=qafile
                myobj_str = [myobj_str,myobj_str1]
           endif
 ; build a QA-plot of the position of all the lines in the order
-;            im_window, 0, xratio=0.7, yratio=0.6
+;         im_window, 0, xratio=0.7, yratio=0.6
           good = where((line2dfit.ordr eq ordr_str[indx].order) and line2dfit.goodfit,ngood)
           if (ngood ne 0L) then begin
              plot, [0], [0], /nodata, xrange=[min(ordr_str[indx].lhedg),max(ordr_str[indx].rhedg)],$
@@ -180,7 +178,7 @@ pro alpha_trace_emlines, info, mike, qafile=qafile
                box=0, charsize=1.6
           endif 
        endfor                   ; close order loop
-;         struct_print, line2dfit
+;      struct_print, line2dfit
        struct_print, struct_trimtags(myobj_str,except=['*TRACE*'])
 ; write out 
        splog, 'Writing '+outfil
@@ -190,7 +188,7 @@ pro alpha_trace_emlines, info, mike, qafile=qafile
        splog, 'Writing '+outfil_objstr
        mwrfits, myobj_str, outfil_objstr, /create
        spawn, 'gzip -f '+outfil_objstr, /sh
-;         struct_print, struct_trimtags(line2dfit,except=['PERROR'])
+;      struct_print, struct_trimtags(line2dfit,except=['PERROR'])
        delvarx, line2dfit, myobj_str
     endfor                      ; close object loop
 

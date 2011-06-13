@@ -108,8 +108,6 @@ pro qaplot_alpha_arcfit_night, mike, setup, side, linlist=linlist, qafile=qafile
 
     im_plotconfig, psfile=qafile, /psclose, /gzip
     
-stop
-
 return
 end
     

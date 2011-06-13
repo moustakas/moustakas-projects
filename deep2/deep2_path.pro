@@ -2,8 +2,8 @@ function deep2_path, analysis=analysis, dr3=dr3, specfit=specfit, $
   projects=projects, papers=papers, alphadata=alphadata
 ; jm06aug28uofa
 
-    datapath = getenv('RESEARCHPATH')+'/projects/deep2/'
-    paperspath = getenv('PAPERSPATH')+'/projects/deep2/'
+    datapath = getenv('IM_RESEARCH_DIR')+'/projects/deep2/'
+    paperspath = getenv('IM_PAPERS_DIR')+'/projects/deep2/'
 
     if keyword_set(papers) then return, paperspath
     if keyword_set(analysis) then return, datapath+'analysis/'

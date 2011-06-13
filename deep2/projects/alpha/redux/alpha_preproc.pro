@@ -41,8 +41,8 @@ pro alpha_preproc, basepath
     sigfrac = 0.01
     medwidth = 301L
 
-    for ii = 18L, nobj-1L do begin
-;   for ii = 0L, nobj-1L do begin
+;   for ii = 18L, nobj-1L do begin
+    for ii = 0L, nobj-1L do begin
 ; read the image and build a basic inverse variance map
        splog, 'Reading '+rawlist[obj[ii]]
        img = float(readfits(rawlist[obj[ii]],hdr))
@@ -61,7 +61,6 @@ pro alpha_preproc, basepath
 ; LA_COSMIC) and then reject cosmic rays; note that we pass LA_COSMIC
 ; the trimmed image (removing the overscan regions) and then chop the
 ; image into 1024 blocks to speed up the code 
-       
        splog, 'Overscan-subtracting'
        mike_suboscan, fimg, hdr, ovimg, 1, 1, imtype, nobiasrow=nobiasrow, $
          debug=0, redarc=redarc, svbad=svbad, silent=silent

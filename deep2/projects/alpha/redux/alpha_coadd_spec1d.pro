@@ -1,7 +1,7 @@
 pro alpha_coadd_spec1d, mike, info, side=side, datapath=datapath, $
   qafile=qafile, fluxed=fluxed, std=std
 ; jm09jan06nyu - coadd the 1D spectra, both individual orders and
-; repeat observations of the same object; if /FLUXED then coadded the
+; repeat observations of the same object; if /FLUXED then coadd the
 ; fluxed 1D spectra, otherwise coadd the counts
 
     nobj = n_elements(info)
@@ -13,11 +13,10 @@ pro alpha_coadd_spec1d, mike, info, side=side, datapath=datapath, $
     if (n_elements(datapath) eq 0L) then datapath = './'
 
     light = 299792.458D ; [km/s]
-    velpix = (side eq 1 ? 1.50d : 2.10d) * double(mike[0].rowbin) ; [km/s]
-    cdelt = alog10(1.0d + velpix/light)                           ; pixel size
+;   velpix = (side eq 1 ? 1.50d : 2.10d) * double(mike[0].rowbin) ; [km/s]
+;   cdelt = alog10(1.0d + velpix/light) ; pixel size
 
 ; loop on each object       
-
     if (n_elements(qafile) ne 0L) then begin
        splog, 'Building QA-plot '+qafile
        dfpsplot, qafile, /landscape, /color
@@ -40,7 +39,6 @@ pro alpha_coadd_spec1d, mike, info, side=side, datapath=datapath, $
     endelse
 
     for jj = 0L, nobj-1L do begin
-
 ; read the object structure, which contains the 1D spectra 
        objfil = mike_getfil('obj_fil',setup,$
          SUBFIL=mike[jj].img_root,/name)
@@ -58,19 +56,12 @@ pro alpha_coadd_spec1d, mike, info, side=side, datapath=datapath, $
        endelse
        nthese_ordrs = n_elements(these_ordrs)
 
-; store the relevant spectra of all the orders in these arrays 
-       biglogwave = fltarr(5000,nthese_ordrs)
-       bigflux = biglogwave*0.0
-       bigivar = biglogwave*0.0
-       bigskyflux = biglogwave*0.0
-
-       spec1dfile = datapath+'spec1d/'+prefix+$
-         strtrim(mike[jj].obj,2)+'.fits'
-;      spec1dfile = datapath+'spec1d/'+prefix+'obj'+$
-;        strtrim(mike[jj].obj,2)+'.'+mike[jj].img_root
-       for oo = 0L, nthese_ordrs-1L do begin
+; get the min/max wavelengths across all the orders of interest        
+       minwave_all = dblarr(nthese_ordrs)
+       maxwave_all = dblarr(nthese_ordrs)
+       velpix_all = dblarr(nthese_ordrs)
+       for oo = 0, nthese_ordrs-1 do begin
           indx = where(objstr.order eq these_ordrs[oo])
-
           if keyword_set(fluxed) then begin ; spectra in flux units
              objwave = objstr[indx].wave
              objflux = objstr[indx].flux*1D-16
@@ -80,106 +71,122 @@ pro alpha_coadd_spec1d, mike, info, side=side, datapath=datapath, $
              objflux = objstr[indx].box_fx
              objvar = objstr[indx].box_var
           endelse
-;         ww = where(objwave ne 0.0) & djs_plot, objwave[ww], objflux[ww]
+          good = where((objflux gt 0.0) and (objvar gt 0.0) and (objwave gt 0.0),ngood)
+          minwave_all[oo] = min(objwave[good])
+          maxwave_all[oo] = max(objwave[good])
+          velpix_all[oo] = light*alog(maxwave_all[oo]/minwave_all[oo])/double(ngood)
+       endfor
+       minwave = min(minwave_all)
+       maxwave = max(maxwave_all)
+       velpix = djs_median(velpix_all)
+       splog, velpix_all, velpix
+
+;; force the minimum wavelength for each order to be an integer
+;; multiple of the minimum across all the orders, so that when we
+;; combine the orders, below, we can simply shift and add, without
+;; having to rebin again
+;       nfact = ceil((alog(minwave_all)-alog(minwave))/(velpix/light)) ; round up
+;       minwave_out = exp(alog(minwave) + nfact*(velpix/light))
+
+       spec1dfile = datapath+'spec1d/'+prefix+$
+         strtrim(mike[jj].obj,2)+'.fits'
+;      spec1dfile = datapath+'spec1d/'+prefix+'obj'+$
+;        strtrim(mike[jj].obj,2)+'.'+mike[jj].img_root
+       for oo = 0, nthese_ordrs-1 do begin
+          indx = where(objstr.order eq these_ordrs[oo])
+          if keyword_set(fluxed) then begin ; spectra in flux units
+             objwave = objstr[indx].wave
+             objflux = objstr[indx].flux*1D-16
+             objvar = (objstr[indx].sig*1D-16)^2.0
+          endif else begin      ; spectra in counts
+             objwave = objstr[indx].box_wv
+             objflux = objstr[indx].box_fx
+             objvar = objstr[indx].box_var
+          endelse
+          good = where((objflux gt 0.0) and (objvar gt 0.0) and (objwave gt 0.0))
+          srt = sort(objwave[good])
+          objwave = objwave[good[srt]]
+          objflux = objflux[good[srt]]
+          objvar = objvar[good[srt]]
+
+          objskyflux = objstr[indx].sky
+          objskywave = objstr[indx].sky_wv
+          skygood = where((objskyflux gt 0.0) and (objskywave gt 0.0))
+          skysrt = sort(objskywave[skygood])
+          objskywave = objskywave[skygood[skysrt]]
+          objskyflux = objskyflux[skygood[skysrt]]
           
-          good = where((objflux gt 0.0) and (objvar gt 0.0))
-          min_logwave = alog10(min(objwave[good]))
-          max_logwave = alog10(max(objwave[good]))
-          logwave = dindgen((max_logwave-min_logwave)/cdelt+1.0d)*cdelt+min_logwave
-          npix = n_elements(logwave)
+; rebin to constant velocity pixels, conserving flux density
+; (intensity)
+          flux = im_log_rebin(objwave,objflux,var=objvar,/wavestrict,$
+            vsc=velpix,outwave=lnwave,outvar=var,minwave=minwave,maxwave=maxwave)
+          skyflux = im_log_rebin(objskywave,objskyflux,vsc=velpix,$
+            /wavestrict,minwave=minwave,maxwave=maxwave)
+          ivar = 1.0/(var+(var eq 0))*(var ne 0)
+;         npix = n_elements(flux)
 
-          linterp, alog10(objwave[good]), objflux[good], logwave, flux, missing=0.0
-          linterp, alog10(objwave[good]), objvar[good], logwave, var, missing=0.0
-          ivar = 1.0/(var+(var eq 0.0))*(var ne 0.0)
-
-          good = where((objwave gt 0.0) and (objvar gt 0.0) and $
-            (objstr[indx].sky_wv gt 0.0) and (objstr[indx].sky gt 0.0))
-          linterp, alog10(objstr[indx].sky_wv[good]), objstr[indx].sky[good], $
-            logwave, skyflux, missing=0.0
-
-          biglogwave[0:npix-1,oo] = logwave
-          bigflux[0:npix-1,oo] = flux
-          bigivar[0:npix-1,oo] = ivar
-          bigskyflux[0:npix-1,oo] = skyflux
+          if (oo eq 0) then begin
+             bigflux = flux 
+             bigivar = ivar
+             bigskyflux = skyflux
+          endif else begin
+             bigflux = [[bigflux],[flux]]
+             bigivar = [[bigivar],[ivar]]
+             bigskyflux = [[bigskyflux],[skyflux]]
+          endelse
 
 ; write out
           spec1dfile_ordr = repstr(spec1dfile,'.fits','.'+$
             'ord'+string(objstr[indx].order,format='(I2.2)')+'.fits')
-          if (not keyword_set(std)) then begin
-             alpha_write_spec1d, logwave, flux, ivar, skyflux, $
-               info[jj], cdelt=cdelt, outfile=spec1dfile_ordr, std=std
+          if (keyword_set(std) eq 0) then begin
+             alpha_write_spec1d, lnwave, flux, ivar, skyflux, $
+               info[jj], velpix=velpix, outfile=spec1dfile_ordr, std=std
           endif
-
        endfor
 
 ; combine all the orders into a single 1D spectrum
+;      min_lnwave_all = dblarr(nthese_ordrs)
+;      max_lnwave_all = dblarr(nthese_ordrs)
+;      for oo = 0, nthese_ordrs-1 do begin
+;         good = where(biglnwave[*,oo] gt 0.0)
+;         min_lnwave_all[oo] = min(biglnwave[good,oo])
+;         max_lnwave_all[oo] = max(biglnwave[good,oo])
+;      endfor
+;      min_lnwave = min(min_lnwave_all)
+;      max_lnwave = max(max_lnwave_all)
+;
+;      npix = round((max_lnwave-min_lnwave)/(velpix/light)+1)
+;      lnwave = dindgen(npix)*velpix/light+min_lnwave
 
-       min_logwave = 1E6
-       max_logwave = 0.0
-       for oo = 0L, nthese_ordrs-1L do begin
-          good = where(biglogwave[*,oo] gt 0.0)
-          min_logwave = min_logwave < min(biglogwave[good,oo])
-          max_logwave = max_logwave > max(biglogwave[good,oo])
-       endfor
+;      combine1fiber, biglnwave, bigflux, bigivar, newloglam=lnwave, $
+;        newflux=combineflux, newivar=combineivar
 
-       logwave = dindgen((max_logwave-min_logwave)/cdelt+1.0d)*cdelt+min_logwave
-       npix = n_elements(logwave)
-
-       combineflux = fltarr(npix,nthese_ordrs)
-       combinevar = combineflux*0.0
-       combineivar = combineflux*0.0
-       combineskyflux = combineflux*0.0
-       for oo = 0L, nthese_ordrs-1L do begin
-          good = where(biglogwave[*,oo] gt 0.0)
-          thislogwave = biglogwave[good,oo]
-          thisflux = bigflux[good,oo]
-          thisivar = bigivar[good,oo]
-          thisskyflux = bigskyflux[good,oo]
-          thisvar = 1.0/(thisivar+(thisivar eq 0.0))*(thisivar ne 0.0)
-
-          linterp, thislogwave, thisflux, logwave, flux1, missing=0.0
-          linterp, thislogwave, thisvar, logwave, var1, missing=0.0
-          linterp, thislogwave, thisskyflux, logwave, skyflux1, missing=0.0
-          ivar1 = 1.0/(var1+(var1 eq 0.0))*(var1 ne 0.0)
-
-          combineflux[*,oo] = flux1
-          combineskyflux[*,oo] = skyflux1
-          combinevar[*,oo] = var1
-          combineivar[*,oo] = ivar1
-       endfor
-
-       if (nthese_ordrs eq 1L) then begin
-          flux = combineflux
-          var = combineivar
-          ivar = combineivar
-          skyflux = combineskyflux
+       if (nthese_ordrs eq 1) then begin
+          flux = bigflux
+          ivar = bigivar
+          skyflux = bigskyflux
        endif else begin
-          weight = total(combineivar,2)
-          notzero = where((weight ne 0L),nnotzero)
-          if (nnotzero eq 0L) then message, 'This is not good'
-          flux = fltarr(npix) & var = fltarr(npix)
-          flux[notzero] = total(combineflux[notzero,*]*combineivar[notzero,*],2)/weight[notzero]
-          var[notzero] = 1.0/weight[notzero]
-          ivar = 1.0/(var+(var eq 0.0))*(var ne 0.0)
-          skyflux = total(combineskyflux,2)/float(nthese_ordrs) ; simple mean
+          ivar = total(bigivar,2)
+          flux = total(bigflux*bigivar,2)/ivar
+          skyflux = total(bigskyflux,2)/float(nthese_ordrs) ; simple mean
        endelse
 
 ;      if strmatch(info[jj].obj,'*044*') then stop
-;      djs_plot, 10^logwave, flux, ysty=3
-;      djs_oplot, 10^biglogwave[*,0], bigflux[*,0], color='red'
-;      djs_oplot, 10^biglogwave[*,1], bigflux[*,1], color='blue'
-;      djs_oplot, 10^biglogwave[*,2], bigflux[*,2], color='green'
+;      djs_plot, 10^lnwave, flux, ysty=3
+;      djs_oplot, 10^biglnwave[*,0], bigflux[*,0], color='red'
+;      djs_oplot, 10^biglnwave[*,1], bigflux[*,1], color='blue'
+;      djs_oplot, 10^biglnwave[*,2], bigflux[*,2], color='green'
 
 ; clean up cosmic rays; interpolate and set the inverse variance to
 ; zero; also interpolate over blank regions in the spectral orders
-       if (not keyword_set(std)) then begin
-          emask = emission_mask(10^logwave,z=info[jj].z,$
+       if (keyword_set(std) eq 0) then begin
+          emask = emission_mask(exp(lnwave),z=info[jj].z,$
             /gauss,spectrum=flux,ivarspectrum=ivar,/noskymask)
           djs_iterstat, flux, mask=crmask, sigrej=5.0
           crmask[where(emask eq 0)] = 1 ; don't mask the emission lines
           domask = where(crmask eq 0,ndomask)
-          flux = djs_maskinterp(flux,(crmask eq 0),logwave,/const)
-;         flux = djs_maskinterp(flux,((crmask eq 0) or (flux eq 0.0)),logwave,/const)
+          flux = djs_maskinterp(flux,(crmask eq 0),lnwave,/const)
+;         flux = djs_maskinterp(flux,((crmask eq 0) or (flux eq 0.0)),lnwave,/const)
           if (ndomask ne 0L) then begin
              ivar[domask] = 0.0
           endif
@@ -188,20 +195,21 @@ pro alpha_coadd_spec1d, mike, info, side=side, datapath=datapath, $
 ;      if strmatch(info[jj].obj,'*044*') then stop
        
 ; write out
-       alpha_write_spec1d, logwave, flux, ivar, skyflux, $
-         info[jj], cdelt=cdelt, outfile=spec1dfile, std=std
+       alpha_write_spec1d, lnwave, flux, ivar, skyflux, $
+         info[jj], velpix=velpix, outfile=spec1dfile, std=std
        
 ; make the QA-plot          
-       xrange = minmax(10^logwave)
+       xrange = minmax(exp(lnwave))
        yrange = minmax(scale*flux)
-       if (not keyword_set(std)) then begin
-          oiiimask = emission_mask(10^logwave,z=info[jj].z,$
+       if (keyword_set(std) eq 0) then begin
+          oiiimask = emission_mask(exp(lnwave),z=info[jj].z,$
             width=15.0,linelist=[4958.91,5006.84])
           ww = where(oiiimask eq 0,nww)
           if (nww ne 0L) then yrange = [0.0,max(scale*flux[ww])] else $
             yrange = [0.0,max(scale*flux)]
        endif
 
+       yrange = minmax(scale*flux)
 ;      yrange = im_max(scale*flux,sigrej=5.0,/nan)*[-0.08,1.2]
        xtitle = textoidl('Observed Wavelength (\AA)')
 
@@ -213,7 +221,7 @@ pro alpha_coadd_spec1d, mike, info, side=side, datapath=datapath, $
             ', z='+strtrim(string(info[jj].z,format='(F12.5)'),2)
        endelse
           
-       plot, 10.0^logwave, scale*flux, ps=10, /xsty, ysty=3, xrange=xrange, $
+       plot, exp(lnwave), scale*flux, ps=10, /xsty, ysty=3, xrange=xrange, $
          yrange=yrange, title=title, xtitle=xtitle, ytitle=ytitle
        legend, 'Combined Spectrum', /left, /top, box=0, charsize=1.6
        if keyword_set(std) then begin ; overplot the published spectrum
@@ -223,11 +231,11 @@ pro alpha_coadd_spec1d, mike, info, side=side, datapath=datapath, $
           djs_oplot, swave, sflux*scale, ps=-4, color='red'
        endif else begin
           colors = ['red','blue','dark green','purple','orange']
-          for oo = 0L, nthese_ordrs-1L do begin
-             good = where(biglogwave[*,oo] gt 0.0)
-             if (oo eq 0L) then plot, [0], [0], /nodata, ps=10, /xsty, ysty=3, $
+          for oo = 0, nthese_ordrs-1 do begin
+             good = where(bigivar[*,oo] gt 0,ngood)
+             if (oo eq 0) then plot, [0], [0], /nodata, ps=10, /xsty, ysty=3, $
                xtitle=xtitle, ytitle=ytitle, xrange=xrange, yrange=yrange, title=title
-             djs_oplot, 10.0^biglogwave[good,oo], scale*bigflux[good,oo], ps=10, $
+             djs_oplot, exp(lnwave[good]), scale*bigflux[good,oo], ps=10, $
                color=colors[oo]
              legend, 'Individual Orders', /left, /top, box=0, charsize=1.6
           endfor

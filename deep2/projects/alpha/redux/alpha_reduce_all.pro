@@ -28,7 +28,7 @@ pro alpha_reduce_all, night, preproc=preproc, blue=blue, fixheaders=fixheaders, 
     alphapath = getenv('DEEP2_ALPHA_DIR')+'/'
     spec1dpath = alphapath+'spec1d/'
     qaplotpath = alphapath+'qaplots/'
-    if (n_elements(night) ne 0L) then allnight = night else $
+    if (n_elements(night) ne 0) then allnight = night else $
       allnight = [$
       'ut080414',$
       'ut080415',$
@@ -41,11 +41,13 @@ pro alpha_reduce_all, night, preproc=preproc, blue=blue, fixheaders=fixheaders, 
     nnight = n_elements(allnight)
 
 ; custom line-list    
-    linlist = getenv('XIDL_DIR')+'/Spec/Arcs/Lists/alpha_thar_custom_01.lst'
+    linlist = getenv('XIDL_DIR')+'/Spec/Arcs/Lists/mike_thar_murphy_custom.lst'
 ;   linlist = getenv('XIDL_DIR')+'/Spec/Arcs/Lists/hires_thar.lst'
 ;   linlist = getenv('XIDL_DIR')+'/Spec/Arcs/Lists/mike_thar_alpha_custom.lst'
 ;   nycoeff = 4
 ;   nocoeff = 6
+
+    sigrej_2darc = 5.0 ; for 2D arc fitting
 
 ;; --------------------------------------------------    
 ;; test code
@@ -81,8 +83,7 @@ pro alpha_reduce_all, night, preproc=preproc, blue=blue, fixheaders=fixheaders, 
     for ii = 0, nnight-1 do begin
        datapath = alphapath+allnight[ii]+'/'
 ; ##################################################
-; fix headers - NOTE! this will need to be updated when the
-; preprocessing steps are added
+; fix headers
        if keyword_set(fixheaders) then begin
           case allnight[ii] of
              'ut080417': begin ; #108 (sdss) was observed, not #128 (which is a deep2 galaxy)
@@ -172,31 +173,29 @@ pro alpha_reduce_all, night, preproc=preproc, blue=blue, fixheaders=fixheaders, 
             flat=flat, arc=arc, slitflat=slitflat, proc=proc, emlines=emlines, $
             dotrace=dotrace, skysub=skysub, extract=extract, calibrate=calibrate, $
             coadd=coadd, dostandards=dostandards, makesens=makesens, linlist=linlist, $
-            nycoeff=nycoeff, nocoeff=nocoeff
+            nycoeff=nycoeff, nocoeff=nocoeff, sigrej_2darc=sigrej_2darc
        endif
     endfor ; close NIGHT
 
-; ##################################################
-; build a QAplot of the arc-line fitting for each run separately
-    if keyword_set(qaplot_arcfit) then begin
-; get the data we need
-       arcfile = qaplotpath+'arcfit_08apr.fits'
-       get_alpha_arcfit, ['ut080414','ut080415','ut080416','ut080417'], $
-         outfile=arcfile, linlist=linlist, setup=setup, side=side
-
-       qafile = qaplotpath+'qaplot_arcfit_08apr.ps'
-       qaplot_alpha_arcfit, arcfile+'.gz', qafile=qafile
-    endif
+;; ##################################################
+;; build a QAplot of the arc-line fitting for each run separately (see
+;; ALPHA_DEVELOP_LINELIST for proper use of these routines)
+;    if keyword_set(qaplot_arcfit) then begin
+;       arcfile = qaplotpath+'arcfit_08apr.fits'
+;       get_alpha_arcfit, ['ut080414','ut080415','ut080416','ut080417'], $
+;         outfile=arcfile, linlist=linlist, setup=setup, side=side
+;
+;       qafile = qaplotpath+'qaplot_arcfit_08apr.ps'
+;       qaplot_alpha_arcfit, arcfile+'.gz', qafile=qafile
+;    endif
 
 stop    
     
 ; ##################################################
 ; build the final 1D spectra
     if keyword_set(final_spec1d) then begin
-       alpha_final_spec1d, alphapath+allnight+'/spec1d/', $
-         spec1dpath, fluxed=0
-       alpha_final_spec1d, alphapath+allnight+'/spec1d/', $
-         spec1dpath, fluxed=1
+       alpha_final_spec1d, alphapath+allnight+'/spec1d/', spec1dpath, fluxed=0
+;      alpha_final_spec1d, alphapath+allnight+'/spec1d/', spec1dpath, fluxed=1
     endif
        
 ; ##################################################

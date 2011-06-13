@@ -2,7 +2,7 @@ pro alpha_reduce_night, datapath, setup=setup, side=side, clobber=clobber, $
   flat=flat, arc=arc, slitflat=slitflat, proc=proc, emlines=emlines, $
   dotrace=dotrace, skysub=skysub, extract=extract, calibrate=calibrate, $
   coadd=coadd, dostandards=dostandards, makesens=makesens, linlist=linlist, $
-  nycoeff=nycoeff, nocoeff=nocoeff
+  nycoeff=nycoeff, nocoeff=nocoeff, sigrej_2darc=sigrej_2darc
 ; jm09jan06nyu - wrapper to reduce one night of alpha data; very
 ; modular 
     
@@ -79,9 +79,13 @@ pro alpha_reduce_night, datapath, setup=setup, side=side, clobber=clobber, $
 ;         mike_allarc, mike, setup, side, fits='mike.fits', $
 ;           clobber=clobber, chk=chk, /nowav, /noimg
        endif else begin
+;         arcs = where(mike.type EQ 'ARC' AND mike.flg_anly NE 0 $
+;           AND mike.setup EQ setup AND mike.side EQ side)
+;         exp = where(strmatch(mike[arcs].img_root,'*0053*'))
+;         sigrej_2darc = 2.5
           mike_allarc, mike, setup, side, fits=datapath+'mike.fits', $
             clobber=clobber, chk=chk, linlist=linlist, nycoeff=nycoeff, $
-            nocoeff=nocoeff
+            nocoeff=nocoeff, sig2drej=sigrej_2darc;, exp=exp
        endelse
     endif
 
@@ -124,7 +128,7 @@ pro alpha_reduce_night, datapath, setup=setup, side=side, clobber=clobber, $
 ; ##################################################
 ; initialize the inverse variance map, overscan-subtract, and divide
 ; by the flat-field; the output is written in /Final
-    if (not keyword_set(dostandards)) and keyword_set(proc) then begin
+    if (keyword_set(dostandards) eq 0) and keyword_set(proc) then begin
        for jj = 0L, nobj-1L do mike_proc, mike, setup=setup, $
          obj=obj[jj], side=side, clobber=clobber
     endif
@@ -132,7 +136,7 @@ pro alpha_reduce_night, datapath, setup=setup, side=side, clobber=clobber, $
 ; ##################################################
 ; identify the orders of interest (i.e., those containing the emission
 ; lines)
-    if (not keyword_set(dostandards)) and keyword_set(emlines) then begin
+    if (keyword_set(dostandards) eq 0) and keyword_set(emlines) then begin
        qafile = datapath+'QA/qa_trace_emlines.ps'
        alpha_trace_emlines, info, mike[objindx], qafile=qafile
     endif
@@ -142,7 +146,7 @@ pro alpha_reduce_night, datapath, setup=setup, side=side, clobber=clobber, $
 ; mask for sky subtraction (26 unbinned pixels when /STD, and 20
 ; pixels otherwise); FWIDTH is the fraction of the slit width to use
 ; when tracing (default 0.25 = 1/4 slit width)
-    if (not keyword_set(dostandards)) and keyword_set(dotrace) then begin
+    if (keyword_set(dostandards) eq 0) and keyword_set(dotrace) then begin
        for jj = 0L, nobj-1L do begin
           mike_fntobj, mike, setup, obj[jj], side, $
             objaper=objaper, fwidth=fwidth, chk=chk
@@ -242,7 +246,7 @@ pro alpha_reduce_night, datapath, setup=setup, side=side, clobber=clobber, $
 
 ; ##################################################
 ; extract 1D spectra
-    if (not keyword_set(dostandards)) and keyword_set(extract) then begin
+    if (keyword_set(dostandards) eq 0) and keyword_set(extract) then begin
        for jj = 0L, nobj-1L do begin
           splog, 'Performing boxcar extraction'
           objfil = mike_getfil('obj_fil',setup,$
@@ -296,19 +300,19 @@ pro alpha_reduce_night, datapath, setup=setup, side=side, clobber=clobber, $
           qafile = datapath+'spec1d/qa_spec1d.ps'
           alpha_coadd_spec1d, mike[objindx], info, side=side, $
             datapath=datapath, qafile=qafile, fluxed=0
-; fluxed spectra
-          if (nstd gt 0L) then begin
-             qafile = datapath+'spec1d/qa_spec1d_fluxed.ps'
-             alpha_coadd_spec1d, mike[objindx], info, side=side, $
-               datapath=datapath, qafile=qafile, fluxed=1
-          endif
+;; fluxed spectra
+;          if (nstd gt 0L) then begin
+;             qafile = datapath+'spec1d/qa_spec1d_fluxed.ps'
+;             alpha_coadd_spec1d, mike[objindx], info, side=side, $
+;               datapath=datapath, qafile=qafile, fluxed=1
+;          endif
        endif
-; standards - do just the fluxed spectra
-       if (nstd gt 0L) then begin
-          qafile = datapath+'spec1d/qa_spec1d_std.ps'
-          alpha_coadd_spec1d, mike[stdindx], stdinfo, side=side, $
-            datapath=datapath, qafile=qafile, fluxed=1, /std
-       endif
+;; standards - do just the fluxed spectra
+;       if (nstd gt 0L) then begin
+;          qafile = datapath+'spec1d/qa_spec1d_std.ps'
+;          alpha_coadd_spec1d, mike[stdindx], stdinfo, side=side, $
+;            datapath=datapath, qafile=qafile, fluxed=1, /std
+;       endif
     endif 
     popd
 

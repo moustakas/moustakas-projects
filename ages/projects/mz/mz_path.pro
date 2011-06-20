@@ -1,4 +1,5 @@
-function mz_path, isedfit=isedfit, montegrids=montegrids, paper=paper
+function mz_path, isedfit=isedfit, montegrids=montegrids, paper=paper, $
+  matchedages=matchedages
 ; jm11apr11ucsd - return various paths
 
     mzpath = getenv('IM_RESEARCH_DIR')+'/projects/ages/projects/mz/'

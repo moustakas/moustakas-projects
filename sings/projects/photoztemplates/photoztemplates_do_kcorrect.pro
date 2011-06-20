@@ -1,10 +1,11 @@
 function photoztemplates_do_kcorrect, in_redshift, in_maggies, in_ivarmaggies, $
-  filterlist=filterlist, silent=silent
+  emlines=emlines, filterlist=filterlist, silent=silent
 ; jm11apr27ucsd - compute K-corrections
 
     h100 = 0.7
-;   vname = 'default'
-    vname = 'default.nolines'
+    if keyword_set(emlines) then vname = 'default' else $
+      vname = 'default.nolines'
+    splog, vname
 
     ngal = n_elements(in_redshift)
     nfilt = n_elements(filterlist)
@@ -40,7 +41,8 @@ function photoztemplates_do_kcorrect, in_redshift, in_maggies, in_ivarmaggies, $
     kcorrect = im_kcorrect(in_redshift,in_maggies,in_ivarmaggies,$
       filterlist,out_filterlist,band_shift=0.0,chi2=chi2,mass=mass,$
       coeffs=coeffs,bestmaggies=bestmaggies,absmag=absmag,$
-      ivarabsmag=absmag_ivar,uvflux=uvflux,/silent,vname=vname,h100=h100) ; AB, band_shift=0.0
+      ivarabsmag=absmag_ivar,uvflux=uvflux,/silent,vname=vname,$
+      h100=h100)                ; AB, band_shift=0.0
 
     kcorr.k_bestmaggies = bestmaggies
     kcorr.k_mass = alog10(mass) ; h=0.7, Chabrier

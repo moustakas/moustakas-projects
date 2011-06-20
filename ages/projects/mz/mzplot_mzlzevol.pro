@@ -23,6 +23,12 @@ pro mzplot_mzlzevol, ps=ps
     lzevol = mrdfits(mzpath+'lzevol_B.fits.gz',1)
 
 ; --------------------------------------------------
+; compare the AGES LZ evolution to that inferred from the mock-AGES
+; sample
+    
+
+
+; --------------------------------------------------
 ; AGES/MZ and LZ evolution
     massrange1 = [8.1,12.0]
     magrange1 = [-16.3,-23.7]

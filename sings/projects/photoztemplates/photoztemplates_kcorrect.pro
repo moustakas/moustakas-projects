@@ -9,12 +9,14 @@ pro photoztemplates_kcorrect, clobber=clobber
     filters = photoztemplates_filterlist()
     nfilt = n_elements(filters)
 
-    use = intarr(nfilt,ngal)+1
-    use[12:16,*] = 0
+    use = rebin(reform((k_lambda_eff(filterlist=filters) lt 5D4),nfilt,1),nfilt,ngal) ; <5 microns
+
+    kcorr_emlines = photoztemplates_do_kcorrect(phot.z,phot.maggies,$
+      phot.ivarmaggies*use,filterlist=filters,/emlines)
+    im_mwrfits, kcorr_emlines, 'kcorr_emlines.fits', /clobber
 
     kcorr = photoztemplates_do_kcorrect(phot.z,phot.maggies,$
       phot.ivarmaggies*use,filterlist=filters)
-
     im_mwrfits, kcorr, 'kcorr.fits', /clobber
 
 return

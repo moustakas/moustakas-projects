@@ -61,9 +61,7 @@ function get_lzevol_mock, lzlocal, qz0=qz0
     lzevol = mlfit_lzevol(mb_evol,oh,oh*0+0.1,oh*0.0+1,$
       zz,q0=0.0,qz0=qz0,lzlocal=lzlocal,quiet=0)
     
-    
 stop
-    
     
 ;   mbaxis = range(lzlocal.faintmag,lzlocal.brightmag,100) ; for the plot
 ;   mbcut = [-17.0,-18.0,-19.0,-19.5,-20.5,-21]
@@ -338,25 +336,25 @@ pro fit_mzlzevol, mzavg, clobber=clobber
 
 ; grid of evolutionary parameters
     qz0 = 0.1 ; reference redshift
-    ncalib = 3
     zbins = mz_zbins(nz)
     massbins = mz_massbins(nmassbins)
     
 ; ##################################################
 ; fit each calibration separately 
+    ncalib = 3
     for ii = 0, ncalib-1 do begin
        case ii of
           0: begin
+             t04 = 0 & m91 = 0 & kk04 = 1
+             calib = 'kk04'
+          end
+          1: begin
              t04 = 1 & m91 = 0 & kk04 = 0
              calib = 't04'
           end
-          1: begin
+          2: begin
              t04 = 0 & m91 = 1 & kk04 = 0
              calib = 'm91'
-          end
-          2: begin
-             t04 = 0 & m91 = 0 & kk04 = 1
-             calib = 'kk04'
           end
        endcase
 
@@ -372,10 +370,17 @@ pro fit_mzlzevol, mzavg, clobber=clobber
          quiet=quiet)
        lzevol = struct_addtags({calib: calib, ngal: n_elements(info.oh), qz0: qz0},lzevol)
        if (ii eq 0) then alllzevol = lzevol else alllzevol = [alllzevol,lzevol]
-
+       
        lzfile = mzpath+'lzevol_'+calib+'.fits'
        im_mwrfits, lzevol, lzfile, clobber=clobber
 
+;      jj = mrdfits('matchedages_'+calib+'_q2.50-qz0.1.fits.gz',1)
+;      jj = mrdfits('matchedages_'+calib+'_q1.50-qz0.1.fits.gz',1)
+;      jj = mrdfits('matchedages_'+calib+'_q0.00-qz0.1.fits.gz',1)
+;      bb = mlfit_lzevol(jj.mb,jj.oh,jj.oh_err,jj.weight,$
+;        jj.z,q0=jj[0].q0,qz0=qz0,lzlocal=lzlocal,$
+;        quiet=quiet)
+       
 ; MZ relation evolution
        mzlocal = mrdfits(mzpath+'mzlocal_sdss_ews_'+calib+'.fits.gz',1)
        mzevol = get_mzevol(agesohdust,agesancillary,agesmass,calib=calib,$
@@ -409,7 +414,10 @@ pro fit_mzlzevol, mzavg, clobber=clobber
       r0zero_p0avg: 0.0, r0zero_p0avg_err: 0.0, r0zero_chi2: 0.0, $
       p0zero_r0avg: 0.0, p0zero_r0avg_err: 0.0, p0zero_chi2: 0.0, $
 ; B-band metallicity and luminosity evolution
-      lz_slope: 0.0, lz_slope_err: 0.0, lz_dlogohdz: 0.0, lz_dlogohdz_err: 0.0, $
+      lz_slope: fltarr(ncalib), lz_slope_err: fltarr(ncalib), $
+      lz_slope_avg: 0.0, lz_slope_avg_err: 0.0, $
+      lz_s0: fltarr(ncalib), lz_s0_err: fltarr(ncalib), $
+      lz_s0_avg: 0.0, lz_s0_avg_err: 0.0, $
       dmb_bymass: fltarr(nmassbins,nz)-999.0, dmb_bymass_err: fltarr(nmassbins,nz)-999.0}
 
 ; average the coefficients and dlog over the three calibrations at
@@ -542,32 +550,37 @@ pro fit_mzlzevol, mzavg, clobber=clobber
 
 ; average metallicity evolution rate via the LZ relation (assuming no
 ; luminosity evolution); also compute the average LZ slope
-    mzavg.lz_slope = djs_mean(alllzevol.coeff[1])
-    mzavg.lz_slope_err = djsig(alllzevol.coeff[1])
-    mzavg.lz_dlogohdz = djs_mean(alllzevol.coeff[2]) ; dex per redshift
-    mzavg.lz_dlogohdz_err = djsig(alllzevol.coeff[2])
+    mzavg.lz_slope = alllzevol.coeff[1]
+    mzavg.lz_slope_err = alllzevol.coeff_err[1]
+    mzavg.lz_s0 = alllzevol.coeff[2] ; dex per redshift
+    mzavg.lz_s0_err = alllzevol.coeff_err[2]
 
-; compare the amount of metallicity evolution from the MZ and LZ
-; relations and attribute the differences to luminosity evolution
-    for iz = 0, nz-1 do begin
-       dlogoh_lum = mzavg.lz_dlogohdz*(zbins[iz].zbin-qz0)
-       dlogoh_lum_err = mzavg.lz_dlogohdz_err*(zbins[iz].zbin-qz0)
+    mzavg.lz_slope_avg = djs_mean(mzavg.lz_slope)
+    mzavg.lz_slope_avg_err = djsig(mzavg.lz_slope)
+    mzavg.lz_s0_avg = djs_mean(mzavg.lz_s0)
+    mzavg.lz_s0_avg_err = djsig(mzavg.lz_s0)
 
-       dlogoh_mass = mzavg.dlogoh_bymass[*,iz]
-       dlogoh_mass_err = mzavg.dlogoh_bymass_err[*,iz]
-       gd = where(dlogoh_mass gt -900.0,ngd)
-
-       numer = dlogoh_mass[gd]-dlogoh_lum
-       numer_err = dlogoh_mass_err[gd]
-;      numer_err = sqrt(dlogoh_mass_err[gd]^2+dlogoh_lum_err^2)
-
-       denom = abs(mzavg.lz_slope)
-       denom_err = mzavg.lz_slope_err
-       
-       mzavg.dmb_bymass[gd,iz] = numer/denom ; [mag/z]
-       mzavg.dmb_bymass_err[gd,iz] = im_compute_error(numer,numer_err,$
-         denom,denom_err,/quotient)
-    endfor
+;; compare the amount of metallicity evolution from the MZ and LZ
+;; relations and attribute the differences to luminosity evolution
+;    for iz = 0, nz-1 do begin
+;       dlogoh_lum = mzavg.lz_dlogohdz*(zbins[iz].zbin-qz0)
+;       dlogoh_lum_err = mzavg.lz_dlogohdz_err*(zbins[iz].zbin-qz0)
+;
+;       dlogoh_mass = mzavg.dlogoh_bymass[*,iz]
+;       dlogoh_mass_err = mzavg.dlogoh_bymass_err[*,iz]
+;       gd = where(dlogoh_mass gt -900.0,ngd)
+;
+;       numer = dlogoh_mass[gd]-dlogoh_lum
+;       numer_err = dlogoh_mass_err[gd]
+;;      numer_err = sqrt(dlogoh_mass_err[gd]^2+dlogoh_lum_err^2)
+;
+;       denom = abs(mzavg.lz_slope)
+;       denom_err = mzavg.lz_slope_err
+;       
+;       mzavg.dmb_bymass[gd,iz] = numer/denom ; [mag/z]
+;       mzavg.dmb_bymass_err[gd,iz] = im_compute_error(numer,numer_err,$
+;         denom,denom_err,/quotient)
+;    endfor
 
 ; now go write the paper!    
     mzavgfile = mzpath+'mzevol_avg.fits'

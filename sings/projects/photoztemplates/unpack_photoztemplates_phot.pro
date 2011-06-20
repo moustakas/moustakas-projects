@@ -24,10 +24,12 @@ pro unpack_photoztemplates_phot
 
     for ii = 1, nfilt-1 do begin
        mag = allphot.(tag_indx(allphot,'abmag'+strtrim(ii,2)))
-       gd = where((mag gt 0.0) and (mag lt 90.0))
-       phot[gd].maggies[ii] = mag2maggies(mag[gd]-allphot[gd].ebv*kl[ii],$
-         magerr=mag[gd]*0+0.05,ivarmaggies=ivar)
-       phot[gd].ivarmaggies[ii] = ivar
+       gd = where((mag gt 0.0) and (mag lt 90.0),ngd)
+       if (ngd ne 0) then begin
+          phot[gd].maggies[ii] = mag2maggies(mag[gd]-allphot[gd].ebv*kl[ii],$
+            magerr=mag[gd]*0+0.05,ivarmaggies=ivar)
+          phot[gd].ivarmaggies[ii] = ivar
+       endif
     endfor
 
 ;   for ii = 0, nff-1 do begin

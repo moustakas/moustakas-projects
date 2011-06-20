@@ -2,9 +2,7 @@ function photoztemplates_restore, info, vname=vname
 ; internal function to rebuild the best-fitting SED in the observed 
 ; frame  
 
-    if (n_elements(vname) eq 0) then vname = 'default.nolines'
     ngal = n_elements(info)
-    
     light = 2.99792458D18       ; speed of light [A/s]
 
     k_load_vmatrix, vmatrix, lambda, vfile=vfile, $
@@ -24,10 +22,17 @@ function photoztemplates_restore, info, vname=vname
 return, model
 end
 
-pro photoztemplates_qaplot, psfile=psfile, vname=vname
+pro photoztemplates_qaplot, emlines=emlines
 
     path = sings_path(/proj)+'photoztemplates/'
-    info = mrdfits(path+'kcorr.fits.gz',1)
+    if keyword_set(emlines) then begin
+       vname = 'default'
+       suffix = '_emlines'
+    endif else begin
+       vname = 'default.nolines'
+       suffix = ''
+    endelse
+    info = mrdfits(path+'kcorr'+suffix+'.fits.gz',1)
     spec = mrdfits(path+'optspec.fits.gz',1)
     
     ngal = n_elements(info)
@@ -47,7 +52,7 @@ pro photoztemplates_qaplot, psfile=psfile, vname=vname
     xtitle2 = 'Rest Wavelength (\AA)'
     ytitle1 = 'm_{AB}'
 
-    if (n_elements(psfile) eq 0) then psfile = 'qaplot_photoztemplates.ps'
+    psfile = 'qaplot_photoztemplates'+suffix+'.ps'
     im_plotconfig, 8, pos, height=5.5, psfile=psfile, $
       ymargin=[0.9,1.1]
 
@@ -99,7 +104,6 @@ pro photoztemplates_qaplot, psfile=psfile, vname=vname
           djs_oplot, spec.wave[notdata_blue], spec.flux[notdata_blue,igal], color='blue', thick=4
           djs_oplot, spec.wave[notdata_red], spec.flux[notdata_red,igal], color='red', thick=4
        endif
-       
        djs_oplot, in_filtinfo.weff, bestmab, psym=symcat(6,thick=6), symsize=2.0
 
        if (nused ne 0) then begin

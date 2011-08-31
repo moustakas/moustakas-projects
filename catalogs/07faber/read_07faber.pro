@@ -1,4 +1,4 @@
-function read_07faber, zbin=zbin, blue=blue, red=red, combo17=combo17
+function read_07faber, zbin=zbin, blue=blue, red=red, combo17=combo17, log=log
 ; jm11aug25ucsd - read the Faber+07 B-band luminosity functions; both
 ; have h=0.7 and Vega mags
 
@@ -40,6 +40,11 @@ function read_07faber, zbin=zbin, blue=blue, red=red, combo17=combo17
     lf.absmag = absmag
     lf.phi = phi
     lf.phierr = phierr
+
+    if (keyword_set(nolog) eq 0) then begin
+       lf.phierr = lf.phierr/lf.phi/alog(10)
+       lf.phi = alog10(lf.phi)
+    endif
     
 return, lf
 end

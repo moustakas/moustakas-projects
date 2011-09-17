@@ -16,7 +16,7 @@ pro mzplot_scatterplot, x, y, sdss=sdss, nooutliers=nooutliers, $
     if keyword_set(annotate) then cannotation = $
       string(levels,format='(F4.2)')
     if (n_elements(outpsym) eq 0) then outpsym = 16
-    if (n_elements(outcolor) eq 0) then outcolor = fsc_color('black',101)
+    if (n_elements(outcolor) eq 0) then outcolor = im_color('black',101)
     hogg_scatterplot, x, y, outliers=(keyword_set(nooutliers) eq 0), $
       outpsym=symcat(outpsym), outsymsize=outsymsize, $
       outcolor=outcolor, _extra=extra, exp=0.5, xnpix=npix, $

@@ -4,7 +4,7 @@ pro qaplot_mz_pegase_models
     mzpath = ages_path(/projects)+'mz/'
     peginfo = mzpegase_read_models()
 
-    mzlocal = mrdfits(mzpath+'mzlocal_sdss_brokenpl.fits.gz',1)
+    mzavg = mrdfits(mzpath+'mzevol_avg.fits.gz',1,/silent)
     massaxis = range(8.8,11.0,500)
     
     ohrange1 = [8.0,9.5]

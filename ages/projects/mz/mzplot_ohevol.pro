@@ -93,10 +93,10 @@ pro mzplot_ohevol, ps=ps
 ;         poly(maxis-mzavg.dlogohdz_normmass,mzavg.dlogohdz_coeff)
 ;       keep = where((ohmodel gt yrange[0]+0.03))
 ;       djs_oplot, maxis[keep], ohmodel[keep], line=zline[ii], $
-;         color=fsc_color(zcolor[ii],101), thick=7
+;         color=im_color(zcolor[ii],101), thick=7
 ;; P,R model
 ;       djs_oplot, maxis, mzevol_func(maxis,mzavg.mlfit_coeffs,z=zval[ii],qz0=mzavg.qz0), $
-;         line=zline2[ii], color=fsc_color(zcolor[ii],101), thick=7
+;         line=zline2[ii], color=im_color(zcolor[ii],101), thick=7
 ;    endfor
 ;    
 ;    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
@@ -104,6 +104,7 @@ pro mzplot_ohevol, ps=ps
 ; --------------------------------------------------
 ; plot the evolution of the MZ relation on a single panel
     mzlocal = mrdfits(mzpath+'mzlocal_sdss_ews_t04.fits.gz',1)
+    mzevol = mrdfits(mzpath+'mzevol_t04.fits.gz',1,/silent)
     
     psfile = pspath+'mzevol_model'+suffix
     im_plotconfig, 0, pos, psfile=psfile, height=4.7, width=6.5, $
@@ -131,16 +132,24 @@ pro mzplot_ohevol, ps=ps
          poly(maxis-mzavg.dlogohdz_normmass,mzavg.dlogohdz_coeff)
        keep = where((ohmodel gt yrange[0]+0.03))
        djs_oplot, maxis[keep], ohmodel[keep], line=zline[ii], $
-         color=fsc_color(zcolor[ii],101), thick=7
+         color=im_color(zcolor[ii],101), thick=7
 ; P,R model
        djs_oplot, maxis, mzevol_func(maxis,[mzlocal.coeff,mzavg.r0[1],mzavg.p0[1]],$ ; =T04
-         z=zval[ii],qz0=mzavg.qz0),line=zline2[ii], color=fsc_color(zcolor[ii],101), thick=7
+         z=zval[ii],qz0=mzavg.qz0),line=zline2[ii], color=im_color(zcolor[ii],101), thick=7
 ;      djs_oplot, maxis, mzevol_func(maxis,mzavg.mlfit_coeffs,z=zval[ii],qz0=mzavg.qz0), $
-;        line=zline2[ii], color=fsc_color(zcolor[ii],101), thick=7
+;        line=zline2[ii], color=im_color(zcolor[ii],101), thick=7
+
+;     if (zval[ii] lt 0.9) then begin
+;        good = where(mzevol.ohmean_bymass[*,ii] gt -900.0)
+;        oploterror, mzevol.medmass_bymass[good,ii], mzevol.ohmean_bymass[good,ii], $
+;          mzevol.ohmean_bymass_err[good,ii], psym=6, color=im_color(zcolor[ii]), thick=5
+;     endif
     endfor
     
     im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
 
+stop    
+    
 ; --------------------------------------------------
 ; metallicity evolution rate (slope) vs stellar mass
 ;   slopemass = massbins[0:nmassbins-2].massbin
@@ -183,14 +192,14 @@ pro mzplot_ohevol, ps=ps
 ;    mingrad = min(allgrad,dim=2)
 ;    maxgrad = max(allgrad,dim=2)
 ;    polyfill, [maxis,reverse(maxis)],[mingrad,reverse(maxgrad)], $
-;      /data, /fill, color=fsc_color('powder blue',100), noclip=0
+;      /data, /fill, color=im_color('powder blue',100), noclip=0
 
 ;   maxmodel = poly(maxis-normmass,coeff+coeff_err/2)
 ;   minmodel = poly(maxis-normmass,coeff-coeff_err/2)
 ;   polyfill, [maxis,reverse(maxis)], [minmodel,reverse(maxmodel)], $
-;     /data, /fill, color=fsc_color('tan',101), noclip=0
+;     /data, /fill, color=im_color('tan',101), noclip=0
     djs_oplot, maxis, poly(maxis-mzavg.dlogohdz_normmass,mzavg.dlogohdz_coeff), line=0, $
-      color=fsc_color('firebrick',101), thick=7
+      color=im_color('firebrick',101), thick=7
     
     im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
 
@@ -215,10 +224,10 @@ pro mzplot_ohevol, ps=ps
 ;   maxmodel = poly(zaxis-mzavg.qz0,mzavg.coeffs+mzavg.coeffs_err/2)
 ;   minmodel = poly(zaxis-mzavg.qz0,mzavg.coeffs-mzavg.coeffs_err/2)
 ;   polyfill, [zaxis,reverse(zaxis)], [minmodel,reverse(maxmodel)], $
-;     /data, /fill, color=fsc_color('tan',101), noclip=0
+;     /data, /fill, color=im_color('tan',101), noclip=0
 ;   oploterror, mzavg.zbin, mzavg.dlogoh, mzavg.dlogoh_err, $
-;     psym=symcat(15,thick=5), symsize=2.0, color=fsc_color('firebrick',101), $
-;     errcolor=fsc_color('firebrick',101)
+;     psym=symcat(15,thick=5), symsize=2.0, color=im_color('firebrick',101), $
+;     errcolor=im_color('firebrick',101)
 
 ;   xyouts, 0.15, -0.10, textoidl('log (M/M_{'+sunsymbol()+'})'), align=0.5, $
 ;     /data, charsize=1.4
@@ -237,18 +246,18 @@ pro mzplot_ohevol, ps=ps
        oploterror, mzavg.medz_bymass[mm,good], $
          mzavg.dlogoh_bymass[mm,good], mzavg.dlogoh_bymass_err[mm,good], $
          psym=symcat(massbins[mm].psym,thick=7), symsize=massbins[mm].symsize, $
-         color=fsc_color(massbins[mm].color,101), errcolor=fsc_color(massbins[mm].color,101), $
+         color=im_color(massbins[mm].color,101), errcolor=im_color(massbins[mm].color,101), $
          errthick=!p.thick
 ; SDSS
        oploterror, mzavg.sdss_medz_bymass[mm], $
          mzavg.sdss_dlogoh_bymass[mm], mzavg.sdss_dlogoh_bymass_err[mm,good], $
          psym=symcat(massbins[mm].psym,thick=7), symsize=massbins[mm].symsize, $
-         color=fsc_color(massbins[mm].color,101), errcolor=fsc_color(massbins[mm].color,101), $
+         color=im_color(massbins[mm].color,101), errcolor=im_color(massbins[mm].color,101), $
          errthick=!p.thick
 ; the model fit
        djs_oplot, zaxis, poly(zaxis-mzavg.qz0,mzavg.coeffs_bymass[*,mm])-$
          poly(0.0,mzavg.coeffs_bymass[*,mm]), thick=7, $
-         color=fsc_color(massbins[mm].color,101), line=massbins[mm].line
+         color=im_color(massbins[mm].color,101), line=massbins[mm].line
     endfor
 
 ;   djs_oplot, zaxis, poly(zaxis-mzavg.qz0,mzavg.coeffs), line=0
@@ -316,10 +325,10 @@ pro mzplot_ohevol, ps=ps
 ;          maxmodel = mzevol_func(zaxis*0+massbins[mm].massbin,$
 ;            mzevol.coeffs_r0zero+mzevol.coeffs_r0zero_err/2.0,z=zaxis,qz0=mzevol.qz0)
 ;          polyfill, [zaxis,reverse(zaxis)], [minmodel,reverse(maxmodel)], $
-;            /data, /fill, color=fsc_color(polycolor[ii],101), noclip=0
+;            /data, /fill, color=im_color(polycolor[ii],101), noclip=0
 ;;         polyfill, [zaxis,reverse(zaxis)], [minmodel,reverse(maxmodel)], $
 ;;           /data, /line_fill, spacing=0.05, orientation=135, $
-;;           color=fsc_color(polycolor[ii],101), noclip=0
+;;           color=im_color(polycolor[ii],101), noclip=0
 ;        endfor
 ; and now the data
        for ii = 0, ncalib-1 do begin
@@ -327,23 +336,23 @@ pro mzplot_ohevol, ps=ps
           good = where(mzevol.ohmean_bymass[mm,*] gt -900.0)
 ;         djs_oplot, zbins[good].zbin, mzevol.ohmean[mm,good], $
 ;           psym=symcat(calibpsym[ii],thick=5), symsize=calibsymsize[ii], $
-;           color=fsc_color(calibcolor[ii],101)
+;           color=im_color(calibcolor[ii],101)
 
 ; AGES          
           oploterror, mzevol.medz_bymass[mm,good], mzevol.ohmean_bymass[mm,good], $
             mzevol.ohmean_bymass_err[mm,good], $
             psym=symcat(calibpsym[ii],thick=5), symsize=calibsymsize[ii], $
-            color=fsc_color(calibcolor[ii],101), errcolor=fsc_color(calibcolor[ii],101)
+            color=im_color(calibcolor[ii],101), errcolor=im_color(calibcolor[ii],101)
 ; SDSS
           oploterror, mzevol.sdss_medz_bymass[mm], mzevol.sdss_ohmean_bymass[mm], $
             mzevol.sdss_ohmean_bymass_err[mm], $
             psym=symcat(sdss_calibpsym[ii],thick=5), symsize=calibsymsize[ii], $
-            color=fsc_color(calibcolor[ii],101), errcolor=fsc_color(calibcolor[ii],101)          
+            color=im_color(calibcolor[ii],101), errcolor=im_color(calibcolor[ii],101)          
           
           djs_oplot, zaxis, poly(zaxis-mzevol.qz0,mzevol.coeffs_bymass[*,mm]), $
-            line=calibline[ii], color=fsc_color(calibcolor[ii],101)
+            line=calibline[ii], color=im_color(calibcolor[ii],101)
 ;         djs_oplot, zaxis, mzevol_func(zaxis*0+massbins[mm].massbin,mzevol.coeffs,$
-;           z=zaxis,qz0=mzevol.qz0), line=calibline[ii], color=fsc_color(calibcolor[ii],101)
+;           z=zaxis,qz0=mzevol.qz0), line=calibline[ii], color=im_color(calibcolor[ii],101)
        endfor
     endfor
 
@@ -386,13 +395,13 @@ stop
     for ii = 0, ncalib-1 do begin
        djs_oplot, zaxis1, mzevol_func(replicate(mz_pivotmass(),nzaxis1),$
          mzevol[ii].coeffs[*,r0indx],z=zaxis1,qz0=qz0), $
-         line=calibline[ii], color=fsc_color(calibcolor[ii],101), thick=8
+         line=calibline[ii], color=im_color(calibcolor[ii],101), thick=8
        djs_oplot, zbins.zbin, mzevol[ii].ohstar[*,r0indx], psym=symcat(calibpsym[ii],thick=8), $
-         symsize=calibsymsize[ii], color=fsc_color(calibcolor[ii],101)
+         symsize=calibsymsize[ii], color=im_color(calibcolor[ii],101)
 ;      djs_oplot, zbins.zbin, mzevol[ii].ohstar[*,2], psym=symcat(calibpsym[ii],thick=8), $
-;        symsize=calibsymsize[ii], color=fsc_color(calibcolor[ii],101)
+;        symsize=calibsymsize[ii], color=im_color(calibcolor[ii],101)
 ;      plots, 0.07, mz_brokenpl(mz_pivotmass(),mzlocal[ii].coeff_bin), $
-;        psym=symcat(sdsspsym,thick=10), symsize=sdsssymsize, color=fsc_color(sdsscolor,101)
+;        psym=symcat(sdsspsym,thick=10), symsize=sdsssymsize, color=im_color(sdsscolor,101)
     endfor
 
 ; LZ evolution with q0=1.6 dex/z
@@ -403,11 +412,11 @@ stop
     for ii = 0, ncalib-1 do begin
        djs_oplot, zaxis1, lzevol_func(replicate(lz_pivotmag(),nzaxis1),$
          lzevol[ii].coeffs[*,q0indx],z=zaxis1,qz0=qz0,pivotmag=lz_pivotmag()), $
-         line=calibline[ii], color=fsc_color(calibcolor[ii],101), thick=8
+         line=calibline[ii], color=im_color(calibcolor[ii],101), thick=8
        djs_oplot, zbins.zbin, lzevol[ii].ohstar[*,q0indx], psym=symcat(calibpsym[ii],thick=8), $
-         symsize=calibsymsize[ii], color=fsc_color(calibcolor[ii],101)
+         symsize=calibsymsize[ii], color=im_color(calibcolor[ii],101)
 ;      plots, 0.07, poly(0.0,lzlocal[ii].coeff), $
-;        psym=symcat(sdsspsym,thick=10), symsize=sdsssymsize, color=fsc_color(sdsscolor,101)
+;        psym=symcat(sdsspsym,thick=10), symsize=sdsssymsize, color=im_color(sdsscolor,101)
     endfor
 
     im_plotconfig, /psclose
@@ -451,9 +460,9 @@ stop
        get_element, mzevol[0].coeffs[5,*], r0[ii], r0indx
        oploterror, zbins.zbin, mzevol[0].dlogoh_avg[*,r0indx], mzevol[0].dlogoh_avg_err[*,r0indx], $
          psym=symcat(r0psym[ii],thick=8), symsize=r0symsize[ii], errthick=8, $
-         color=fsc_color(r0color[ii],101), errcolor=fsc_color(r0color[ii],101)
+         color=im_color(r0color[ii],101), errcolor=im_color(r0color[ii],101)
        djs_oplot, zaxis1, poly(zaxis1-qz0,[0.0,mzevol[0].pavg[r0indx]]), line=r0line[ii], $
-         color=fsc_color(r0color[ii],101), thick=8
+         color=im_color(r0color[ii],101), thick=8
     endfor
        
 ; dlogoh from LZ relation for various values of q0
@@ -468,9 +477,9 @@ stop
        get_element, lzevol[0].coeffs[3,*], q0[ii], q0indx
        oploterror, zbins.zbin, lzevol[0].dlogoh_avg[*,q0indx], lzevol[0].dlogoh_avg_err[*,q0indx], $
          psym=symcat(q0psym[ii],thick=8), symsize=q0symsize[ii], errthick=8, $
-         color=fsc_color(q0color[ii],101), errcolor=fsc_color(q0color[ii],101)
+         color=im_color(q0color[ii],101), errcolor=im_color(q0color[ii],101)
        djs_oplot, zaxis1, poly(zaxis1-qz0,[0.0,lzevol[0].savg[q0indx]]), line=q0line[ii], $
-         color=fsc_color(q0color[ii],101), thick=8
+         color=im_color(q0color[ii],101), thick=8
     endfor
 
     im_plotconfig, /psclose
@@ -569,32 +578,32 @@ stop
       xticks=n_elements(timelabel2)-1L, xtickname=string(timelabel2,format='(I0)')
 ; UV    
     oploterror, alog10(1+h[uv].z), h[uv].sfrd, h[uv].zerr_lo/(1+h[uv].z)/alog(10.0), $
-      h[uv].sfrderr_lo, psym=symcat(uvpsym), color=fsc_color(uvcolor,10), $
-      errcolor=fsc_color(uvcolor,10), errthick=!p.thick, /lobar, symsize=uvsymsize
+      h[uv].sfrderr_lo, psym=symcat(uvpsym), color=im_color(uvcolor,10), $
+      errcolor=im_color(uvcolor,10), errthick=!p.thick, /lobar, symsize=uvsymsize
     oploterror, alog10(1+h[uv].z), h[uv].sfrd, h[uv].zerr_hi/(1+h[uv].z)/alog(10.0), $
-      h[uv].sfrderr_hi, psym=symcat(uvpsym), color=fsc_color(uvcolor,10), $
-      errcolor=fsc_color(uvcolor,10), errthick=!p.thick, /hibar, symsize=uvsymsize
+      h[uv].sfrderr_hi, psym=symcat(uvpsym), color=im_color(uvcolor,10), $
+      errcolor=im_color(uvcolor,10), errthick=!p.thick, /hibar, symsize=uvsymsize
 ; Ha
     oploterror, alog10(1+h[ha].z), h[ha].sfrd, h[ha].zerr_lo/(1+h[ha].z)/alog(10.0), $
-      h[ha].sfrderr_lo, psym=symcat(hapsym), color=fsc_color(hacolor,10), $
-      errcolor=fsc_color(hacolor,10), errthick=!p.thick, /lobar, symsize=hasymsize
+      h[ha].sfrderr_lo, psym=symcat(hapsym), color=im_color(hacolor,10), $
+      errcolor=im_color(hacolor,10), errthick=!p.thick, /lobar, symsize=hasymsize
     oploterror, alog10(1+h[ha].z), h[ha].sfrd, h[ha].zerr_hi/(1+h[ha].z)/alog(10.0), $
-      h[ha].sfrderr_hi, psym=symcat(hapsym), color=fsc_color(hacolor,10), $
-      errcolor=fsc_color(hacolor,10), errthick=!p.thick, /hibar, symsize=hasymsize
+      h[ha].sfrderr_hi, psym=symcat(hapsym), color=im_color(hacolor,10), $
+      errcolor=im_color(hacolor,10), errthick=!p.thick, /hibar, symsize=hasymsize
 ; IR
     oploterror, alog10(1+h[ir].z), h[ir].sfrd, h[ir].zerr_lo/(1+h[ir].z)/alog(10.0), $
-      h[ir].sfrderr_lo, psym=symcat(irpsym), color=fsc_color(ircolor,10), $
-      errcolor=fsc_color(ircolor,10), errthick=!p.thick, /lobar, symsize=irsymsize
+      h[ir].sfrderr_lo, psym=symcat(irpsym), color=im_color(ircolor,10), $
+      errcolor=im_color(ircolor,10), errthick=!p.thick, /lobar, symsize=irsymsize
     oploterror, alog10(1+h[ir].z), h[ir].sfrd, h[ir].zerr_hi/(1+h[ir].z)/alog(10.0), $
-      h[ir].sfrderr_hi, psym=symcat(irpsym), color=fsc_color(ircolor,10), $
-      errcolor=fsc_color(ircolor,10), errthick=!p.thick, /hibar, symsize=irsymsize
+      h[ir].sfrderr_hi, psym=symcat(irpsym), color=im_color(ircolor,10), $
+      errcolor=im_color(ircolor,10), errthick=!p.thick, /hibar, symsize=irsymsize
 ; Radio
     oploterror, alog10(1+h[rad].z), h[rad].sfrd, h[rad].zerr_lo/(1+h[rad].z)/alog(10.0), $
-      h[rad].sfrderr_lo, psym=symcat(radpsym), color=fsc_color(radcolor,10), $
-      errcolor=fsc_color(radcolor,10), errthick=!p.thick, /lobar, symsize=radsymsize
+      h[rad].sfrderr_lo, psym=symcat(radpsym), color=im_color(radcolor,10), $
+      errcolor=im_color(radcolor,10), errthick=!p.thick, /lobar, symsize=radsymsize
     oploterror, alog10(1+h[rad].z), h[rad].sfrd, h[rad].zerr_hi/(1+h[rad].z)/alog(10.0), $
-      h[rad].sfrderr_hi, psym=symcat(radpsym), color=fsc_color(radcolor,10), $
-      errcolor=fsc_color(radcolor,10), errthick=!p.thick, /hibar, symsize=radsymsize
+      h[rad].sfrderr_hi, psym=symcat(radpsym), color=im_color(radcolor,10), $
+      errcolor=im_color(radcolor,10), errthick=!p.thick, /hibar, symsize=radsymsize
 
 ; legend
     label = ['UV','H\alpha/H\beta/[OII]','IR','Radio/Xray']
@@ -714,7 +723,7 @@ stop
     mstarerr_e07 = [0.12,0.07,0.04,0.05,0.11,0.08]
 
     oploterror, z_e07, mstar_e07, zerr_e07, mstarerr_e07, symsize=e07symsize, $
-      psym=symcat(e07psym), color=fsc_color(e07color,1E8), errcolor=fsc_color(e07color,1E8)
+      psym=symcat(e07psym), color=im_color(e07color,1E8), errcolor=im_color(e07color,1E8)
 
 ; -------------------------
 ; Willmer et al. 2006 [DEEP2]; "minimal" model adopted, as
@@ -733,9 +742,9 @@ stop
     for i = 0, n_elements(mstar_w06)-1L do mstarerr_w06[i] = mean([mstarerr_up_w06[i],mstarerr_lo_w06[i]])
     
     oploterror, z_w06, mstar_w06, zerr_w06, mstarerr_up_w06, /hi, symsize=w06symsize, $
-      psym=symcat(w06psym), color=fsc_color(w06color,1E8), errcolor=fsc_color(w06color,1E8)
+      psym=symcat(w06psym), color=im_color(w06color,1E8), errcolor=im_color(w06color,1E8)
     oploterror, z_w06, mstar_w06, zerr_w06, mstarerr_lo_w06, /lo, symsize=w06symsize, $
-      psym=symcat(w06psym), color=fsc_color(w06color,1E8), errcolor=fsc_color(w06color,1E8)
+      psym=symcat(w06psym), color=im_color(w06color,1E8), errcolor=im_color(w06color,1E8)
 
 ; -------------------------
 ; Faber et al. 2007 [COMBO17]; Omega_0=0.3, Omega_lamba=0.7, h=0.7;
@@ -748,7 +757,7 @@ stop
     mstarerr_f06 = [0.20,0.15,0.16,0.17,0.18]
 
     oploterror, z_f06, mstar_f06, zerr_f06, mstarerr_f06, symsize=f06symsize, $
-      psym=symcat(f06psym), color=fsc_color(f06color,1E8), errcolor=fsc_color(f06color,1E8)
+      psym=symcat(f06psym), color=im_color(f06color,1E8), errcolor=im_color(f06color,1E8)
     
 ; legend
     label = ['Willmer+06','Faber+07','Eisenstein+09']
@@ -782,7 +791,7 @@ stop
     mstarerr_i09 = mstar_i09*0.0+0.1
 
     oploterror, z_i09, mstar_i09, zerr_i09, mstarerr_i09, symsize=i09symsize, $
-      psym=symcat(i09psym), color=fsc_color(i09color,1E8), errcolor=fsc_color(i09color,1E8)
+      psym=symcat(i09psym), color=im_color(i09color,1E8), errcolor=im_color(i09color,1E8)
 
 ; -------------------------
 ; Borch+06 [COMBO-17]; Omega_0=0.3, Omega_lamba=0.7, h=0.7; Kroupa+93
@@ -795,7 +804,7 @@ stop
     mstarerr_b06 = [0.10,0.10,0.19,0.12,0.07,0.25]
 
     oploterror, z_b06, mstar_b06, zerr_b06, mstarerr_b06, symsize=b06symsize, $
-      psym=symcat(b06psym), color=fsc_color(b06color,1E8), errcolor=fsc_color(b06color,1E8)
+      psym=symcat(b06psym), color=im_color(b06color,1E8), errcolor=im_color(b06color,1E8)
 
 ; fit to both samples
     xx = [z_b06,z_i09] & yy = [mstar_b06,mstar_i09] & yyerr = [mstarerr_b06,mstarerr_i09]
@@ -866,21 +875,21 @@ stop
 ; overplot the Pegase models
 ; tau=1
 ;   djs_oplot, plot_zaxis, zf2_peg1_sfrd_frac, line=5, $
-;     color=fsc_color('dodger blue',148), thick=8
+;     color=im_color('dodger blue',148), thick=8
     djs_oplot, plot_zaxis, zf1_peg1_sfrd_frac, line=5, $
-      color=fsc_color('dodger blue',148), thick=8
+      color=im_color('dodger blue',148), thick=8
 
 ; tau=3    
 ;   djs_oplot, plot_zaxis, zf2_peg3_sfrd_frac, line=3, $
-;     color=fsc_color('orange',149), thick=8
+;     color=im_color('orange',149), thick=8
     djs_oplot, plot_zaxis, zf1_peg3_sfrd_frac, line=3, $
-      color=fsc_color('orange',149), thick=8
+      color=im_color('orange',149), thick=8
 
 ; tau=inf    
 ;   djs_oplot, plot_zaxis, zf2_pegconst_sfrd_frac, line=1, $
-;     color=fsc_color('purple',150), thick=10
+;     color=im_color('purple',150), thick=10
     djs_oplot, plot_zaxis, zf1_pegconst_sfrd_frac, line=1, $
-      color=fsc_color('purple',150), thick=10
+      color=im_color('purple',150), thick=10
 
 ; and finally the data    
     color1 = 'firebrick' & psym1 = 6 & symsize1 = 3.0 & line1 = 3
@@ -936,30 +945,30 @@ stop
     plotpoints = 0
     if plotpoints then begin
        oploterror, z1, oh1, zerr, oh1_err, psym=-symcat(psym1,thick=8), $
-         symsize=symsize1, line=line1, color=fsc_color(color1,91), $
-         errcolor=fsc_color(color1,91)
+         symsize=symsize1, line=line1, color=im_color(color1,91), $
+         errcolor=im_color(color1,91)
        oploterror, z2, oh2, zerr, oh2_err, psym=-symcat(psym2,thick=8), $
-         symsize=symsize2, color=fsc_color(color2,92), errcolor=fsc_color(color2,92), line=line2
+         symsize=symsize2, color=im_color(color2,92), errcolor=im_color(color2,92), line=line2
        oploterror, z3, oh3, zerr, oh3_err, psym=-symcat(psym3,thick=8), $
-         symsize=symsize3, color=fsc_color(color3,93), errcolor=fsc_color(color3,93), line=line3
+         symsize=symsize3, color=im_color(color3,93), errcolor=im_color(color3,93), line=line3
        oploterror, z4, oh4, zerr, oh4_err, psym=-symcat(psym4,thick=8), $
-         symsize=symsize4, color=fsc_color(color4,94), errcolor=fsc_color(color4,94), line=line4
+         symsize=symsize4, color=im_color(color4,94), errcolor=im_color(color4,94), line=line4
     endif
 
 ; label the Pegase curves
     xyouts, 0.52, 1.01, textoidl('\tau=1 Gyr'), align=0.5, $
-      charsize=2.0, color=fsc_color('dodger blue',10)
+      charsize=2.0, color=im_color('dodger blue',10)
     xyouts, 0.52, 0.96, textoidl('\tau=3 Gyr'), align=0.5, $
-      charsize=2.0, color=fsc_color('orange',11), $
+      charsize=2.0, color=im_color('orange',11), $
       orientation=-20
     xyouts, 0.3, 0.83, textoidl('\tau=!7y!6'), align=0.5, $
-      charsize=2.2, color=fsc_color('purple',12), $
+      charsize=2.2, color=im_color('purple',12), $
       orientation=-60
 ;   xyouts, 0.6, 0.79, textoidl('!MI!N'+'d\rho_{*}(t)'), $
-;     align=0.5, charsize=2.0, color=fsc_color('black',13)
+;     align=0.5, charsize=2.0, color=im_color('black',13)
 ;   xyouts, 0.6, 0.77, textoidl('!MI!N'+'dt\prime'+'(d\rho_{*}/dt\prime)'), $
     xyouts, 0.605, 0.78, textoidl('!MI!N'+'dt'+'(d\rho_{*}/dt)'), $
-      align=0.5, charsize=1.9, color=fsc_color('black',13)
+      align=0.5, charsize=1.9, color=im_color('black',13)
     
 ; legend    
     label = ['\tau=1 Gyr','\tau=3 Gyr','\tau=const']
@@ -1016,17 +1025,17 @@ stop
 ;   djs_oplot, zz, poly(zz,cc), line=1, thick=3
 ; Q=0
     oploterror, ohevol.z, ohevol.ldlogoh_noevol, ohevol.ldlogoh_noevol_err, $
-      psym=-symcat(psym1,thick=8), color=fsc_color(color1,91), errcolor=fsc_color(color1,91), $
+      psym=-symcat(psym1,thick=8), color=im_color(color1,91), errcolor=im_color(color1,91), $
       symsize=symsize1, line=line1
     oploterror, ohevol.z, ohevol.ldlogoh_noevol_cor, ohevol.ldlogoh_noevol_cor_err, $
-      psym=-symcat(psym2), color=fsc_color(color2,92), errcolor=fsc_color(color2,92), $
+      psym=-symcat(psym2), color=im_color(color2,92), errcolor=im_color(color2,92), $
       symsize=symsize2, line=line2
 ; Q=1.5
     oploterror, ohevol.z, ohevol.ldlogoh_levol, ohevol.ldlogoh_levol_err, $
-      psym=-symcat(psym3,thick=8), color=fsc_color(color3,93), errcolor=fsc_color(color3,93), $
+      psym=-symcat(psym3,thick=8), color=im_color(color3,93), errcolor=im_color(color3,93), $
       symsize=symsize3, line=line3
     oploterror, ohevol.z, ohevol.ldlogoh_levol_cor, ohevol.ldlogoh_levol_cor_err, $
-      psym=-symcat(psym4), color=fsc_color(color4,94), errcolor=fsc_color(color4,94), $
+      psym=-symcat(psym4), color=im_color(color4,94), errcolor=im_color(color4,94), $
       symsize=symsize4, line=line4
 
     im_legend, ['Q=0, Observed','Q=0, Corrected','Q=1.5, Observed','Q=1.5, Corrected'], $
@@ -1040,15 +1049,15 @@ stop
     djs_oplot, zz, zz*0.0, line=1, thick=3
 
     oploterror, ohevol.z, ohevol.mdlogoh, ohevol.mdlogoh_err, $
-      psym=-symcat(psym5,thick=8), color=fsc_color(color5,91), errcolor=fsc_color(color5,91), $
+      psym=-symcat(psym5,thick=8), color=im_color(color5,91), errcolor=im_color(color5,91), $
       symsize=symsize5, line=line5
 ; Q=1.5
     oploterror, ohevol.z, ohevol.mdlogoh_levol_cor, ohevol.mdlogoh_levol_cor_err, $
-      psym=-symcat(psym7), color=fsc_color(color7,92), errcolor=fsc_color(color7,92), $
+      psym=-symcat(psym7), color=im_color(color7,92), errcolor=im_color(color7,92), $
       symsize=symsize7, line=line7
 ; Q=0
     oploterror, ohevol.z, ohevol.mdlogoh_noevol_cor, ohevol.mdlogoh_noevol_cor_err, $
-      psym=-symcat(psym6,thick=8), color=fsc_color(color6,92), errcolor=fsc_color(color6,92), $
+      psym=-symcat(psym6,thick=8), color=im_color(color6,92), errcolor=im_color(color6,92), $
       symsize=symsize6, line=line6
 
     im_legend, ['Observed','Q=0, Corrected','Q=1.5, Corrected'], $
@@ -1090,17 +1099,17 @@ stop
       xtickname=string(timelabel1,format='(I0)')
 ; AGES
     oploterror, glzevol_ages.z, glzevol_ages.levol_mean, glzevol_ages.levol_mean_err, $
-      psym=-symcat(psym2), color=fsc_color(color2,92), errcolor=fsc_color(color2,92), $
+      psym=-symcat(psym2), color=im_color(color2,92), errcolor=im_color(color2,92), $
       symsize=symsize2, line=line2
     oploterror, glzevol_ages.z, glzevol_ages.noevol_mean, glzevol_ages.noevol_mean_err, $
-      psym=-symcat(psym1,thick=8), color=fsc_color(color1,91), errcolor=fsc_color(color1,91), $
+      psym=-symcat(psym1,thick=8), color=im_color(color1,91), errcolor=im_color(color1,91), $
       symsize=symsize1, line=line1
 ; SDSS2AGES/levol/noevol
     oploterror, glzevol_levol.z, glzevol_levol.levol_mean, glzevol_levol.levol_mean_err, $
-      psym=-symcat(psym4), color=fsc_color(color4,94), errcolor=fsc_color(color4,94), $
+      psym=-symcat(psym4), color=im_color(color4,94), errcolor=im_color(color4,94), $
       symsize=symsize4, line=line4
     oploterror, glzevol_noevol.z, glzevol_noevol.noevol_mean, glzevol_noevol.noevol_mean_err, $
-      psym=-symcat(psym3,thick=8), color=fsc_color(color3,93), errcolor=fsc_color(color3,93), $
+      psym=-symcat(psym3,thick=8), color=im_color(color3,93), errcolor=im_color(color3,93), $
       symsize=symsize3, line=line3
 
     im_legend, ['AGES, Q=0','AGES, Q=1.5','Mock AGES, Q=0','Mock AGES, Q=1.5'], $
@@ -1113,15 +1122,15 @@ stop
       xrange=zrange, yrange=ohrange, xtitle=ztitle1, ytitle=ohtitle2
 ; AGES
     oploterror, mzevol_ages.z, mzevol_ages.mean, mzevol_ages.mean_err, $
-      psym=-symcat(psym5,thick=8), color=fsc_color(color5,91), errcolor=fsc_color(color5,92), $
+      psym=-symcat(psym5,thick=8), color=im_color(color5,91), errcolor=im_color(color5,92), $
       symsize=symsize5, line=line5
 ; SDSS2AGES/levol
     oploterror, mzevol_levol.z, mzevol_levol.mean, mzevol_levol.mean_err, $
-      psym=-symcat(psym7), color=fsc_color(color7,94), errcolor=fsc_color(color7,94), $
+      psym=-symcat(psym7), color=im_color(color7,94), errcolor=im_color(color7,94), $
       symsize=symsize7, line=line7
 ; SDSS2AGES/noevol
     oploterror, mzevol_noevol.z, mzevol_noevol.mean, mzevol_noevol.mean_err, $
-      psym=-symcat(psym6,thick=8), color=fsc_color(color6,93), errcolor=fsc_color(color6,93), $
+      psym=-symcat(psym6,thick=8), color=im_color(color6,93), errcolor=im_color(color6,93), $
       symsize=symsize6, line=line6
    
     im_legend, ['AGES','Mock AGES, Q=0','Mock AGES, Q=1.5'], $
@@ -1178,32 +1187,32 @@ end
 ;;
 ;;; UV    
 ;;    oploterror, alog10(1+h[uv].z), h[uv].sfrd, h[uv].zerr_lo/(1+h[uv].z)/alog(10.0), $
-;;      h[uv].sfrderr_lo, psym=symcat(uvpsym), color=fsc_color(uvcolor,10), $
-;;      errcolor=fsc_color(uvcolor,10), errthick=!p.thick, /lobar
+;;      h[uv].sfrderr_lo, psym=symcat(uvpsym), color=im_color(uvcolor,10), $
+;;      errcolor=im_color(uvcolor,10), errthick=!p.thick, /lobar
 ;;    oploterror, alog10(1+h[uv].z), h[uv].sfrd, h[uv].zerr_hi/(1+h[uv].z)/alog(10.0), $
-;;      h[uv].sfrderr_hi, psym=symcat(uvpsym), color=fsc_color(uvcolor,10), $
-;;      errcolor=fsc_color(uvcolor,10), errthick=!p.thick, /hibar
+;;      h[uv].sfrderr_hi, psym=symcat(uvpsym), color=im_color(uvcolor,10), $
+;;      errcolor=im_color(uvcolor,10), errthick=!p.thick, /hibar
 ;;; Ha
 ;;    oploterror, alog10(1+h[ha].z), h[ha].sfrd, h[ha].zerr_lo/(1+h[ha].z)/alog(10.0), $
-;;      h[ha].sfrderr_lo, psym=symcat(hapsym), color=fsc_color(hacolor,10), $
-;;      errcolor=fsc_color(hacolor,10), errthick=!p.thick, /lobar
+;;      h[ha].sfrderr_lo, psym=symcat(hapsym), color=im_color(hacolor,10), $
+;;      errcolor=im_color(hacolor,10), errthick=!p.thick, /lobar
 ;;    oploterror, alog10(1+h[ha].z), h[ha].sfrd, h[ha].zerr_hi/(1+h[ha].z)/alog(10.0), $
-;;      h[ha].sfrderr_hi, psym=symcat(hapsym), color=fsc_color(hacolor,10), $
-;;      errcolor=fsc_color(hacolor,10), errthick=!p.thick, /hibar
+;;      h[ha].sfrderr_hi, psym=symcat(hapsym), color=im_color(hacolor,10), $
+;;      errcolor=im_color(hacolor,10), errthick=!p.thick, /hibar
 ;;; IR
 ;;    oploterror, alog10(1+h[ir].z), h[ir].sfrd, h[ir].zerr_lo/(1+h[ir].z)/alog(10.0), $
-;;      h[ir].sfrderr_lo, psym=symcat(irpsym), color=fsc_color(ircolor,10), $
-;;      errcolor=fsc_color(ircolor,10), errthick=!p.thick, /lobar
+;;      h[ir].sfrderr_lo, psym=symcat(irpsym), color=im_color(ircolor,10), $
+;;      errcolor=im_color(ircolor,10), errthick=!p.thick, /lobar
 ;;    oploterror, alog10(1+h[ir].z), h[ir].sfrd, h[ir].zerr_hi/(1+h[ir].z)/alog(10.0), $
-;;      h[ir].sfrderr_hi, psym=symcat(irpsym), color=fsc_color(ircolor,10), $
-;;      errcolor=fsc_color(ircolor,10), errthick=!p.thick, /hibar
+;;      h[ir].sfrderr_hi, psym=symcat(irpsym), color=im_color(ircolor,10), $
+;;      errcolor=im_color(ircolor,10), errthick=!p.thick, /hibar
 ;;; Radio
 ;;    oploterror, alog10(1+h[rad].z), h[rad].sfrd, h[rad].zerr_lo/(1+h[rad].z)/alog(10.0), $
-;;      h[rad].sfrderr_lo, psym=symcat(radpsym), color=fsc_color(radcolor,10), $
-;;      errcolor=fsc_color(radcolor,10), errthick=!p.thick, /lobar
+;;      h[rad].sfrderr_lo, psym=symcat(radpsym), color=im_color(radcolor,10), $
+;;      errcolor=im_color(radcolor,10), errthick=!p.thick, /lobar
 ;;    oploterror, alog10(1+h[rad].z), h[rad].sfrd, h[rad].zerr_hi/(1+h[rad].z)/alog(10.0), $
-;;      h[rad].sfrderr_hi, psym=symcat(radpsym), color=fsc_color(radcolor,10), $
-;;      errcolor=fsc_color(radcolor,10), errthick=!p.thick, /hibar
+;;      h[rad].sfrderr_hi, psym=symcat(radpsym), color=im_color(radcolor,10), $
+;;      errcolor=im_color(radcolor,10), errthick=!p.thick, /hibar
 ;;    
 ;;; coefficients from plot_redshift_vs_sfr_mass_density    
 ;;    sfrd_zaxis = im_array(0.0,6.0,0.05)
@@ -1259,7 +1268,7 @@ end
 ;;       good = where(mzavg.dlogoh[mm] gt -900.0)
 ;;       oploterror, zbins[good].zbin, mzavg[good].dlogoh[mm], mzavg[good].dlogoh_err[mm], $
 ;;         psym=symcat(massbins[mm].psym,thick=5), symsize=massbins[mm].symsize, $
-;;         color=fsc_color(massbins[mm].color,101), errcolor=fsc_color(massbins[mm].color,101)
+;;         color=im_color(massbins[mm].color,101), errcolor=im_color(massbins[mm].color,101)
 ;;    endfor
 ;;    
 ;;    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)

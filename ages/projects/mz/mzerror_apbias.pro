@@ -101,39 +101,40 @@ pro mzerror_apbias, ps=ps
 
     im_plotconfig, 0, pos, psfile=pspath+'mzerror_apbias'+suffix, height=5.0
     hogg_scatterplot, sim.infiber, sim.deltaoh, position=pos, $
-      xsty=1, ysty=1, yrange=[-0.05,0.7], xrange=[0,1], $ ; /internal, $
-      /outliers, levels=[0.5,0.75,0.95], ccolor=djs_icolor('grey'), $
-      ytitle='Metallicity Bias (dex)', /internal, $
-      cannotation=['0.5','0.75','0.95'], $
-      xtitle='F(r) (Light-Fraction)', outcolor=djs_icolor('grey')
+      xsty=1, ysty=1, yrange=[-0.05,0.5], xrange=[0,1], /nogrey, $
+      /outliers, levels=[0.5,0.75,0.95], xtitle='F(r) (Light-Fraction)', $
+      ytitle='Metallicity Bias (dex)', /internal, xnpix=51, ynpix=51, $
+      outcolor=im_color('gray50',10), ccolor=im_color('gray50',10)
     oploterror, fracbin.xbin, fracbin.medy, fracbin.quant75-fracbin.medy, $
       psym=-symcat(6,thick=6), symsize=3, errthick=6, /hibar, $
-      color=fsc_color('navy',101), errcolor=fsc_color('navy',101), thick=6
+      color=im_color('midnight blue',11), errcolor=im_color('midnight blue',11), thick=6
     oploterror, fracbin.xbin, fracbin.medy, fracbin.medy-fracbin.quant25, $
       psym=-symcat(6,thick=6), symsize=3, errthick=6, /lobar, $
-      color=fsc_color('navy',101), errcolor=fsc_color('navy',101), thick=6
+      color=im_color('midnight blue',103), errcolor=im_color('midnight blue',103), thick=6
     im_plotconfig, /psclose
 
-stop
-
 ; ---------------------------------------------------------------------------    
-; light fraction vs redshift
+; light fraction vs redshift in bins of stellar mass 
 
     xtitle = 'Redshift'
     ytitle = 'I-band Light Fraction'
-    zrange = [0.0,0.75]
-    fracrange = [-0.001,0.47]
+    zrange = [0.03,0.75]
+    fracrange = [-0.001,0.53]
     levels = [0.1,0.25,0.5,0.75,0.90]
 
-    fracbin = im_medxbin(ages.z,ages.infiber_i,0.1,$
-      minx=0.05,minpts=10,/ver)
+    fracbin = im_medxbin(ages.z,ages.infiber_i,0.05,$
+      minx=0.05,minpts=20,/ver)
 
 ; split by mass
-    minmass = [8.0, 9.5,10.5]
-    maxmass = [9.5,10.5,11.5]
-    color1 = ['dodger blue','tan','purple']
-    psym1 = [16,6,15]
-    symsize1 = [0.6,0.3,0.6]
+    minmass = [9.0, 9.5,10.0,10.5]
+    maxmass = [9.5,10.0,10.5,11.0]
+    masslabel = string(minmass,format='(F4.1)')+$
+      '-'+strtrim(string(maxmass,format='(F4.1)'),2)
+    masslabel[0] = 'log (M/M_{\odot})='+masslabel[0]
+
+    color1 = ['dodger blue','tan','purple','forest green']
+    psym1 = [16,6,15,5]
+    symsize1 = [0.6,0.3,0.6,0.3]
     nbin = n_elements(minmass)
     
     psfile = pspath+'z_vs_infiber'+suffix
@@ -143,17 +144,27 @@ stop
     djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
       xrange=zrange, yrange=fracrange, xtitle=xtitle, $
       ytitle=ytitle
-    im_legend,'log(M/M_{\odot})='+string(minmass,format='(F4.1)')+$
-      '-'+strtrim(string(maxmass,format='(F4.1)'),2), color=color1, $
-      psym=psym1, charsize=1.3, /right, /top, box=0, spacing=1.8, $
-      margin=0
+    im_legend, masslabel, color=color1, psym=psym1, charsize=1.5, $
+      /right, /top, box=0, spacing=1.8, margin=0
+
+    ngal = n_elements(ages)
+    bigpsym = intarr(ngal)
+    bigsymsize = fltarr(ngal)
+    bigcolor = strarr(ngal)
     for ii = 0, nbin-1 do begin
        indx = where((mass.mass_avg gt minmass[ii]) and $
          (mass.mass_avg lt maxmass[ii]))
-       djs_oplot, ages[indx].z, ages[indx].infiber_i, $
-         psym=symcat(psym1[ii],thick=8), $
-         symsize=symsize1[ii], color=fsc_color(color1[ii],101)
+       bigpsym[indx] = psym1[ii]
+       bigsymsize[indx] = symsize1[ii]
+       bigcolor[indx] = color1[ii]
+;      djs_oplot, ages[indx].z, ages[indx].infiber_i, psym=symcat(psym1[ii],thick=8), $
+;        symsize=symsize1[ii], color=im_color(color1[ii],101)
     endfor
+    indx = shuffle_indx(ngal)
+    for ii = 0, ngal-1 do plots, ages[indx[ii]].z, ages[indx[ii]].infiber_i, $
+      psym=symcat(bigpsym[indx[ii]],thick=8), symsize=bigsymsize[indx[ii]], $
+      color=im_color(bigcolor[indx[ii]])
+    
 ;   djs_oplot, ages.z, ages.infiber_i, psym=symcat(16), $
 ;     symsize=0.4, color='grey'
 ;   mzages_hogg_scatterplot, ages.z, ages.infiber_i, position=pos, $
@@ -161,10 +172,10 @@ stop
 ;     ytitle=ytitle, levels=levels
     oploterror, fracbin.xbin, fracbin.medy, fracbin.quant75-fracbin.medy, $
       psym=-symcat(15), symsize=2.0, errthick=6, /hibar;, $
-;     color=fsc_color('firebrick',101), errcolor=fsc_color('firebrick',101)
+;     color=im_color('firebrick',101), errcolor=im_color('firebrick',101)
     oploterror, fracbin.xbin, fracbin.medy, fracbin.medy-fracbin.quant25, $
       psym=-symcat(15), symsize=2.0, errthick=6, /lobar;, $
-;     color=fsc_color('firebrick',101), errcolor=fsc_color('firebrick',101)
+;     color=im_color('firebrick',101), errcolor=im_color('firebrick',101)
 
     im_plotconfig, /psclose
 

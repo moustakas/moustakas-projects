@@ -58,6 +58,736 @@ pro mztables, preprint=preprint
     paperpath = ages_path(/papers)+'mz/'
 
 ; ---------------------------------------------------------------------------    
+; Table: comparison with the literature
+
+    table = {sample: '', ngal: '', area: '', zrange: '', $
+      diagnostic: '', mlrange: '', dlogoh: '', dz: ''};, remark: ''}
+    ntags = n_tags(table)
+
+; caputi08
+; rupke08
+    
+    sample = [$
+; LZ relations
+      '\citet{kobulnicky99b}',$
+;     'CL01',$ ; Carollo & Lilly+01
+      '\citet{lilly03a}\tablenotemark{h}',$
+      '\citet{kobulnicky03b}',$
+      '\citet{kobulnicky04a}',$
+      '\citet{maier04a}',$ ; 'Maier+04',$
+      '\citet{liang04a}',$ ; 'Liang+04',$
+      '\citet{savaglio05a}\tablenotemark{i}',$ ; 'Savaglio+05',$
+      '\citet{maier05a}',$ ; 'Maier+05',$
+      '\citet{hoyos05a}',$ ; 'Hoyos+05',$
+      '\citet{mouhcine06b}',$ ; 'Mouhcine+06a (cluster)',$
+      '\citet{mouhcine06a}',$ ; 'Mouhcine+06b (field)',$
+      '\citet{lama06b, lama06a}',$ ; 'Lamareille+06',B-band
+      '\citet{lama09a}\tablenotemark{k}',$ ; VVDS-DEEP
+      '\citet{lama09a}\tablenotemark{k}',$ ; VVDS-WIDE
+      '\citet{zahid11a}',$ ; DEEP2
+; MZ relations
+      '\citet{savaglio05a}\tablenotemark{i}',$ ; 'Savaglio+05\tablenotemark{g}',$ ; MZ
+;     'LHF06',$ ; Liang+06
+      '\citet{rodrigues08a}\tablenotemark{m}',$
+      '\citet{cowie08a}',$
+      '\citet{lama09a}\tablenotemark{k}',$ ; VVDS-DEEP
+      '\citet{lama09a}\tablenotemark{k}',$ ; VVDS-WIDE
+      '\citet{zahid11a}'] ; DEEP2
+      
+    ntable = n_elements(sample)
+    table = replicate(table,ntable)
+    table.sample = sample
+
+    table.ngal = [$
+; LZ relations
+      '$14$',$   ; KZ99
+;     '$15$',$   ; CL01
+      '$66$',$   ; Lilly+03
+      '$64$',$   ; Kobulnicky+03
+      '$204$',$  ; KK04
+      '$16$',$   ; Maier+04
+      '$46$',$   ; Liang+04 [Table 6, col 12 plus Table 7, col 8]
+      '$56$',$   ; Savaglio+05 - LZ
+      '$30$',$   ; Maier+05
+      '$15$',$   ; Hoyos+05
+      '$15$',$   ; Mouhcine+06a
+      '$39$',$   ; Mouhcine+06b
+      '$117$',$  ; Lama+06 ; B-band (see Sec 2.1.2); only 117 in '06lama.dat' with good M_B and O/H
+      '$870$',$  ; Lama+09
+      '$2191$',$ ; Lama+09
+      '$1350$',$ ; Zahid+11
+; MZ relations
+      '$56$',$   ; Savaglio+05
+;     '$34$',$ ; Liang+06
+      '$88$',$ ; Rodrigues+08 (58 with lines; 7 are AGN, but they don't say which; 35 have good O/H; 30 from Liang06)
+      '$\sim400$',$ ; Cowie+08 (rough estimate based on Fig 32)
+      '$870$',$  ; Lama+09
+      '$2191$',$ ; Lama+09
+      '$1350$']  ; Zahid+11
+
+; Area surveyed by Lama+09 (numbers are approximate): 
+;   Deep = F02+CDFS = 0.61 deg^2 (Le Fevre+04)
+;   Wide = F22+F10+F14+F02+CDFS = 3.0+0.6+0.9+0.5+0.11 (Le Fevre+04;
+;     Garilli+08) = 
+    
+    table.area = [$
+; LZ relations
+      '?',$       ; KZ99
+;     '?',$       ; CL01
+      '$0.03$',$   ; Lilly+03 [Lilly+95, Sec 2.2]
+      '$0.04$',$   ; Kobulnicky+03
+      '$0.09$',$   ; KK04 [Wirth+04]
+      '$0.11$',$   ; Maier+04 [105+98+107+103; see Maier+03]
+      '?',$       ; Liang+04
+      '$0.06$',$   ; Savaglio+05 (GDDS was 4x30 arcmin^2 + 112 from CFRS)
+      '?',$       ; Maier+05
+      '$0.09$',$   ; Hoyos+05 [TKRS]
+      '?',$       ; Mouhcine+06a
+      '?',$       ; Mouhcine+06b
+      '?',$       ; Lama+06
+      '$0.61$',$  ; Lama+09
+      '$5.1$',$ ; Lama+09
+      '$3.5$',$ ; Zahid+11
+; MZ relations
+      '0.06',$     ; Savaglio+05 (GDDS was 4x30 arcmin^2 + 112 from CFRS)
+;     '?',$       ; Liang+06
+      '$0.05$',$   ; Rodrigues+08 (four 6.8x6.8 arcmin^2 fields)
+      '$0.04$',$   ; Cowie+08
+      '$0.61$',$   ; Lama+09
+      '$5.1$',$  ; Lama+09
+      '$3.5$']   ; Zahid+11
+
+;    table.area = [$
+;; LZ relations
+;      '?',$       ; KZ99
+;;     '?',$       ; CL01
+;      '$112$',$   ; Lilly+03 [Lilly+95, Sec 2.2]
+;      '$127$',$   ; Kobulnicky+03
+;      '$320$',$   ; KK04 [Wirth+04]
+;      '$413$',$   ; Maier+04 [105+98+107+103; see Maier+03]
+;      '?',$       ; Liang+04
+;      '$232$',$   ; Savaglio+05 (GDDS was 4x30 arcmin^2 + 112 from CFRS)
+;      '?',$       ; Maier+05
+;      '$320$',$   ; Hoyos+05 [TKRS]
+;      '?',$       ; Mouhcine+06a
+;      '?',$       ; Mouhcine+06b
+;      '?',$       ; Lama+06
+;      '$2200$',$  ; Lama+09
+;      '$18400$',$ ; Lama+09
+;; MZ relations
+;      '232',$     ; Savaglio+05 (GDDS was 4x30 arcmin^2 + 112 from CFRS)
+;;     '?',$       ; Liang+06
+;      '$185$',$   ; Rodrigues+08 (four 6.8x6.8 arcmin^2 fields)
+;      '$145$',$   ; Cowie+08
+;      '$2200$',$   ; Lama+09
+;      '$18400$']  ; Lama+09
+
+    table.zrange = [$
+; LZ relations
+      '$0.1-0.5$',$  ; KZ99
+;     '$0.60-0.99$',$  ; CL01
+      '$0.5-0.9$',$ ; Lilly+03
+      '$0.3-0.8$',$ ; Kobulnicky+03
+      '$0.3-0.9$',$ ; KK04
+      '$0.4-0.6$',$ ; Maier+04
+      '$0.1-0.9$',$ ; Liang+04
+      '$0.5-1.0$',$ ; Savaglio+05 - LZ
+      '$0.5-0.9$',$ ; Maier+05
+      '$0.5-0.9$',$ ; Hoyos+05
+      '$0.3-0.6$',$ ; Mouhcine+06a
+      '$0.2-0.7$',$ ; Mouhcine+06b
+      '$0.1-1.0$',$ ; Lama+06
+      '$0.1-0.9$',$ ; Lama+09
+      '$0.1-0.9$',$ ; Lama+09
+      '$0.75-0.82$',$ ; Zahid+11
+; MZ relations
+      '$0.5-1.0$',$ ; Savaglio+05
+;     '$-$',$   ; Liang+06
+      '$0.4-1.0$',$   ; Rodrigues+08
+      '$0.05-0.9$',$   ; Cowie+08
+      '$0.1-0.9$',$   ; Lama+09
+      '$0.1-0.9$',$   ; Lama+09
+      '$0.75-0.82$'] ; Zahid+11
+
+;    table.zrange = [$
+;; LZ relations
+;      '$0.11-0.50$',$  ; KZ99
+;;     '$0.60-0.99$',$  ; CL01
+;      '$0.47-0.92$',$ ; Lilly+03
+;      '$0.26-0.82$',$ ; Kobulnicky+03
+;      '$0.30-0.93$',$ ; KK04
+;      '$0.40-0.64$',$ ; Maier+04
+;      '$0.09-0.88$',$ ; Liang+04
+;      '$0.47-0.96$',$ ; Savaglio+05 - LZ
+;      '$0.47-0.90$',$ ; Maier+05
+;      '$0.51-0.85$',$ ; Hoyos+05
+;      '$0.31-0.59$',$ ; Mouhcine+06a
+;      '$0.20-0.71$',$ ; Mouhcine+06b
+;      '$0.07-1.00$',$ ; Lama+06
+;      '$0.1-0.9$',$ ; Lama+09
+;      '$0.1-0.9$',$ ; Lama+09
+;; MZ relations
+;      '$0.47-0.96$',$ ; Savaglio+05
+;;     '$-$',$   ; Liang+06
+;      '$0.40-0.96$',$   ; Rodrigues+08
+;      '$0.05-0.9$',$   ; Cowie+08
+;      '$0.1-0.9$',$   ; Lama+09
+;      '$0.1-0.9$']    ; Lama+09
+
+    table.diagnostic = [$
+; LZ relations
+      '$T_{e}$, \pagel',$ ; KZ99 (ZKH94)
+;     '\pagel',$   ; CL01 (M91)
+      '\pagel',$   ; Lilly+03 (M91)
+      '\ewpagel',$ ; Kobulnicky+03 (M91)
+      '\ewpagel',$ ; KK04 (M91+KD02)
+      '\pagel',$   ; Maier+04 (M91)
+      '\pagel',$   ; Liang+04 (M91?)
+      '\pagel',$   ; Savaglio+05 (M91+KD02)
+      '\oii, \hb, \oiii, \ha, \nii\tablenotemark{j}',$  ; Maier+05 (KD02)
+      '$T_{e}$',$  ; Hoyos+05
+      '\ewpagel',$ ; Mouhcine+06a
+      '\ewpagel',$ ; Mouhcine+06b
+      '\ewpagel',$ ; Lama+06
+      'Various\tablenotemark{l}',$ ; Lama+09 (N2, O3N2, M91)
+      'Various\tablenotemark{l}',$ ; Lama+09 (N2, O3N2, M91)
+      '\ewpagel',$ ; Zahid+11
+;     'EW(\nii/\ha); EW(\oiii/\nii); EW(\pagel)',$ ; Lama+09 (N2, O3N2, M91)
+;     'EW(\nii/\ha); EW(\oiii/\nii); EW(\pagel)',$ ; Lama+09 (N2, O3N2, M91)
+; MZ relations
+      '\pagel',$   ; Savaglio+05
+;     '\pagel',$   ; Liang+06
+      '\pagel',$   ; Rodrigues+08 (T04)
+      '\pagel',$   ; Cowie+08 ; T04 mostly, but they used various
+      'Various\tablenotemark{l}',$ ; Lama+09 (N2, O3N2, M91)
+      'Various\tablenotemark{l}',$ ; Lama+09 (N2, O3N2, M91)
+      '\ewpagel'] ; Zahid+11
+;     'EW(\nii/\ha); EW(\oiii/\nii); EW(\pagel)',$ ; Lama+09 (N2, O3N2, M91)
+;     'EW(\nii/\ha); EW(\oiii/\nii); EW(\pagel)']  ; Lama+09 (N2, O3N2, M91)
+
+    table.mlrange = [$
+; LZ relations
+      '$-22.2<\mb<-15.9$',$ ; KZ99
+      '$-22.1<\mb<-19.4$',$ ; Lilly+03
+      '$-22.7<\mb<-16.5$',$ ; Kobulnicky+03
+      '$-22.3<\mb<-16.9$',$ ; KK04
+      '$-19.3<\mb<-17.4$',$ ; Maier+04
+      '$-22.4<\mb<-17.0$',$ ; Liang+04
+      '$-22.1<\mb<-17.3$',$ ; Savaglio+05 - LZ
+      '$-21.8<\mb<-19.6$',$ ; Maier+05
+      '$-21.5<\mb<-18.6$',$ ; Hoyos+05
+      '$-22.4<\mb<-20.1$',$ ; Mouhcine+06a
+      '$-23.1<\mb<-19.2$',$ ; Mouhcine+06b
+      '$-22.1<\mb<-15.4$',$ ; Lama+06
+      '$-22\lesssim\mb\lesssim-16.5$',$ ; Lama+09 - DEEP
+      '$-22\lesssim\mb\lesssim-16.5$',$ ; Lama+09 - WIDE
+      '$-22.0<\mb<-19.5$',$ ; Zahid+11
+; MZ relations
+      '$8.3<\log(\mathcal{M}/\msun)<10.9$',$ ; Savaglio+05 (M_Kroupa = 1.2*M_Savaglio)
+;     '\nodata',$ ; Liang+06
+      '$9\lesssim\log(\mathcal{M}/\msun)\lesssim11$',$ ; Rodrigues+08
+      '$9\lesssim\log(\mathcal{M}/\msun)\lesssim11$',$ ; Cowie+08
+      '$8\lesssim\log(\mathcal{M}/\msun)\lesssim11$',$ ; Lama+09 - DEEP
+      '$8\lesssim\log(\mathcal{M}/\msun)\lesssim11$',$ ; Lama+09 - WIDE
+      '$9.2<\log(\mathcal{M}/\msun)<10.7$'] ; Zahid+11, Kroupa IMF
+
+    table.dlogoh = [$
+; LZ relations
+      '$\sim0.1$',$     ; KZ99
+      '$0.08\pm0.06$',$ ; Lilly+03
+      '$\sim0.15$',$        ; Kobulnicky+03
+      '$0.14\pm0.05$',$ ; KK04
+      '$\sim0.3$',$ ; Maier+04
+      '$\sim0.3$',$ ; Liang+04
+      '$\sim0.4$',$ ; Savaglio+05 (estimated by eye from Fig. 11 at M_B=-20)
+      '$\sim0.3$',$ ; Maier+05
+      '$\sim0.4$',$ ; Hoyos+05 (estimated by eye from Fig 2a at M_B=-20)
+      '\nodata',$ ; Mouhcine+06a
+      '\nodata',$ ; Mouhcine+06a
+      '$0.28-0.55$',$ ; Lama+06
+      '$0.24-0.39$',$ ; Lama+09 - DEEP
+      '$0.58-0.70$',$ ; Lama+09 - WIDE
+      'numbers!',$ ; Zahid+11
+; MZ relations
+      '$\sim0.1$',$ ; Savaglio+05 (estimated by eye from Fig. 13 at 10^10 M_sun)
+;     '\nodata',$   ; Liang+06
+      '$0.39\pm0.09$',$   ; Rodrigues+08
+      '$0.21\pm0.03$',$   ; Cowie+08
+      '$0.12-0.23$',$   ; Lama+09 - DEEP
+      '$0.23-0.36$',$    ; Lama+09 - WIDE
+      'numbers!'] ; Zahid+11
+
+    table.dz = [$
+; LZ relations
+      '$0.4$',$       ; KZ99
+      '$0.75$',$      ; Lilly+03
+      '$0.7$',$       ; Kobulnicky+03
+      '$1.0$',$       ; KK04
+      '$\sim0.5$',$  ; Maier+04 [actually, z~0.52]
+      '$\sim0.65$',$  ; Liang+04
+      '$\sim0.7$',$   ; Savaglio+05 - LZ
+      '$\sim0.7$',$   ; Maier+05
+      '$\sim0.7$',$   ; Hoyos+05
+      '\nodata',$ ; Mouhcine+06a
+      '\nodata',$ ; Mouhcine+06a
+      '$0.9$',$     ; Lama+06
+      '$0.8$',$     ; Lama+09 - DEEP
+      '$0.8$',$     ; Lama+09 - WIDE
+      '$0.8$',$     ; Zahid+11
+; MZ relations
+      '$\sim0.7$',$ ; Savaglio+05 (estimated by eye from Fig. 13 at 10^10 M_sun)
+;     '\nodata',$ ; Liang+06
+      '$0.85$',$ ; Rodrigues+08
+      '$0.75$',$ ; Cowie+08
+      '$0.8$',$ ; Lama+09 - DEEP
+      '$0.8$',$  ; Lama+09 - WIDE
+      '$0.8$']   ; Zahid+11
+
+;    table.ref = [$
+;; LZ relations
+;      '1',$ ; KZ99
+;      '2',$ ; Lilly+03
+;      '3',$ ; Kobulnicky+03
+;      '4',$ ; KK04
+;      '5',$ ; Maier+04
+;      '6',$ ; Liang+04
+;      '7',$ ; Savaglio+05
+;      '8',$ ; Maier+05
+;      '9',$ ; Hoyos+05
+;      '10',$ ; Mouhcine+06a
+;      '11',$ ; Mouhcine+06b
+;      '12',$ ; Lama06
+;      '13',$ ; Lama09
+;      '13',$ ; Lama09
+;; MZ relations
+;      '7',$ ; Savaglio+05
+;;     '12',$ ; Liang+06
+;      '14',$ ; Rodrigues+08
+;      '15',$ ; Cowie+08
+;      '13',$ ; Lama09
+;      '13']  ; Lama09
+    
+;   table.remark = [$
+;     'stuff',$
+;     'Assume $\langle E(B-V)=0.3 \rangle$',$
+;     'IR-Balmer correction',$
+;     'Mean extinction correction',$
+;     'stuff',$
+;     'stuff',$
+;     'stuff',$
+;     'stuff',$
+;     'stuff',$
+;     'stuff']
+    
+;    refs = '(1) \citet{kobulnicky99b}; '+$
+;      '(2) \citet{lilly03a}; '+$
+;      '(3) \citet{kobulnicky03b}; '+$
+;      '(4) \citet{kobulnicky04a}; '+$
+;      '(5) \citet{maier04a}; '+$
+;      '(6) \citet{liang04a}; '+$
+;      '(7) \citet{savaglio05a}; '+$
+;      '(8) \citet{maier05a}; '+$
+;      '(9) \citet{hoyos05a}; '+$
+;      '(10) \citet{mouhcine06b}; '+$
+;      '(11) \citet{mouhcine06a}; '+$
+;      '(12) \citet{lama06b, lama06a}; '+$
+;      '(13) \citet{lama09a}; '+$
+;      '(14) \citet{rodrigues08a}; '+$
+;      '(15) \citet{cowie08a}.'
+
+    colhead1 = $
+      '\colhead{} & '+$
+      '\colhead{} & '+$
+      '\colhead{$\Omega$\tablenotemark{b}} & '+$
+      '\colhead{Redshift} & '+$
+      '\colhead{Abundance} & '+$
+      '\colhead{Luminosity or} & '+$
+      '\colhead{\dlogoh\tablenotemark{f}} & '+$
+      '\colhead{} \\'
+;     '\colhead{} & '+$
+;     '\colhead{} \\'
+    colhead2 = $
+      '\colhead{Study} & '+$
+      '\colhead{$N$\tablenotemark{a}} & '+$
+      '\colhead{(deg$^2$)} & '+$
+      '\colhead{Range\tablenotemark{c}} & '+$
+      '\colhead{Diagnostics\tablenotemark{d}} & '+$
+      '\colhead{Stellar Mass Range\tablenotemark{e}} & '+$
+      '\colhead{(dex)} & '+$
+      '\colhead{$\langle z \rangle$\tablenotemark{g}}'
+;     '\colhead{Reference} & '+$
+;     '\colhead{Remark}'
+
+    texcenter = ['l',replicate('c',ntags-1)]
+ 
+;   tablecomments = ['This table is not an exhaustive summary of results from the literature, but '+$
+;     'we have attempted to include all the important studies.  We have not attempted to homogenize the '+$
+;     'various methods used to derive rest-frame quantities such as luminosities and stellar masses oxygen abundances '+$
+;     '(diagnostic used, stellar absorption, reddening correction), or other .']
+    caption = 'Summary of Previously Published Chemical Evolution Measurements for '+$
+      'Star-Forming Galaxies at $z<1$\label{table:litoh}'
+    
+    tablenotetext = [$
+      '{a}{Number of galaxies in the sample with well-measured oxygen abundances, optical luminosities, and '+$
+      'stellar masses.  In some studies the final number of objects used is not readily apparent from the '+$
+      'information given in the paper, in which case we provide our best estimate of the correct number.}',$
+      '{b}{Solid angle of the parent spectroscopic survey.  Heterogenously selected samples, or samples '+$
+      'where we could not estimate the solid angle from the information given in the paper are indicated '+$
+      'with a question mark.}',$
+      '{c}{Approximate range of redshifts spanned by the sample of star-forming emission-line galaxies.}',$
+      '{d}{See the corresponding paper and \S\ref{sec:oh} for the definitions of the abundance diagnostics '+$
+      'indicated this column.  Electron temperature ($T_{e}$) abundance measurements are based on a '+$
+      'detection of the temperature-sensitive \oiii~$\lambda4363$ line.}',$
+      '{e}{We have converted the published luminosities and stellar masses '+$
+      'to our adopted cosmology ($\Omega_{\rm m}=0.3$, $\Omega_{\Lambda}=0.7$, $H_{0}=70~\hubbleunits$), and to '+$
+      'the AB magnitude system and the \citet{chabrier03a} initial mass function as necessary.}',$
+      '{f}{Change in the mean oxygen abundance of star-forming galaxies since '+$
+      '$\langle z \rangle$.  Note that a larger positive numbers indicates that galaxies were more metal-poor '+$
+      'at higher redshift, which is opposite the convention used in \S\ref{sec:dlogoh} and Table~\ref{table:dlogohevol}.}',$
+      '{g}{Mean redshift corresponding to \dlogoh.}',$
+      '{h}{The absolute $B$-band magnitudes in \citet{lilly03a} were derived using a different cosmological model '+$
+      'than what is stated in the paper; $0.45$~mag must be subtracted to transform them to a cosmological model '+$
+      'with $\Omega_{M}=0.3$, $\Omega_{\Lambda}=0.7$, and $H_{0}=70$~\hubbleunits{} (C.~Maier 2006, private communication). '+$
+      'In addition, the measurements reported for CFRS~22.0576 and CFRS~22.0599 must be switched in the '+$
+      'published tables.}',$
+      '{i}{Savaglio combined their sample from the Gemini Deep Deep Survey \citep[GDDS;][]{abraham04a} '+$
+      'with previously published data from the Canada-France Redshift Survey \citep[CFRS;][]{lilly95a, lilly03a}.}',$
+      '{j}{\citet{maier05a} modeled all five strong lines simultaneously using the \citet{kewley02a} photoionization models.}',$
+      '{k}{The first and second row refers to the analysis by \citet{lama09a} of the VDDS-DEEP and '+$
+      'VDDS-WIDE sample, respectively.}',$
+      '{l}{\citet{lama09a} derived EW-based abundances using three different abundance diagnostics depending '+$
+      'on redshift: \nii/\ha{} at $z<0.2$; (\oiii/\hb)/(\nii/\ha) \citep{pettini04a} at '+$
+      '$z=0.2-0.5$; and \pagel{} \citep{mcgaugh91a} at $z=0.5-0.9$.  They then rescaled each '+$
+      'abundance measurement to the \citet{tremonti04a} metallicity scale using the \citet{kewley08a} '+$
+      'polynomial correction formulae.}',$
+      '{m}{\citet{rodrigues08a} combines new spectroscopy with previously published measurements by '+$
+      '\citet{liang06a}.}']
+
+; write out
+    texfile = paperpath+'mztable_litoh'+filesuffix+'.tex'
+    splog, 'Writing '+texfile
+    openw, lun, texfile, /get_lun
+    if (keyword_set(preprint) eq 0) then begin
+       printf, lun, '\LongTables'
+       printf, lun, '\begin{landscape}'
+    endif
+    printf, lun, '\begin{deluxetable}{'+strjoin(texcenter)+'}'
+;   printf, lun, '\tabletypesize{\tiny}'
+    printf, lun, '\tablecaption{'+caption+'}'
+    printf, lun, '\tablewidth{0pt}'
+    printf, lun, '\tablehead{'
+    niceprintf, lun, colhead1
+    niceprintf, lun, colhead2
+    printf, lun, '}'
+    printf, lun, '\startdata'
+    for ii = 0, ntable-1 do begin
+       if (ii eq 0) then printf, lun, '\cutinhead{Luminosity-Metallicity Relations}'
+       if (ii eq ntable-6) then printf, lun, '\cutinhead{Mass-Metallicity Relations}'
+       line = strarr(ntags)
+       for jj = 0L, ntags-1 do begin
+          if (jj lt ntags-1) then suffix = ' & ' else if (ii lt ntable-1) then $
+            suffix = ' \\ ' else suffix = ''
+          line[jj] = table[ii].(jj)+suffix
+       endfor
+       printf, lun, line
+    endfor
+    printf, lun, '\enddata'
+;   printf, lun, '\tablecomments{'+tablecomments+'}'
+    niceprintf, lun, '\tablenotetext'+tablenotetext
+;   printf, lun, '\tablerefs{'+refs+'}'
+    printf, lun, '\end{deluxetable}'
+    printf, lun, '\clearpage'
+    printf, lun, '\end{landscape}'
+    free_lun, lun
+
+stop    
+    
+; ---------------------------------------------------------------------------    
+; mean metallicity in bins of mass and redshift, for each calibration
+; (Fig 14)
+    texfile = paperpath+'mztable_z_vs_oh_bymass'+filesuffix+'.tex'
+    splog, 'Writing '+texfile
+    
+; read the fitting results
+    zbins = mz_zbins(nz)
+    sdss_zbins = mz_zbins(/sdss)
+    massbins = mz_massbins(nmassbins)
+
+    mass = '\log\,(\mass/\msun)'
+    masslabel = ['$'+mass+'>11$','$10.5<'+mass+'<11$','$10<'+mass+'<10.5$','$9.5<'+mass+'<10$']
+    
+;   colhead1 = mzget_colhead(['Redshift','Median','\multicolumn{3}{c}{$12+\log\,(\textrm{O}/\textrm{H})$}'])
+;   colhead2 = mzget_colhead(['Range','Redshift','KK04','T04','M91'],/nobreak)
+;   colhead1 = mzget_colhead(['Redshift','','','','',''])
+    colhead2 = mzget_colhead(['Redshift Range','$N$\tablenotemark{b}','$z_{\rm med}$\tablenotemark{c}',$
+      '$\langle12+\log\,(\textrm{O}/\textrm{H})_{\rm KK04}\rangle$',$
+      '$\langle12+\log\,(\textrm{O}/\textrm{H})_{\rm T04}\rangle$',$
+      '$\langle12+\log\,(\textrm{O}/\textrm{H})_{\rm M91}\rangle$'],/nobreak)
+    texcenter = ['c','c','c','c','c','c']
+
+    tablenotetext = [$
+      '{a}{Weighted mean metallicity of galaxies in multiple bins of stellar mass and redshift, '+$
+      'based on the KK04, T04, and M91 calibrations.  Note that the metallicities in the first row of '+$
+      'each stellar mass interval correspond to our SDSS sample, while the metallicities in the other rows are based on '+$
+      'our AGES sample.}',$
+      '{b}{Number of galaxies in this redshift interval and stellar mass bin.}',$
+      '{c}{Median redshift of the subsample.}']
+    
+    openw, lun, texfile, /get_lun
+    printf, lun, '\begin{deluxetable*}{'+strjoin(texcenter)+'}[!h]'
+    printf, lun, '\tablecaption{Mean Oxygen Abundance in Bins of Stellar Mass \& '+$
+      'Redshift\tablenotemark{a}\label{table:oh_bymass}}'   
+    printf, lun, '\tablewidth{0pt}'
+    printf, lun, '\tablehead{'
+;   niceprintf, lun, colhead1
+    niceprintf, lun, colhead2
+    printf, lun, '}'
+    printf, lun, '\startdata'
+
+    calib = ['kk04','t04','m91']
+    ncalib = n_elements(calib)
+    
+    for mm = 0, nmassbins-2 do begin
+       printf, lun, '\multicolumn{6}{c}{'+masslabel[mm]+'} \\'
+       printf, lun, '\cline{1-6}'
+
+       info = replicate({zrange: '\nodata', ngal: '\nodata', medz: '\nodata', $
+         oh_kk04: '\nodata', oh_t04: '\nodata', oh_m91: '\nodata'},nz+1) ; SDSS+AGES
+
+; get the mean number of galaxies       
+       allngal = lonarr(nz+1,ncalib)
+       for ii = 0, ncalib-1 do begin
+          mzevol = mrdfits(mzpath+'mzevol_'+calib[ii]+'.fits.gz',1,/silent)
+          good = where(mzevol.ohmean_bymass[mm,*] gt -900.0)
+;         print, [mzevol.sdss_ngal_bymass[mm],reform(mzevol.ngal_bymass[mm,*])]
+          print, [mzevol.sdss_ngal_bymass[mm],reform(mzevol.ngal_bymass[mm,good])]
+          allngal[[0,good+1],ii] = [mzevol.sdss_ngal_bymass[mm],reform(mzevol.ngal_bymass[mm,good])]
+       endfor
+       ngal = lonarr(nz+1)
+       for zz = 0, nz do ngal[zz] = djs_median(allngal[zz,*])
+
+       for ii = 0, ncalib-1 do begin
+          mzevol = mrdfits(mzpath+'mzevol_'+calib[ii]+'.fits.gz',1,/silent)
+          good = where(mzevol.ohmean_bymass[mm,*] gt -900.0)
+
+          if (ii eq 0) then begin
+             info.zrange = '$'+string([sdss_zbins.zlo,zbins.zlo],format='(F4.2)')+'-'+$
+               string([sdss_zbins.zup,zbins.zup],format='(F4.2)')+'$'
+             info[[0,good+1]].ngal = '$'+string(ngal[[0,good+1]],format='(I0)')+'$'
+             info[[0,good+1]].medz = '$'+string([mzevol.sdss_medz_bymass[mm],$
+               reform(mzevol.medz_bymass[mm,good])],format='(F4.2)')+'$'
+          endif
+          info[[0,good+1]].(ii+3) = '$'+string([mzevol.sdss_ohmean_bymass[mm],$ ; offset from the redshifts
+            reform(mzevol.ohmean_bymass[mm,good])],format='(F5.3)')+$
+            '\pm'+string([mzevol.sdss_ohmean_bymass_err[mm],$
+            reform(mzevol.ohmean_bymass_err[mm,good])]>0.01,format='(F4.2)')+'$'
+       endfor
+       struct_print, info
+
+       ntags = n_tags(info)
+       for kk = 0, nz do begin
+          for jj = 0, ntags-1 do begin
+             if (jj eq ntags-1) then if (kk eq nz) then suffix = '' else $
+               suffix = ' \\' else suffix = ' & '
+             printf, lun, info[kk].(jj)+suffix
+          endfor
+       endfor
+       printf, lun, '\\'
+       if (mm lt nmassbins-2) then printf, lun, '\cline{1-5}'
+    endfor
+
+    printf, lun, '\enddata'
+;   printf, lun, '\tablecomments{'+tablecomments+'}'
+    niceprintf, lun, '\tablenotetext'+tablenotetext
+    printf, lun, '\end{deluxetable*}'
+    free_lun, lun
+
+; ---------------------------------------------------------------------------    
+; Table: samples and numbers of galaxies
+    agesparent = read_mz_sample(/parent)
+    agesemline = read_mz_sample(/mz_ispec)
+    agesemline = agesemline[where(agesemline.oiii_5007[1] gt 0)]
+
+    sdssparent = read_mz_sample(/parent,/sdss)
+    sdssemline = read_mz_sample(/mz_ispec,/sdss)
+    sdssemline = sdssemline[where(sdssemline.oiii_5007[1] gt 0)]
+    
+    agesmass = read_mz_sample(/mzhii_mass)
+    agesancillary = read_mz_sample(/mzhii_ancillary)
+    agesoh = read_mz_sample(/mzhii_log12oh)
+    ageskk04 = mzlz_grab_info(agesoh,agesancillary,agesmass,/nolimit,/kk04)
+    agest04 = mzlz_grab_info(agesoh,agesancillary,agesmass,/nolimit,/t04)
+    agesm91 = mzlz_grab_info(agesoh,agesancillary,agesmass,/nolimit,/m91)
+    
+    sdssmass = read_mz_sample(/mzhii_mass,/sdss)
+    sdssancillary = read_mz_sample(/mzhii_ancillary,/sdss)
+    sdssoh = read_mz_sample(/mzhii_log12oh,/sdss)
+    sdsskk04 = mzlz_grab_info(sdssoh,sdssancillary,sdssmass,/nolimit,/kk04)
+    sdsst04 = mzlz_grab_info(sdssoh,sdssancillary,sdssmass,/nolimit,/t04)
+    sdssm91 = mzlz_grab_info(sdssoh,sdssancillary,sdssmass,/nolimit,/m91)
+
+; print some statistics for the paper    
+; SDSS    
+    nall = float(n_elements(sdssemline))
+    nsf = total(sdssemline.agn eq 0)
+    nagn = total(sdssemline.agn eq 1)
+    splog, 'SDSS: Total star-forming, AGN'
+    splog, nall, nsf, nsf/nall
+
+; AGES
+    nall = float(n_elements(agesemline))
+    nsf = total(agesemline.agn eq 0)
+    nagn = total(agesemline.agn eq 1)
+    splog, 'AGESEMLINE: Total star-forming, AGN'
+    splog, nall, nsf, nsf/nall
+
+    splog, 'AGESEMLINE: Total classified as SF using the Yan diagram but *not* the BPT diagram'
+    nyansf = total(agesemline.agn eq 0 and agesemline.bpt_agn eq -1 and agesemline.yan_agn eq 0)
+    nyansf_hiz = total(agesemline.agn eq 0 and agesemline.bpt_agn eq -1 and $
+      agesemline.yan_agn eq 0 and agesemline.z gt 0.4)    
+    splog, nsf, nyansf, nyansf/nsf, nyansf_hiz, nyansf_hiz/nyansf
+
+; now make the table    
+    colhead1 = mzget_colhead(['Sample','$N$\tablenotemark{a}','Section\tablenotemark{b}'],/nobreak)
+    colhead2 = '\cline{1-3} \\'
+    texcenter = ['l','c','c']
+    
+    table = {sample: '', ngal: '', remark: ''}
+    nages = 9 & nsdss = 9
+    table = replicate(table,nages+nsdss)
+    ntable = n_elements(table)
+    ntags = n_tags(table)
+
+    table.sample = [$
+      'AGES',$
+      '\hspace{0.2cm}Parent',$
+      '\hspace{0.2cm}Emission-Line',$
+      '\hspace{0.5cm}SF\tablenotemark{c}',$
+      '\hspace{0.5cm}AGN',$
+      '\hspace{0.2cm}Abundance\tablenotemark{d}',$
+      '\hspace{0.5cm}KK04',$
+      '\hspace{0.5cm}T04',$
+      '\hspace{0.5cm}M91',$
+      'SDSS',$
+      '\hspace{0.2cm}Parent',$
+      '\hspace{0.2cm}Emission-Line',$
+      '\hspace{0.5cm}SF\tablenotemark{c}',$
+      '\hspace{0.5cm}AGN',$
+      '\hspace{0.2cm}Abundance\tablenotemark{d}',$
+      '\hspace{0.5cm}KK04',$
+      '\hspace{0.5cm}T04',$
+      '\hspace{0.5cm}M91']
+
+    table.ngal = [$
+      '',$
+      '$'+strtrim(n_elements(agesparent),2)+'$',$
+      '$'+strtrim(n_elements(agesemline),2)+'$',$
+      '$'+strtrim(long(total(agesemline.agn eq 0)),2)+'$',$
+      '$'+strtrim(long(total(agesemline.agn eq 1)),2)+'$',$
+      '',$
+      '$'+strtrim(n_elements(ageskk04.oh),2)+'$',$
+      '$'+strtrim(n_elements(agest04.oh),2)+'$',$
+      '$'+strtrim(n_elements(agesm91.oh),2)+'$',$
+      '',$
+      '$'+strtrim(n_elements(sdssparent),2)+'$',$
+      '$'+strtrim(n_elements(sdssemline),2)+'$',$
+      '$'+strtrim(long(total(sdssemline.agn eq 0)),2)+'$',$
+      '$'+strtrim(long(total(sdssemline.agn eq 1)),2)+'$',$
+      '',$
+      '$'+strtrim(n_elements(sdsskk04.oh),2)+'$',$
+      '$'+strtrim(n_elements(sdsst04.oh),2)+'$',$
+      '$'+strtrim(n_elements(sdssm91.oh),2)+'$']
+
+    table.remark = [$
+      '',$
+      '\ref{sec:sample}',$
+      '\ref{sec:selection}',$
+      '\ref{sec:agn}',$
+      '\ref{sec:agn}',$
+      '',$
+      '\ref{sec:oh}',$
+      '\ref{sec:oh}',$
+      '\ref{sec:oh}',$
+
+      '',$
+      '\ref{sec:sdss}',$
+      '\ref{sec:selection}',$
+      '\ref{sec:agn}',$
+      '\ref{sec:agn}',$
+      '',$
+      '\ref{sec:oh}',$
+      '\ref{sec:oh}',$
+      '\ref{sec:oh}']
+
+;   table.remark = [$
+;     '',$
+;     '$0.05<z<0.75$; $15.45<I<20.4$',$
+;     '$\snr(\oii,\hb,\oiii)>4$; $\ewhb>2$~\AA',$
+;     'BPT and \citet{yan10a} diagnostic diagrams; $\lesssim10\%$ may be AGN',$
+;     'Identified using various optical, X-ray, mid-IR, and radio criteria',$
+;     'Unambiguous; upper \pagel{} branch',$
+;     '',$
+;     '$0.033<z<0.25$; $14.5<r<17.6$',$
+;     '$\snr(\oii,\hb,\oiii)>4$; $\ewhb>2$~\AA',$
+;     'BPT diagram\tablenotemark{c}',$
+;     'BPT diagram\tablenotemark{c}',$
+;     'Unambiguous; upper \pagel{} branch']
+    
+;   tablecomments = ['AGES and SDSS sample definitions and sizes.']
+    caption = 'AGES and SDSS Galaxy Samples\label{table:samples}'
+
+    tablenotetext = [$
+      '{a}{Number of galaxies in each sample.}',$
+      '{b}{Section containing details regarding how we select each sample.}',$
+      '{c}{Star-forming galaxies.}',$
+      '{d}{Number of galaxies with well-measured oxygen abundances based on the '+$
+      '\citet[M91]{mcgaugh91a}, \citet[T04]{tremonti04a}, and \citet[KK04]{kobulnicky04a} abundance calibrations.}'] 
+      
+;    tablenotetext = [$
+;      '{a}{Number of galaxies in each sample.}',$
+;      '{b}{Star-forming galaxies.}',$
+;      '{c}{The BPT diagram \citep{baldwin81a} refers to the '+$
+;      '\oiii/\hb{} vs.~\nii/\ha{} emission-line diagnostic diagram (see Fig.~\ref{fig:bpt}).}',$
+;      '{d}{AGN in AGES were identified using various multiwavelength '+$
+;      'criteria (see \S\ref{sec:agn}).}',$
+;      '{e}{No classification possible.}',$
+;      '{f}{Unclassifed SDSS galaxies are removed from subsequent analysis.}',$
+;      '{g}{Number of galaxies with well-defined oxygen abundances (see \S\ref{sec:oh}).}']
+      
+; write out
+    texfile = paperpath+'mztable_samples'+filesuffix+'.tex'
+    splog, 'Writing '+texfile
+    openw, lun, texfile, /get_lun
+    if keyword_set(emulateapj) then begin
+;      printf, lun, '\LongTables'
+    endif
+    printf, lun, '\begin{deluxetable}{'+strjoin(texcenter)+'}'
+;   printf, lun, '\tabletypesize{\small}'
+    printf, lun, '\tablecaption{'+caption+'}'
+    printf, lun, '\tablewidth{0pt}'
+    printf, lun, '\tablehead{'
+    niceprintf, lun, colhead1
+    printf, lun, '}'
+    printf, lun, '\startdata'
+    for ii = 0, ntable-1 do begin
+       line = strarr(ntags)
+       for jj = 0L, ntags-1 do begin
+          if (jj lt ntags-1) then suffix = ' & ' else if (ii lt ntable-1) then $
+            suffix = ' \\ ' else suffix = ''
+          line[jj] = table[ii].(jj)+suffix
+       endfor
+       printf, lun, line
+       if (ii eq nages-1) then printf, lun, colhead2
+    endfor
+    printf, lun, '\enddata'
+;   printf, lun, '\tablecomments{'+tablecomments+'}'
+    niceprintf, lun, '\tablenotetext'+tablenotetext
+    printf, lun, '\end{deluxetable}'
+    free_lun, lun
+
+stop    
+    
+; ---------------------------------------------------------------------------    
 ; coefficients of the linear fits to the mean metallicity vs redshift
 ; plots (Fig 14) in bins of stellar mass and for each calibration 
     texfile = paperpath+'mztable_z_vs_oh_bymass_coeff'+filesuffix+'.tex'
@@ -158,106 +888,6 @@ pro mztables, preprint=preprint
     free_lun, lun
 
 ; ---------------------------------------------------------------------------    
-; mean metallicity in bins of mass and redshift, for each calibration
-; (Fig 14)
-    texfile = paperpath+'mztable_z_vs_oh_bymass'+filesuffix+'.tex'
-    splog, 'Writing '+texfile
-    
-; read the fitting results
-    zbins = mz_zbins(nz)
-    sdss_zbins = mz_zbins(/sdss)
-    massbins = mz_massbins(nmassbins)
-
-    mass = '\log\,(\mass/\msun)'
-    masslabel = ['$'+mass+'>11$','$10.5<'+mass+'<11$','$10<'+mass+'<10.5$','$9.5<'+mass+'<10$']
-    
-;   colhead1 = mzget_colhead(['Redshift','Median','\multicolumn{3}{c}{$12+\log\,(\textrm{O}/\textrm{H})$}'])
-;   colhead2 = mzget_colhead(['Range','Redshift','KK04','T04','M91'],/nobreak)
-;   colhead1 = mzget_colhead(['Redshift','','','','',''])
-    colhead2 = mzget_colhead(['Redshift Range','$N_{\rm gal}$\tablenotemark{b}','$z_{\rm med}$\tablenotemark{c}',$
-      '$\langle12+\log\,(\textrm{O}/\textrm{H})_{\rm KK04}\rangle$',$
-      '$\langle12+\log\,(\textrm{O}/\textrm{H})_{\rm T04}\rangle$',$
-      '$\langle12+\log\,(\textrm{O}/\textrm{H})_{\rm M91}\rangle$'],/nobreak)
-    texcenter = ['c','c','c','c','c','c']
-
-    tablenotetext = [$
-      '{a}{Weighted mean metallicity of galaxies in multiple bins of stellar mass and redshift, '+$
-      'based on the KK04, T04, and M91 calibrations.  Note that the metallicities in the first row of '+$
-      'each stellar mass interval correspond to our SDSS sample, while the metallicities in the other rows are based on '+$
-      'our AGES sample.}',$
-      '{b}{Number of galaxies in this redshift interval and stellar mass bin.}',$
-      '{c}{Median redshift of the subsample.}']
-    
-    openw, lun, texfile, /get_lun
-    printf, lun, '\begin{deluxetable*}{'+strjoin(texcenter)+'}[!h]'
-    printf, lun, '\tablecaption{Mean Oxygen Abundance in Bins of Stellar Mass \& '+$
-      'Redshift\tablenotemark{a}\label{table:oh_bymass}}'   
-    printf, lun, '\tablewidth{0pt}'
-    printf, lun, '\tablehead{'
-;   niceprintf, lun, colhead1
-    niceprintf, lun, colhead2
-    printf, lun, '}'
-    printf, lun, '\startdata'
-
-    calib = ['kk04','t04','m91']
-    ncalib = n_elements(calib)
-    
-    for mm = 0, nmassbins-2 do begin
-       printf, lun, '\multicolumn{6}{c}{'+masslabel[mm]+'} \\'
-       printf, lun, '\cline{1-6}'
-
-       info = replicate({zrange: '\nodata', ngal: '\nodata', medz: '\nodata', $
-         oh_kk04: '\nodata', oh_t04: '\nodata', oh_m91: '\nodata'},nz+1) ; SDSS+AGES
-
-; get the mean number of galaxies       
-       allngal = lonarr(nz+1,ii)
-       for ii = 0, ncalib-1 do begin
-          mzevol = mrdfits(mzpath+'mzevol_'+calib[ii]+'.fits.gz',1,/silent)
-          good = where(mzevol.ohmean_bymass[mm,*] gt -900.0)
-;         print, [mzevol.sdss_ngal_bymass[mm],reform(mzevol.ngal_bymass[mm,*])]
-          print, [mzevol.sdss_ngal_bymass[mm],reform(mzevol.ngal_bymass[mm,good])]
-          allngal[[0,good+1],ii] = [mzevol.sdss_ngal_bymass[mm],reform(mzevol.ngal_bymass[mm,good])]
-       endfor
-       ngal = lonarr(nz+1)
-       for zz = 0, nz do ngal[zz] = djs_median(allngal[zz,*])
-
-       for ii = 0, ncalib-1 do begin
-          mzevol = mrdfits(mzpath+'mzevol_'+calib[ii]+'.fits.gz',1,/silent)
-          good = where(mzevol.ohmean_bymass[mm,*] gt -900.0)
-
-          if (ii eq 0) then begin
-             info.zrange = '$'+string([sdss_zbins.zlo,zbins.zlo],format='(F4.2)')+'-'+$
-               string([sdss_zbins.zup,zbins.zup],format='(F4.2)')+'$'
-             info[[0,good+1]].ngal = '$'+string(ngal[[0,good+1]],format='(I0)')+'$'
-             info[[0,good+1]].medz = '$'+string([mzevol.sdss_medz_bymass[mm],$
-               reform(mzevol.medz_bymass[mm,good])],format='(F4.2)')+'$'
-          endif
-          info[[0,good+1]].(ii+3) = '$'+string([mzevol.sdss_ohmean_bymass[mm],$ ; offset from the redshifts
-            reform(mzevol.ohmean_bymass[mm,good])],format='(F5.3)')+$
-            '\pm'+string([mzevol.sdss_ohmean_bymass_err[mm],$
-            reform(mzevol.ohmean_bymass_err[mm,good])]>0.01,format='(F4.2)')+'$'
-       endfor
-       struct_print, info
-
-       ntags = n_tags(info)
-       for kk = 0, nz do begin
-          for jj = 0, ntags-1 do begin
-             if (jj eq ntags-1) then if (kk eq nz) then suffix = '' else $
-               suffix = ' \\' else suffix = ' & '
-             printf, lun, info[kk].(jj)+suffix
-          endfor
-       endfor
-       printf, lun, '\\'
-       if (mm lt nmassbins-2) then printf, lun, '\cline{1-5}'
-    endfor
-
-    printf, lun, '\enddata'
-;   printf, lun, '\tablecomments{'+tablecomments+'}'
-    niceprintf, lun, '\tablenotetext'+tablenotetext
-    printf, lun, '\end{deluxetable*}'
-    free_lun, lun
-
-; ---------------------------------------------------------------------------    
 ; SDSS MZ/LZ relations
     texfile = paperpath+'mztable_mzlzlocal'+filesuffix+'.tex'
     splog, 'Writing '+texfile
@@ -332,586 +962,9 @@ pro mztables, preprint=preprint
     printf, lun, '\end{deluxetable*}'
     free_lun, lun
 
-stop    
-    
-; ---------------------------------------------------------------------------    
-; Table: samples and numbers of galaxies
-    agesparent = read_mz_sample(/parent)
-    sdssparent = read_mz_sample(/parent,/sdss)
-    agesemline = read_mz_sample(/mz_ispec)
-    sdssemline = read_mz_sample(/mz_ispec,/sdss)
-
-; print some statistics for the paper    
-; SDSS    
-    nall = float(n_elements(sdssemline))
-    nsf = total(sdssemline.agn eq 0)
-    nagn = total(sdssemline.agn eq 1)
-    splog, 'SDSS: Total star-forming, AGN'
-    splog, nall, nsf, nsf/nall
-
-; AGES
-    nall = float(n_elements(agesemline))
-    nsf = total(agesemline.agn eq 0)
-    nagn = total(agesemline.agn eq 1)
-    splog, 'AGESEMLINE: Total star-forming, AGN'
-    splog, nall, nsf, nsf/nall
-
-    splog, 'AGESEMLINE: Total classified as SF using the Yan diagram but *not* the BPT diagram'
-    nyansf = total(agesemline.agn eq 0 and agesemline.bpt_agn eq -1 and agesemline.yan_agn eq 0)
-    nyansf_hiz = total(agesemline.agn eq 0 and agesemline.bpt_agn eq -1 and $
-      agesemline.yan_agn eq 0 and agesemline.z gt 0.4)    
-    splog, nsf, nyansf, nyansf/nsf, nyansf_hiz, nyansf_hiz/nyansf
-
-; now make the table    
-    colhead1 = mzget_colhead(['Sample','$N$\tablenotemark{a}','Section\tablenotemark{b}'],/nobreak)
-    colhead2 = '\cline{1-3}'
-    texcenter = ['l','c','c']
-    
-    table = {sample: '', ngal: '', remark: ''}
-    nages = 6 & nsdss = 6
-    table = replicate(table,nages+nsdss)
-    ntable = n_elements(table)
-    ntags = n_tags(table)
-
-    table.sample = [$
-      'AGES',$
-      '\hspace{0.2cm}Parent',$
-      '\hspace{0.2cm}Emission-Line',$
-      '\hspace{0.5cm}SF\tablenotemark{c}',$
-      '\hspace{0.5cm}AGN',$
-      '\hspace{0.2cm}Abundance\tablenotemark{d}',$
-      'SDSS',$
-      '\hspace{0.2cm}Parent',$
-      '\hspace{0.2cm}Emission-Line',$
-      '\hspace{0.5cm}SF\tablenotemark{c}',$
-      '\hspace{0.5cm}AGN',$
-      '\hspace{0.2cm}Abundance\tablenotemark{d}']
-
-    table.ngal = [$
-      '',$
-      '$'+strtrim(n_elements(agesparent),2)+'$',$
-      '$'+strtrim(n_elements(agesemline),2)+'$',$
-      '$'+strtrim(long(total(agesemline.agn eq 0)),2)+'$',$
-      '$'+strtrim(long(total(agesemline.agn eq 1)),2)+'$',$
-      '$-9999$',$
-      '',$
-      '$'+strtrim(n_elements(sdssparent),2)+'$',$
-      '$'+strtrim(n_elements(sdssemline),2)+'$',$
-      '$'+strtrim(long(total(sdssemline.agn eq 0)),2)+'$',$
-      '$'+strtrim(long(total(sdssemline.agn eq 1)),2)+'$',$
-      '$-9999$']
-
-    table.remark = [$
-      '',$
-      '\ref{sec:sample}',$
-      '\ref{sec:selection}',$
-      '\ref{sec:agn}',$
-      '\ref{sec:agn}',$
-      '\ref{sec:oh}',$
-      '',$
-      '\ref{sec:sdss}',$
-      '\ref{sec:selection}',$
-      '\ref{sec:agn}',$
-      '\ref{sec:agn}',$
-      '\ref{sec:oh}']
-
-;   table.remark = [$
-;     '',$
-;     '$0.05<z<0.75$; $15.45<I<20.4$',$
-;     '$\snr(\oii,\hb,\oiii)>4$; $\ewhb>2$~\AA',$
-;     'BPT and \citet{yan10a} diagnostic diagrams; $\lesssim10\%$ may be AGN',$
-;     'Identified using various optical, X-ray, mid-IR, and radio criteria',$
-;     'Unambiguous; upper \pagel{} branch',$
-;     '',$
-;     '$0.033<z<0.25$; $14.5<r<17.6$',$
-;     '$\snr(\oii,\hb,\oiii)>4$; $\ewhb>2$~\AA',$
-;     'BPT diagram\tablenotemark{c}',$
-;     'BPT diagram\tablenotemark{c}',$
-;     'Unambiguous; upper \pagel{} branch']
-    
-;   tablecomments = ['AGES and SDSS sample definitions and sizes.']
-    caption = 'AGES and SDSS Galaxy Samples\label{table:samples}'
-
-    tablenotetext = [$
-      '{a}{Number of galaxies in each sample.}',$
-      '{b}{Section containing details regarding how we select each sample.}',$
-      '{c}{Star-forming galaxies.}',$
-      '{d}{Sample of galaxies with well-measured oxygen abundances.}']
-      
-;    tablenotetext = [$
-;      '{a}{Number of galaxies in each sample.}',$
-;      '{b}{Star-forming galaxies.}',$
-;      '{c}{The BPT diagram \citep{baldwin81a} refers to the '+$
-;      '\oiii/\hb{} vs.~\nii/\ha{} emission-line diagnostic diagram (see Fig.~\ref{fig:bpt}).}',$
-;      '{d}{AGN in AGES were identified using various multiwavelength '+$
-;      'criteria (see \S\ref{sec:agn}).}',$
-;      '{e}{No classification possible.}',$
-;      '{f}{Unclassifed SDSS galaxies are removed from subsequent analysis.}',$
-;      '{g}{Number of galaxies with well-defined oxygen abundances (see \S\ref{sec:oh}).}']
-      
-; write out
-    texfile = paperpath+'mztable_samples'+filesuffix+'.tex'
-    splog, 'Writing '+texfile
-    openw, lun, texfile, /get_lun
-    if keyword_set(emulateapj) then begin
-;      printf, lun, '\LongTables'
-    endif
-    printf, lun, '\begin{deluxetable}{'+strjoin(texcenter)+'}'
-;   printf, lun, '\tabletypesize{\small}'
-    printf, lun, '\tablecaption{'+caption+'}'
-    printf, lun, '\tablewidth{0pt}'
-    printf, lun, '\tablehead{'
-    niceprintf, lun, colhead1
-    printf, lun, '}'
-    printf, lun, '\startdata'
-    for ii = 0, ntable-1 do begin
-       line = strarr(ntags)
-       for jj = 0L, ntags-1 do begin
-          if (jj lt ntags-1) then suffix = ' & ' else if (ii lt ntable-1) then $
-            suffix = ' \\ ' else suffix = ''
-          line[jj] = table[ii].(jj)+suffix
-       endfor
-       printf, lun, line
-       if (ii eq nages-1) then printf, lun, colhead2
-    endfor
-    printf, lun, '\enddata'
-;   printf, lun, '\tablecomments{'+tablecomments+'}'
-    niceprintf, lun, '\tablenotetext'+tablenotetext
-    printf, lun, '\end{deluxetable}'
-    free_lun, lun
-
 stop
 
 stop
-stop    
-    
-; ---------------------------------------------------------------------------    
-; Table: comparison with the literature
-
-    table = {sample: '', ngal: '', area: '', zrange: '', $
-      diagnostic: '', mlrange: '', dlogoh: '', dz: '', $
-      ref: ''};, remark: ''}
-    ntags = n_tags(table)
-
-; caputi08
-; rupke08
-    
-    sample = [$
-; LZ relations
-      'KZ99',$
-;     'CL01',$ ; Carollo & Lilly+01
-      'LCS03',$
-      'Kobulnicky03',$
-      'KK04',$
-      'Maier04',$ ; 'Maier+04',$
-      'Liang04',$ ; 'Liang+04',$
-      'Savaglio05\tablenotemark{h}',$ ; 'Savaglio+05',$
-      'Maier05',$ ; 'Maier+05',$
-      'Hoyos05',$ ; 'Hoyos+05',$
-      'Mouhcine06a',$ ; 'Mouhcine+06a (cluster)',$
-      'Mouhcine06b',$ ; 'Mouhcine+06b (field)',$
-      'Lamareille06',$ ; 'Lamareille+06',B-band
-      'Lamareille09\tablenotemark{j}',$ ; VVDS-DEEP
-      'Lamareille09\tablenotemark{j}',$ ; VVDS-WIDE
-;     '',$ ; VVDS-WIDE
-;     'Lamareille09 (DEEP)',$ ; VVDS-DEEP
-;     'Lamareille09 (WIDE)',$ ; VVDS-WIDE
-; MZ relations
-      'Savaglio05\tablenotemark{h}',$ ; 'Savaglio+05\tablenotemark{g}',$ ; MZ
-;     'LHF06',$ ; Liang+06
-      'Rodrigues08\tablenotemark{l}',$
-      'CB08',$
-      'Lamareille09\tablenotemark{j}',$ ; VVDS-DEEP
-      'Lamareille09\tablenotemark{j}'] ; VVDS-WIDE
-;     '']  ; VVDS-WIDE
-;     'Lamareille09 (DEEP)',$ ; VVDS-DEEP
-;     'Lamareille09 (WIDE)'] ; VVDS-WIDE
-      
-;   sample = [$
-;     '\citet{kobulnicky99b}',$
-;     '\citet{lilly03a}',$
-;     '\citet{kobulnicky03b}',$
-;     '\citet{kobulnicky04a}',$
-;     '\citet{liang04a}',$
-;     '\citet{savaglio05a}',$
-;     '\citet{lama06b, lama06a}',$
-;     '\citet{lama09a}',$
-;     '']
-;   sample = [$
-;     'KZ99',$
-;     'CFRS',$
-;     'DGSS',$
-;     'TKRS',$
-;     'ISO-DEEP',$
-;     'GDDS+CFRS',$
-;     'L06',$
-;     'VVDS-DEEP',$
-;     'VVDS-WIDE']
-
-    ntable = n_elements(sample)
-    table = replicate(table,ntable)
-    table.sample = sample
-
-    table.ngal = [$
-; LZ relations
-      '$14$',$   ; KZ99
-;     '$15$',$   ; CL01
-      '$66$',$   ; Lilly+03
-      '$64$',$   ; Kobulnicky+03
-      '$204$',$  ; KK04
-      '$16$',$   ; Maier+04
-      '$46$',$   ; Liang+04 [Table 6, col 12 plus Table 7, col 8]
-      '$56$',$   ; Savaglio+05 - LZ
-      '$30$',$   ; Maier+05
-      '$15$',$   ; Hoyos+05
-      '$15$',$   ; Mouhcine+06a
-      '$39$',$   ; Mouhcine+06b
-      '$117$',$  ; Lama+06 ; B-band (see Sec 2.1.2); only 117 in '06lama.dat' with good M_B and O/H
-      '$870$',$  ; Lama+09
-      '$2191$',$ ; Lama+09
-; MZ relations
-      '$56$',$   ; Savaglio+05
-;     '$34$',$ ; Liang+06
-      '$88$',$ ; Rodrigues+08 (58 with lines; 7 are AGN, but they don't say which; 35 have good O/H; 30 from Liang06)
-      '$\sim400$',$ ; Cowie+08 (rough estimate based on Fig 32)
-      '$870$',$  ; Lama+09
-      '$2191$']  ; Lama+09
-
-; Area surveyed by Lama+09 (numbers are approximate): 
-;   Deep = F02+CDFS = 0.61 deg^2 (Le Fevre+04)
-;   Wide = F22+F10+F14+F02+CDFS = 3.0+0.6+0.9+0.5+0.11 (Le Fevre+04;
-;     Garilli+08) = 
-    
-    table.area = [$
-; LZ relations
-      '?',$       ; KZ99
-;     '?',$       ; CL01
-      '$112$',$   ; Lilly+03 [Lilly+95, Sec 2.2]
-      '$127$',$   ; Kobulnicky+03
-      '$320$',$   ; KK04 [Wirth+04]
-      '$413$',$   ; Maier+04 [105+98+107+103; see Maier+03]
-      '?',$       ; Liang+04
-      '$232$',$   ; Savaglio+05 (GDDS was 4x30 arcmin^2 + 112 from CFRS)
-      '?',$       ; Maier+05
-      '$320$',$   ; Hoyos+05 [TKRS]
-      '?',$       ; Mouhcine+06a
-      '?',$       ; Mouhcine+06b
-      '?',$       ; Lama+06
-      '$2200$',$  ; Lama+09
-      '$18400$',$ ; Lama+09
-; MZ relations
-      '232',$     ; Savaglio+05 (GDDS was 4x30 arcmin^2 + 112 from CFRS)
-;     '?',$       ; Liang+06
-      '$185$',$   ; Rodrigues+08 (four 6.8x6.8 arcmin^2 fields)
-      '$145$',$   ; Cowie+08
-      '$2200$',$   ; Lama+09
-      '$18400$']  ; Lama+09
-
-    table.zrange = [$
-; LZ relations
-      '$0.1<z<0.5$',$  ; KZ99
-;     '$0.60<z<0.99$',$  ; CL01
-      '$0.5<z<0.9$',$ ; Lilly+03
-      '$0.3<z<0.8$',$ ; Kobulnicky+03
-      '$0.3<z<0.9$',$ ; KK04
-      '$0.4<z<0.6$',$ ; Maier+04
-      '$0.1<z<0.9$',$ ; Liang+04
-      '$0.5<z<1.0$',$ ; Savaglio+05 - LZ
-      '$0.5<z<0.9$',$ ; Maier+05
-      '$0.5<z<0.9$',$ ; Hoyos+05
-      '$0.3<z<0.6$',$ ; Mouhcine+06a
-      '$0.2<z<0.7$',$ ; Mouhcine+06b
-      '$0.1<z<1.0$',$ ; Lama+06
-      '$0.1<z<0.9$',$ ; Lama+09
-      '$0.1<z<0.9$',$ ; Lama+09
-; MZ relations
-      '$0.5<z<1.0$',$ ; Savaglio+05
-;     '$<z<$',$   ; Liang+06
-      '$0.4<z<1.0$',$   ; Rodrigues+08
-      '$0.05<z<0.9$',$   ; Cowie+08
-      '$0.1<z<0.9$',$   ; Lama+09
-      '$0.1<z<0.9$']    ; Lama+09
-
-;    table.zrange = [$
-;; LZ relations
-;      '$0.11<z<0.50$',$  ; KZ99
-;;     '$0.60<z<0.99$',$  ; CL01
-;      '$0.47<z<0.92$',$ ; Lilly+03
-;      '$0.26<z<0.82$',$ ; Kobulnicky+03
-;      '$0.30<z<0.93$',$ ; KK04
-;      '$0.40<z<0.64$',$ ; Maier+04
-;      '$0.09<z<0.88$',$ ; Liang+04
-;      '$0.47<z<0.96$',$ ; Savaglio+05 - LZ
-;      '$0.47<z<0.90$',$ ; Maier+05
-;      '$0.51<z<0.85$',$ ; Hoyos+05
-;      '$0.31<z<0.59$',$ ; Mouhcine+06a
-;      '$0.20<z<0.71$',$ ; Mouhcine+06b
-;      '$0.07<z<1.00$',$ ; Lama+06
-;      '$0.1<z<0.9$',$ ; Lama+09
-;      '$0.1<z<0.9$',$ ; Lama+09
-;; MZ relations
-;      '$0.47<z<0.96$',$ ; Savaglio+05
-;;     '$<z<$',$   ; Liang+06
-;      '$0.40<z<0.96$',$   ; Rodrigues+08
-;      '$0.05<z<0.9$',$   ; Cowie+08
-;      '$0.1<z<0.9$',$   ; Lama+09
-;      '$0.1<z<0.9$']    ; Lama+09
-
-    table.diagnostic = [$
-; LZ relations
-      '$T_{e}$, \pagel',$ ; KZ99 (ZKH94)
-;     '\pagel',$   ; CL01 (M91)
-      '\pagel',$   ; Lilly+03 (M91)
-      '\ewpagel',$ ; Kobulnicky+03 (M91)
-      '\ewpagel',$ ; KK04 (M91+KD02)
-      '\pagel',$   ; Maier+04 (M91)
-      '\pagel',$   ; Liang+04 (M91?)
-      '\pagel',$   ; Savaglio+05 (M91+KD02)
-      '\oii, \hb, \oiii, \ha, \nii\tablenotemark{i}',$  ; Maier+05 (KD02)
-      '$T_{e}$',$  ; Hoyos+05
-      '\ewpagel',$ ; Mouhcine+06a
-      '\ewpagel',$ ; Mouhcine+06b
-      '\ewpagel',$ ; Lama+06
-      'Various\tablenotemark{k}',$ ; Lama+09 (N2, O3N2, M91)
-      'Various\tablenotemark{k}',$ ; Lama+09 (N2, O3N2, M91)
-;     'EW(\nii/\ha); EW(\oiii/\nii); EW(\pagel)',$ ; Lama+09 (N2, O3N2, M91)
-;     'EW(\nii/\ha); EW(\oiii/\nii); EW(\pagel)',$ ; Lama+09 (N2, O3N2, M91)
-; MZ relations
-      '\pagel',$   ; Savaglio+05
-;     '\pagel',$   ; Liang+06
-      '\pagel',$   ; Rodrigues+08 (T04)
-      '\pagel',$   ; Cowie+08 ; T04 mostly, but they used various
-      'Various\tablenotemark{k}',$ ; Lama+09 (N2, O3N2, M91)
-      'Various\tablenotemark{k}'] ; Lama+09 (N2, O3N2, M91)
-;     'EW(\nii/\ha); EW(\oiii/\nii); EW(\pagel)',$ ; Lama+09 (N2, O3N2, M91)
-;     'EW(\nii/\ha); EW(\oiii/\nii); EW(\pagel)']  ; Lama+09 (N2, O3N2, M91)
-
-    table.mlrange = [$
-; LZ relations
-      '$-22.2<\mb<-15.9$',$ ; KZ99
-      '$-22.1<\mb<-19.4$',$ ; Lilly+03
-      '$-22.7<\mb<-16.5$',$ ; Kobulnicky+03
-      '$-22.3<\mb<-16.9$',$ ; KK04
-      '$-19.3<\mb<-17.4$',$ ; Maier+04
-      '$-22.4<\mb<-17.0$',$ ; Liang+04
-      '$-22.1<\mb<-17.3$',$ ; Savaglio+05 - LZ
-      '$-21.8<\mb<-19.6$',$ ; Maier+05
-      '$-21.5<\mb<-18.6$',$ ; Hoyos+05
-      '$-22.4<\mb<-20.1$',$ ; Mouhcine+06a
-      '$-23.1<\mb<-19.2$',$ ; Mouhcine+06b
-      '$-22.1<\mb<-15.4$',$ ; Lama+06
-      '$-22\lesssim\mb\lesssim-16.5$',$ ; Lama+09 - DEEP
-      '$-22\lesssim\mb\lesssim-16.5$',$ ; Lama+09 - WIDE
-; MZ relations
-      '$8.3<\log(\mathcal{M}/\msun)<10.9$',$ ; Savaglio+05 (M_Kroupa = 1.2*M_Savaglio)
-;     '\nodata',$ ; Liang+06
-      '$9\lesssim\log(\mathcal{M}/\msun)\lesssim11$',$ ; Rodrigues+08
-      '$9\lesssim\log(\mathcal{M}/\msun)\lesssim11$',$ ; Cowie+08
-      '$8\lesssim\log(\mathcal{M}/\msun)\lesssim11$',$ ; Lama+09 - DEEP
-      '$8\lesssim\log(\mathcal{M}/\msun)\lesssim11$']  ; Lama+09 - WIDE
-
-    table.dlogoh = [$
-; LZ relations
-      '$\sim0.1$',$     ; KZ99
-      '$0.08\pm0.06$',$ ; Lilly+03
-      '$\sim0.15$',$        ; Kobulnicky+03
-      '$0.14\pm0.05$',$ ; KK04
-      '$\sim0.3$',$ ; Maier+04
-      '$\sim0.3$',$ ; Liang+04
-      '$\sim0.4$',$ ; Savaglio+05 (estimated by eye from Fig. 11 at M_B=-20)
-      '$\sim0.3$',$ ; Maier+05
-      '$\sim0.4$',$ ; Hoyos+05 (estimated by eye from Fig 2a at M_B=-20)
-      '\nodata',$ ; Mouhcine+06a
-      '\nodata',$ ; Mouhcine+06a
-      '$0.28-0.55$',$ ; Lama+06
-      '$0.24-0.39$',$ ; Lama+09 - DEEP
-      '$0.58-0.70$',$ ; Lama+09 - WIDE
-; MZ relations
-      '$\sim0.1$',$ ; Savaglio+05 (estimated by eye from Fig. 13 at 10^10 M_sun)
-;     '\nodata',$   ; Liang+06
-      '$0.39\pm0.09$',$   ; Rodrigues+08
-      '$0.21\pm0.03$',$   ; Cowie+08
-      '$0.12-0.23$',$   ; Lama+09 - DEEP
-      '$0.23-0.36$']    ; Lama+09 - WIDE
-
-    table.dz = [$
-; LZ relations
-      '$0.4$',$       ; KZ99
-      '$0.75$',$      ; Lilly+03
-      '$0.7$',$       ; Kobulnicky+03
-      '$1.0$',$       ; KK04
-      '$\sim0.5$',$  ; Maier+04 [actually, z~0.52]
-      '$\sim0.65$',$  ; Liang+04
-      '$\sim0.7$',$   ; Savaglio+05 - LZ
-      '$\sim0.7$',$   ; Maier+05
-      '$\sim0.7$',$   ; Hoyos+05
-      '\nodata',$ ; Mouhcine+06a
-      '\nodata',$ ; Mouhcine+06a
-      '$0.9$',$     ; Lama+06
-      '$0.8$',$     ; Lama+09 - DEEP
-      '$0.8$',$     ; Lama+09 - WIDE
-; MZ relations
-      '$\sim0.7$',$ ; Savaglio+05 (estimated by eye from Fig. 13 at 10^10 M_sun)
-;     '\nodata',$ ; Liang+06
-      '$0.85$',$ ; Rodrigues+08
-      '$0.75$',$ ; Cowie+08
-      '$0.8$',$ ; Lama+09 - DEEP
-      '$0.8$']  ; Lama+09 - WIDE
-
-    table.ref = [$
-; LZ relations
-      '1',$ ; KZ99
-      '2',$ ; Lilly+03
-      '3',$ ; Kobulnicky+03
-      '4',$ ; KK04
-      '5',$ ; Maier+04
-      '6',$ ; Liang+04
-      '7',$ ; Savaglio+05
-      '8',$ ; Maier+05
-      '9',$ ; Hoyos+05
-      '10',$ ; Mouhcine+06a
-      '11',$ ; Mouhcine+06b
-      '12',$ ; Lama06
-      '13',$ ; Lama09
-      '13',$ ; Lama09
-; MZ relations
-      '7',$ ; Savaglio+05
-;     '12',$ ; Liang+06
-      '14',$ ; Rodrigues+08
-      '15',$ ; Cowie+08
-      '13',$ ; Lama09
-      '13']  ; Lama09
-    
-;   table.remark = [$
-;     'stuff',$
-;     'Assume $\langle E(B-V)=0.3 \rangle$',$
-;     'IR-Balmer correction',$
-;     'Mean extinction correction',$
-;     'stuff',$
-;     'stuff',$
-;     'stuff',$
-;     'stuff',$
-;     'stuff',$
-;     'stuff']
-    
-    refs = '(1) \citet{kobulnicky99b}; '+$
-      '(2) \citet{lilly03a}; '+$
-      '(3) \citet{kobulnicky03b}; '+$
-      '(4) \citet{kobulnicky04a}; '+$
-      '(5) \citet{maier04a}; '+$
-      '(6) \citet{liang04a}; '+$
-      '(7) \citet{savaglio05a}; '+$
-      '(8) \citet{maier05a}; '+$
-      '(9) \citet{hoyos05a}; '+$
-      '(10) \citet{mouhcine06b}; '+$
-      '(11) \citet{mouhcine06a}; '+$
-      '(12) \citet{lama06b, lama06a}; '+$
-      '(13) \citet{lama09a}; '+$
-      '(14) \citet{rodrigues08a}; '+$
-      '(15) \citet{cowie08a}.'
-
-    colhead1 = $
-      '\colhead{} & '+$
-      '\colhead{} & '+$
-      '\colhead{Solid Angle\tablenotemark{b}} & '+$
-      '\colhead{Redshift} & '+$
-      '\colhead{Abundance} & '+$
-      '\colhead{Luminosity or} & '+$
-      '\colhead{\dlogoh\tablenotemark{f}} & '+$
-      '\colhead{} & '+$
-      '\colhead{} \\'
-;     '\colhead{} & '+$
-;     '\colhead{} \\'
-    colhead2 = $
-      '\colhead{Study} & '+$
-      '\colhead{$N_{\rm gal}$\tablenotemark{a}} & '+$
-      '\colhead{(arcmin$^2$)} & '+$
-      '\colhead{Range\tablenotemark{c}} & '+$
-      '\colhead{Diagnostics\tablenotemark{d}} & '+$
-      '\colhead{Stellar Mass Range\tablenotemark{e}} & '+$
-      '\colhead{(dex)} & '+$
-      '\colhead{$\langle z \rangle$\tablenotemark{g}} & '+$
-      '\colhead{Reference}'
-;     '\colhead{Reference} & '+$
-;     '\colhead{Remark}'
-
-    texcenter = replicate('c',ntags)
- 
-;   tablecomments = ['This table is not an exhaustive summary of results from the literature, but '+$
-;     'we have attempted to include all the important studies.  We have not attempted to homogenize the '+$
-;     'various methods used to derive rest-frame quantities such as luminosities and stellar masses oxygen abundances '+$
-;     '(diagnostic used, stellar absorption, reddening correction), or other .']
-    caption = 'Summary of Previously Published Chemical Evolution Measurements for '+$
-      'Star-Forming Galaxies at $z<1$\label{table:litoh}'
-    
-    tablenotetext = [$
-      '{a}{Number of galaxies in the sample with well-measured oxygen abundances, optical luminosities, and '+$
-      'stellar masses.  In some studies the final number of objects used is not readily apparent from the '+$
-      'information given in the paper, in which case we provide our best estimate of the correct number.}',$
-      '{b}{Solid angle of the parent spectroscopic survey.  Heterogenously selected samples, or samples '+$
-      'where we could not estimate the solid angle from the information given in the paper are indicated '+$
-      'with a question mark.}',$
-      '{c}{Approximate range of redshifts spanned by the sample of star-forming emission-line galaxies.}',$
-      '{d}{See the corresponding paper and \S\ref{sec:oh} for the definitions of the abundance diagnostics '+$
-      'indicated this column.  Electron temperature ($T_{e}$) abundance measurements are based on a '+$
-      'detection of the temperature-sensitive \oiii~$\lambda4363$ line.}',$
-      '{e}{We have converted the published luminosities and stellar masses '+$
-      'to our adopted cosmology ($\Omega_{\rm m}=0.3$, $\Omega_{\Lambda}=0.7$, $H_{0}=70~\hubbleunits$), and to '+$
-      'the AB magnitude system and the \citet{chabrier03a} initial mass function as necessary.}',$
-      '{f}{Change in the mean oxygen abundance of star-forming galaxies since '+$
-      '$\langle z \rangle$.  Note that a larger positive numbers indicates that galaxies were more metal-poor '+$
-      'at higher redshift, which is opposite the convention used in \S\ref{sec:dlogoh} and Table~\ref{table:dlogohevol}.}',$
-      '{g}{Mean redshift corresponding to \dlogoh.}',$
-      '{h}{Savaglio combined their sample from the Gemini Deep Deep Survey \citep[GDDS;][]{abraham04a} '+$
-      'with previously published data from the Canada-France Redshift Survey \citep[CFRS;][]{lilly95a, lilly03a}.}',$
-      '{i}{\citet{maier05a} modeled all five strong lines simultaneously using the \citet{kewley02a} photoionization models.}',$
-      '{j}{The first and second row refers to the analysis by \citet{lama09a} of the VDDS-DEEP and '+$
-      'VDDS-WIDE sample, respectively.}',$
-      '{k}{\citet{lama09a} derived EW-based abundances using three different abundance diagnostics depending '+$
-      'on redshift: \nii/\ha{} at $z<0.2$; (\oiii/\hb)/(\nii/\ha) \citep{pettini04a} at '+$
-      '$0.2<z<0.5$; and \pagel{} \citep{mcgaugh91a} at $0.5<z<0.9$.  They then rescaled each '+$
-      'abundance measurement to the \citet{tremonti04a} metallicity scale using the \citet{kewley08a} '+$
-      'polynomial correction formulae.}',$
-      '{l}{\citet{rodrigues08a} combines new spectroscopy with previously published measurements by '+$
-      '\citet{liang06a}.}']
-
-; write out
-    texfile = paperpath+'mztable_litoh_'+filesuffix+'.tex'
-    splog, 'Writing '+texfile
-    openw, lun, texfile, /get_lun
-    if keyword_set(emulateapj) then begin
-       printf, lun, '\LongTables'
-       printf, lun, '\begin{landscape}'
-    endif
-    printf, lun, '\begin{deluxetable}{'+strjoin(texcenter)+'}'
-;   printf, lun, '\tabletypesize{\tiny}'
-    printf, lun, '\tablecaption{'+caption+'}'
-    printf, lun, '\tablewidth{0pt}'
-    printf, lun, '\tablehead{'
-    niceprintf, lun, colhead1
-    niceprintf, lun, colhead2
-    printf, lun, '}'
-    printf, lun, '\startdata'
-    for ii = 0, ntable-1 do begin
-       if (ii eq 0) then printf, lun, '\cutinhead{Luminosity-Metallicity Relations}'
-       if (ii eq ntable-5) then printf, lun, '\cutinhead{Mass-Metallicity Relations}'
-       line = strarr(ntags)
-       for jj = 0L, ntags-1 do begin
-          if (jj lt ntags-1) then suffix = ' & ' else if (ii lt ntable-1) then $
-            suffix = ' \\ ' else suffix = ''
-          line[jj] = table[ii].(jj)+suffix
-       endfor
-       printf, lun, line
-    endfor
-    printf, lun, '\enddata'
-;   printf, lun, '\tablecomments{'+tablecomments+'}'
-    niceprintf, lun, '\tablenotetext'+tablenotetext
-    printf, lun, '\tablerefs{'+refs+'}'
-    printf, lun, '\end{deluxetable}'
-    printf, lun, '\clearpage'
-    printf, lun, '\end{landscape}'
-    free_lun, lun
-
 stop    
     
 ; ---------------------------------------------------------------------------    
@@ -1240,8 +1293,8 @@ stop
     ntags = n_tags(ages)
 
     ages.id     = string(agesancillary[srt].ages_id,format='(I0)')
-    ages.ra     = im_dec2hms(agesancillary[srt].ra/15D,/colon)
-    ages.dec    = im_dec2hms(agesancillary[srt].dec,/colon)
+    ages.ra     = dec2hms(agesancillary[srt].ra/15D,/colon)
+    ages.dec    = dec2hms(agesancillary[srt].dec,/colon)
     pos = where(agesancillary[srt].dec gt 0.0) & ages[pos].dec = '+'+ages[pos].dec
 
     ages.z      = string(agesancillary[srt].z,format='(F6.4)')

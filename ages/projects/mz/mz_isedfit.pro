@@ -4,8 +4,8 @@ pro mz_isedfit, sdss=sdss, sfhgrid=sfhgrid, imf=imf, synthmodels=synthmodels, $
 ; samples 
 
     isedpath = mz_path(/ised)
-    sfhgrid_basedir = mz_path(/montegrids)
-    sfhgrid_paramfile = isedpath+'mz_sfhgrid.par'
+    isedfit_sfhgrid_dir = mz_path(/montegrids)
+    sfhgrid_paramfile = getenv('IDL_PROJECTS_DIR')+'/ages/projects/mz/mz_sfhgrid.par'
     
 ; defaults    
     if (n_elements(imf) eq 0) then imf = 'chab'
@@ -15,17 +15,21 @@ pro mz_isedfit, sdss=sdss, sfhgrid=sfhgrid, imf=imf, synthmodels=synthmodels, $
     mzgrid = read_sfhgrid_paramfile(sfhgrid,sfhgrid_paramfile=sfhgrid_paramfile)
     ngrid = n_elements(mzgrid)
 
+    h100 = mz_h100(omega0=omega0,omegal=omegal)
+    
 ; specify some parameters
     if keyword_set(sdss) then begin
        field = 'sdss'
        igm = '0'
-       nzz = '25'
+       nzz = '40'
+       zlog = '1'
        vagc = mz_get_vagc(zminmax=zminmax,sample=sample,$
          letter=letter,poststr=poststr)
     endif else begin
        field = 'ages'
-       igm = '0'
+       igm = '1'
        nzz = '50'
+       zlog = '0'
        zbins = mz_zbins(zmin=zmin,zmax=zmax)
        zminmax = [zmin,zmax]
     endelse
@@ -44,8 +48,11 @@ pro mz_isedfit, sdss=sdss, sfhgrid=sfhgrid, imf=imf, synthmodels=synthmodels, $
        if im_file_test(paramfile,clobber=clobber) then return
        splog, 'Writing '+paramfile
        zrange = string(zminmax[0],format='(F4.2)')+','+string(zminmax[1],$
-         format='(F4.2)')+','+nzz+' # [minz,maxz,dz]'
+         format='(F4.2)')+','+nzz+','+zlog+' # [minz,maxz,dz,log?]'
        openw, lun, paramfile, /get_lun
+       printf, lun, 'h100                 '+string(h100,format='(F4.2)')
+       printf, lun, 'omega0               '+string(omega0,format='(F4.2)')
+       printf, lun, 'omegal               '+string(omegal,format='(F4.2)')
        printf, lun, 'synthmodels          '+synthmodels
        printf, lun, 'imf                  '+imf
        printf, lun, 'sfhgrid              '+sfhgridstring
@@ -59,9 +66,10 @@ pro mz_isedfit, sdss=sdss, sfhgrid=sfhgrid, imf=imf, synthmodels=synthmodels, $
 
 ; --------------------------------------------------
 ; build the models
-       if keyword_set(models) then isedfit_models, paramfile, $
-         iopath=isedpath, sfhgrid_basedir=sfhgrid_basedir, $
-         clobber=clobber
+       if keyword_set(models) then begin
+          isedfit_models, paramfile, iopath=isedpath, clobber=clobber, $
+            isedfit_sfhgrid_dir=isedfit_sfhgrid_dir
+       endif
 
 ; --------------------------------------------------
 ; do the fitting!  
@@ -80,8 +88,8 @@ pro mz_isedfit, sdss=sdss, sfhgrid=sfhgrid, imf=imf, synthmodels=synthmodels, $
 
           isedfit, paramfile, maggies, ivarmaggies, zobj, iopath=isedpath, $
             clobber=clobber, sfhgrid_paramfile=sfhgrid_paramfile, $
-            sfhgrid_basedir=sfhgrid_basedir, outprefix=outprefix, $
-            galchunksize=1000, index=index
+            isedfit_sfhgrid_dir=isedfit_sfhgrid_dir, outprefix=outprefix, $
+            galchunksize=500, index=index
        endif 
     endfor ; close SFHGRID loop
     

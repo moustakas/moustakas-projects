@@ -3,6 +3,8 @@ pro mz_isedfit, sdss=sdss, sfhgrid=sfhgrid, imf=imf, synthmodels=synthmodels, $
 ; jm10jul29ucsd - derive stellar masses for the MZ AGES and SDSS
 ; samples 
 
+; echo "mz_isedfit, /sdss, /ised" | idl > & ~/mz.sdss.log &
+    
     isedpath = mz_path(/ised)
     isedfit_sfhgrid_dir = mz_path(/montegrids)
     sfhgrid_paramfile = getenv('IDL_PROJECTS_DIR')+'/ages/projects/mz/mz_sfhgrid.par'
@@ -45,7 +47,7 @@ pro mz_isedfit, sdss=sdss, sfhgrid=sfhgrid, imf=imf, synthmodels=synthmodels, $
 ; --------------------------------------------------
 ; always make the parameter file 
        paramfile = isedpath+'mz_'+field+'_sfhgrid'+sfhgridstring+'_isedfit.par'
-       if im_file_test(paramfile,clobber=clobber) then return
+;      if im_file_test(paramfile,clobber=clobber) then return
        splog, 'Writing '+paramfile
        zrange = string(zminmax[0],format='(F4.2)')+','+string(zminmax[1],$
          format='(F4.2)')+','+nzz+','+zlog+' # [minz,maxz,dz,log?]'

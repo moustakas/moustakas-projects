@@ -2,6 +2,9 @@ pro build_mz_sfhgrid, sfhgrid, make_montegrid=make_montegrid, $
   imf=imf, synthmodels=synthmodels, redcurve=redcurve, clobber=clobber
 ; jm10jan28ucsd - build all the SFH grids we are going to need
 
+; echo "build_mz_sfhgrid, 1, /make, /clob" | idl > & ~/montegrid1.log &
+; echo "build_mz_sfhgrid, 2, /make, /clob" | idl > & ~/montegrid2.log &
+    
     isedfit_sfhgrid_dir = mz_path(/monte)
     sfhgrid_paramfile = getenv('IDL_PROJECTS_DIR')+'/ages/projects/mz/mz_sfhgrid.par'
 

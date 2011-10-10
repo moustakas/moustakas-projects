@@ -31,13 +31,13 @@
 ;-
 
 function read_vagc_garching, sample=sample, letter=letter, $
-  poststr=poststr, postlss=postlss, mpacat=mpacat, $
+  poststr=poststr, postlss=postlss, mpacat=mpacat, totsfr=totsfr, $
   mpamassoh=mpamassoh, ispecline=ispecline, vmax_noevol=vmax_noevol, $
   vmax_evol=vmax_evol, silent=silent
 
     common sdss_vagc_mpa, sdss_sample, sdss_letter, sdss_poststr, $
-      sdss_postlss, sdss_mpacat, sdss_mpamassoh, sdss_ispecline, $
-      sdss_vmax_noevol, sdss_vmax_evol
+      sdss_postlss, sdss_mpacat, sdss_totsfr, sdss_mpamassoh, $
+      sdss_ispecline, sdss_vmax_noevol, sdss_vmax_evol
     
     if (n_elements(sample) eq 0) then sample = 'dr72'
     if (n_elements(letter) eq 0) then letter = 'bsafe'
@@ -74,6 +74,19 @@ function read_vagc_garching, sample=sample, letter=letter, $
           if (sdss_poststr ne poststr) then sdss_poststr = poststr
        endif else if (keyword_set(silent) eq 0) then splog, 'Restoring '+file_basename(thisfile)
        return, sdss_mpacat
+    endif
+    
+    if keyword_set(totsfr) then begin
+       thisfile = vagcpath+'totsfr.'+suffix+'.fits.gz'
+       if (size(sdss_totsfr,/type) ne 8) or (sample ne sdss_sample) or $
+         (letter ne sdss_letter) or (poststr ne sdss_poststr) then begin
+          if (keyword_set(silent) eq 0) then splog, 'Reading '+thisfile
+          sdss_totsfr = hogg_mrdfits(thisfile,1,silent=silent,nrow=50000L)
+          if (sdss_sample ne sample) then sdss_sample = sample
+          if (sdss_letter ne letter) then sdss_letter = letter
+          if (sdss_poststr ne poststr) then sdss_poststr = poststr
+       endif else if (keyword_set(silent) eq 0) then splog, 'Restoring '+file_basename(thisfile)
+       return, sdss_totsfr
     endif
     
     if keyword_set(mpamassoh) then begin

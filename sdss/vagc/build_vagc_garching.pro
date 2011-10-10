@@ -46,6 +46,7 @@ pro build_vagc_garching, sample=sample, letter=letter, poststr=poststr
     mpacat_outfile = vagcpath+'mpacat.'+suffix+'.fits'
     ispec_outfile = vagcpath+'ispecline.'+suffix+'.fits'
     massoh_outfile = vagcpath+'mpamassoh.'+suffix+'.fits'
+    sfr_outfile = vagcpath+'totsfr.'+suffix+'.fits'
 
 ; read the VAGC/postlss catalog
     post = mrdfits(vagcpath+'post_catalog.'+suffix+'.fits.gz',1)
@@ -58,10 +59,18 @@ pro build_vagc_garching, sample=sample, letter=letter, poststr=poststr
     srt = sort(m1) & m1 = m1[srt] & m2 = m2[srt]
 ;   post = 0
 
-    out_mpacat = im_empty_structure(mpacat[0],empty_value=-999,ncopies=ngal)
-    out_mpacat[m1] = mpacat[m2]
-    im_mwrfits, temporary(out_mpacat), mpacat_outfile, /clobber
+;   out_mpacat = im_empty_structure(mpacat[0],empty_value=-999,ncopies=ngal)
+;   out_mpacat[m1] = mpacat[m2]
+;   im_mwrfits, temporary(out_mpacat), mpacat_outfile, /clobber
 
+; parse the SFR measurements
+    sfr = mrdfits(mpapath+'gal_totsfr_dr7_v5_2.fits.gz',1)
+    out_sfr = im_empty_structure(sfr[0],empty_value=-999,ncopies=ngal)
+    out_sfr[m1] = sfr[m2]
+    im_mwrfits, temporary(out_sfr), sfr_outfile, /clobber
+
+stop    
+    
 ; parse the ispec emission-line measurements
     ispec = mrdfits(mpapath+'ispecline_dr7_v5_2.fits.gz',1)
     out_ispec = im_empty_structure(ispec[0],empty_value=-999,ncopies=ngal)

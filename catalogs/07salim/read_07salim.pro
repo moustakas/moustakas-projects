@@ -24,20 +24,21 @@ function read_07salim
       age_avg: 0.0,$
       age_25: 0.0,$
       age_975: 0.0,$
-      logsfr_avg: 0.0,$
-      logsfr_25: 0.0,$
-      logsfr_975: 0.0,$
-      logsfrm_avg: 0.0,$
-      logsfrm_25: 0.0,$
-      logsfrm_975: 0.0,$
+      sfr_avg: 0.0,$
+      sfr_25: 0.0,$
+      sfr_975: 0.0,$
+      sfrm_avg: 0.0,$
+      sfrm_25: 0.0,$
+      sfrm_975: 0.0,$
       av_avg: 0.0,$
       av_25: 0.0,$
       av_975: 0.0,$
-      logb_avg: 0.0,$
-      logb_25: 0.0,$
-      logb_975: 0.0,$
+      b_avg: 0.0,$
+      b_25: 0.0,$
+      b_975: 0.0,$
       mab: fltarr(7),$
-      mab_err: fltarr(7)}
+      mab_err: fltarr(7),$
+      mass_avg: 0.0}
     cat = replicate(cat,ngal)
 
     cat.plate = plate
@@ -50,20 +51,22 @@ function read_07salim
     cat.age_avg = age_avg
     cat.age_25 = age_25
     cat.age_975 = age_975
-    cat.logsfr_avg = logsfr_avg
-    cat.logsfr_25 = logsfr_25
-    cat.logsfr_975 = logsfr_975
-    cat.logsfrm_avg = logsfrm_avg
-    cat.logsfrm_25 = logsfrm_25
-    cat.logsfrm_975 = logsfrm_975
+    cat.sfr_avg = logsfr_avg
+    cat.sfr_25 = logsfr_25
+    cat.sfr_975 = logsfr_975
+    cat.sfrm_avg = logsfrm_avg
+    cat.sfrm_25 = logsfrm_25
+    cat.sfrm_975 = logsfrm_975
     cat.av_avg = av_avg
     cat.av_25 = av_25
     cat.av_975 = av_975
-    cat.logb_avg = logb_avg
-    cat.logb_25 = logb_25
-    cat.logb_975 = logb_975
+    cat.b_avg = logb_avg
+    cat.b_25 = logb_25
+    cat.b_975 = logb_975
     cat.mab = transpose([[fuv],[nuv],[u],[g],[r],[i],[z]])
     cat.mab_err = transpose([[fuv_err],[nuv_err],[u_err],[g_err],[r_err],[i_err],[z_err]])
+
+    cat.mass_avg = cat.sfr_avg-cat.sfrm_avg
     
 return, cat
 end

@@ -977,8 +977,8 @@ stop
          weight=all[indx[high]].weight, noerase=(iz gt 0), /nogrey, $
          position=pos[*,iz], xsty=1, ysty=1, xrange=xrange, yrange=yrange, $
          xtitle='', ytitle=ytitle, xtickname=xtickname, $
-         ytickname=ytickname, npix=16, ccolor=im_color('sky blue'), $
-         outcolor=im_color('sky blue'), color=keycolor
+         ytickname=ytickname, npix=16, ccolor=im_color('sky blue'), color=keycolor, $
+         outcolor=im_color('sky blue')
        mfplot_scatterplot, all[indx[interm]].rmj_01, all[indx[interm]].nuvmr_01, $
          weight=all[indx[interm]].weight, xsty=5, ysty=5, xrange=xrange, yrange=yrange, $
          xtitle='', ytitle='', /noerase, position=pos[*,iz], ccolor=im_color('spring green1'), $

@@ -52,12 +52,13 @@ pro mzpegase_build_models, dossps=dossps, doscenarios=doscenarios
 ; [2] convolve the stellar models with each IMF with a default set of
 ; optional parameters, if necessary
     if keyword_set(dossps) then begin
+       pushd, ssppath
        for ii = 0, nimf-1 do begin
           splog, 'Working on IMF '+imf[ii]
 ; clean up old files
           allfiles = file_search(ssppath+imf[ii]+'_*.dat',count=nall)
           if (nall ne 0) then rmfile, allfiles
-          sspsfile = ssppath+imf[ii]+'_SSPs.dat'
+          sspsfile = imf[ii]+'_SSPs.dat'
           infile = repstr(sspsfile,'.dat','.input')
           logfile = repstr(sspsfile,'.dat','.log')
           
@@ -79,12 +80,12 @@ pro mzpegase_build_models, dossps=dossps, doscenarios=doscenarios
 ;         popd
           splog, format='("Time = ",G0," minutes")', (systime(1)-t0)/60.0
        endfor
+       popd
     endif
 
 ; --------------------------------------------------    
 ; [3] call scenarios with a range of tau values 
     if keyword_set(doscenarios) then begin
-
 ; define the tau-values between 0 Gyr (SSP) and 13.5 Gyr, the maximum
 ; age of the universe
 ;      tau = [range(0.0,10.0,21),range(12.0,100.0,23)]
@@ -93,15 +94,16 @@ pro mzpegase_build_models, dossps=dossps, doscenarios=doscenarios
        tau_str = strtrim(string(1E3*tau,format='(F12.1)'),2) ; [Myr]
 
        timf = systime(1)
+       pushd, ssppath
        for ii = 0, nimf-1 do begin
-          sspsfile = ssppath+imf[ii]+'_SSPs.dat'
+          sspsfile = imf[ii]+'_SSPs.dat'
           if (file_test(sspsfile) eq 0) then begin
              splog, sspsfile+' not found!'
              splog, 'Rerun with /DOSSPS!'
              continue
           endif
 
-          scenarios_infile = ssppath+'scenarios_'+imf[ii]+'.input'        ; scenarios.f input
+          scenarios_infile = 'scenarios_'+imf[ii]+'.input'        ; scenarios.f input
           scenarios_outfile = repstr(scenarios_infile,'.input','.output') ; scenarios.f output
           scenarios_logfile = repstr(scenarios_infile,'.input','.log')
           spectra_logfile = repstr(scenarios_logfile,'scenarios','spectra')
@@ -131,7 +133,7 @@ pro mzpegase_build_models, dossps=dossps, doscenarios=doscenarios
              printf, lun, 'y'   ; consistent evolution of the stellar metallicity - yes
              printf, lun, '0.0' ; mass fraction of substellar objects formed
              printf, lun, 'n'   ; no galactic winds
-             printf, lun, 'y'   ; include nebular emission
+             printf, lun, 'n'   ; include nebular emission - no
              printf, lun, '0'   ; no extinction
 ;            printf, lun, '2'      ; inclination-averaged extinction for a disk geometry
           endfor 
@@ -151,12 +153,13 @@ pro mzpegase_build_models, dossps=dossps, doscenarios=doscenarios
 ; now go back through all the models, convert the spectra to an
 ; isedfit-compatible format, and then overwrite
           for itau = 0, ntau-1 do begin
-             peg = im_read_peg(ssppath+taufile[itau])
+             peg = im_read_peg(taufile[itau])
              ised = peg2isedfit(peg)
              ised = struct_addtags({imf: imfstr, tau: float(tau[itau])},ised)
              im_mwrfits, ised, ssppath+taufile[itau], /clobber
           endfor
        endfor                    ; close IMF loop
+       popd
        splog, format='("Time for all IMFs = '+$
          '",G0," minutes.")', (systime(1)-timf)/60.0
     endif

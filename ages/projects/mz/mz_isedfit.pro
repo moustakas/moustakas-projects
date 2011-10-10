@@ -3,7 +3,10 @@ pro mz_isedfit, sdss=sdss, sfhgrid=sfhgrid, imf=imf, synthmodels=synthmodels, $
 ; jm10jul29ucsd - derive stellar masses for the MZ AGES and SDSS
 ; samples 
 
-; echo "mz_isedfit, /sdss, /ised" | idl > & ~/mz.sdss.log &
+; echo "build_mz_sfhgrid, 1, /make, /cl" | idl > & ~/mz.sfhgrid.1.log &
+; echo "build_mz_sfhgrid, 2, /make, /cl" | idl > & ~/mz.sfhgrid.2.log &
+; echo "mz_isedfit, /sdss, /models, /ised, /cl" | idl > & ~/mz.sdss.log &
+; echo "mz_isedfit, /models, /ised, /cl" | idl > & ~/mz.ages.log &
     
     isedpath = mz_path(/ised)
     isedfit_sfhgrid_dir = mz_path(/montegrids)
@@ -23,7 +26,7 @@ pro mz_isedfit, sdss=sdss, sfhgrid=sfhgrid, imf=imf, synthmodels=synthmodels, $
     if keyword_set(sdss) then begin
        field = 'sdss'
        igm = '0'
-       nzz = '40'
+       nzz = '25'
        zlog = '1'
        vagc = mz_get_vagc(zminmax=zminmax,sample=sample,$
          letter=letter,poststr=poststr)

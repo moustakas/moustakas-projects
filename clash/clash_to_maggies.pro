@@ -50,9 +50,9 @@ pro clash_to_maggies, clash, maggies, ivar, filterlist=filterlist, $
 ; construct maggies and ivarmaggies in each band       
     maggies = fltarr(nbands,ngal)
     ivar = fltarr(nbands,ngal)
-    for ii = 0, nbands-1 do begin
-       ftag = tag_indx(clash[0],tags[ii])
-       utag = tag_indx(clash[0],errtags[ii])
+    for ib = 0, nbands-1 do begin
+       ftag = tag_indx(clash[0],tags[ib])
+       utag = tag_indx(clash[0],errtags[ib])
 
 ; ## Both fluxes and magnitudes have been corrected for:
 ; ##  - galactic extinction: E(B-V) = 0.03118
@@ -63,9 +63,8 @@ pro clash_to_maggies, clash, maggies, ivar, filterlist=filterlist, $
        limit = where((clash.(ftag) gt 90.0) and $
          (clash.(utag) gt 0.0) and (clash.(utag) lt 90.0),nlimit)
        if (nlimit ne 0L) then begin
-          message, 'Deal with me'
-;         maggies[ii,limit] = 0.0
-;         ivar[ii,limit]= 1.0/(10.^(-0.4*(clash[limit].(ftag[ib])-extinction[ib,ilimit]+v2ab[ib])))^2.0
+          maggies[ib,limit] = 0.0
+          ivar[ib,limit]= 1.0/(10.0^(-0.4*clash[limit].(utag)))^2.0
        endif
          
        good = where($
@@ -73,10 +72,12 @@ pro clash_to_maggies, clash, maggies, ivar, filterlist=filterlist, $
          (clash.(utag) gt 0.0) and (clash.(utag) lt 90.0),ngood)
        if (ngood ne 0L) then begin
           magerr = clash[good].(utag)
-          mag = clash[good].(ftag); + vega2ab[ii] - kl[ii]*ebv[good] + zpoffset[ii] 
-          maggies[ii,good] = 10.0^(-0.4*mag)
-          ivar[ii,good] = 1.0/(0.4*alog(10.0)*(maggies[ii,good]*magerr))^2
+          mag = clash[good].(ftag); + vega2ab[ib] - kl[ib]*ebv[good] + zpoffset[ib] 
+          maggies[ib,good] = 10.0^(-0.4*mag)
+          ivar[ib,good] = 1.0/(0.4*alog(10.0)*(maggies[ib,good]*magerr))^2
        endif
+       check = where(finite(maggies[ib,*]) eq 0 or finite(ivar[ib,*]) eq 0)
+       if check[0] ne -1 then stop
     endfor
 
 ; apply a minimum photometric error

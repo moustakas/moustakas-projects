@@ -1,0 +1,27 @@
+# iSEDfit SFH grid parameters
+
+## includes dust - 
+# PARAMS 11 {0.1 10.0} {0.02 0.04} {0.0 2.0}  1 {0.1 4.0} 0 -1 -1 {-1 -1} {-1 -1} -1 -1 50 0.5 12.0 300
+
+typedef struct {
+ int sfhgrid;          # grid number
+ float gamma[2];       # gamma=1/tau interval [1/Gyr]
+ float Z[2];           # metallicity interval
+ float av[2];          # A_V interval or gamma distribution parameters
+ int flatav;           # flat A_V prior (default is a gamma distribution)?
+ float mu[2];          # for use with the Charlot & Fall attenuation curve
+ int flatmu;           # flat mu prior (default is a gamma distribution)?
+ float pburst;         # probability of a burst in PBURSTINTERVAL Gyr
+ float pburstinterval; # burst interval [Gyr]
+ float fburst[2];      # burst mass fraction interval
+ float dtburst[2];     # burst duration interval [Gyr]
+ float fractrunc;      # fraction of the models with truncated bursts
+ float tauburst;       # truncated final burst characteristic timescale [Gyr]
+ int nage;             # number of age bins
+ float minage;         # minimum model age [Gyr]
+ float maxage;         # maximum model age [Gyr]
+ int nmonte;           # number of Monte Carlo models
+} PARAMS;
+
+PARAMS  1 {0.01 10.0} {0.004 0.04} {0.8 2.0} 0 {0.1 4.0} 0 0.5 2.0 {0.03  4} {0.03 0.3} -1 -1 50 0.1  7.0 1000 # arc grid(s)
+PARAMS 10 { 0.1 10.0} { 0.02 0.04} { -1  -1} 0 { -1  -1} 0  -1  -1 {  -1 -1} {  -1  -1} -1 -1 50 0.5 12.0  300 # BCG grid(s)

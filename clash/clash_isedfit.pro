@@ -32,11 +32,11 @@ pro clash_isedfit, supergrid=supergrid, models=models, isedfit=isedfit, $
     
     isedpath = clash_path(/ised)
     catpath = clash_path(/cat)
-    sfhgrid_basedir = clash_path(/monte)
-    sfhgrid_paramfile = isedpath+'clash_sfhgrid.par'
+    isedfit_sfhgrid_dir = clash_path(/monte)
+    sfhgrid_paramfile = getenv('CLASH_DIR')+'/clash_sfhgrid.par'
 
 ; read the supergrid parameter file    
-    supergrid_paramfile = isedpath+'clash_supergrid.par'
+    supergrid_paramfile = getenv('CLASH_DIR')+'/clash_supergrid.par'
     super = yanny_readone(supergrid_paramfile)
     if (n_elements(supergrid) ne 0) then begin
        match2, super.supergrid, supergrid, m1, m2
@@ -71,7 +71,7 @@ pro clash_isedfit, supergrid=supergrid, models=models, isedfit=isedfit, $
           clash_write_paramfile, paramfile, prefix=prefix, zminmax=zminmax, $
             nzz=nzz, filters=filters, igm=igm, super=super[gg]
           isedfit_models, paramfile, iopath=isedpath, clobber=clobber, $
-            sfhgrid_basedir=sfhgrid_basedir
+            isedfit_sfhgrid_dir=isedfit_sfhgrid_dir
        endif
 
 ; --------------------------------------------------
@@ -87,7 +87,7 @@ pro clash_isedfit, supergrid=supergrid, models=models, isedfit=isedfit, $
 
           isedfit, paramfile, maggies, ivarmaggies, cat.z, iopath=isedpath, $
             clobber=clobber, sfhgrid_paramfile=sfhgrid_paramfile, $
-            sfhgrid_basedir=sfhgrid_basedir, debug=debug, outprefix=outprefix
+            isedfit_sfhgrid_dir=isedfit_sfhgrid_dir, debug=debug, outprefix=outprefix
        endif       
 
 ; --------------------------------------------------
@@ -96,7 +96,7 @@ pro clash_isedfit, supergrid=supergrid, models=models, isedfit=isedfit, $
           cat = mrdfits(catpath+'a383.fits.gz',1)
           cat = [cat,cat]
           isedfit_qaplot, paramfile, result, iopath=iopath, galaxy=cat.galaxy, $
-            index=index, clobber=clobber, sfhgrid_basedir=sfhgrid_basedir, $
+            index=index, clobber=clobber, isedfit_sfhgrid_dir=isedfit_sfhgrid_dir, $
             outprefix=outprefix
        endif
        

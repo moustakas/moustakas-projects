@@ -2,7 +2,7 @@ pro clash_arc_isedfit, supergrid, models=models, isedfit=isedfit, $
   qaplot=qaplot, clobber=clobber
 ; jm11oct14ucsd - fit the CLASH arcs
 
-; clash_arc_isedfit, /model, /ised, /clob, supergrid=[1,2,3]    
+; echo "clash_arc_isedfit, /model, /ised, /clob" | idl > & ~/clash.arc.log & 
 
     isedpath = clash_path(/ised)
     catpath = clash_path(/cat)

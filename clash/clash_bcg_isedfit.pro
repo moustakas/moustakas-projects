@@ -2,7 +2,7 @@ pro clash_bcg_isedfit, supergrid, models=models, isedfit=isedfit, $
   qaplot=qaplot, clobber=clobber
 ; jm11oct14ucsd - fit the CLASH BCGs
 
-; clash_isedfit, /model, /ised, /clob, supergrid=[1,2,3]    
+; echo "clash_bcg_isedfit, /model, /ised, /clob" | idl > & ~/clash.bcg.log & 
     
     isedpath = clash_path(/ised)
     catpath = clash_path(/cat)
@@ -10,7 +10,7 @@ pro clash_bcg_isedfit, supergrid, models=models, isedfit=isedfit, $
     sfhgrid_paramfile = getenv('CLASH_DIR')+'/clash_sfhgrid.par'
 
 ; read the supergrid parameter file
-    super = get_clash_supergrid(supergrid,nsuper=nsuper)
+    super = get_clash_supergrid(supergrid,nsuper=nsuper,/bcg)
     struct_print, super
 
 ; gather the BCG photometry - will eventually need a wrapper for this 

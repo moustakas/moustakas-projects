@@ -23,7 +23,8 @@ pro build_mz_parent, sdss=sdss, clobber=clobber
 ; $VAGC_LSS/bsafe/35/lss/README.dr72bsafe35) 
 ;
 ; total volume = jhnvol(0.033,0.25)*6955.47*3600.0 = 7.23E+08 Mpc^3  
-       vagc = mz_get_vagc(sample=sample,letter=letter,poststr=poststr)
+       vagc = mz_get_vagc(sample=sample,letter=letter,$
+         poststr=poststr,zminmax=zminmax)
        post = read_vagc_garching(sample=sample,$
          letter=letter,poststr=poststr,/postlss)
        maggies = mz_get_maggies(post,/sdss,ivarmaggies=ivarmaggies, $
@@ -31,21 +32,22 @@ pro build_mz_parent, sdss=sdss, clobber=clobber
 
        massoh = read_vagc_garching(sample=sample,$
          letter=letter,poststr=poststr,/mpamassoh)
-       vmax_noevol = read_vagc_garching(sample=sample,$
-         letter=letter,poststr=poststr,/vmax_noevol)
-       vmax_evol = read_vagc_garching(sample=sample,$
-         letter=letter,poststr=poststr,/vmax_evol)
+;      vmax_noevol = read_vagc_garching(sample=sample,$
+;        letter=letter,poststr=poststr,/vmax_noevol)
+;      vmax_evol = read_vagc_garching(sample=sample,$
+;        letter=letter,poststr=poststr,/vmax_evol)
 
 ; apply the window
        windowfile = mzpath+'dr72bsafe35.ply'
        keep = where(im_is_in_window(windowfile,ra=post.ra,$
-         dec=post.dec,polyid=allpolyid),ngal)
+         dec=post.dec,polyid=allpolyid) and (post.z ge zminmax[0]) and $
+         (post.z le zminmax[1]),ngal)
        polyid = allpolyid[keep]
 
        post = post[keep]
        massoh = massoh[keep]
-       vmax_noevol = vmax_noevol[keep]
-       vmax_evol = vmax_evol[keep]
+;      vmax_noevol = vmax_noevol[keep]
+;      vmax_evol = vmax_evol[keep]
        
        maggies = maggies[*,keep]
        ivarmaggies = ivarmaggies[*,keep]
@@ -59,7 +61,7 @@ pro build_mz_parent, sdss=sdss, clobber=clobber
          final_weight: 1.0},ngal))
        read_mangle_polygons, windowfile, win
        post.vagc_object_position = keep
-       post.final_weight = win[polyid].weight
+       post.final_weight = 1.0/win[polyid].weight
        
 ; build the final catalog by keeping just the tags we want
        sample = struct_trimtags(post,select=['object_position','ra','dec',$
@@ -69,16 +71,16 @@ pro build_mz_parent, sdss=sdss, clobber=clobber
        sample = struct_addtags(temporary(sample),struct_trimtags(sdssphot[keep],$
          select=['modelflux*','petroflux*','fiberflux*','extinction','petror*']))
 
-       sample = struct_addtags(temporary(sample),$
-         im_struct_trimtags(vmax_noevol,$
-         select=['zmin_local','zmax_local','vmax'],$
-         newtags=['zmin','zmax','vmax']+'_noevol'))
-       sample = struct_addtags(temporary(sample),$
-         im_struct_trimtags(vmax_evol,$
-         select=['zmin_local','zmax_local','vmax'],$
-         newtags=['zmin','zmax','vmax']+'_evol'))
-       sample.vmax_noevol = sample.vmax_noevol/h100^3.0 ; h=1-->h=0.7
-       sample.vmax_evol = sample.vmax_evol/h100^3.0 ; h=1-->h=0.7
+;      sample = struct_addtags(temporary(sample),$
+;        im_struct_trimtags(vmax_noevol,$
+;        select=['zmin_local','zmax_local','vmax'],$
+;        newtags=['zmin','zmax','vmax']+'_noevol'))
+;      sample = struct_addtags(temporary(sample),$
+;        im_struct_trimtags(vmax_evol,$
+;        select=['zmin_local','zmax_local','vmax'],$
+;        newtags=['zmin','zmax','vmax']+'_evol'))
+;      sample.vmax_noevol = sample.vmax_noevol/h100^3.0 ; h=1-->h=0.7
+;      sample.vmax_evol = sample.vmax_evol/h100^3.0 ; h=1-->h=0.7
        
 ; compute K-corrections
        splog, 'Computing K-corrections'

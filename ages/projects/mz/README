@@ -3,35 +3,40 @@ AGES/MZ README
 ### Build the samples ###
 
 [1] Build the parent AGES and SDSS samples:
-  build_mz_parent, sdss=sdss
+  build_mz_parent, /clobber
+  build_mz_parent, /sdss, /clobber
 
 [2] Build the AGES and SDSS emission-line samples and also classify
 into AGN, SF, etc.
-  build_mz_emline, sdss=sdss
+  build_mz_emline, /clobber
+  build_mz_emline, /sdss, /clobber
 
 [3] Compute oxygen abundances for the star-forming galaxies:
-  build_mz_log12oh, sdss=sdss, agn=agn
+  build_mz_log12oh, /clobber
+  build_mz_log12oh, /agn, /clobber
 
-[4] Build the SDSS2AGES comparison sample, with and without evolution:
-  build_sdss2ages
-  build_sdss2ages, /evolve
-  
-  
-### Analysis plots (in approximate order of appearance in the paper) ###
+  build_mz_log12oh, /sdss, /clobber
+  build_mz_log12oh, /agn, /sdss, /clobber
 
-[1] mzplot_sample - sample selection issues
-[2] mzplot_agn - AGN identification
-[3] 
-
-
-
-
-
-
+[4] Compute the limiting stellar mass and luminosity:
+  mz_limits  
 
 [5] Fit the local and evolving MZ/LZ relations
   fit_mzlzlocal, /clobber
   mlfit_mzlzevol, /clobber
+  
+[6] Build the SDSS2AGES comparison sample, with and without evolution:
+  build_sdss2ages
+  build_sdss2ages, /evolve
+  
+### Analysis plots (in approximate order of appearance in the paper) ###
+
+[1] mzplot_sample - sample selection and properties
+[2] mzplot_agn - AGN identification
+[3] mzplot_ohcalib - exploring calibration issues
+[4] mzplot_mzlzlocal - the local LZ and MZ relations
+[5] mzplot_mzlzevol - evolution of the LZ and MZ relations 
+[6] mzplot_ohevol - 
 
 
 ###
@@ -40,15 +45,3 @@ Simple modeling
 * get_pegase_info - parse the output from build_mz_pegase_models
 * mz_galform_model - simple galaxy formation model
 * qaplot_mz_pegase_models - build some simple QAplots
-
-
-# Make the plots
-
-* mzplot_sample - sample properties
-* mzplot_ohcalib - investigating the effect of various abundance calibrations 
-* mzplot_mzlzlocal - establishing the local LZ and MZ relations
-* mzplot_mzlzevol - evolution of the LZ and MZ relations
-
-mzsampleplots:
-* EWs measured from fluxed/unfluxed plates
-* redshift vs absolute magnitude and stellar mass

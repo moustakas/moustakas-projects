@@ -1,8 +1,8 @@
-pro ages_oplot, x, y, symsize=symsize, _extra=extra
+pro ages_oplot, x, y, symsize=symsize, color=color, _extra=extra
     if (n_elements(symsize) eq 0) then symsize = 0.4
     if (n_elements(color) eq 0) then color = 'grey'
     djs_oplot, x, y, psym=symcat(16), symsize=symsize, $
-      color=color, _extra=extra
+      color=im_color(color), _extra=extra
 return
 end
 
@@ -26,74 +26,8 @@ pro mzplot_sample, ps=ps
     dist = 3.085678D19     ; fiducial distance [10 pc in cm]
 
 ; ------------------------------------------------------------
-; redshift vs absolute magnitude and stellar mass
-    ageskcorr = read_mz_sample(/mzhii_ancillary)
-    agesmass = read_mz_sample(/mzhii_mass)
+; Figure 6 - distribution of global properties - AGES & SDSS
 
-; compute the tau model
-    if (n_elements(taumodel) eq 0) then begin
-       tau = 3.0
-       ssp = im_read_bc03(bc03_extras=ext,/silent)
-       tauflux = im_convolve_sfh(ssp,tau=tau,mstar=ext.m_,cspmstar=taumstar)
-       tauflux = lsun*tauflux/(4.0*!dpi*dist^2.0)/rebin(reform(taumstar,1,220),6900,220) ; [erg/s/cm2/A/Msun]
-       taumodel = {tau: tau, age: ssp.age, wave: ssp.wave, flux: tauflux, mstar: taumstar}
-    endif
-
-; interpolate    
-    nz = 100 
-    zz = range(0.02,1.0,nz)
-    tauzform = 2.0
-
-    tauindx = findex(taumodel.age/1D9,getage(zz)-getage(tauzform))
-    tauflux = interpolate(taumodel.flux,tauindx)
-    taumstar = interpolate(taumodel.mstar,tauindx)
-  
-    mbfilter = 'bessell_B.par'
-    ifaint = mz_ifaint(select_filter=ifilter)
-    maggies = rebin(reform(10^(-0.4*ifaint),1,1),1,nz)
-
-    model = replicate({z: 0.0, tau_MB: 0.0, tau_mstar: 0.0},nz)
-    model.z = zz
-    
-    kk = im_simple_kcorrect(zz,maggies,maggies*0.0+1.0,$
-      ifilter,mbfilter,taumodel.wave,tauflux,absmag=abs,$
-      scale=tauscale)
-    model.tau_mstar = alog10(taumstar*(dluminosity(zz,/cm)/3.085678D19)^2*tauscale)
-    model.tau_MB = reform(abs)
-
-; now make the plot    
-    psfile = pspath+'z_vs_mb_mass'+suffix
-    im_plotconfig, 6, pos, psfile=psfile, height=3.0*[1,1], xmargin=[1.3,0.2], $
-      ymargin=[0.8,1.0], charsize=1.9, width=5.5
-
-    xrange = [0.03,0.77]
-    yrange1 = [-15.3,-23.4]
-    yrange2 = [7.7,11.9]
-
-; redshift vs absolute magnitude
-    plot, [0], [0], /nodata, ysty=1, xsty=1, xrange=xrange, yrange=yrange1, $
-      xtitle='', ytitle=mzplot_mbtitle(), xtickname=replicate(' ',10), $
-      position=pos[*,0], yminor=4
-    ages_oplot, ageskcorr.z, ageskcorr.k_ubvrijhk_absmag_00[1]
-    djs_oplot, model.z, model.tau_MB, line=0, $
-      color=fsc_color('firebrick',101), thick=8
-
-; redshift vs stellar mass
-    plot, [0], [0], /nodata, /noerase, ysty=1, xsty=9, $
-      xrange=xrange, yrange=yrange2, xtitle='Redshift', $
-      ytitle=mzplot_masstitle(), position=pos[*,1], yminor=5
-    ages_oplot, ageskcorr.z, agesmass.mass_50
-    djs_oplot, model.z, model.tau_mstar, line=0, $
-      color=fsc_color('firebrick',101), thick=8
-    im_legend, ['\tau = 3 Gyr'], /right, /bottom, box=0, $
-      pspacing=1.4, color='firebrick', line=0, charsize=1.5, thick=8
-
-    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
-
-stop    
-    
-; ------------------------------------------------------------
-; distribution of global properties - AGES & SDSS
 ;   sdssparent = read_mz_sample(/parent,/sdss)
     sdsskcorr = read_mz_sample(/mzhii_ancillary,/sdss)
     sdssmass = read_mz_sample(/mzhii_mass,/sdss)
@@ -116,16 +50,20 @@ stop
 
     splog, weighted_quantile(ageskcorr.z,ageskcorr.final_weight,quant=0.5), $
       im_weighted_mean(ageskcorr.z,weight=ageskcorr.final_weight)
-    splog, median(sdsskcorr.z), mean(sdsskcorr.z)
+    splog, weighted_quantile(sdsskcorr.z,sdsskcorr.final_weight,quant=0.5), $
+      im_weighted_mean(sdsskcorr.z,weight=sdsskcorr.final_weight)
 
-    histthick1 = 5.0
+    histthick1 = 8
     fspacing = 0.04
-    snorm = 20.0
-;   snorm = 15.0 ; 20.0
-;   snorm = n_elements(sdsskcorr.z)/float(n_elements(ageskcorr.z))
-    scolor = 'firebrick'
-    sline = 5
+    snorm = 15.0
+;   snorm = n_elements(sdsskcorr.z)/float(n_elements(ageskcorr.z))                                                                
 
+    scolor = 'dark red'
+    sline = 0
+
+    fullcolor = 'gray40'
+    agescolor = 'powder blue'
+    
 ; ####################
 ; Redshift
 ; ####################
@@ -141,12 +79,16 @@ stop
     djs_plot, [0], [0], /nodata, xsty=5, ysty=5, xrange=xrange, yrange=yrange, $
       position=pos[*,0], xtickname=replicate(' ',10), ytickname=replicate(' ',10)
     im_plothist, agesparent.z, bin=zbinsize, weight=agesparent.final_weight, $
-      /overplot, /fill, fcolor=djs_icolor('grey'), /fline, $
-      forientation=45, fspacing=fspacing, color=djs_icolor('grey')
+      /overplot, fcolor=im_color(fullcolor), color=im_color(fullcolor), thick=histthick1;, /fill, $
+;     /fline, forientation=45, fspacing=fspacing
+;     /overplot, /fill, fcolor=im_color(fullcolor), /fline, $
+;     forientation=45, fspacing=fspacing, color=im_color(fullcolor)
     im_plothist, ageskcorr.z, bin=zbinsize, weight=ageskcorr.final_weight, $
-      /overplot, thick=histthick1
-    im_plothist, sdsskcorr.z, bin=zbinsize, /overplot, thick=histthick1, $
-      line=sline, color=fsc_color(scolor,101), norm=snorm
+      /overplot, thick=histthick1, /fill, color=im_color(agescolor), fcolor=im_color(agescolor)
+    im_plothist, ageskcorr.z, bin=zbinsize, weight=ageskcorr.final_weight, /overplot, thick=5
+    im_plothist, sdsskcorr.z, weight=sdsskcorr.final_weight, bin=zbinsize, /overplot, thick=histthick1, $
+      line=sline, color=im_color(scolor), norm=snorm;, $
+;     /fline, forientation=45, fspacing=0.1, /fill, fcolor=im_color(scolor)
     djs_plot, [0], [0], /nodata, /noerase, xtitle=xtitle, ytitle=ytitle, $
       xsty=1, ysty=1, xrange=xrange, yrange=yrange, position=pos[*,0], $
       ytickinterval=500
@@ -167,12 +109,15 @@ stop
     djs_plot, [0], [0], /nodata, /noerase, xsty=5, ysty=5, xrange=xrange, yrange=yrange, $
       position=pos[*,1], xtickname=replicate(' ',10), ytickname=replicate(' ',10)
     im_plothist, agesparent.k_ubvrijhk_absmag_00[1], bin=absmagbinsize, weight=agesparent.final_weight, $
-      /overplot, /fill, fcolor=djs_icolor('grey'), /fline, $
-      forientation=45, fspacing=fspacing, color=djs_icolor('grey')
+      /overplot, fcolor=im_color(fullcolor), color=im_color(fullcolor), thick=histthick1;, /fill, $
+;     /fline, forientation=45, fspacing=fspacing
+;     /overplot, /fill, fcolor=im_color(fullcolor), /fline, $
+;     forientation=45, fspacing=fspacing, color=im_color(fullcolor)
     im_plothist, ageskcorr.k_ubvrijhk_absmag_00[1], bin=absmagbinsize, $
-      weight=ageskcorr.final_weight, /overplot, thick=histthick1
-    im_plothist, sdsskcorr.k_ubvrijhk_absmag_00[1], bin=absmagbinsize, $
-      /overplot, thick=histthick1, line=sline, color=fsc_color(scolor,101), norm=snorm
+      weight=ageskcorr.final_weight, /overplot, thick=histthick1, /fill, color=im_color(agescolor), fcolor=im_color(agescolor)
+    im_plothist, ageskcorr.k_ubvrijhk_absmag_00[1], bin=absmagbinsize, weight=ageskcorr.final_weight, /overplot, thick=5
+    im_plothist, sdsskcorr.k_ubvrijhk_absmag_00[1], weight=sdsskcorr.final_weight, bin=absmagbinsize, $
+      /overplot, thick=histthick1, line=sline, color=im_color(scolor,101), norm=snorm
     djs_plot, [0], [0], /nodata, /noerase, xtitle=xtitle, ytitle='', xsty=1, $
       ysty=1, xrange=xrange, yrange=yrange, position=pos[*,1], $
       ytickname=replicate(' ',10)
@@ -181,7 +126,7 @@ stop
 ;   im_legend, '(b)', /left, /top, box=0, margin=0
 
 ; ####################
-; ^{0.1} (g-r) color
+; (U-B) color
 ; ####################
 
     ub_parent = agesparent.k_ubvrijhk_absmag_00[0]-agesparent.k_ubvrijhk_absmag_00[1]
@@ -197,16 +142,18 @@ stop
     yrange = [0,max(ybin)*yfactor]
     
     djs_plot, [0], [0], /nodata, /noerase, xsty=5, ysty=5, xrange=xrange, yrange=yrange, $
-      position=pos[*,2], xtickname=replicate(' ',10), ytickname=replicate(' ',10)
+      position=pos[*,2], xtickname=replicate(' ',10), ytickname=replicate(' ',10), $
+      xtickinterval=0.5
     im_plothist, ub_parent, bin=colorbinsize, weight=agesparent.final_weight, $
-      /overplot, /fill, fcolor=djs_icolor('grey'), /fline, forientation=45, $
-      fspacing=fspacing, color=djs_icolor('grey')
+      /overplot, fcolor=im_color(fullcolor), color=im_color(fullcolor), thick=histthick1;, /fill, $
+;     /fline, forientation=45, fspacing=fspacing
     im_plothist, ub, bin=colorbinsize, weight=ageskcorr.final_weight, /overplot, $
-      thick=histthick1
-    im_plothist, sdss_ub, bin=colorbinsize, /overplot, thick=histthick1, $
-      line=sline, color=fsc_color(scolor,101), norm=snorm
+      thick=histthick1, /fill, color=im_color(agescolor), fcolor=im_color(agescolor)
+    im_plothist, ub, bin=colorbinsize, weight=ageskcorr.final_weight, /overplot, thick=5
+    im_plothist, sdss_ub, weight=sdsskcorr.final_weight, bin=colorbinsize, /overplot, thick=histthick1, $
+      line=sline, color=im_color(scolor,101), norm=snorm
     djs_plot, [0], [0], /nodata, /noerase, xtitle=xtitle, xrange=xrange, ytitle=ytitle, $
-      xsty=1, ysty=1, yrange=yrange, position=pos[*,2], ytickinterval=500
+      xsty=1, ysty=1, yrange=yrange, position=pos[*,2], ytickinterval=500, xtickinterval=0.2
 ;   im_legend, '(c)', /left, /top, box=0, margin=0
 
 ; ####################
@@ -224,12 +171,15 @@ stop
     djs_plot, [0], [0], /nodata, /noerase, xsty=5, ysty=5, xrange=xrange, yrange=yrange, $
       position=pos[*,3], xtickname=replicate(' ',10), ytickname=replicate(' ',10)
     im_plothist, agesparentmass.mass_50, bin=massbinsize, weight=agesparent.final_weight, $
-      /overplot, /fill, fcolor=djs_icolor('grey'), /fline, forientation=45, $
-      fspacing=fspacing, color=djs_icolor('grey')
+      /overplot, fcolor=im_color(fullcolor), color=im_color(fullcolor), thick=histthick1;, /fill, $
+;     /fline, forientation=45, fspacing=fspacing
+;     /overplot, /fill, fcolor=im_color(fullcolor), /fline, $
+;     forientation=45, fspacing=fspacing, color=im_color(fullcolor)
     im_plothist, agesmass.mass_50, bin=massbinsize, /overplot, $
-      weight=ageskcorr.final_weight, thick=histthick1
-    im_plothist, sdssmass.mass_50, bin=massbinsize, /overplot, $
-      thick=histthick1, line=sline, color=fsc_color(scolor,101), norm=snorm
+      weight=ageskcorr.final_weight, thick=histthick1, /fill, color=im_color(agescolor), fcolor=im_color(agescolor)
+    im_plothist, agesmass.mass_50, bin=massbinsize, weight=ageskcorr.final_weight, /overplot, thick=5
+    im_plothist, sdssmass.mass_50, weight=sdsskcorr.final_weight, bin=massbinsize, /overplot, $
+      thick=histthick1, line=sline, color=im_color(scolor,101), norm=snorm
     djs_plot, [0], [0], /nodata, /noerase, xtitle=xtitle, ytitle='', $
       xsty=1, ysty=1, xrange=xrange, yrange=yrange, $
       position=pos[*,3], yminor=3, ytickname=replicate(' ',10)
@@ -237,278 +187,101 @@ stop
       ytickinterval=500
 ;   im_legend, '(d)', /left, /top, box=0, margin=0
 
-    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
+    im_plotconfig, /psclose, psfile=psfile
 
 stop    
     
 ; ------------------------------------------------------------
-; H-beta selection - AGES & SDSS
+; Figure 7 - redshift vs absolute magnitude and stellar mass
+    ageskcorr = read_mz_sample(/mzhii_ancillary)
+    agesmass = read_mz_sample(/mzhii_mass)
 
-; ##### SDSS #####
-    vagc = mz_get_vagc(sample=sample,letter=letter,poststr=poststr)
-    sdssispec = read_vagc_garching(sample=sample,$
-      letter=letter,poststr=poststr,/ispec)
-    sdssparent = read_mz_sample(/parent,/sdss)
-    keep = where(sdssispec.z gt 0.0)
-    sdssispec = sdssispec[keep]
-    sdssparent = sdssparent[keep]
+;; compute the tau model
+;    if (n_elements(taumodel) eq 0) then begin
+;       tau = 3.0
+;       ssp = im_read_bc03(bc03_extras=ext,/silent)
+;       tauflux = im_convolve_sfh(ssp,tau=tau,mstar=ext.m_,cspmstar=taumstar)
+;       tauflux = lsun*tauflux/(4.0*!dpi*dist^2.0)/rebin(reform(taumstar,1,220),6900,220) ; [erg/s/cm2/A/Msun]
+;       taumodel = {tau: tau, age: ssp.age, wave: ssp.wave, flux: tauflux, mstar: taumstar}
+;    endif
+;
+;; interpolate    
+;    nz = 100 
+;    zz = range(0.02,1.0,nz)
+;    tauzform = 2.0
+;
+;    tauindx = findex(taumodel.age/1D9,getage(zz)-getage(tauzform))
+;    tauflux = interpolate(taumodel.flux,tauindx)
+;    taumstar = interpolate(taumodel.mstar,tauindx)
+;  
+;    mbfilter = 'bessell_B.par'
+;    ifaint = mz_ifaint(select_filter=ifilter)
+;    maggies = rebin(reform(10^(-0.4*ifaint),1,1),1,nz)
+;
+;    model = replicate({z: 0.0, tau_MB: 0.0, tau_mstar: 0.0},nz)
+;    model.z = zz
+;    
+;    kk = im_simple_kcorrect(zz,maggies,maggies*0.0+1.0,$
+;      ifilter,mbfilter,taumodel.wave,tauflux,absmag=abs,$
+;      scale=tauscale)
+;    model.tau_mstar = alog10(taumstar*(dluminosity(zz,/cm)/3.085678D19)^2*tauscale)
+;    model.tau_MB = reform(abs)
 
-; to figure out the limiting EW coefficients do:
-    sdss_hbcut = mz_hbcut(/sdss)
-    sdss_snrcut = 1.0
-    sdss_oiihbcut = -0.3
-;   sdss_ewcut = 0.0
-;   sdss_sigmacut = 400.0
-
-    zaxis = range(0.01,0.3,50)
-    scale = 1D-40
-    zrange = [0.0,0.25]
-    if (n_elements(sdss_dfactor) eq 0L) then sdss_dfactor = 4.0*!dpi*dluminosity(sdssispec.z,/cm)^2
-
-    sel1 = where($
-      (sdssispec.h_beta[0] gt sdss_hbcut) and $
-      (sdssispec.h_beta[0]/sdssispec.h_beta[1] gt sdss_snrcut) and $ ; nominal cut
-;     (sdssispec.h_beta_ew[0] gt sdss_ewcut) and $
-;     (sdssispec.h_beta_sigma[0] lt sdss_sigmacut) and $ ; nominal cut
-      (sdssispec.oii_3727[1] ne -2.0) and $
-      (sdssispec.oiii_5007[1] ne -2.0) and $ ; nominal
-      (sdssispec.nii_6584[1] ne -2.0) and $ ; nominal
-      (sdssispec.h_alpha[1] ne -2.0)) ; nominal
-    rej1 = where($
-      (sdssispec.h_beta[0] le sdss_hbcut) and $
-      (sdssispec.h_beta[0]/sdssispec.h_beta[1] gt sdss_snrcut) and $ ; nominal cut
-;     (sdssispec.h_beta_ew[0] gt sdss_ewcut) and $
-;     (sdssispec.h_beta_sigma[0] lt sdss_sigmacut) and $
-      (sdssispec.oii_3727[1] ne -2.0) and $
-      (sdssispec.oiii_5007[1] ne -2.0) and $ ; nominal
-      (sdssispec.nii_6584[1] ne -2.0) and $ ; nominal
-      (sdssispec.h_alpha[1] ne -2.0)) ; nominal
-
-    sel2 = where($
-      (sdssispec.h_beta[0] gt sdss_hbcut) and $
-      (sdssispec.h_beta[0]/sdssispec.h_beta[1] gt sdss_snrcut) and $ ; nominal cut
-;     (sdssispec.h_beta_ew[0] gt sdss_ewcut) and $
-;     (sdssispec.h_beta_sigma[0] lt sdss_sigmacut) and $
-      (sdssispec.oii_3727[1] ne -2.0) and $
-      (sdssispec.oiii_5007[1] ne -2.0) and $ ; nominal
-      (sdssispec.nii_6584[1] ne -2.0) and $ ; nominal
-      (sdssispec.h_alpha[1] ne -2.0) and $ ; nominal
-      (sdssispec.oii_3727[0] gt 10^sdss_oiihbcut*sdssispec.h_beta[0]))
-    rej2 = where($
-      (sdssispec.h_beta[0] gt sdss_hbcut) and $
-      (sdssispec.h_beta[0]/sdssispec.h_beta[1] gt sdss_snrcut) and $ ; nominal cut
-;     (sdssispec.h_beta_ew[0] gt sdss_ewcut) and $
-;     (sdssispec.h_beta_sigma[0] lt sdss_sigmacut) and $
-      (sdssispec.oii_3727[1] ne -2.0) and $
-      (sdssispec.oiii_5007[1] ne -2.0) and $ ; nominal
-      (sdssispec.nii_6584[1] ne -2.0) and $ ; nominal
-      (sdssispec.h_alpha[1] ne -2.0) and $ ; nominal
-      (sdssispec.oii_3727[0] le 10^sdss_oiihbcut*sdssispec.h_beta[0]) and $
-      (sdssispec.oii_3727[1] gt 0.0))
-    help, sel1, sel2
+    zaxis = range(0.03,0.75,50)
+    zbins = mz_zbins(nzbins)
+    limits = mrdfits(mzpath+'mz_limits.fits.gz',1)
     
-; ##### plot 1 - flux and EW vs redshift    
-    psfile = qapath+'sdss_z_vs_hb.ps'
-    im_plotconfig, 6, pos, psfile=psfile, xmargin=[1.7,0.4], $
-      width=6.0, height=[3.0,3.0]
+; now make the plot    
+    psfile = pspath+'z_vs_mb_mass'+suffix
+    im_plotconfig, 6, pos, psfile=psfile, height=3.0*[1,1], xmargin=[1.3,0.2], $
+      ymargin=[0.8,1.0], charsize=1.9, width=5.5
 
-; luminosity    
-    djs_plot, [0], [0], /nodata, position=pos[*,0], xsty=1, ysty=1, $
-      xrange=zrange, yrange=scale*[1.05D38,9D41], xtitle='', xtickname=replicate(' ',10), $
-      ytitle='L(H\beta) (10^{40} erg s^{-1})', /ylog
-    djs_oplot, sdssispec[sel1].z, scale*sdss_dfactor[sel1]*sdssispec[sel1].h_beta[0], $
-      psym=symcat(16), symsize=0.1, bin=20000L
-    djs_oplot, sdssispec[rej1].z, scale*sdss_dfactor[rej1]*sdssispec[rej1].h_beta[0], $
-      psym=symcat(9,thick=2), symsize=0.1, bin=5000L, color=fsc_color('dodger blue',101)
-    djs_oplot, zaxis, scale*sdss_hbcut*4.0*!dpi*dluminosity(zaxis,/cm)^2, line=0, thick=6, color='red'
-    im_legend, 'F(H\beta)>1\times10^{-16} erg s^{-1} cm^{-2}', $
-      /right, /bottom, box=0, charsize=1.4, margin=0, line=0, thick=6
+    xrange = [0.04,0.76]
+    yrange1 = [-15.3,-23.4]
+    yrange2 = [7.7,11.9]
 
-; EW
-    djs_plot, [0], [0], /nodata, /noerase, position=pos[*,1], xsty=1, ysty=1, $
-      xrange=zrange, yrange=[0.01,150], xtitle='Redshift', $
-      ytitle='EW(H\beta) (\AA)', /ylog
-    djs_oplot, sdssispec[sel1].z, sdssispec[sel1].h_beta_ew[0], $
-      psym=symcat(16), symsize=0.1, bin=20000
-    djs_oplot, sdssispec[rej1].z, sdssispec[rej1].h_beta_ew[0], $
-      psym=symcat(9,thick=2), symsize=0.1, bin=5000L, color=fsc_color('dodger blue',101)
-    im_plotconfig, /psclose, /gzip, psfile=psfile
-
-; ##### plot 2 - [OII]/Hb and [OIII]/Hb vs redshift
-    psfile = qapath+'sdss_z_vs_oiihb_oiiihb.ps'
-    im_plotconfig, 6, pos, psfile=psfile, xmargin=[1.7,0.4], $
-      width=6.0, height=[3.0,3.0], charsize=1.6
-
-; [OII]/Hb    
-    djs_plot, [0], [0], /nodata, position=pos[*,0], xsty=1, ysty=1, $
-      xrange=zrange, yrange=[-1.5,1.0], xtitle='', xtickname=replicate(' ',10), $
-      ytitle='log ([O II]/H\beta)'
-
-    lim = where(sdssispec[sel1].oii_3727[1] eq -1.0,comp=det)
-    djs_oplot, sdssispec[sel1[det]].z, alog10(sdssispec[sel1[det]].oii_3727[0]/sdssispec[sel1[det]].h_beta[0]), $
-      psym=symcat(16), symsize=0.1, bin=20000L
-
-    plotsym, 1.0, 0.1, thick=4
-    djs_oplot, sdssispec[sel1[lim]].z, alog10(sdssispec[sel1[lim]].oii_3727_limit/sdssispec[sel1[lim]].h_beta[0]), $
-      psym=8, color=fsc_color('orange red',101)
-    djs_oplot, !x.crange, sdss_oiihbcut*[1,1], line=5, thick=6
+; redshift vs absolute magnitude
+    plot, [0], [0], /nodata, ysty=1, xsty=1, xrange=xrange, yrange=yrange1, $
+      xtitle='', ytitle=mzplot_mbtitle(), xtickname=replicate(' ',10), $
+      position=pos[*,0], yminor=4, xtickinterval=0.1
+    ages_oplot, ageskcorr.z, ageskcorr.k_ubvrijhk_absmag_00[1], color='dodger blue'
+;   djs_oplot, model.z, model.tau_MB, line=0, $
+;     color=im_color('firebrick',101), thick=8
+;   djs_oplot, zaxis, poly(zaxis,limits.mblimit_50_coeff), line=0, thick=8
+    for iz = 0, nzbins-1 do begin
+       djs_oplot, [zbins[iz].zlo,zbins[iz].zup], limits.mblimit_50[iz]*[1,1], $
+         line=0, thick=6
+       djs_oplot, zbins[iz].zlo*[1,1], [limits.mblimit_50[iz],!y.crange[1]], $
+         line=0, thick=6
+       djs_oplot, zbins[iz].zup*[1,1], [limits.mblimit_50[iz],!y.crange[1]], $
+         line=0, thick=6
+    endfor
     
-; [OIII]/Hb
-    djs_plot, [0], [0], /nodata, /noerase, position=pos[*,1], xsty=1, ysty=1, $
-      xrange=zrange, yrange=[-1.8,1.5], xtitle='Redshift', $
-      ytitle='log ([O III] \lambda5007/H\beta)'
+; redshift vs stellar mass
+    plot, [0], [0], /nodata, /noerase, ysty=1, xsty=9, $
+      xrange=xrange, yrange=yrange2, xtitle='Redshift', $
+      ytitle=mzplot_masstitle(), position=pos[*,1], yminor=4, xtickinterval=0.1
+    ages_oplot, ageskcorr.z, agesmass.mass_50, color='dodger blue'
+    for iz = 0, nzbins-1 do begin
+       djs_oplot, [zbins[iz].zlo,zbins[iz].zup], limits.masslimit_50[iz]*[1,1], $
+         line=0, thick=6
+       djs_oplot, zbins[iz].zlo*[1,1], [limits.masslimit_50[iz],!y.crange[1]], $
+         line=0, thick=6
+       djs_oplot, zbins[iz].zup*[1,1], [limits.masslimit_50[iz],!y.crange[1]], $
+         line=0, thick=6
+    endfor
 
-    lim = where(sdssispec[sel2].oiii_5007[1] eq -1.0,comp=det)
-    djs_oplot, sdssispec[sel2[det]].z, alog10(sdssispec[sel2[det]].oiii_5007[0]/$
-      sdssispec[sel2[det]].h_beta[0]), psym=symcat(16), symsize=0.1, bin=20000L
+;   djs_oplot, zaxis, poly(zaxis,limits.masslimit_50_coeff), line=0, thick=8
+;   djs_oplot, model.z, model.tau_mstar, line=0, $
+;     color=im_color('firebrick',101), thick=8
+;   im_legend, ['\tau = 3 Gyr'], /right, /bottom, box=0, $
+;     pspacing=1.4, color='firebrick', line=0, charsize=1.5, thick=8
 
-    plotsym, 1.0, 0.1, thick=4
-    djs_oplot, sdssispec[sel2[lim]].z, alog10(sdssispec[sel2[lim]].oiii_5007_limit/$
-      sdssispec[sel2[lim]].h_beta[0]), psym=8, color=fsc_color('orange red',101), bin=5000L
-    
-    im_plotconfig, /psclose, /gzip, psfile=psfile
-
-stop    
-    
-; ##### AGES #####
-    agesparent = read_mz_sample(/parent)
-    agesmass = read_mz_sample(/mass)
-    agesispec = read_ages(/ppxf)
-
-    match, agesparent.ages_id, agesispec.ages_id, m1, m2
-    srt = sort(m1) & m1 = m1[srt] & m2 = m2[srt]
-    agesispec = agesispec[m2]
-
-    ages_hbcut = mz_hbcut()
-    ages_snrcut = 1.0
-    ages_oiihbcut = -0.3
-;   ages_ewcut = 0.0
-;   ages_sigmacut = 400.0 
-
-    zaxis = range(0.01,1.0,100)
-    scale = 1D-40
-    zrange = [0.0,0.8]
-    ages_dfactor = 4.0*!dpi*dluminosity(agesispec.z,/cm)^2
-    
-    sel1 = where($
-      (agesispec.h_beta[0] gt ages_hbcut) and $
-      (agesispec.h_beta[0]/agesispec.h_beta[1] gt ages_snrcut) and $ ; nominal cut
-;     (agesispec.h_beta_ew[0] gt ages_ewcut) and $
-;     (agesispec.h_beta_sigma[0] lt ages_sigmacut) and $ ; nominal cut
-      (agesispec.oii_3727[1] ne -2.0))
-    rej1 = where($
-      (agesispec.h_beta[0] le ages_hbcut) and $
-      (agesispec.h_beta[0]/agesispec.h_beta[1] gt ages_snrcut) and $ ; nominal cut
-;     (agesispec.h_beta_ew[0] gt ages_ewcut) and $
-;     (agesispec.h_beta_sigma[0] lt ages_sigmacut) and $
-      (agesispec.oii_3727[1] ne -2.0))
-
-    sel2 = where($
-      (agesispec.h_beta[0] gt ages_hbcut) and $
-;     (agesispec.h_beta_ew[0] gt ages_ewcut) and $
-;     (agesispec.h_beta_sigma[0] lt ages_sigmacut) and $
-      (agesispec.oii_3727[1] ne -2.0) and $
-      (agesispec.oii_3727[0] gt 10^ages_oiihbcut*agesispec.h_beta[0]))
-    rej2 = where($
-      (agesispec.h_beta[0] gt ages_hbcut) and $
-;     (agesispec.h_beta_ew[0] gt ages_ewcut) and $
-;     (agesispec.h_beta_sigma[0] lt ages_sigmacut) and $
-      (agesispec.oii_3727[1] ne -2.0) and $
-      (agesispec.oii_3727[0] le 10^ages_oiihbcut*agesispec.h_beta[0]) and $
-      (agesispec.oii_3727[1] gt 0.0))
-    help, sel1, sel2
-    
-; ##### plot 1 - flux and EW vs redshift    
-    psfile = pspath+'z_vs_hb'+suffix
-    im_plotconfig, 6, pos, psfile=psfile, xmargin=[1.7,0.4], $
-      width=6.0, height=[3.0,3.0]
-
-; luminosity    
-    djs_plot, [0], [0], /nodata, position=pos[*,0], xsty=1, ysty=1, $
-      xrange=zrange, yrange=scale*[1.05D38,1.5D42], xtitle='', xtickname=replicate(' ',10), $
-      ytitle='L(H\beta) (10^{40} erg s^{-1})', /ylog
-    djs_oplot, agesispec[sel1].z, scale*ages_dfactor[sel1]*agesispec[sel1].h_beta[0], $
-      psym=symcat(16), symsize=0.4;, color='grey'
-    djs_oplot, agesispec[rej1].z, scale*ages_dfactor[rej1]*agesispec[rej1].h_beta[0], $
-      psym=symcat(9,thick=6), symsize=0.5, color=fsc_color('dodger blue',101)
-    djs_oplot, zaxis, scale*ages_hbcut*4.0*!dpi*dluminosity(zaxis,/cm)^2, line=0, thick=6
-    im_legend, 'F(H\beta)>3\times10^{-17} erg s^{-1} cm^{-2}', $
-      /right, /bottom, box=0, charsize=1.4, margin=0, line=0, thick=6
-
-; EW
-    djs_plot, [0], [0], /nodata, /noerase, position=pos[*,1], xsty=1, ysty=1, $
-      xrange=zrange, yrange=[0.1,150], xtitle='Redshift', $
-      ytitle='EW(H\beta) (\AA)', /ylog
-    djs_oplot, agesispec[sel1].z, agesispec[sel1].h_beta_ew[0], $
-      psym=symcat(16), symsize=0.4;, color='grey'
-    djs_oplot, agesispec[rej1].z, agesispec[rej1].h_beta_ew[0], $
-      psym=symcat(9,thick=6), symsize=0.5, color=fsc_color('dodger blue',101)
-;   djs_oplot, zaxis, ages_hbcut*4.0*!dpi*dluminosity(zaxis,/cm)^2/ages_l4861_limit, line=0, thick=6
-    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
-
-; ##### plot 2 - [OII]/Hb and [OIII]/Hb vs redshift
-    psfile = pspath+'z_vs_oiihb_oiiihb'+suffix
-    im_plotconfig, 6, pos, psfile=psfile, xmargin=[1.7,0.4], $
-      width=6.0, height=[3.0,3.0], charsize=1.6
-
-; [OII]/Hb    
-    djs_plot, [0], [0], /nodata, position=pos[*,0], xsty=1, ysty=1, $
-      xrange=zrange, yrange=[-1.5,1.0], xtitle='', xtickname=replicate(' ',10), $
-      ytitle='log ([O II]/H\beta)'
-
-    lim = where(agesispec[sel1].oii_3727[1] eq -1.0,comp=det)
-    djs_oplot, agesispec[sel1[det]].z, alog10(agesispec[sel1[det]].oii_3727[0]/agesispec[sel1[det]].h_beta[0]), $
-      psym=symcat(16), symsize=0.4;, color='grey'
-
-    plotsym, 1.0, 1.5, thick=4
-    djs_oplot, agesispec[sel1[lim]].z, alog10(agesispec[sel1[lim]].oii_3727_limit/agesispec[sel1[lim]].h_beta[0]), $
-      psym=8, color=fsc_color('orange red',101)
-    djs_oplot, !x.crange, ages_oiihbcut*[1,1], line=5, thick=6
-    
-; [OIII]/Hb
-    djs_plot, [0], [0], /nodata, /noerase, position=pos[*,1], xsty=1, ysty=1, $
-      xrange=zrange, yrange=[-1.8,1.5], xtitle='Redshift', $
-      ytitle='log ([O III] \lambda5007/H\beta)'
-
-    lim = where(agesispec[sel2].oiii_5007[1] eq -1.0,comp=det)
-    djs_oplot, agesispec[sel2[det]].z, alog10(agesispec[sel2[det]].oiii_5007[0]/$
-      agesispec[sel2[det]].h_beta[0]), psym=symcat(16), symsize=0.4;, color='grey'
-
-    plotsym, 1.0, 0.8, thick=4
-    djs_oplot, agesispec[sel2[lim]].z, alog10(agesispec[sel2[lim]].oiii_5007_limit/$
-      agesispec[sel2[lim]].h_beta[0]), psym=8, color=fsc_color('orange red',101)
-    
-    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
-
-stop    
-    
-; ------------------------------------------------------------
-; U-V vs stellar mass for galaxies with and without upper limits
-    agesispec = read_mz_sample(/mz_ispec)
-    agesmass = read_mz_sample(/mz_mass)
-    agesparent = read_mz_sample(/mz_ancillary)
-    lim = where(agesispec.oiii_5007[1] eq -1.0,comp=det)
-
-    mass = agesmass.mass_avg
-    uv = agesparent.k_ubvrijhk_absmag_00[0]-agesparent.k_ubvrijhk_absmag_00[2]
-
-    massrange = [8.0,12.0]
-    uvrange = [0.4,2.3]
-    
-    psfile = qapath+'uv_vs_mass.ps'
-    im_plotconfig, 0, pos, psfile=psfile, charsize=2.0, xmargin=[1.6,0.4], $
-      height=6
-
-    mzplot_scatterplot, mass[det], uv[det], position=pos, xsty=1, ysty=1, $
-      xtitle=mzplot_masstitle(), ytitle='U - V', xrange=massrange, $
-      yrange=uvrange;, npix=24
-    djs_oplot, mass[lim], uv[lim], psym=6, sym=0.2, color=fsc_color('dodger blue',101)
-    
-    im_plotconfig, /psclose, /gzip, psfile=psfile
+    im_plotconfig, /psclose, psfile=psfile
 
 ; ------------------------------------------------------------
-; EW(Hb), EW([OII]), EW([O III]) and EW(R23) measured from our fluxed
-; and unfluxed spectra
+; Figure 1 - EW(Hb), EW([OII]), EW([O III]) and EW(R23) measured from
+; our fluxed and unfluxed spectra
     agesparent = read_mz_sample(/parent)
     allispec = read_ages(/ppxf)
     unfluxed = read_ages(/ppxf,/unfluxed)
@@ -601,11 +374,11 @@ stop
     djs_oplot, logewaxis, alog10(ewaxis+ewhbcor-dewhbcor), line=5, color='dark red', thick=5
 ;   im_legend, '(a)', /left, /top, box=0, charsize=1.4, margin=0
     legend, textoidl('2.8\pm1.5 \AA'), /right, /bottom, box=0, charsize=1.4, $
-      margin=0, line=0, thick=8.0, color=djs_icolor('dark red'), pspacing=1.5
+      margin=0, line=0, thick=8.0, color=im_color('dark red'), pspacing=1.5
 ;   im_legend, '(a) H\beta', /left, /top, box=0, charsize=1.4, margin=0
 
 ;   mzages_hogg_scatterplot, z, uewhb-ewhb, outpsym=symcat(agessym2), $
-;     outsymsize=agespsize2, outcolor=fsc_color(agescolor2,1E8), $
+;     outsymsize=agespsize2, outcolor=im_color(agescolor2,1E8), $
 ;     xtitle='Redshift', ytitle=textoidl('\Delta'+'EW (\AA)'), $
 ;     charsize=charsize_1, xsty=1, ysty=1, xrange=xlogrange, yrange=ylogrange, $
 ;     /internal, ynpix=30, xnpix=30, /outliers, /noerase, $
@@ -624,7 +397,7 @@ stop
 ;   djs_oplot, logewaxis, alog10(ewaxis+ewoiiicor), line=5, color='dark red', thick=8.0
 ;   im_legend, '(b)', /left, /top, box=0, charsize=1.4, margin=0
 ;   legend, textoidl('0.3 \AA'), /right, /bottom, box=0, charsize=1.4, $
-;     margin=0, line=5, thick=8.0, color=djs_icolor('dark red'), pspacing=1.5
+;     margin=0, line=5, thick=8.0, color=im_color('dark red'), pspacing=1.5
 ;   im_legend, '(b) [O III] \lambda5007', /left, /top, box=0, charsize=1.4, margin=0
 
 ; EW([OII])    
@@ -655,8 +428,271 @@ stop
 ;   im_legend, '(d)', /left, /top, box=0, charsize=1.4, margin=0
 ;   im_legend, '(d) R_{23}', /left, /top, box=0, charsize=1.4, margin=0
     
-    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
-;;
+    im_plotconfig, /psclose, psfile=psfile
+
+; ------------------------------------------------------------
+; Figures 2 & 3 - AGES - H-beta, [OII], and [OIII] selection
+    agesparent = read_mz_sample(/parent)
+    agesmass = read_mz_sample(/mass)
+    agesispec = read_ages(/ppxf)
+
+    match, agesparent.ages_id, agesispec.ages_id, m1, m2
+    srt = sort(m1) & m1 = m1[srt] & m2 = m2[srt]
+    agesispec = agesispec[m2]
+
+    ages_hbcut = mz_hbcut()
+    ages_snrcut = 1.0
+    ages_oiihbcut = -0.3
+;   ages_ewcut = 0.0
+;   ages_sigmacut = 400.0 
+
+    zaxis = range(0.01,1.0,100)
+    scale = 1D-40
+    zrange = [0.0,0.8]
+    ages_dfactor = 4.0*!dpi*dluminosity(agesispec.z,/cm)^2
+    
+    sel1 = where($
+      (agesispec.h_beta[0] gt ages_hbcut) and $
+      (agesispec.h_beta[0]/agesispec.h_beta[1] gt ages_snrcut) and $ ; nominal cut
+;     (agesispec.h_beta_ew[0] gt ages_ewcut) and $
+;     (agesispec.h_beta_sigma[0] lt ages_sigmacut) and $ ; nominal cut
+      (agesispec.oii_3727[1] ne -2.0))
+    rej1 = where($
+      (agesispec.h_beta[0] le ages_hbcut) and $
+      (agesispec.h_beta[0]/agesispec.h_beta[1] gt ages_snrcut) and $ ; nominal cut
+;     (agesispec.h_beta_ew[0] gt ages_ewcut) and $
+;     (agesispec.h_beta_sigma[0] lt ages_sigmacut) and $
+      (agesispec.oii_3727[1] ne -2.0))
+
+    sel2 = where($
+      (agesispec.h_beta[0] gt ages_hbcut) and $
+;     (agesispec.h_beta_ew[0] gt ages_ewcut) and $
+;     (agesispec.h_beta_sigma[0] lt ages_sigmacut) and $
+      (agesispec.oii_3727[1] ne -2.0) and $
+      (agesispec.oii_3727[0] gt 10^ages_oiihbcut*agesispec.h_beta[0]))
+    rej2 = where($
+      (agesispec.h_beta[0] gt ages_hbcut) and $
+;     (agesispec.h_beta_ew[0] gt ages_ewcut) and $
+;     (agesispec.h_beta_sigma[0] lt ages_sigmacut) and $
+      (agesispec.oii_3727[1] ne -2.0) and $
+      (agesispec.oii_3727[0] le 10^ages_oiihbcut*agesispec.h_beta[0]) and $
+      (agesispec.oii_3727[1] gt 0.0))
+    help, sel1, sel2
+    
+; Figure 2 - redshift vs H-beta
+    psfile = pspath+'z_vs_hb'+suffix
+    im_plotconfig, 6, pos, psfile=psfile, xmargin=[1.7,0.4], $
+      width=6.0, height=[3.0,3.0]
+
+; luminosity    
+    djs_plot, [0], [0], /nodata, position=pos[*,0], xsty=1, ysty=1, $
+      xrange=zrange, yrange=scale*[1.05D38,1.5D42], xtitle='', xtickname=replicate(' ',10), $
+      ytitle='L(H\beta) (10^{40} erg s^{-1})', /ylog
+    djs_oplot, agesispec[sel1].z, scale*ages_dfactor[sel1]*agesispec[sel1].h_beta[0], $
+      psym=symcat(16), symsize=0.4;, color='grey'
+    djs_oplot, agesispec[rej1].z, scale*ages_dfactor[rej1]*agesispec[rej1].h_beta[0], $
+      psym=symcat(9,thick=6), symsize=0.5, color=im_color('dodger blue',101)
+    djs_oplot, zaxis, scale*ages_hbcut*4.0*!dpi*dluminosity(zaxis,/cm)^2, line=0, thick=6
+    im_legend, 'F(H\beta)>3\times10^{-17} erg s^{-1} cm^{-2}', $
+      /right, /bottom, box=0, charsize=1.4, margin=0, line=0, thick=6
+
+; EW
+    djs_plot, [0], [0], /nodata, /noerase, position=pos[*,1], xsty=1, ysty=1, $
+      xrange=zrange, yrange=[0.1,150], xtitle='Redshift', $
+      ytitle='EW(H\beta) (\AA)', /ylog
+    djs_oplot, agesispec[sel1].z, agesispec[sel1].h_beta_ew[0], $
+      psym=symcat(16), symsize=0.4;, color='grey'
+    djs_oplot, agesispec[rej1].z, agesispec[rej1].h_beta_ew[0], $
+      psym=symcat(9,thick=6), symsize=0.5, color=im_color('dodger blue',101)
+;   djs_oplot, zaxis, ages_hbcut*4.0*!dpi*dluminosity(zaxis,/cm)^2/ages_l4861_limit, line=0, thick=6
+    im_plotconfig, /psclose, psfile=psfile
+
+; Figure 3 - [OII]/Hb and [OIII]/Hb vs redshift
+    psfile = pspath+'z_vs_oiihb_oiiihb'+suffix
+    im_plotconfig, 6, pos, psfile=psfile, xmargin=[1.7,0.4], $
+      width=6.0, height=[3.0,3.0], charsize=1.6
+
+; [OII]/Hb    
+    djs_plot, [0], [0], /nodata, position=pos[*,0], xsty=1, ysty=1, $
+      xrange=zrange, yrange=[-1.5,1.0], xtitle='', xtickname=replicate(' ',10), $
+      ytitle='log ([O II]/H\beta)'
+
+    lim = where(agesispec[sel1].oii_3727[1] eq -1.0,comp=det)
+    djs_oplot, agesispec[sel1[det]].z, alog10(agesispec[sel1[det]].oii_3727[0]/agesispec[sel1[det]].h_beta[0]), $
+      psym=symcat(16), symsize=0.4;, color='grey'
+
+    plotsym, 1.0, 1.5, thick=4
+    djs_oplot, agesispec[sel1[lim]].z, alog10(agesispec[sel1[lim]].oii_3727_limit/agesispec[sel1[lim]].h_beta[0]), $
+      psym=8, color=im_color('orange red',101)
+    djs_oplot, !x.crange, ages_oiihbcut*[1,1], line=5, thick=6
+    
+; [OIII]/Hb
+    djs_plot, [0], [0], /nodata, /noerase, position=pos[*,1], xsty=1, ysty=1, $
+      xrange=zrange, yrange=[-1.8,1.5], xtitle='Redshift', $
+      ytitle='log ([O III] \lambda5007/H\beta)'
+
+    lim = where(agesispec[sel2].oiii_5007[1] eq -1.0,comp=det)
+    djs_oplot, agesispec[sel2[det]].z, alog10(agesispec[sel2[det]].oiii_5007[0]/$
+      agesispec[sel2[det]].h_beta[0]), psym=symcat(16), symsize=0.4;, color='grey'
+
+    plotsym, 1.0, 0.8, thick=4
+    djs_oplot, agesispec[sel2[lim]].z, alog10(agesispec[sel2[lim]].oiii_5007_limit/$
+      agesispec[sel2[lim]].h_beta[0]), psym=8, color=im_color('orange red',101)
+    
+    im_plotconfig, /psclose, psfile=psfile
+        
+; ###########################################################################
+; additional figures and QAplots
+
+; ------------------------------------------------------------
+; SDSS - H-beta, [OII], and [OIII] selection
+
+    vagc = mz_get_vagc(sample=sample,letter=letter,poststr=poststr)
+    sdssispec = read_vagc_garching(sample=sample,$
+      letter=letter,poststr=poststr,/ispec)
+    sdssparent = read_mz_sample(/parent,/sdss)
+    keep = where(sdssispec.z gt 0.0)
+    sdssispec = sdssispec[keep]
+    sdssparent = sdssparent[keep]
+
+; to figure out the limiting EW coefficients do:
+    sdss_hbcut = mz_hbcut(/sdss)
+    sdss_snrcut = 1.0
+    sdss_oiihbcut = -0.3
+;   sdss_ewcut = 0.0
+;   sdss_sigmacut = 400.0
+
+    zaxis = range(0.01,0.3,50)
+    scale = 1D-40
+    zrange = [0.0,0.25]
+    if (n_elements(sdss_dfactor) eq 0L) then sdss_dfactor = 4.0*!dpi*dluminosity(sdssispec.z,/cm)^2
+
+    sel1 = where($
+      (sdssispec.h_beta[0] gt sdss_hbcut) and $
+      (sdssispec.h_beta[0]/sdssispec.h_beta[1] gt sdss_snrcut) and $ ; nominal cut
+;     (sdssispec.h_beta_ew[0] gt sdss_ewcut) and $
+;     (sdssispec.h_beta_sigma[0] lt sdss_sigmacut) and $ ; nominal cut
+      (sdssispec.oii_3727[1] ne -2.0) and $
+      (sdssispec.oiii_5007[1] ne -2.0) and $ ; nominal
+      (sdssispec.nii_6584[1] ne -2.0) and $ ; nominal
+      (sdssispec.h_alpha[1] ne -2.0)) ; nominal
+    rej1 = where($
+      (sdssispec.h_beta[0] le sdss_hbcut) and $
+      (sdssispec.h_beta[0]/sdssispec.h_beta[1] gt sdss_snrcut) and $ ; nominal cut
+;     (sdssispec.h_beta_ew[0] gt sdss_ewcut) and $
+;     (sdssispec.h_beta_sigma[0] lt sdss_sigmacut) and $
+      (sdssispec.oii_3727[1] ne -2.0) and $
+      (sdssispec.oiii_5007[1] ne -2.0) and $ ; nominal
+      (sdssispec.nii_6584[1] ne -2.0) and $ ; nominal
+      (sdssispec.h_alpha[1] ne -2.0)) ; nominal
+
+    sel2 = where($
+      (sdssispec.h_beta[0] gt sdss_hbcut) and $
+      (sdssispec.h_beta[0]/sdssispec.h_beta[1] gt sdss_snrcut) and $ ; nominal cut
+;     (sdssispec.h_beta_ew[0] gt sdss_ewcut) and $
+;     (sdssispec.h_beta_sigma[0] lt sdss_sigmacut) and $
+      (sdssispec.oii_3727[1] ne -2.0) and $
+      (sdssispec.oiii_5007[1] ne -2.0) and $ ; nominal
+      (sdssispec.nii_6584[1] ne -2.0) and $ ; nominal
+      (sdssispec.h_alpha[1] ne -2.0) and $ ; nominal
+      (sdssispec.oii_3727[0] gt 10^sdss_oiihbcut*sdssispec.h_beta[0]))
+    rej2 = where($
+      (sdssispec.h_beta[0] gt sdss_hbcut) and $
+      (sdssispec.h_beta[0]/sdssispec.h_beta[1] gt sdss_snrcut) and $ ; nominal cut
+;     (sdssispec.h_beta_ew[0] gt sdss_ewcut) and $
+;     (sdssispec.h_beta_sigma[0] lt sdss_sigmacut) and $
+      (sdssispec.oii_3727[1] ne -2.0) and $
+      (sdssispec.oiii_5007[1] ne -2.0) and $ ; nominal
+      (sdssispec.nii_6584[1] ne -2.0) and $ ; nominal
+      (sdssispec.h_alpha[1] ne -2.0) and $ ; nominal
+      (sdssispec.oii_3727[0] le 10^sdss_oiihbcut*sdssispec.h_beta[0]) and $
+      (sdssispec.oii_3727[1] gt 0.0))
+    help, sel1, sel2
+    
+; H-beta flux and EW vs redshift    
+    psfile = qapath+'sdss_z_vs_hb.ps'
+    im_plotconfig, 6, pos, psfile=psfile, xmargin=[1.7,0.4], $
+      width=6.0, height=[3.0,3.0]
+
+; luminosity    
+    djs_plot, [0], [0], /nodata, position=pos[*,0], xsty=1, ysty=1, $
+      xrange=zrange, yrange=scale*[1.05D38,9D41], xtitle='', xtickname=replicate(' ',10), $
+      ytitle='L(H\beta) (10^{40} erg s^{-1})', /ylog
+    djs_oplot, sdssispec[sel1].z, scale*sdss_dfactor[sel1]*sdssispec[sel1].h_beta[0], $
+      psym=symcat(16), symsize=0.1, bin=20000L
+    djs_oplot, sdssispec[rej1].z, scale*sdss_dfactor[rej1]*sdssispec[rej1].h_beta[0], $
+      psym=symcat(9,thick=2), symsize=0.1, bin=5000L, color=im_color('dodger blue',101)
+    djs_oplot, zaxis, scale*sdss_hbcut*4.0*!dpi*dluminosity(zaxis,/cm)^2, line=0, thick=6, color='red'
+    im_legend, 'F(H\beta)>1\times10^{-16} erg s^{-1} cm^{-2}', $
+      /right, /bottom, box=0, charsize=1.4, margin=0, line=0, thick=6
+
+; EW
+    djs_plot, [0], [0], /nodata, /noerase, position=pos[*,1], xsty=1, ysty=1, $
+      xrange=zrange, yrange=[0.01,150], xtitle='Redshift', $
+      ytitle='EW(H\beta) (\AA)', /ylog
+    djs_oplot, sdssispec[sel1].z, sdssispec[sel1].h_beta_ew[0], $
+      psym=symcat(16), symsize=0.1, bin=20000
+    djs_oplot, sdssispec[rej1].z, sdssispec[rej1].h_beta_ew[0], $
+      psym=symcat(9,thick=2), symsize=0.1, bin=5000L, color=im_color('dodger blue',101)
+    im_plotconfig, /psclose
+
+; [OII]/Hb and [OIII]/Hb vs redshift
+    psfile = qapath+'sdss_z_vs_oiihb_oiiihb.ps'
+    im_plotconfig, 6, pos, psfile=psfile, xmargin=[1.7,0.4], $
+      width=6.0, height=[3.0,3.0], charsize=1.6
+
+; [OII]/Hb    
+    djs_plot, [0], [0], /nodata, position=pos[*,0], xsty=1, ysty=1, $
+      xrange=zrange, yrange=[-1.5,1.0], xtitle='', xtickname=replicate(' ',10), $
+      ytitle='log ([O II]/H\beta)'
+
+    lim = where(sdssispec[sel1].oii_3727[1] eq -1.0,comp=det)
+    djs_oplot, sdssispec[sel1[det]].z, alog10(sdssispec[sel1[det]].oii_3727[0]/sdssispec[sel1[det]].h_beta[0]), $
+      psym=symcat(16), symsize=0.1, bin=20000L
+
+    plotsym, 1.0, 0.1, thick=4
+    djs_oplot, sdssispec[sel1[lim]].z, alog10(sdssispec[sel1[lim]].oii_3727_limit/sdssispec[sel1[lim]].h_beta[0]), $
+      psym=8, color=im_color('orange red',101)
+    djs_oplot, !x.crange, sdss_oiihbcut*[1,1], line=5, thick=6
+    
+; [OIII]/Hb
+    djs_plot, [0], [0], /nodata, /noerase, position=pos[*,1], xsty=1, ysty=1, $
+      xrange=zrange, yrange=[-1.8,1.5], xtitle='Redshift', $
+      ytitle='log ([O III] \lambda5007/H\beta)'
+
+    lim = where(sdssispec[sel2].oiii_5007[1] eq -1.0,comp=det)
+    djs_oplot, sdssispec[sel2[det]].z, alog10(sdssispec[sel2[det]].oiii_5007[0]/$
+      sdssispec[sel2[det]].h_beta[0]), psym=symcat(16), symsize=0.1, bin=20000L
+
+    plotsym, 1.0, 0.1, thick=4
+    djs_oplot, sdssispec[sel2[lim]].z, alog10(sdssispec[sel2[lim]].oiii_5007_limit/$
+      sdssispec[sel2[lim]].h_beta[0]), psym=8, color=im_color('orange red',101), bin=5000L
+    
+    im_plotconfig, /psclose, psfile=psfile
+
+; ------------------------------------------------------------
+; U-V vs stellar mass for galaxies with and without upper limits
+    agesispec = read_mz_sample(/mz_ispec)
+    agesmass = read_mz_sample(/mz_mass)
+    agesparent = read_mz_sample(/mz_ancillary)
+    lim = where(agesispec.oiii_5007[1] eq -1.0,comp=det)
+
+    mass = agesmass.mass_avg
+    uv = agesparent.k_ubvrijhk_absmag_00[0]-agesparent.k_ubvrijhk_absmag_00[2]
+
+    massrange = [8.0,12.0]
+    uvrange = [0.4,2.3]
+    
+    psfile = qapath+'uv_vs_mass.ps'
+    im_plotconfig, 0, pos, psfile=psfile, charsize=2.0, xmargin=[1.6,0.4], $
+      height=6
+
+    mzplot_scatterplot, mass[det], uv[det], position=pos, xsty=1, ysty=1, $
+      xtitle=mzplot_masstitle(), ytitle='U - V', xrange=massrange, $
+      yrange=uvrange;, npix=24
+    djs_oplot, mass[lim], uv[lim], psym=6, sym=0.2, color=im_color('dodger blue',101)
+    
+    im_plotconfig, /psclose, psfile=psfile
 
 ; ------------------------------------------------------------
 ; EW(Hb), EW([OII]), EW([O III]) and EW(R23) vs redshift
@@ -717,7 +753,7 @@ stop
     ages_oplot, z, ewr23
 ;   im_legend, '(d)', /left, /top, box=0, charsize=1.4, margin=0
     
-    im_plotconfig, /psclose, /gzip, psfile=psfile
+    im_plotconfig, /psclose, psfile=psfile
 
 return
 end
@@ -868,9 +904,9 @@ end
 ;;      xtitle='', ytitle=ytitle1, xtickname=replicate(' ',10), $
 ;;      position=pos[*,0], yminor=4
 ;;    ages_oplot, z, mg
-;;    djs_oplot, mgvz.z, mgvz.csf_Mg, line=0, color=fsc_color('firebrick',101), thick=8
-;;;   djs_oplot, mgvz.z, mgvz.tau_Mg, line=5, color=fsc_color('royal blue',101), thick=8
-;;;   djs_oplot, mgvz.z, mgvz.ssp_Mg, line=5, color=fsc_color('royal blue',102), thick=8
+;;    djs_oplot, mgvz.z, mgvz.csf_Mg, line=0, color=im_color('firebrick',101), thick=8
+;;;   djs_oplot, mgvz.z, mgvz.tau_Mg, line=5, color=im_color('royal blue',101), thick=8
+;;;   djs_oplot, mgvz.z, mgvz.ssp_Mg, line=5, color=im_color('royal blue',102), thick=8
 ;;;   djs_oplot, limits.zaxis, limits.mglim_50, line=0, thick=6.0, color='red'
 ;;;   djs_oplot, limits.zaxis, limits.mglim_75, line=5, thick=8.0, color='blue'
 ;;;   im_legend, ['75% !8K-correction!6 Completeness'], $
@@ -885,11 +921,11 @@ end
 ;;      position=pos[*,1], yminor=5
 ;;    ages_oplot, z, mass
 ;;    djs_oplot, mgvz.z, alog10(mgvz.csf_mass), line=0, $
-;;      color=fsc_color('firebrick',101), thick=8
+;;      color=im_color('firebrick',101), thick=8
 ;;;   djs_oplot, mgvz.z, alog10(mgvz.tau_mass), line=5, $
-;;;     color=fsc_color('royal blue',101), thick=8
+;;;     color=im_color('royal blue',101), thick=8
 ;;;   djs_oplot, mgvz.z, alog10(mgvz.ssp_mass), line=5, $
-;;;     color=fsc_color('royal blue',102), thick=8
+;;;     color=im_color('royal blue',102), thick=8
 ;;;   djs_oplot, limits.zaxis, limits.mmlim_50, line=0, thick=6, color='red'
 ;;;   djs_oplot, limits.zaxis, limits.mmlim_75, line=5, thick=8, color='blue'
 ;;    im_legend, ['\psi(t)=const'], /right, /bottom, box=0, $
@@ -921,9 +957,9 @@ end
 ;;    keep2 = where((snrhb gt snrcut) and (snroii gt snrcut))
 ;;    keep3 = where((snrhb gt snrcut) and (snroii gt snrcut) and (snroiii gt snrcut))
 ;;;   im_plothist, allispec.z, bin=0.02, thick=6
-;;;   im_plothist, allispec[keep1].z, bin=0.02, /over, color=djs_icolor('orange')
-;;;   im_plothist, allispec[keep2].z, bin=0.02, /over, color=djs_icolor('red')
-;;;   im_plothist, allispec[keep3].z, bin=0.02, /over, color=djs_icolor('blue')
+;;;   im_plothist, allispec[keep1].z, bin=0.02, /over, color=im_color('orange')
+;;;   im_plothist, allispec[keep2].z, bin=0.02, /over, color=im_color('red')
+;;;   im_plothist, allispec[keep3].z, bin=0.02, /over, color=im_color('blue')
 ;;    
 ;;;   ww = (where((snrhb gt snrcut) and (snroii gt snrcut) and (snroiii lt snrcut)))[0:20]
 ;;;   ww = (where((snrhb gt snrcut) and (snroii lt snrcut) and (snroiii lt snrcut)))[0:20]
@@ -1056,10 +1092,10 @@ end
 ;;    djs_oplot, logewaxis, logewaxis, line=0, thick=6.0
 ;;    djs_oplot, logewaxis, alog10(ewaxis+ewhbcor), line=5, color='dark red', thick=8.0
 ;;    legend, textoidl('2.4 \AA'), /right, /bottom, box=0, charsize=1.4, $
-;;      margin=0, line=5, thick=8.0, color=djs_icolor('dark red'), pspacing=1.5
+;;      margin=0, line=5, thick=8.0, color=im_color('dark red'), pspacing=1.5
 ;;
 ;;;   mzages_hogg_scatterplot, z, uewhb-ewhb, outpsym=symcat(agessym2), $
-;;;     outsymsize=agespsize2, outcolor=fsc_color(agescolor2,1E8), $
+;;;     outsymsize=agespsize2, outcolor=im_color(agescolor2,1E8), $
 ;;;     xtitle='Redshift', ytitle=textoidl('\Delta'+'EW (\AA)'), $
 ;;;     charsize=charsize_1, xsty=1, ysty=1, xrange=xlogrange, yrange=ylogrange, $
 ;;;     /internal, ynpix=30, xnpix=30, /outliers, /noerase, $
@@ -1077,7 +1113,7 @@ end
 ;;    djs_oplot, logewaxis, logewaxis, line=0, thick=6.0
 ;;;   djs_oplot, logewaxis, alog10(ewaxis+ewoiiicor), line=5, color='dark red', thick=8.0
 ;;;   legend, textoidl('0.3 \AA'), /right, /bottom, box=0, charsize=1.4, $
-;;;     margin=0, line=5, thick=8.0, color=djs_icolor('dark red'), pspacing=1.5
+;;;     margin=0, line=5, thick=8.0, color=im_color('dark red'), pspacing=1.5
 ;;
 ;;; EW([OII])    
 ;;    xtitle = textoidl('EW([O II]) (\AA) [Unfluxed]')
@@ -1159,9 +1195,9 @@ end
 ;;    
 ;;;   toss = where((snrhb gt snrcut) and (snroii gt snrcut) and (snroiii lt snrcut))
 ;;;   im_plothist, allispec.z, bin=0.02, thick=6
-;;;   im_plothist, allispec[keep1].z, bin=0.02, /over, color=djs_icolor('orange')
-;;;   im_plothist, allispec[keep2].z, bin=0.02, /over, color=djs_icolor('red')
-;;;   im_plothist, allispec[keep3].z, bin=0.02, /over, color=djs_icolor('blue')
+;;;   im_plothist, allispec[keep1].z, bin=0.02, /over, color=im_color('orange')
+;;;   im_plothist, allispec[keep2].z, bin=0.02, /over, color=im_color('red')
+;;;   im_plothist, allispec[keep3].z, bin=0.02, /over, color=im_color('blue')
 ;;    mv = agesparent.k_ubvrijhk_absmag_00[2]
 ;;    uv = agesparent.k_ubvrijhk_absmag_00[0]-agesparent.k_ubvrijhk_absmag_00[2]
 ;;
@@ -1289,8 +1325,8 @@ end
 ;;    djs_plot, [0], [0], /nodata, xsty=5, ysty=5, xrange=xrange, yrange=yrange, $
 ;;      position=pos[*,0], xtickname=replicate(' ',10), ytickname=replicate(' ',10)
 ;;    im_plothist, z_parent, bin=zbinsize, weight=weight_parent, $
-;;      /overplot, /fill, fcolor=djs_icolor('grey'), /fline, $
-;;      forientation=45, fspacing=fspacing, color=djs_icolor('grey')
+;;      /overplot, /fill, fcolor=im_color('grey'), /fline, $
+;;      forientation=45, fspacing=fspacing, color=im_color('grey')
 ;;    im_plothist, z, bin=zbinsize, weight=weight, /overplot, thick=histthick1
 ;;    djs_plot, [0], [0], /nodata, /noerase, xtitle=xtitle, ytitle=ytitle, $
 ;;      xsty=1, ysty=1, xrange=xrange, yrange=yrange, position=pos[*,0], $
@@ -1312,8 +1348,8 @@ end
 ;;    djs_plot, [0], [0], /nodata, /noerase, xsty=5, ysty=5, xrange=xrange, yrange=yrange, $
 ;;      position=pos[*,1], xtickname=replicate(' ',10), ytickname=replicate(' ',10)
 ;;    im_plothist, mg_parent, bin=absmagbinsize, weight=weight_parent, $
-;;      /overplot, /fill, fcolor=djs_icolor('grey'), /fline, $
-;;      forientation=45, fspacing=fspacing, color=djs_icolor('grey')
+;;      /overplot, /fill, fcolor=im_color('grey'), /fline, $
+;;      forientation=45, fspacing=fspacing, color=im_color('grey')
 ;;    im_plothist, mg, bin=absmagbinsize, weight=weight, /overplot, $
 ;;      thick=histthick1
 ;;    djs_plot, [0], [0], /nodata, /noerase, xtitle=xtitle, ytitle='', xsty=1, $
@@ -1338,8 +1374,8 @@ end
 ;;    djs_plot, [0], [0], /nodata, /noerase, xsty=5, ysty=5, xrange=xrange, yrange=yrange, $
 ;;      position=pos[*,2], xtickname=replicate(' ',10), ytickname=replicate(' ',10)
 ;;    im_plothist, gr_parent, bin=colorbinsize, weight=weight_parent, $
-;;      /overplot, /fill, fcolor=djs_icolor('grey'), /fline, forientation=45, $
-;;      fspacing=fspacing, color=djs_icolor('grey')
+;;      /overplot, /fill, fcolor=im_color('grey'), /fline, forientation=45, $
+;;      fspacing=fspacing, color=im_color('grey')
 ;;    im_plothist, gr, bin=colorbinsize, weight=weight, /overplot, $
 ;;      thick=histthick1
 ;;    djs_plot, [0], [0], /nodata, /noerase, xtitle=xtitle, xrange=xrange, ytitle=ytitle, $
@@ -1361,8 +1397,8 @@ end
 ;;    djs_plot, [0], [0], /nodata, /noerase, xsty=5, ysty=5, xrange=xrange, yrange=yrange, $
 ;;      position=pos[*,3], xtickname=replicate(' ',10), ytickname=replicate(' ',10)
 ;;    im_plothist, mass_parent, bin=massbinsize, weight=weight_parent, $
-;;      /overplot, /fill, fcolor=djs_icolor('grey'), /fline, forientation=45, $
-;;      fspacing=fspacing, color=djs_icolor('grey')
+;;      /overplot, /fill, fcolor=im_color('grey'), /fline, forientation=45, $
+;;      fspacing=fspacing, color=im_color('grey')
 ;;    im_plothist, mass, bin=massbinsize, /overplot, weight=weight, thick=histthick1
 ;;    djs_plot, [0], [0], /nodata, /noerase, xtitle=xtitle, ytitle='', $
 ;;      xsty=1, ysty=1, xrange=xrange, yrange=yrange, $

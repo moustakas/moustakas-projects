@@ -171,6 +171,9 @@ function get_mzevol, ohdust, ancillary, mass, calib=calib, $
   sdssmass=sdssmass
 ; internal support routine to measure the MZ evolution
 
+    mzpath = mz_path()
+    limits = mrdfits(mzpath+'mz_limits.fits.gz',1)
+
     zbins = mz_zbins(nz)
     sdss_zbins = mz_zbins(/sdss)
     massbins = mz_massbins(nmassbins)
@@ -179,7 +182,7 @@ function get_mzevol, ohdust, ancillary, mass, calib=calib, $
 ; AGES #########################
 ; ngal, median mass, and median redshift in each mass & redshift bin
       ngal_bymass: lonarr(nmassbins,nz), medmass_bymass: fltarr(nmassbins,nz)-999, $
-      medz_bymass: fltarr(nmassbins,nz)-999, $
+      medz_bymass: fltarr(nmassbins,nz)-999, complete_bymass: intarr(nmassbins,nz), $
 ; average metallicity in bins of mass and redshift
       ohmean_bymass: fltarr(nmassbins,nz)-999.0, ohmean_bymass_err: fltarr(nmassbins,nz)-999.0, $
       ohmean_bymass_sigma: fltarr(nmassbins,nz)-999.0, $
@@ -231,16 +234,32 @@ function get_mzevol, ohdust, ancillary, mass, calib=calib, $
           these = where((zinfo.mass ge massbins[jj].lomass) and $
             (zinfo.mass lt massbins[jj].himass),nobj)
           mzevol.ngal_bymass[jj,iz] = nobj
-          if (massbins[jj].lomass ge 11.0) and (zbins[iz].zbin gt 0.6) then mingal = 11 else mingal = 9 ; special case 
+;         if (massbins[jj].lomass ge 11.0) and (zbins[iz].zbin gt 0.6) then mingal = 11 else mingal = 9 ; special case 
+          mingal = 10
           if (nobj ge mingal) then begin
-             mzevol.medmass_bymass[jj,iz] = djs_median(zinfo.mass[these])
-             mzevol.medz_bymass[jj,iz] = djs_median(zinfo.z[these])
+             mzevol.complete_bymass[jj,iz] = massbins[jj].lomass gt limits.masslimit_50[iz]
 
+             mzevol.medmass_bymass[jj,iz] = im_weighted_mean(zinfo.mass[these],weight=zinfo.weight[these])
+             mzevol.medz_bymass[jj,iz] = im_weighted_mean(zinfo.z[these],weight=zinfo.weight[these])
+             
              mzevol.ohmean_bymass[jj,iz] = im_weighted_mean(zinfo.oh[these],$
                weight=zinfo.weight[these]/zinfo.oh_err[these]^2,$
                wmean_err=wmean_err,wsigma=wsigma)
              mzevol.ohmean_bymass_err[jj,iz] = wmean_err
              mzevol.ohmean_bymass_sigma[jj,iz] = wsigma
+
+; median             
+;            quant = [1.0-gauss_pdf(2.0),0.5,gauss_pdf(2.0)]
+;            qquant = weighted_quantile(zinfo.oh[these],$
+;              zinfo.weight[these]/zinfo.oh_err[these]^2,quant=quant)
+;            mzevol.ohmean_bymass[jj,iz] = qquant[1]
+;            mzevol.ohmean_bymass_sigma[jj,iz] = (qquant[2]-qquant[0])/4.0
+;            mzevol.ohmean_bymass_err[jj,iz] = mzevol.ohmean_bymass_sigma[jj,iz]/sqrt(nobj)
+;            mzevol.medmass_bymass[jj,iz] = djs_median(zinfo.mass[these])
+;            mzevol.medz_bymass[jj,iz] = djs_median(zinfo.z[these])
+
+;            mzevol.ohmean_bymass_err[jj,iz] = wmean_err
+;            mzevol.ohmean_bymass_sigma[jj,iz] = wsigma
 ;            print, mzevol.ohmean_ngal[jj,iz], mzevol.ohmean[jj,iz], $
 ;              mzevol.ohmean_err[jj,iz], mzevol.ohmean_sigma[jj,iz]
 
@@ -273,14 +292,18 @@ function get_mzevol, ohdust, ancillary, mass, calib=calib, $
        these = where((zinfo.mass ge massbins[jj].lomass) and $
          (zinfo.mass lt massbins[jj].himass),nobj)
        mzevol.sdss_ngal_bymass[jj] = nobj
-       mzevol.sdss_medmass_bymass[jj] = djs_median(zinfo.mass[these])
-       mzevol.sdss_medz_bymass[jj] = djs_median(zinfo.z[these])
+
+       mzevol.sdss_medmass_bymass[jj] = im_weighted_mean(zinfo.mass[these],weight=zinfo.weight[these])
+       mzevol.sdss_medz_bymass[jj] = im_weighted_mean(zinfo.z[these],weight=zinfo.weight[these])
        
        mzevol.sdss_ohmean_bymass[jj] = im_weighted_mean(zinfo.oh[these],$
          weight=zinfo.weight[these]/zinfo.oh_err[these]^2,$
          wmean_err=wmean_err,wsigma=wsigma)
        mzevol.sdss_ohmean_bymass_err[jj] = wmean_err
        mzevol.sdss_ohmean_bymass_sigma[jj] = wsigma
+
+;      mzevol.sdss_medmass_bymass[jj] = djs_median(zinfo.mass[these])
+;      mzevol.sdss_medz_bymass[jj] = djs_median(zinfo.z[these])
     endfor
 
 ; now loop back through and fit a linear model to the mean metallicity
@@ -289,15 +312,16 @@ function get_mzevol, ohdust, ancillary, mass, calib=calib, $
 ; fit at z=0.1
     zbin = [sdss_zbins.zbin,zbins.zbin]
     for mm = 0, nmassbins-1 do begin
+       complete = [1,reform(mzevol.complete_bymass[mm,*])]
        ohmean = [mzevol.sdss_ohmean_bymass[mm],reform(mzevol.ohmean_bymass[mm,*])]
        ohmean_err = [mzevol.sdss_ohmean_bymass_err[mm],reform(mzevol.ohmean_bymass_err[mm,*])]
        medz = [mzevol.sdss_medz_bymass[mm],reform(mzevol.medz_bymass[mm,*])]
 ; ignore the highest redshift point in the log(M)>11 subsample
-       gd = where(ohmean gt -900.0,ngd)
-       if (massbins[mm].massbin gt 11.0) then $
-         fitgd = where((ohmean gt -900.0) and (zbin lt 0.6),nfitgd) else fitgd = gd
+       fitgd = where(complete and ohmean gt -900.0,ngd)
+;      if (massbins[mm].massbin gt 11.0) then $
+;        fitgd = where((ohmean gt -900.0) and (zbin lt 0.6),nfitgd) else fitgd = gd
 
-       if (ngd ne 0) then begin
+       if (ngd gt 1) then begin
           mzevol.coeffs_bymass[*,mm] = linfit(medz[fitgd]-qz0,$
             ohmean[fitgd],measure_err=ohmean_err[fitgd],sigma=sig)
           mzevol.coeffs_bymass_err[*,mm] = sig
@@ -336,8 +360,6 @@ pro fit_mzlzevol, mzavg, clobber=clobber
 
 ; grid of evolutionary parameters
     qz0 = 0.1 ; reference redshift
-    zbins = mz_zbins(nz)
-    massbins = mz_massbins(nmassbins)
     
 ; ##################################################
 ; fit each calibration separately 
@@ -394,6 +416,12 @@ pro fit_mzlzevol, mzavg, clobber=clobber
 
 ; ##################################################
 ; average over the three calibrations
+    zbins = mz_zbins(nz)
+    masscut = 9.5D
+    massbins = mz_massbins(/rev,masscut=masscut,masskeep=masskeep)
+    nmassbins = n_elements(massbins)
+    struct_print, massbins
+    
     mzavg = {qz0: qz0, coeffs: fltarr(2), coeffs_err: fltarr(2), $
       coeffs_bymass: fltarr(2,nmassbins), coeffs_bymass_err: fltarr(2,nmassbins), $
 ; AGES
@@ -420,32 +448,40 @@ pro fit_mzlzevol, mzavg, clobber=clobber
       lz_s0_avg: 0.0, lz_s0_avg_err: 0.0, $
       dmb_bymass: fltarr(nmassbins,nz)-999.0, dmb_bymass_err: fltarr(nmassbins,nz)-999.0}
 
-; average the coefficients and dlog over the three calibrations at
-; fixed stellar mass
+; compute the *weighted* average of the coefficients and dlogoh over
+; the three calibrations at fixed stellar mass
     for mm = 0, nmassbins-1 do begin
-       mzavg.coeffs_bymass[0,mm] = djs_mean(allmzevol.coeffs_bymass[0,mm])
-       mzavg.coeffs_bymass[1,mm] = djs_mean(allmzevol.coeffs_bymass[1,mm])
-       mzavg.coeffs_bymass_err[0,mm] = djsig(allmzevol.coeffs_bymass[0,mm])
-       mzavg.coeffs_bymass_err[1,mm] = djsig(allmzevol.coeffs_bymass[1,mm])
+       mzavg.coeffs_bymass[0,mm] = im_weighted_mean(allmzevol.coeffs_bymass[0,masskeep[mm]],$
+         errors=allmzevol.coeffs_bymass_err[0,masskeep[mm]],wmean_err=wmean_err,wsigma=wsigma)
+       mzavg.coeffs_bymass_err[0,mm] = wsigma
+       
+       mzavg.coeffs_bymass[1,mm] = im_weighted_mean(allmzevol.coeffs_bymass[1,masskeep[mm]],$
+         errors=allmzevol.coeffs_bymass_err[1,masskeep[mm]],wmean_err=wmean_err,wsigma=wsigma)
+       mzavg.coeffs_bymass_err[1,mm] = wsigma
+       
+;      mzavg.coeffs_bymass[0,mm] = djs_mean(allmzevol.coeffs_bymass[0,masskeep[mm]])
+;      mzavg.coeffs_bymass[1,mm] = djs_mean(allmzevol.coeffs_bymass[1,masskeep[mm]])
+;      mzavg.coeffs_bymass_err[0,mm] = djsig(allmzevol.coeffs_bymass[0,masskeep[mm]])
+;      mzavg.coeffs_bymass_err[1,mm] = djsig(allmzevol.coeffs_bymass[1,masskeep[mm]])
 
 ; SDSS: average over all the calibrations at fixed stellar mass
-       mzavg.sdss_medmass_bymass[mm] = djs_mean(allmzevol.sdss_medmass_bymass[mm])
-       mzavg.sdss_medz_bymass[mm] = djs_mean(allmzevol.sdss_medz_bymass[mm])
-       gd = where(allmzevol.sdss_dlogoh_bymass[mm] gt -900.0,ngd)
+       mzavg.sdss_medmass_bymass[mm] = djs_mean(allmzevol.sdss_medmass_bymass[masskeep[mm]])
+       mzavg.sdss_medz_bymass[mm] = djs_mean(allmzevol.sdss_medz_bymass[masskeep[mm]])
+       gd = where(allmzevol.sdss_dlogoh_bymass[masskeep[mm]] gt -900.0,ngd)
        if (ngd ne 0) then begin
-          mzavg.sdss_dlogoh_bymass[mm] = djs_mean(allmzevol[gd].sdss_dlogoh_bymass[mm])
-          mzavg.sdss_dlogoh_bymass_err[mm] = djsig(allmzevol[gd].sdss_dlogoh_bymass[mm])
+          mzavg.sdss_dlogoh_bymass[mm] = djs_mean(allmzevol[gd].sdss_dlogoh_bymass[masskeep[mm]])
+          mzavg.sdss_dlogoh_bymass_err[mm] = djsig(allmzevol[gd].sdss_dlogoh_bymass[masskeep[mm]])
        endif
        
 ; AGES: average over all the calibrations at fixed stellar mass and redshift
        for iz = 0, nz-1 do begin
-          mzavg.medmass_bymass[mm,iz] = djs_mean(allmzevol.medmass_bymass[mm,iz])
-          mzavg.medz_bymass[mm,iz] = djs_mean(allmzevol.medz_bymass[mm,iz])
+          mzavg.medmass_bymass[mm,iz] = djs_mean(allmzevol.medmass_bymass[masskeep[mm],iz])
+          mzavg.medz_bymass[mm,iz] = djs_mean(allmzevol.medz_bymass[masskeep[mm],iz])
 
-          gd = where(allmzevol.dlogoh_bymass[mm,iz] gt -900.0,ngd)
+          gd = where(allmzevol.dlogoh_bymass[masskeep[mm],iz] gt -900.0,ngd)
           if (ngd ne 0) then begin
-             mzavg.dlogoh_bymass[mm,iz] = djs_mean(allmzevol[gd].dlogoh_bymass[mm,iz])
-             mzavg.dlogoh_bymass_err[mm,iz] = djsig(allmzevol[gd].dlogoh_bymass[mm,iz])
+             mzavg.dlogoh_bymass[mm,iz] = djs_mean(allmzevol[gd].dlogoh_bymass[masskeep[mm],iz])
+             mzavg.dlogoh_bymass_err[mm,iz] = djsig(allmzevol[gd].dlogoh_bymass[masskeep[mm],iz])
           endif
        endfor
     endfor
@@ -472,23 +508,24 @@ pro fit_mzlzevol, mzavg, clobber=clobber
     mzavg.coeffs[1] = djs_mean(mzavg.coeffs_bymass[1,0:nmassbins-2])
     mzavg.coeffs_err[1] = djsig(mzavg.coeffs_bymass[1,0:nmassbins-2])
 
-; there is a strong correlation between the rate of metallicity
-; evolution and stellar mass; fit it here, ignoring the lowest mass
-; bin 
+; fitthe strong correlation between the rate of metallicity evolution
+; and stellar mass
     mzavg.dlogohdz_normmass = 10.5
     for mm = 0, nmassbins-1 do begin       
        gd = where(mzavg.medmass_bymass[mm,*] gt -900.0,ngd)
        if (ngd ne 0) then mzavg.dlogohdz_medmass[mm] = $
-         djs_median(mzavg.medmass_bymass[mm,gd])
+         djs_mean(mzavg.medmass_bymass[mm,gd])
     endfor
 ;   slopemass = massbins[0:nmassbins-2].massbin
-    slopemass = mzavg.dlogohdz_medmass[0:nmassbins-2]
-    slope = mzavg.coeffs_bymass[1,0:nmassbins-2]
-    slopeerr = mzavg.coeffs_bymass_err[1,0:nmassbins-2]
+    slopemass = mzavg.dlogohdz_medmass
+    slope = reform(mzavg.coeffs_bymass[1,*])
+    slopeerr = reform(mzavg.coeffs_bymass_err[1,*])
 
     mzavg.dlogohdz_coeff = linfit(slopemass-mzavg.dlogohdz_normmass,slope,$
       measure_err=slopererr,sigma=coeff_err,covar=covar,chisq=chi2)
     mzavg.dlogohdz_coeff_err = coeff_err
+
+stop    
 
 ; the coefficients above give us the shape of the MZ relation as a
 ; function of redshift; fit that evolution here with a simple model

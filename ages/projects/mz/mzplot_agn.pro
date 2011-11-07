@@ -19,7 +19,7 @@ pro mzplot_agn, ps=ps
     ocor = 1.0+1.0/2.984
 
 ; ------------------------------------------------------------
-; Yan diagnostic diagram - AGES & SDSS
+; Figure 5 - Yan diagnostic diagram - AGES & SDSS
     ages = read_mz_sample(/mz_ispec)
     agesanc = read_mz_sample(/mz_ancillary)
     sdss = read_mz_sample(/mz_ispec,/sdss)
@@ -37,8 +37,10 @@ pro mzplot_agn, ps=ps
 
     ages_outsymsize = 0.4
     sdss_outsymsize = 0.2
-    ages_levels = [0.1,0.25,0.5,0.75,0.95]
-    sdss_levels = [0.1,0.25,0.5,0.75,0.95]
+    ages_levels = [0.25,0.5,0.75,0.95]
+    sdss_levels = [0.25,0.5,0.75,0.95]
+;   ages_levels = [0.1,0.25,0.5,0.75,0.95]
+;   sdss_levels = [0.1,0.25,0.5,0.75,0.95]
 
     ubaxis = range(0.0,2.0,500)
     yan = (1.4-1.2*ubaxis)>(-0.1)
@@ -114,12 +116,10 @@ pro mzplot_agn, ps=ps
 ;   xyouts, 1.55, 1.1, 'AGN', align=0.5, charsize=1.6
 ;   xyouts, 0.4, -0.6, 'Star-!cForming', align=0.5, charsize=1.6
     
-    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
+    im_plotconfig, /psclose, psfile=psfile
 
-stop    
-    
 ; ------------------------------------------------------------
-; [N II]/Ha versus [O III]/Hb - AGES
+; Figure 4 - AGES - [N II]/Ha versus [O III]/Hb
     ages = read_mz_sample(/mz_ispec)
     agesanc = read_mz_sample(/mz_ancillary)
 
@@ -135,7 +135,8 @@ stop
     good = where(ages.bpt_agn ne -1)
     mzplot_scatterplot, ages[good].bpt_nii_ha, ages[good].bpt_oiii_hb, $
       position=pos, xsty=1, ysty=1, xtitle=xtitle, ytitle=ytitle, $
-      xrange=xrange, yrange=yrange, npix=24
+      xrange=xrange, yrange=yrange, npix=24, /nogrey, $
+      levels=[0.25,0.5,0.75,0.95]
 
 ; case 1    
     case1 = where((ages.bpt_nii_ha_limit gt -900.0) and $ ; [NII] limit, [OIII] limit
@@ -167,15 +168,22 @@ stop
     xyouts, 0.4, 0.45, 'AGN', align=0.5, charsize=1.8
     xyouts, -1.4, -0.55, 'Star-Forming', align=0.5, charsize=1.8
     
-    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
+    im_plotconfig, /psclose, psfile=psfile
 
+; ###########################################################################
+; additional figures and QAplots
+
+stop    
+    
 ; ------------------------------------------------------------
-; EW([O III])/EW(Hb) vs EW([O II])/EW(Hb) - AGES + SDSS
+; AGES + SDSS - EW([O III])/EW(Hb) vs EW([O II])/EW(Hb)
     
     psfile = qapath+'ages_sdss_oiiihb_vs_oiihb.ps'
     im_plotconfig, 1, pos, psfile=psfile, charsize=1.5
 
 ; AGES    
+    ages = read_mz_sample(/mz_ispec)
+
     unkages = where((strmatch(ages.class,'*UNKNOWN*') eq 1B),nunkages)
     agnages = where((strmatch(ages.class,'*UNKNOWN*') eq 0B) and $
       (strmatch(ages.class,'*BPT_AGN*') eq 1B),nagnages)
@@ -191,6 +199,8 @@ stop
     yunkages = alog10(ages[unkages].oiii_5007_ew[0]/ages[unkages].h_beta_ew[0])
 
 ; SDSS    
+    sdss = read_mz_sample(/mz_ispec,/sdss)
+
     unksdss = where((strmatch(sdss.class,'*UNKNOWN*') eq 1B),nunksdss)
     agnsdss = where((strmatch(sdss.class,'*UNKNOWN*') eq 0B) and $
       (strmatch(sdss.class,'*BPT_AGN*') eq 1B),nagnsdss)
@@ -250,7 +260,7 @@ stop
 ;   djs_oplot, oiihbaxis+0.1, oiiihblama+0.1, line=5, thick=6.0
 ;   djs_oplot, oiihbaxis-0.1, oiiihblama-0.1, line=5, thick=6.0
 
-    im_legend, 'SDSS - 0.03<z<0.25', /left, /top, box=0, margin=0
+    im_legend, 'SDSS - 0.05<z<0.2', /left, /top, box=0, margin=0
     
 ; label the regions    
     xyouts, 1.32, 0.95, 'AGN', align=0.5
@@ -276,10 +286,10 @@ stop
     xyouts, 1.32, 0.95, 'AGN', align=0.5
     xyouts, 0.9, -0.9, 'Star-Forming', align=0.5
     
-    im_plotconfig, /psclose, psfile=psfile, /gzip
+    im_plotconfig, /psclose, psfile=psfile
 
 ; ------------------------------------------------------------
-; EW(R23) vs EW(O32) - AGES + SDSS
+; AGES + SDSS - EW(R23) vs EW(O32)
     
     psfile = qapath+'ages_sdss_r23_vs_o32.ps'
     im_plotconfig, 1, pos, psfile=psfile, charsize=1.5
@@ -371,15 +381,13 @@ stop
 ;   djs_oplot, r23axis+0.1, o32lama+0.1, line=5, thick=6.0
 ;   djs_oplot, r23axis-0.1, o32lama-0.1, line=5, thick=6.0
 
-    im_legend, 'SDSS - 0.03<z<0.25', /left, /top, box=0, charsize=1.5, margin=0
+    im_legend, 'SDSS - 0.05<z<0.2', /left, /top, box=0, charsize=1.5, margin=0
 
-    im_plotconfig, /psclose, psfile=psfile, /gzip
+    im_plotconfig, /psclose, psfile=psfile
 
 return
 end
     
-;
-;
 ;; ------------------------------------------------------------
 ;; [N II]/Ha versus [O III]/Hb - AGES
 ;    psfile = pspath+'ages_bpt'+suffix

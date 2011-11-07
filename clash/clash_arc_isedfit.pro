@@ -10,7 +10,7 @@ pro clash_arc_isedfit, supergrid, models=models, isedfit=isedfit, $
     sfhgrid_paramfile = getenv('CLASH_DIR')+'/clash_sfhgrid.par'
 
 ; read the supergrid parameter file
-    super = get_clash_supergrid(supergrid,nsuper=nsuper)
+    super = get_clash_supergrid(supergrid,nsuper=nsuper,/arc)
     struct_print, super
 
 ; gather the arc photometry
@@ -42,7 +42,7 @@ pro clash_arc_isedfit, supergrid, models=models, isedfit=isedfit, $
           clash_to_maggies, cat, maggies, ivarmaggies
           isedfit, paramfile, maggies, ivarmaggies, cat.z, iopath=isedpath, $
             clobber=clobber, sfhgrid_paramfile=sfhgrid_paramfile, $
-            isedfit_sfhgrid_dir=isedfit_sfhgrid_dir
+            isedfit_sfhgrid_dir=isedfit_sfhgrid_dir;, index=index
        endif       
 
 ; make some QAplots

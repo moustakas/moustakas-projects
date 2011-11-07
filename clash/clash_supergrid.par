@@ -14,3 +14,4 @@ typedef struct {
 
 GRID   1   1 chab     fsps       1 # arc(s)
 GRID  10  10 chab     fsps       1 # bcg(s)
+GRID  11  11 chab     fsps       1

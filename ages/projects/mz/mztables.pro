@@ -54,11 +54,11 @@ pro mztables, preprint=preprint
     if keyword_set(preprint) then filesuffix = '_preprint' else $
       filesuffix = '_apj'
 
-    mzpath = ages_path(/projects)+'mz/'
+    mzpath = mz_path()
     paperpath = ages_path(/papers)+'mz/'
 
 ; ---------------------------------------------------------------------------    
-; Table: comparison with the literature
+; Table 6 - comparison with the literature
 
     table = {sample: '', ngal: '', area: '', zrange: '', $
       diagnostic: '', mlrange: '', dlogoh: '', dz: ''};, remark: ''}
@@ -442,8 +442,8 @@ pro mztables, preprint=preprint
       'to our adopted cosmology ($\Omega_{\rm m}=0.3$, $\Omega_{\Lambda}=0.7$, $H_{0}=70~\hubbleunits$), and to '+$
       'the AB magnitude system and the \citet{chabrier03a} initial mass function as necessary.}',$
       '{f}{Change in the mean oxygen abundance of star-forming galaxies since '+$
-      '$\langle z \rangle$.  Note that a larger positive numbers indicates that galaxies were more metal-poor '+$
-      'at higher redshift, which is opposite the convention used in \S\ref{sec:dlogoh} and Table~\ref{table:dlogohevol}.}',$
+      '$\langle z \rangle$.  Note that larger positive numbers indicates that galaxies were more metal-poor '+$
+      'at higher redshift, which is opposite the convention used in \S\ref{sec:evol}.}',$
       '{g}{Mean redshift corresponding to \dlogoh.}',$
       '{h}{The absolute $B$-band magnitudes in \citet{lilly03a} were derived using a different cosmological model '+$
       'than what is stated in the paper; $0.45$~mag must be subtracted to transform them to a cosmological model '+$
@@ -500,8 +500,91 @@ pro mztables, preprint=preprint
     printf, lun, '\end{landscape}'
     free_lun, lun
 
-stop    
+; ---------------------------------------------------------------------------    
+; Table 5 - coefficients of the linear fits to the mean metallicity vs
+; redshift plots (Fig 14) in bins of stellar mass and for each
+; calibration  
+    texfile = paperpath+'mztable_z_vs_oh_bymass_coeff'+filesuffix+'.tex'
+    splog, 'Writing '+texfile
     
+; read the fitting results
+    mzavg = mrdfits(mzpath+'mzevol_avg.fits.gz',1,/silent)
+
+; just tabulate the results above 10^9.5 Msun - this will break if we
+; add more mass bins
+    masscut = 9.5D
+    massbins = mz_massbins(/rev,masscut=masscut,masskeep=masskeep)
+    massbins = reform(massbins,2,4)
+    nmassbins = n_elements(massbins)
+
+    calib = ['kk04','m91','t04']
+    ncalib = n_elements(calib)
+
+    colhead1 = mzget_colhead(['','$\langle12+\log\,(\textrm{O}/\textrm{H})\rangle_{z=0.1}$',$
+      '${\mathrm d}\log\,(\textrm{O}/\textrm{H})/{\mathrm d}z$','',$
+      '$\langle12+\log\,(\textrm{O}/\textrm{H})\rangle_{z=0.1}$',$
+      '${\mathrm d}\log\,(\textrm{O}/\textrm{H})/{\mathrm d}z$'])
+    colhead2 = mzget_colhead(['Calibration','(dex)','(dex $z^{-1}$)','','(dex)','(dex $z^{-1}$)'],/nobreak)
+    texcenter = replicate('c',6)
+
+    mass = '\log\,(\mass/\msun)'
+    masslabel = '$'+string(massbins.lomass,format='(F4.1)')+'<'+mass+'<'+$
+      string(massbins.himass,format='(F4.1)')+'$'
+    masslabel = reform(masslabel,2,4)
+
+    masshead = strarr(4,4)
+    for mm = 0, 3 do masshead[*,mm] = mzget_colhead(['','\multicolumn{2}{c}{'+masslabel[0,mm]+'}',$
+      '','\multicolumn{2}{c}{'+masslabel[1,mm]+'}'])
+
+    tablenotetext = [$
+      '{a}{The adopted linear model is given by: $\langle 12+\log\,(\textrm{O}/\textrm{H})\rangle = '+$
+      '\langle 12+\log\,(\textrm{O}/\textrm{H})\rangle_{z=0.1} + {\mathrm d}\log\,(\textrm{O}/\textrm{H})/'+$
+      '{\mathrm d}z\times(z-0.1)$, where $\langle12+\log\,(\textrm{O}/\textrm{H})\rangle_{z=0.1}$ is '+$
+      'the mean metallicity at $z=0.1$ and ${\mathrm d}\log\,(\textrm{O}/\textrm{H})/{\mathrm d}z$ is the '+$
+      'logarithmic rate of metallicity evolution.}']
+    
+    openw, lun, texfile, /get_lun
+    printf, lun, '\begin{deluxetable*}{'+strjoin(texcenter)+'}[!h]'
+    printf, lun, '\tablecaption{Mass-Dependent Evolution of the Mean Metallicity of '+$
+      'Galaxies at $z=0.05-0.75$ \tablenotemark{a}\label{table:oh_bymass_coeff}}'
+    printf, lun, '\tablewidth{0pt}'
+    printf, lun, '\tablehead{'
+    niceprintf, lun, colhead1
+    niceprintf, lun, colhead2
+    printf, lun, '}'
+    printf, lun, '\startdata'
+    printf, lun, '\cline{1-6}'
+
+    for mm = 0, 3 do begin      ; fragile!!
+       printf, lun, masshead[*,mm]
+       printf, lun, '\cline{2-3}'
+       printf, lun, '\cline{5-6}'
+
+       for ii = 0, ncalib-1 do begin
+          if mm eq 3 and ii eq ncalib-1 then suffix = '' else suffix = ' \\'
+          mzevol = mrdfits(mzpath+'mzevol_'+calib[ii]+'.fits.gz',1,/silent)
+          printf, lun, strupcase(calib[ii])+' & '
+; left column
+          printf, lun, $
+            '$'+string(mzevol.coeffs_bymass[0,masskeep[2*mm]],format='(F5.3)')+'\pm'+$
+            string(mzevol.coeffs_bymass_err[0,masskeep[2*mm]]>0.01,format='(F4.2)')+'$ & '+$
+            '$'+string(mzevol.coeffs_bymass[1,masskeep[2*mm]],format='(F7.3)')+'\pm'+$
+            string(mzevol.coeffs_bymass_err[1,masskeep[2*mm]],format='(F7.3)')+'$ & & '+$ ; space
+; right column
+            '$'+string(mzevol.coeffs_bymass[0,masskeep[2*mm+1]],format='(F5.3)')+'\pm'+$
+            string(mzevol.coeffs_bymass_err[0,masskeep[2*mm+1]]>0.01,format='(F4.2)')+'$ & '+$
+            '$'+string(mzevol.coeffs_bymass[1,masskeep[2*mm+1]],format='(F7.3)')+'\pm'+$
+            string(mzevol.coeffs_bymass_err[1,masskeep[2*mm+1]],format='(F7.3)')+'$ '+suffix
+       endfor
+       if mm lt 3 then printf, lun, '\cline{1-6}'
+    endfor
+    
+    printf, lun, '\enddata'
+;   printf, lun, '\tablecomments{'+tablecomments+'}'
+    niceprintf, lun, '\tablenotetext'+tablenotetext
+    printf, lun, '\end{deluxetable*}'
+    free_lun, lun
+
 ; ---------------------------------------------------------------------------    
 ; mean metallicity in bins of mass and redshift, for each calibration
 ; (Fig 14)
@@ -511,31 +594,43 @@ stop
 ; read the fitting results
     zbins = mz_zbins(nz)
     sdss_zbins = mz_zbins(/sdss)
-    massbins = mz_massbins(nmassbins)
+
+; just tabulate the results above 10^9.5 Msun
+    masscut = 9.5D
+    massbins = mz_massbins(/rev,masscut=masscut,masskeep=masskeep)
+    nmassbins = n_elements(massbins)
+    struct_print, massbins
 
     mass = '\log\,(\mass/\msun)'
-    masslabel = ['$'+mass+'>11$','$10.5<'+mass+'<11$','$10<'+mass+'<10.5$','$9.5<'+mass+'<10$']
+;   masslabel = ['$'+mass+'>11$','$10.5<'+mass+'<11$','$10<'+mass+'<10.5$','$9.5<'+mass+'<10$']
+    masslabel = '$'+string(massbins.lomass,format='(F4.1)')+'<'+mass+'<'+$
+      string(massbins.himass,format='(F4.1)')+'$'
     
 ;   colhead1 = mzget_colhead(['Redshift','Median','\multicolumn{3}{c}{$12+\log\,(\textrm{O}/\textrm{H})$}'])
 ;   colhead2 = mzget_colhead(['Range','Redshift','KK04','T04','M91'],/nobreak)
 ;   colhead1 = mzget_colhead(['Redshift','','','','',''])
-    colhead2 = mzget_colhead(['Redshift Range','$N$\tablenotemark{b}','$z_{\rm med}$\tablenotemark{c}',$
+    colhead2 = mzget_colhead(['Redshift Range','$N$\tablenotemark{b}',$
+      '$\langle z\rangle$\tablenotemark{c}','$\langle \log\,(\mass/\msun) \rangle$\tablenotemark{d}',$
       '$\langle12+\log\,(\textrm{O}/\textrm{H})_{\rm KK04}\rangle$',$
-      '$\langle12+\log\,(\textrm{O}/\textrm{H})_{\rm T04}\rangle$',$
-      '$\langle12+\log\,(\textrm{O}/\textrm{H})_{\rm M91}\rangle$'],/nobreak)
-    texcenter = ['c','c','c','c','c','c']
+      '$\langle12+\log\,(\textrm{O}/\textrm{H})_{\rm M91}\rangle$',$
+      '$\langle12+\log\,(\textrm{O}/\textrm{H})_{\rm T04}\rangle$'],/nobreak)
+    texcenter = replicate('c',7)
 
     tablenotetext = [$
-      '{a}{Weighted mean metallicity of galaxies in multiple bins of stellar mass and redshift, '+$
-      'based on the KK04, T04, and M91 calibrations.  Note that the metallicities in the first row of '+$
+      '{a}{Mean metallicity of galaxies in multiple bins of stellar mass and redshift, '+$
+      'based on the KK04, M91, and T04 calibrations.  Note that the metallicities in the first row of '+$
       'each stellar mass interval correspond to our SDSS sample, while the metallicities in the other rows are based on '+$
       'our AGES sample.}',$
-      '{b}{Number of galaxies in this redshift interval and stellar mass bin.}',$
-      '{c}{Median redshift of the subsample.}']
+      '{b}{Mean number of galaxies in this redshift interval and stellar mass bin.  '+$
+      'Note that the number of objects varies slightly depending on the abundance calibration '+$
+      '(see, e.g., Table~\ref{table:samples}), so we show here the average number.  We only provide '+$
+      'redshift and stellar mass bins with at least ten galaxies.}',$
+      '{c}{Mean redshift of the galaxies in this subsample.}',$
+      '{d}{Mean stellar mass of the galaxies in this subsample.}']
     
     openw, lun, texfile, /get_lun
     printf, lun, '\begin{deluxetable*}{'+strjoin(texcenter)+'}[!h]'
-    printf, lun, '\tablecaption{Mean Oxygen Abundance in Bins of Stellar Mass \& '+$
+    printf, lun, '\tablecaption{Mean Oxygen Abundance in Bins of Stellar Mass and '+$
       'Redshift\tablenotemark{a}\label{table:oh_bymass}}'   
     printf, lun, '\tablewidth{0pt}'
     printf, lun, '\tablehead{'
@@ -544,56 +639,65 @@ stop
     printf, lun, '}'
     printf, lun, '\startdata'
 
-    calib = ['kk04','t04','m91']
+    calib = ['kk04','m91','t04']
     ncalib = n_elements(calib)
     
-    for mm = 0, nmassbins-2 do begin
-       printf, lun, '\multicolumn{6}{c}{'+masslabel[mm]+'} \\'
-       printf, lun, '\cline{1-6}'
+;   printf, lun, '\cline{1-7}'
+    for mm = 0, nmassbins-1 do begin
+       printf, lun, '\multicolumn{7}{c}{'+masslabel[mm]+'} \\'
+       printf, lun, '\cline{1-7}'
 
        info = replicate({zrange: '\nodata', ngal: '\nodata', medz: '\nodata', $
-         oh_kk04: '\nodata', oh_t04: '\nodata', oh_m91: '\nodata'},nz+1) ; SDSS+AGES
+         medmass: '\nodata', oh_kk04: '\nodata', oh_t04: '\nodata', oh_m91: '\nodata'},nz+1) ; SDSS+AGES
 
-; get the mean number of galaxies       
+; get the mean number of galaxies across the three calibrations
        allngal = lonarr(nz+1,ncalib)
        for ii = 0, ncalib-1 do begin
           mzevol = mrdfits(mzpath+'mzevol_'+calib[ii]+'.fits.gz',1,/silent)
-          good = where(mzevol.ohmean_bymass[mm,*] gt -900.0)
-;         print, [mzevol.sdss_ngal_bymass[mm],reform(mzevol.ngal_bymass[mm,*])]
-          print, [mzevol.sdss_ngal_bymass[mm],reform(mzevol.ngal_bymass[mm,good])]
-          allngal[[0,good+1],ii] = [mzevol.sdss_ngal_bymass[mm],reform(mzevol.ngal_bymass[mm,good])]
+          good = where(mzevol.ohmean_bymass[masskeep[mm],*] gt -900.0)
+;         print, [mzevol.sdss_ngal_bymass[masskeep[mm]],reform(mzevol.ngal_bymass[masskeep[mm],*])]
+          print, [mzevol.sdss_ngal_bymass[masskeep[mm]],reform(mzevol.ngal_bymass[masskeep[mm],good])]
+          allngal[[0,good+1],ii] = [mzevol.sdss_ngal_bymass[masskeep[mm]],reform(mzevol.ngal_bymass[masskeep[mm],good])]
        endfor
        ngal = lonarr(nz+1)
-       for zz = 0, nz do ngal[zz] = djs_median(allngal[zz,*])
+       for zz = 0, nz do ngal[zz] = djs_mean(allngal[zz,*])
 
        for ii = 0, ncalib-1 do begin
           mzevol = mrdfits(mzpath+'mzevol_'+calib[ii]+'.fits.gz',1,/silent)
-          good = where(mzevol.ohmean_bymass[mm,*] gt -900.0)
+          good = where(mzevol.ohmean_bymass[masskeep[mm],*] gt -900.0,ngood)
 
           if (ii eq 0) then begin
              info.zrange = '$'+string([sdss_zbins.zlo,zbins.zlo],format='(F4.2)')+'-'+$
                string([sdss_zbins.zup,zbins.zup],format='(F4.2)')+'$'
              info[[0,good+1]].ngal = '$'+string(ngal[[0,good+1]],format='(I0)')+'$'
-             info[[0,good+1]].medz = '$'+string([mzevol.sdss_medz_bymass[mm],$
-               reform(mzevol.medz_bymass[mm,good])],format='(F4.2)')+'$'
+             info[[0,good+1]].medz = '$'+string([mzevol.sdss_medz_bymass[masskeep[mm]],$
+               reform(mzevol.medz_bymass[masskeep[mm],good])],format='(F4.2)')+'$'
+             info[[0,good+1]].medmass = '$'+string([mzevol.sdss_medmass_bymass[masskeep[mm]],$
+               reform(mzevol.medmass_bymass[masskeep[mm],good])],format='(F5.2)')+'$'
           endif
-          info[[0,good+1]].(ii+3) = '$'+string([mzevol.sdss_ohmean_bymass[mm],$ ; offset from the redshifts
-            reform(mzevol.ohmean_bymass[mm,good])],format='(F5.3)')+$
-            '\pm'+string([mzevol.sdss_ohmean_bymass_err[mm],$
-            reform(mzevol.ohmean_bymass_err[mm,good])]>0.01,format='(F4.2)')+'$'
+          info[[0,good+1]].(ii+4) = '$'+string([mzevol.sdss_ohmean_bymass[masskeep[mm]],$ ; offset from the redshifts
+            reform(mzevol.ohmean_bymass[masskeep[mm],good])],format='(F5.3)')+$
+            '\pm'+string([mzevol.sdss_ohmean_bymass_err[masskeep[mm]],$
+            reform(mzevol.ohmean_bymass_err[masskeep[mm],good])]>0.01,format='(F5.3)')+'$'
        endfor
+       keep = where(strmatch(info.oh_kk04,'*nodata*') eq 0 and $
+         strmatch(info.oh_t04,'*nodata*') eq 0 and $
+         strmatch(info.oh_m91,'*nodata*') eq 0,nkeep)
+       info = info[keep]
        struct_print, info
 
        ntags = n_tags(info)
-       for kk = 0, nz do begin
+       for kk = 0, nkeep-1 do begin
           for jj = 0, ntags-1 do begin
-             if (jj eq ntags-1) then if (kk eq nz) then suffix = '' else $
+             if (jj eq ntags-1) then if (kk eq nkeep-1) then suffix = '' else $
                suffix = ' \\' else suffix = ' & '
              printf, lun, info[kk].(jj)+suffix
           endfor
        endfor
-       printf, lun, '\\'
-       if (mm lt nmassbins-2) then printf, lun, '\cline{1-5}'
+       if (mm lt nmassbins-1) then begin
+          printf, lun, '\\'
+          printf, lun, '\cline{1-7}'
+       endif
     endfor
 
     printf, lun, '\enddata'
@@ -603,7 +707,155 @@ stop
     free_lun, lun
 
 ; ---------------------------------------------------------------------------    
-; Table: samples and numbers of galaxies
+; Table 3 - SDSS MZ/LZ relations
+    texfile = paperpath+'mztable_mzlzlocal'+filesuffix+'.tex'
+    splog, 'Writing '+texfile
+    
+; read the fitting results and gather the information we need based on
+; both the reddening-corrected fluxes and the EWs
+    fluxinfo = get_mzlzfit_info(/flux)
+    ewinfo = get_mzlzfit_info()
+
+    ncalib = n_elements(fluxinfo)
+    ntags = n_tags(ewinfo)
+
+    colhead1 = mzget_colhead(['','',$
+      '\multicolumn{4}{c}{\mz\tablenotemark{b}}','',$
+      '\multicolumn{3}{c}{\lz\tablenotemark{c}}'])
+    colhead2 = '\cline{3-6}\cline{8-10}'
+    colhead3 = mzget_colhead(['Calibration\tablenotemark{a}','',$
+      '$12+\log\,\ohstar$','$\log\,(\mstar/10^{9}\, \msun$)','$\gamma$','$\sigma$\tablenotemark{d}','',$
+      '$c_{0}$','$c_{1}$','$\sigma$\tablenotemark{d}'],/nobreak)
+    texcenter = ['l','c',$
+      replicate('c',4),'c',$
+      replicate('c',3)]
+
+    tablenotetext = [$
+      '{a}{Results derived using the \citet[KK04]{kobulnicky04a}, \citet[M91]{mcgaugh91a}, and '+$
+      ' \citet[T04]{tremonti04a} calibrations of the \pagel{} parameter, using both '+$
+      'reddening-corrected line-fluxes and equivalent widths (see \S\ref{sec:ohpagel} for details). '+$
+      'For comparison, we also derive the \mz{} and \lz{} relations using the oxygen abundances '+$
+      'published by the MPA-JHU team (see \S\ref{sec:mzlocal}).}',$  
+      '{b}{\mz{} relation given by '+$
+      '$12+\log\,(\textrm{O}/\textrm{H}) = 12+\log\,(\textrm{O}/\textrm{H})^{\ast} -'+$
+      '\log\, [1+(\mstar/10^{9}\msun)^{\gamma}]$.}',$
+      '{c}{$B$-band \lz{} relation given by $\logoh=c_{0}+c_{1}(\mb+20.5)$.}',$
+      '{d}{Residual $1\sigma$ scatter about the best-fitting relation in dex.}']
+    
+    openw, lun, texfile, /get_lun
+    printf, lun, '\begin{deluxetable*}{'+strjoin(texcenter)+'}[!h]'
+    printf, lun, '\tablecaption{SDSS \mz{} and \lz{} Relations\label{table:mzlzlocal}}'   
+    printf, lun, '\tablewidth{0pt}'
+    printf, lun, '\tablehead{'
+    niceprintf, lun, colhead1
+    niceprintf, lun, colhead2
+    niceprintf, lun, colhead3
+    printf, lun, '}'
+    printf, lun, '\startdata'
+
+    printf, lun, '\multicolumn{2}{c}{} & \multicolumn{8}{c}{Reddening-Corrected Fluxes\tablenotemark{a}} \\'
+    printf, lun, '\cline{1-10}'
+    for ii = 0, ncalib-1 do begin
+       for jj = 0, ntags-1 do begin
+          if (jj eq ntags-1) then if (ii eq ncalib-1) then suffix = '' else $
+            suffix = ' \\' else suffix = ' & '
+          printf, lun, fluxinfo[ii].(jj)+suffix
+       endfor
+    endfor
+    printf, lun, '\\'
+    printf, lun, '\cline{1-10}'
+
+    printf, lun, '\multicolumn{2}{c}{} & \multicolumn{8}{c}{Equivalent Widths\tablenotemark{a}} \\'
+    printf, lun, '\cline{1-10}'
+    for ii = 0, ncalib-2 do begin
+       for jj = 0, ntags-1 do begin
+          if (jj eq ntags-1) then if (ii eq ncalib-2) then suffix = '' else $
+            suffix = ' \\' else suffix = ' & '
+          printf, lun, ewinfo[ii].(jj)+suffix
+       endfor
+    endfor
+    
+    printf, lun, '\enddata'
+;   printf, lun, '\tablecomments{'+tablecomments+'}'
+    niceprintf, lun, '\tablenotetext'+tablenotetext
+    printf, lun, '\end{deluxetable*}'
+    free_lun, lun
+
+; ---------------------------------------------------------------------------    
+; Table 2 - luminosity and mass limits
+    colhead1 = mzget_colhead(['Redshift Range','$M_{B, {\rm lim}}$',$
+      '$\log\,(\mass_{\rm lim}/\msun)$'],/nobreak)
+;   colhead1 = mzget_colhead(['Redshift Range','$M_{B, {\rm lim}}-5\log\,(h_{70})$',$ 
+;     '$\log\,(\mass_{\rm lim}/h_{70}^{-2} \msun)$'],/nobreak)
+    texcenter = ['c','c','c']
+;   colhead1 = mzget_colhead(['Redshift Range','$M_{B}-5\log\,(h_{70})$','$N(M_{B})\tablenotemark{b}$',$
+;     '$\log\,(\mass_{\rm lim}/h_{70}^{-2} \msun)$','$N(\mass)\tablenotemark{b}$'],/nobreak)
+;   texcenter = ['c','c','c','c','c']
+
+    zbins = mz_zbins(nzbins)
+    limits = mrdfits(mzpath+'mz_limits.fits.gz',1)
+    
+    table = replicate({zrange: '', mblimit: '', masslimit: ''},nzbins)
+;   table = replicate({zrange: '', mblimit: '', nmb: '', masslimit: '', nmass: ''},nzbins)
+    ntable = n_elements(table)
+    ntags = n_tags(table)
+
+    table.zrange = string(zbins.zlo,format='(F4.2)')+'-'+string(zbins.zup,format='(F4.2)')
+    table.mblimit = string(limits.mblimit_50,format='(F6.2)')
+    table.masslimit = string(limits.masslimit_50,format='(F5.2)')
+
+;   anc = read_mz_sample(/mzhii_anc)
+;   mass = read_mz_sample(/mzhii_mass)
+;   for iz = 0, nzbins-1 do begin
+;      ww = where(anc.z ge zbins[iz].zlo and anc.z lt zbins[iz].zup and $
+;        anc.k_ubvrijhk_absmag_00[1] lt limits.mblimit_50[iz],nww)
+;      table[iz].nmb = string(nww,format='(I0)')
+;      ww = where(anc.z ge zbins[iz].zlo and anc.z lt zbins[iz].zup and $
+;        mass.mass_50 gt limits.masslimit_50[iz])
+;      table[iz].nmass = string(nww,format='(I0)')
+;   endfor
+    
+    caption = 'AGES Limiting $B$-Band Magnitude \& Stellar Mass\tablenotemark{a}\label{table:limits}'
+    tablenotetext = [$
+      '{a}{Absolute $B$-band magnitude and stellar mass as a function of redshift '+$
+      'above which the AGES star-forming galaxy '+$
+      'sample is more than $50\%$ complete, accounting for variations in $K$-corrections and '+$
+      'mass-to-light ratio.}']
+      
+; write out
+    texfile = paperpath+'mztable_limits'+filesuffix+'.tex'
+    splog, 'Writing '+texfile
+    openw, lun, texfile, /get_lun
+    if keyword_set(emulateapj) then begin
+;      printf, lun, '\LongTables'
+    endif
+    printf, lun, '\begin{deluxetable}{'+strjoin(texcenter)+'}'
+;   printf, lun, '\tabletypesize{\small}'
+    printf, lun, '\tablecaption{'+caption+'}'
+    printf, lun, '\tablewidth{0pt}'
+    printf, lun, '\tablehead{'
+    niceprintf, lun, colhead1
+    printf, lun, '}'
+    printf, lun, '\startdata'
+    for ii = 0, ntable-1 do begin
+       line = strarr(ntags)
+       for jj = 0L, ntags-1 do begin
+          if (jj lt ntags-1) then suffix = ' & ' else if (ii lt ntable-1) then $
+            suffix = ' \\ ' else suffix = ''
+          line[jj] = table[ii].(jj)+suffix
+       endfor
+       printf, lun, line
+    endfor
+    printf, lun, '\enddata'
+;   printf, lun, '\tablecomments{'+tablecomments+'}'
+    niceprintf, lun, '\tablenotetext'+tablenotetext
+    printf, lun, '\end{deluxetable}'
+    free_lun, lun
+
+    
+    
+; ---------------------------------------------------------------------------    
+; Table 1 - samples and numbers of galaxies
     agesparent = read_mz_sample(/parent)
     agesemline = read_mz_sample(/mz_ispec)
     agesemline = agesemline[where(agesemline.oiii_5007[1] gt 0)]
@@ -648,7 +900,7 @@ stop
     splog, nsf, nyansf, nyansf/nsf, nyansf_hiz, nyansf_hiz/nyansf
 
 ; now make the table    
-    colhead1 = mzget_colhead(['Sample','$N$\tablenotemark{a}','Section\tablenotemark{b}'],/nobreak)
+    colhead1 = mzget_colhead(['Sample','$N_{\rm gal}$\tablenotemark{a}','Section\tablenotemark{b}'],/nobreak)
     colhead2 = '\cline{1-3} \\'
     texcenter = ['l','c','c']
     
@@ -705,9 +957,9 @@ stop
       '\ref{sec:agn}',$
       '\ref{sec:agn}',$
       '',$
-      '\ref{sec:oh}',$
-      '\ref{sec:oh}',$
-      '\ref{sec:oh}',$
+      '\ref{sec:ohsummary}',$
+      '\ref{sec:ohsummary}',$
+      '\ref{sec:ohsummary}',$
 
       '',$
       '\ref{sec:sdss}',$
@@ -715,9 +967,9 @@ stop
       '\ref{sec:agn}',$
       '\ref{sec:agn}',$
       '',$
-      '\ref{sec:oh}',$
-      '\ref{sec:oh}',$
-      '\ref{sec:oh}']
+      '\ref{sec:ohsummary}',$
+      '\ref{sec:ohsummary}',$
+      '\ref{sec:ohsummary}']
 
 ;   table.remark = [$
 ;     '',$
@@ -785,674 +1037,9 @@ stop
     printf, lun, '\end{deluxetable}'
     free_lun, lun
 
-stop    
-    
-; ---------------------------------------------------------------------------    
-; coefficients of the linear fits to the mean metallicity vs redshift
-; plots (Fig 14) in bins of stellar mass and for each calibration 
-    texfile = paperpath+'mztable_z_vs_oh_bymass_coeff'+filesuffix+'.tex'
-    splog, 'Writing '+texfile
-    
-; read the fitting results
-    mzavg = mrdfits(mzpath+'mzevol_avg.fits.gz',1,/silent)
-    massbins = mz_massbins(nmassbins)
-
-    calib = ['kk04','t04','m91']
-    ncalib = n_elements(calib)
-
-    mass = '\log\,(\mass/\msun)'
-;   masslabel = ['\multicolumn{2}{c}{$'+mass+'>11$}','',$
-;     '\multicolumn{2}{c}{$10.5<'+mass+'<11$}','',$
-;     '\multicolumn{2}{c}{$10<'+mass+'<10.5$}','',$
-;     '\multicolumn{2}{c}{$9.5<'+mass+'<10$}']
-    masslabel = ['$'+mass+'>11$','$10.5<'+mass+'<11$','$10<'+mass+'<10.5$','$9.5<'+mass+'<10$']
-    
-    colhead1 = mzget_colhead(['','$\langle12+\log\,(\textrm{O}/\textrm{H})\rangle_{z=0.1}$',$
-      '${\mathrm d}\log\,(\textrm{O}/\textrm{H})/{\mathrm d}z$','',$
-      '$\langle12+\log\,(\textrm{O}/\textrm{H})\rangle_{z=0.1}$',$
-      '${\mathrm d}\log\,(\textrm{O}/\textrm{H})/{\mathrm d}z$'])
-    colhead2 = mzget_colhead(['Calibration','(dex)','(dex $z^{-1}$)','','(dex)','(dex $z^{-1}$)'],/nobreak)
-    colhead3 = mzget_colhead(['','\multicolumn{2}{c}{'+masslabel[0]+'}','','\multicolumn{2}{c}{'+masslabel[1]+'}'])
-    colhead4 = mzget_colhead(['','\multicolumn{2}{c}{'+masslabel[2]+'}','','\multicolumn{2}{c}{'+masslabel[3]+'}'])
-    texcenter = replicate('c',6)
-    
-    tablenotetext = [$
-      '{a}{The adopted linear model is given by: $\langle 12+\log\,(\textrm{O}/\textrm{H})\rangle = '+$
-      '\langle 12+\log\,(\textrm{O}/\textrm{H})\rangle_{z=0.1} + {\mathrm d}\log\,(\textrm{O}/\textrm{H})/'+$
-      '{\mathrm d}z\times(z-0.1)$, where $\langle12+\log\,(\textrm{O}/\textrm{H})\rangle_{z=0.1}$ is '+$
-      'the mean metallicity at $z=0.1$ and ${\mathrm d}\log\,(\textrm{O}/\textrm{H})/{\mathrm d}z$ is the '+$
-      'logarithmic rate of metallicity evolution.}']
-    
-    openw, lun, texfile, /get_lun
-    printf, lun, '\begin{deluxetable*}{'+strjoin(texcenter)+'}[!h]'
-    printf, lun, '\tablecaption{Mass-Dependent Evolution of the Mean Metallicity of '+$
-      'Galaxies at $z=0.03-0.75$ \tablenotemark{a}\label{table:oh_bymass_coeff}}'
-    printf, lun, '\tablewidth{0pt}'
-    printf, lun, '\tablehead{'
-    niceprintf, lun, colhead1
-    niceprintf, lun, colhead2
-    printf, lun, '}'
-    printf, lun, '\startdata'
-    printf, lun, '\cline{1-6}'
-
-; -------------------------
-; M>11 and 10.5<M<11    
-    printf, lun, colhead3
-    printf, lun, '\cline{2-3}'
-    printf, lun, '\cline{5-6}'
-
-    for ii = 0, ncalib-1 do begin
-       mzevol = mrdfits(mzpath+'mzevol_'+calib[ii]+'.fits.gz',1,/silent)
-       printf, lun, strupcase(calib[ii])+' & '
-; M>11
-       printf, lun, $
-         '$'+string(mzevol.coeffs_bymass[0,0],format='(F5.3)')+'\pm'+$
-         string(mzevol.coeffs_bymass_err[0,0]>0.01,format='(F4.2)')+'$ & '+$
-         '$'+string(mzevol.coeffs_bymass[1,0],format='(F7.3)')+'\pm'+$
-         string(mzevol.coeffs_bymass_err[1,0],format='(F7.3)')+'$ & & '+$ ; space
-; 10.5<M<11
-         '$'+string(mzevol.coeffs_bymass[0,1],format='(F5.3)')+'\pm'+$
-         string(mzevol.coeffs_bymass_err[0,1]>0.01,format='(F4.2)')+'$ & '+$
-         '$'+string(mzevol.coeffs_bymass[1,1],format='(F7.3)')+'\pm'+$
-         string(mzevol.coeffs_bymass_err[1,1],format='(F7.3)')+'$ \\ '
-    endfor
-    printf, lun, '\cline{1-6}'
-    
-; -------------------------
-; 10<M<10.5 and 9.5<M<10
-    printf, lun, colhead4
-    printf, lun, '\cline{2-3}'
-    printf, lun, '\cline{5-6}'
-
-    for ii = 0, ncalib-1 do begin
-       if (ii eq ncalib-1) then suffix = '' else suffix = '\\'
-       mzevol = mrdfits(mzpath+'mzevol_'+calib[ii]+'.fits.gz',1,/silent)
-       printf, lun, strupcase(calib[ii])+' & '
-; 10<M<10.5
-       printf, lun, $
-         '$'+string(mzevol.coeffs_bymass[0,2],format='(F5.3)')+'\pm'+$
-         string(mzevol.coeffs_bymass_err[0,2]>0.01,format='(F4.2)')+'$ & '+$
-         '$'+string(mzevol.coeffs_bymass[1,2],format='(F7.3)')+'\pm'+$
-         string(mzevol.coeffs_bymass_err[1,2],format='(F7.3)')+'$ & & '+$ ; space
-; 9.5<M<10
-         '$'+string(mzevol.coeffs_bymass[0,3],format='(F5.3)')+'\pm'+$
-         string(mzevol.coeffs_bymass_err[0,3]>0.01,format='(F4.2)')+'$ & '+$
-         '$'+string(mzevol.coeffs_bymass[1,3],format='(F7.3)')+'\pm'+$
-         string(mzevol.coeffs_bymass_err[1,3],format='(F7.3)')+'$ '+suffix
-    endfor
-
-    printf, lun, '\enddata'
-;   printf, lun, '\tablecomments{'+tablecomments+'}'
-    niceprintf, lun, '\tablenotetext'+tablenotetext
-    printf, lun, '\end{deluxetable*}'
-    free_lun, lun
-
-; ---------------------------------------------------------------------------    
-; SDSS MZ/LZ relations
-    texfile = paperpath+'mztable_mzlzlocal'+filesuffix+'.tex'
-    splog, 'Writing '+texfile
-    
-; read the fitting results and gather the information we need based on
-; both the reddening-corrected fluxes and the EWs
-    fluxinfo = get_mzlzfit_info(/flux)
-    ewinfo = get_mzlzfit_info()
-
-    ncalib = n_elements(fluxinfo)
-    ntags = n_tags(ewinfo)
-
-    colhead1 = mzget_colhead(['','',$
-      '\multicolumn{4}{c}{\mz\tablenotemark{b}}','',$
-      '\multicolumn{3}{c}{\lz\tablenotemark{c}}'])
-    colhead2 = '\cline{3-6}\cline{8-10}'
-    colhead3 = mzget_colhead(['Calibration\tablenotemark{a}','',$
-      '12+log\,\ohstar','$log\,(\mstar/10^{9}\, \msun$)','$\gamma$','$\sigma$\tablenotemark{d}','',$
-      '$c_{0}$','$c_{1}$','$\sigma$\tablenotemark{d}'],/nobreak)
-    texcenter = ['l','c',$
-      replicate('c',4),'c',$
-      replicate('c',3)]
-
-    tablenotetext = [$
-      '{a}{Results derived using the \citet[T04]{tremonti04a}, \citet[M91]{mcgaugh91a}, and '+$
-      '\citet[KK04]{kobulnicky04a} calibrations of the \pagel{} parameter, using both '+$
-      'reddening-corrected line-fluxes and equivalent widths (see \S\ref{sec:oh} for details). '+$
-      'For comparison, we also derive the \mz{} and \lz{} relations using the oxygen abundances '+$
-      'published by the MPA-JHU team (see \S\ref{sec:mzlzlocal}).}',$  
-      '{b}{\mz{} relation given by '+$
-      '$12+\log\,(\textrm{O}/\textrm{H}) = 12+\log\,(\textrm{O}/\textrm{H})^{\ast} -'+$
-      '\log\, [1+(\mstar/10^{9}\mass)^{\gamma}]$.}',$
-      '{c}{$B$-band \lz{} relation given by $\logoh=c_{0}+c_{1}(\mb+20.5)$.}',$
-      '{d}{Residual scatter about the best-fitting relation.}']
-    
-    openw, lun, texfile, /get_lun
-    printf, lun, '\begin{deluxetable*}{'+strjoin(texcenter)+'}[!h]'
-    printf, lun, '\tablecaption{SDSS \mz{} and \lz{} Relations\label{table:mzlzlocal}}'   
-    printf, lun, '\tablewidth{0pt}'
-    printf, lun, '\tablehead{'
-    niceprintf, lun, colhead1
-    niceprintf, lun, colhead2
-    niceprintf, lun, colhead3
-    printf, lun, '}'
-    printf, lun, '\startdata'
-
-    printf, lun, '\multicolumn{2}{c}{} & \multicolumn{8}{c}{Reddening-Corrected Fluxes\tablenotemark{a}} \\'
-    printf, lun, '\cline{1-10}'
-    for ii = 0, ncalib-1 do begin
-       for jj = 0, ntags-1 do begin
-          if (jj eq ntags-1) then if (ii eq ncalib-1) then suffix = '' else $
-            suffix = ' \\' else suffix = ' & '
-          printf, lun, fluxinfo[ii].(jj)+suffix
-       endfor
-    endfor
-    printf, lun, '\\'
-    printf, lun, '\cline{1-10}'
-
-    printf, lun, '\multicolumn{2}{c}{} & \multicolumn{8}{c}{Equivalent Widths\tablenotemark{a}} \\'
-    printf, lun, '\cline{1-10}'
-    for ii = 0, ncalib-2 do begin
-       for jj = 0, ntags-1 do begin
-          if (jj eq ntags-1) then if (ii eq ncalib-2) then suffix = '' else $
-            suffix = ' \\' else suffix = ' & '
-          printf, lun, ewinfo[ii].(jj)+suffix
-       endfor
-    endfor
-    
-    printf, lun, '\enddata'
-;   printf, lun, '\tablecomments{'+tablecomments+'}'
-    niceprintf, lun, '\tablenotetext'+tablenotetext
-    printf, lun, '\end{deluxetable*}'
-    free_lun, lun
-
 stop
-
 stop
 stop    
-    
-; ---------------------------------------------------------------------------    
-; Table: delta-log(O/H) with redshift
-
-; read the output from FIT_MZLZEVOL
-    ohevol = mrdfits(mzpath+'ohevol.fits.gz',1)
-
-    table = {z: '', dlogoh_q0: '', dlogoh_q0_cor: '', empty: '', $
-      dlogoh_q15: '', dlogoh_q15_cor: ''}
-    table = replicate(table,n_elements(ohevol))
-;   table.z = '$'+string(ohevol.z,format='(F4.2)')+'$'
-    table.z = '$'+['0.05-0.15','0.15-0.25','0.25-0.35','0.35-0.45','0.45-0.55','0.55-0.75']+'$'
-
-; LZ    
-    table1 = table
-; Q=0
-    pad = ['\phs','','','','','']
-    table1.dlogoh_q0 = [pad+'$'+string(ohevol.ldlogoh_noevol,format='(F5.2)')+'\pm'+$
-      string(ohevol.ldlogoh_noevol_err,format='(F5.2)')+'$']
-    table1.dlogoh_q0_cor = [pad+'$'+string(ohevol.ldlogoh_noevol_cor,format='(F5.2)')+'\pm'+$
-      string(ohevol.ldlogoh_noevol_cor_err,format='(F5.2)')+'$']
-; Q=1.5
-    table1.dlogoh_q15 = [pad+'$'+string(ohevol.ldlogoh_levol,format='(F5.2)')+'\pm'+$
-      string(ohevol.ldlogoh_levol_err,format='(F5.2)')+'$']
-    table1.dlogoh_q15_cor = [pad+'$'+string(ohevol.ldlogoh_levol_cor,format='(F5.2)')+'\pm'+$
-      string(ohevol.ldlogoh_levol_cor_err,format='(F5.2)')+'$']
-
-; MZ
-    table2 = table
-; Q=0
-    pad = ['\phs','','','','','']
-    table2.dlogoh_q0 = [pad+'$'+string(ohevol.mdlogoh,format='(F5.2)')+'\pm'+$
-      string(ohevol.mdlogoh_err,format='(F5.2)')+'$']
-    table2.dlogoh_q0_cor = [pad+'$'+string(ohevol.mdlogoh_noevol_cor,format='(F5.2)')+'\pm'+$
-      string(ohevol.mdlogoh_noevol_cor_err,format='(F5.2)')+'$']
-; Q=1.5
-    table2.dlogoh_q15 = [pad+'$'+string(ohevol.mdlogoh,format='(F5.2)')+'\pm'+$
-      string(ohevol.mdlogoh_err,format='(F5.2)')+'$']
-    pad = ['\phs','','\phs','','','']
-    table2.dlogoh_q15_cor = [pad+'$'+string(ohevol.mdlogoh_levol_cor,format='(F5.2)')+'\pm'+$
-      string(ohevol.mdlogoh_levol_cor_err,format='(F5.2)')+'$']
-
-    tags = tag_names(table1)
-    ntable = n_elements(table1)
-    ntags = n_tags(table1)
-    
-    colhead1 = $
-      '\colhead{} & '+$
-      '\multicolumn{2}{c}{\emph{L-Z}, $Q=0$} & '+$
-      '\colhead{} & '+$
-      '\multicolumn{2}{c}{\emph{L-Z}, $Q=1.5$} \\ '
-    colhead2 = $
-      '\colhead{} & '+$
-      '\multicolumn{2}{c}{\emph{M-Z}, $Q=0$} & '+$
-      '\colhead{} & '+$
-      '\multicolumn{2}{c}{\emph{M-Z}, $Q=1.5$} \\ '
-    colhead3 = '\cline{2-3}\cline{5-6}'
-    colhead4 = $
-      '\colhead{Redshift} & '+$
-      '\colhead{$\langle \Delta\,\log\,({\rm O/H}) \rangle_{\rm obs}$} & '+$
-      '\colhead{$\langle \Delta\,\log\,({\rm O/H}) \rangle_{\rm cor}$} & '+$
-      '\colhead{} & '+$
-      '\colhead{$\langle \Delta\,\log\,({\rm O/H}) \rangle_{\rm obs}$} & '+$
-      '\colhead{$\langle \Delta\,\log\,({\rm O/H}) \rangle_{\rm cor}$} '
-    colhead5 = '\cline{1-6}'
-    texcenter = ['c','c','c','c','c','c']
-
-    caption = 'Relative Change in Mean Oxygen Abundance '+$
-      'with Redshift\label{table:dlogohevol}'
-    
-; write out
-    texfile = paperpath+'mztable_dlogohevol_'+filesuffix+'.tex'
-    splog, 'Writing '+texfile
-    openw, lun, texfile, /get_lun
-    if keyword_set(emulateapj) then begin
-;      printf, lun, '\LongTables'
-    endif
-    printf, lun, '\begin{deluxetable}{'+strjoin(texcenter)+'}'
-;   printf, lun, '\tabletypesize{\small}'
-    printf, lun, '\tablecaption{'+caption+'}'
-    printf, lun, '\tablewidth{0pt}'
-    printf, lun, '\tablehead{'
-    niceprintf, lun, colhead1
-    niceprintf, lun, colhead3
-    niceprintf, lun, colhead4
-    printf, lun, '}'
-    printf, lun, '\startdata'
-; LZ header and data
-;   printf, lun, colhead1
-;   printf, lun, colhead3
-    for ii = 0, ntable-1 do begin
-       line = strarr(ntags)
-       for jj = 0L, ntags-1 do begin
-          if (jj lt ntags-1) then suffix = ' & ' else suffix = ' \\ '
-;         if (jj lt ntags-1) then suffix = ' & ' else if (ii lt ntable-1) then $
-;           suffix = ' \\ ' else suffix = ''
-          if strmatch(tags[jj],'*empty*',/fold) then line[jj] = suffix else $
-            line[jj] = table1[ii].(jj)+suffix
-       endfor
-       printf, lun, line
-    endfor
-; MZ header and data
-    printf, lun, colhead5
-    printf, lun, colhead2
-    printf, lun, colhead3
-    printf, lun, colhead4+' \\'
-    printf, lun, colhead5
-    for ii = 0, ntable-1 do begin
-       line = strarr(ntags)
-       for jj = 0L, ntags-1 do begin
-          if (jj lt ntags-1) then suffix = ' & ' else if (ii lt ntable-1) then $
-            suffix = ' \\ ' else suffix = ''
-          if strmatch(tags[jj],'*empty*',/fold) then line[jj] = suffix else $
-            line[jj] = table2[ii].(jj)+suffix
-       endfor
-       printf, lun, line
-    endfor
-    printf, lun, '\enddata'
-;   printf, lun, '\tablecomments{'+tablecomments+'}'
-;   niceprintf, lun, '\tablenotetext'+tablenotetext
-    printf, lun, '\end{deluxetable}'
-    free_lun, lun
-
-stop
-    
-; ---------------------------------------------------------------------------    
-; Table: local MZ relation
-
-    ss = mrdfits(mzpath+'mzlocal_sdss_coeffs.fits.gz',1)
-    aa = mrdfits(mzpath+'mzlocal_ages_coeffs.fits.gz',1)
-
-    table = {sample: '', ngal: '', zrange: '', a1: '', b1: '', c1: '', scatter: ''}
-    table = replicate(table,4)
-
-    table.sample = ['AGES','SDSS','Tremonti+04\tablenotemark{d}','Adopted\tablenotemark{e}']
-    table.ngal = ['$'+string([aa[1].ngal,ss[1].ngal,53400],format='(I0)')+'$','\nodata']
-
-    table.zrange = ['$0.05<z<0.15$','$0.033<z<0.25$','$0.005<z<0.25$','$z\approx0.1$']
-    table.a1 = [$
-      '$'+string(aa[1].coeff[0],format='(F5.3)')+'\pm'+string(aa[1].coeff_err[0],format='(F5.3)')+'$',$
-      '$'+string(ss[1].coeff[0],format='(F5.3)')+'\pm'+string(ss[1].coeff_err[0],format='(F5.3)')+'$',$
-      '$'+string('9.10284',format='(F5.3)')+'$',$
-      '$'+string(aa[2].coeff[0],format='(F5.3)')+'\pm'+string(aa[2].coeff_err[0],format='(F5.3)')+'$']
-    table.b1 = [$
-      '$'+string(aa[1].coeff[1],format='(F5.3)')+'\pm'+string(aa[1].coeff_err[1],format='(F5.3)')+'$',$
-      '$'+string(ss[1].coeff[1],format='(F5.3)')+'\pm'+string(ss[1].coeff_err[1],format='(F5.3)')+'$',$
-      '$'+string('0.16154',format='(F5.3)')+'$',$
-      '$'+string(aa[2].coeff[1],format='(F5.3)')+'\pm'+string(aa[2].coeff_err[1],format='(F5.3)')+'$']
-    table.c1 = [$
-      '\nodata',$
-      '$'+string(ss[1].coeff[2],format='(F7.4)')+'\pm'+string(ss[1].coeff_err[2],format='(F7.4)')+'$',$
-      '$'+string('-0.08026',format='(F7.4)')+'$',$
-      '$'+string(aa[2].coeff[2],format='(F7.4)')+'\pm'+string(aa[2].coeff_err[2],format='(F7.4)')+'$']
-
-    table.scatter = ['$'+string([aa[1].scatter,ss[1].scatter,'0.10'],$
-      format='(F4.2)')+'$','\nodata']
-    struct_print, table
-
-    ntable = n_elements(table)
-    ntags = n_tags(table)
-    
-    colhead1 = $
-      '\colhead{} & '+$
-      '\colhead{} & '+$
-      '\colhead{Redshift} & '+$
-      '\multicolumn{3}{c}{Coefficients\tablenotemark{b}} & '+$
-      '\colhead{} \\'
-    colhead2 = '\cline{4-6}'
-    colhead3 = $
-      '\colhead{Sample} & '+$
-      '\colhead{$N_{\rm gal}$\tablenotemark{a}} & '+$
-      '\colhead{Range} & '+$
-      '\colhead{$a$} & '+$
-      '\colhead{$b$} & '+$
-      '\colhead{$c$} & '+$
-      '\colhead{Scatter\tablenotemark{c}}'
-    texcenter = ['c','c','c','c','c','c','c']
-
-    tablecomments = ['Each mass-metallicity relation was derived by computing '+$
-      'the median oxygen abundance in $0.1$~dex wide bins of stellar mass and '+$
-      'fitting a...']
-    caption = 'Local Mass-Metallicity Relation\label{table:mzlocal}'
-
-    tablenotetext = [$
-      '{a}{Number of galaxies included in the fit.}',$
-      '{b}{The data were fitted to a function of the form $12+\log\,({\rm O/H}) = a + b[\log\,(\mathcal{M})-10.5] + [\log\,(\mathcal{M})-10.5]^2$.}',$
-      '{c}{$1\sigma$ dispersion in $\log\,({\rm O/H})$, relative to the polynomial fit.}',$
-      '{d}{Mass-metallicity relation from \citet{tremonti04a}, shifted by $+0.05$~dex '+$
-        'in $12+\log\,({\rm O/H})$ to match the zero-point of our adopted \citet{kobulnicky04a} '+$
-        'abundance calibration.}',$
-      '{e}{Adopted stellar mass-metallicity relation, taken to be the average '+$
-      'of the SDSS and and \citet{tremonti04a} relations.}']
-    
-; write out
-    texfile = paperpath+'mztable_mzlocal_'+filesuffix+'.tex'
-    splog, 'Writing '+texfile
-    openw, lun, texfile, /get_lun
-    if keyword_set(emulateapj) then begin
-;      printf, lun, '\LongTables'
-    endif
-    printf, lun, '\begin{deluxetable}{'+strjoin(texcenter)+'}'
-;   printf, lun, '\tabletypesize{\small}'
-    printf, lun, '\tablecaption{'+caption+'}'
-    printf, lun, '\tablewidth{0pt}'
-    printf, lun, '\tablehead{'
-    niceprintf, lun, colhead1
-    niceprintf, lun, colhead2
-    niceprintf, lun, colhead3
-    printf, lun, '}'
-    printf, lun, '\startdata'
-    for ii = 0, ntable-1 do begin
-       line = strarr(ntags)
-       for jj = 0L, ntags-1 do begin
-          if (jj lt ntags-1) then suffix = ' & ' else if (ii lt ntable-1) then $
-            suffix = ' \\ ' else suffix = ''
-          line[jj] = table[ii].(jj)+suffix
-       endfor
-       printf, lun, line
-    endfor
-    printf, lun, '\enddata'
-    printf, lun, '\tablecomments{'+tablecomments+'}'
-    niceprintf, lun, '\tablenotetext'+tablenotetext
-    printf, lun, '\end{deluxetable}'
-    free_lun, lun
-
-; ---------------------------------------------------------------------------    
-; Table: local LZ relation
-
-    ss = mrdfits(mzpath+'lzlocal_sdss_coeffs.fits.gz',1)
-    aa = mrdfits(mzpath+'lzlocal_ages_coeffs.fits.gz',1)
-
-    table = {sample: '', ngal: '', zrange: '', intercept: '', slope: '', scatter: ''}
-    table = replicate(table,4)
-
-    table.sample = ['AGES','SDSS','Tremonti+04\tablenotemark{d}','Adopted\tablenotemark{e}']
-    table.ngal = ['$'+string([aa[1].ngal,ss[1].ngal,53400],format='(I0)')+'$','\nodata']
-
-    table.zrange = ['$0.05<z<0.15$','$0.033<z<0.25$','$0.005<z<0.25$','$z\approx0.1$']
-    table.slope = '$'+string([aa[1].coeff[1],ss[1].coeff[1],'-0.186',$
-      aa[2].coeff[1]],format='(F6.3)')+'\pm'+string([aa[1].coeff_err[1],$
-      ss[1].coeff_err[1],'0.001',aa[2].coeff_err[1]],format='(F5.3)')+'$'
-    table.intercept = '$'+string([aa[1].coeff[0],ss[1].coeff[0],'9.058',$
-      aa[2].coeff[0]],format='(F5.3)')+'\pm'+string([aa[1].coeff_err[0],$
-      ss[1].coeff_err[0],'0.018',aa[2].coeff_err[0]],format='(F5.3)')+'$'
-    table.scatter = ['$'+string([aa[1].scatter,ss[1].scatter,'0.16'],$
-      format='(F4.2)')+'$','\nodata']
-    struct_print, table
-
-    ntable = n_elements(table)
-    ntags = n_tags(table)
-    
-    colhead1 = $
-      '\colhead{} & '+$
-      '\colhead{} & '+$
-      '\colhead{Redshift} & '+$
-      '\multicolumn{2}{c}{Coefficients\tablenotemark{b}} & '+$
-      '\colhead{} \\'
-    colhead2 = '\cline{4-5}'
-    colhead3 = $
-      '\colhead{Sample} & '+$
-      '\colhead{$N_{\rm gal}$\tablenotemark{a}} & '+$
-      '\colhead{Range} & '+$
-      '\colhead{$a$} & '+$
-      '\colhead{$b$} & '+$
-      '\colhead{Scatter\tablenotemark{c}}'
-    texcenter = ['c','c','c','c','c','c']
-
-    tablecomments = ['Each luminosity-metallicity relation was derived using an '+$
-      'ordinary least-squares linear bisector fit to all objects with $-24.0<M_{0.1g}<-17.5$.']
-    caption = 'Local $g$-band Luminosity-Metallicity Relation\label{table:glzlocal}'
-
-    tablenotetext = [$
-      '{a}{Number of galaxies included in the fit.}',$
-      '{b}{The data were fitted to a function of the form $12+\log\,({\rm O/H}) = a + b(M_{0.1g}+20.5)$.}',$
-      '{c}{$1\sigma$ dispersion in $\log\,({\rm O/H})$, relative to the best fit.}',$
-      '{d}{$g$-band luminosity-metallicity relation from \citet{tremonti04a}, shifted by $+0.05$~dex '+$
-        'in $12+\log\,({\rm O/H})$ to match the zero-point of our adopted \citet{kobulnicky04a} '+$
-        'abundance calibration.}',$
-      '{e}{Adopted $g$-band luminosity-metallicity relation, taken to be the average '+$
-      'of the SDSS and AGES relations.}']
-    
-; write out
-    texfile = paperpath+'mztable_glzlocal_'+filesuffix+'.tex'
-    splog, 'Writing '+texfile
-    openw, lun, texfile, /get_lun
-    if keyword_set(emulateapj) then begin
-;      printf, lun, '\LongTables'
-    endif
-    printf, lun, '\begin{deluxetable}{'+strjoin(texcenter)+'}'
-;   printf, lun, '\tabletypesize{\small}'
-    printf, lun, '\tablecaption{'+caption+'}'
-    printf, lun, '\tablewidth{0pt}'
-    printf, lun, '\tablehead{'
-    niceprintf, lun, colhead1
-    niceprintf, lun, colhead2
-    niceprintf, lun, colhead3
-    printf, lun, '}'
-    printf, lun, '\startdata'
-    for ii = 0, ntable-1 do begin
-       line = strarr(ntags)
-       for jj = 0L, ntags-1 do begin
-          if (jj lt ntags-1) then suffix = ' & ' else if (ii lt ntable-1) then $
-            suffix = ' \\ ' else suffix = ''
-          line[jj] = table[ii].(jj)+suffix
-       endfor
-       printf, lun, line
-    endfor
-    printf, lun, '\enddata'
-    printf, lun, '\tablecomments{'+tablecomments+'}'
-    niceprintf, lun, '\tablenotetext'+tablenotetext
-    printf, lun, '\end{deluxetable}'
-    free_lun, lun
-
-stop    
-    
-; ---------------------------------------------------------------------------    
-; Table: measured properties
-
-    ngalaxy = n_elements(agesdust)
-    srt = sort(agesancillary.ages_id)
-
-    ages = replicate({id: '', ra: '', dec: '', z: '', weight: '', $
-      m_b: '', m_v: '', m_r: '', mass: '', $
-      oii: '', hbeta: '', oiii: ''},ngalaxy)
-    ntags = n_tags(ages)
-
-    ages.id     = string(agesancillary[srt].ages_id,format='(I0)')
-    ages.ra     = dec2hms(agesancillary[srt].ra/15D,/colon)
-    ages.dec    = dec2hms(agesancillary[srt].dec,/colon)
-    pos = where(agesancillary[srt].dec gt 0.0) & ages[pos].dec = '+'+ages[pos].dec
-
-    ages.z      = string(agesancillary[srt].z,format='(F6.4)')
-    ages.weight = string(agesancillary[srt].spec_weight,format='(F8.3)')
-
-    ages.m_b  = '$'+string(agesancillary[srt].m_b,format='(F6.2)')+'\pm'+string(agesancillary[srt].m_b_err,format='(F4.2)')+'$'
-    ages.m_v  = '$'+string(agesancillary[srt].m_v,format='(F6.2)')+'\pm'+string(agesancillary[srt].m_v_err,format='(F4.2)')+'$'
-    ages.m_r  = '$'+string(agesancillary[srt].m_r,format='(F6.2)')+'\pm'+string(agesancillary[srt].m_r_err,format='(F4.2)')+'$'
-    ages.mass = '$'+string(agesancillary[srt].kcorr_mass,format='(F5.2)')+'\pm'+string(agesancillary[srt].kcorr_mass_err>0.01,format='(F4.2)')+'$'
-    
-    format_flux_error, agesdust[srt].oii_3727_ew[0],  agesdust[srt].oii_3727_ew[1],  f_oii,  e_oii  & ages.oii   = '$'+f_oii +'\pm'+e_oii+'$'
-    format_flux_error, agesdust[srt].oiii_5007_ew[0], agesdust[srt].oiii_5007_ew[1], f_oiii, e_oiii & ages.oiii  = '$'+f_oiii+'\pm'+e_oiii+'$'
-    format_flux_error, agesdust[srt].h_beta_ew[0],    agesdust[srt].h_beta_ew[1],    f_hb,   e_hb   & ages.hbeta = '$'+f_hb  +'\pm'+e_hb+'$'
-
-; replace negative [O III] values with upper limits
-
-    neg = where(agesdust[srt].oiii_5007_ew[0] lt 0.0,nneg)
-    if (nneg ne 0L) then ages[neg].oiii = '$>'+string(agesdust[srt[neg]].oiii_5007_ew_limit,format='(F4.1)')+'$' ; make sure the limits are positive!
-;   format_flux_error, abs(agesdust[srt[neg]].oiii_5007_ew[0]), agesdust[srt[neg]].oiii_5007_ew[1], f, e
-    
-    colhead = strjoin('\colhead{'+['ID\tablenotemark{a}','$\alpha_{\rm J2000}$\tablenotemark{a}','$\delta_{\rm J2000}$\tablenotemark{a}',$
-      'Redshift\tablenotemark{a}','Weight\tablenotemark{a}',$
-      '$M_{B}$\tablenotemark{b}','$M_{V}$\tablenotemark{b}','$M_{R}$\tablenotemark{b}','$\log\,(M/M_{\sun})$\tablenotemark{b}',$
-      'EW([O~{\sc ii}~$\lambda3727$])\tablenotemark{c}','EW(H$\beta$)\tablenotemark{c}','EW([O~{\sc iii}~$\lambda5007$])\tablenotemark{c}']+'}',' & ')+' \\'
-    colunits = strjoin('\colhead{('+string(lindgen(ntags)+1L,format='(I0)')+')}',' & ') ;+' \\'
-    colcenter = replicate('c',ntags)
-
-    tablecomments = ['(1)','(2)']
-    tablecomments = strjoin(tablecomments,' ')
-    tablenotetext = [$
-      '{a}{AGES identification numbers, celestial coordinates, spectroscopic redshifts, and statistical weights are '+$
-      'taken from C.~S.~Kochanek et~al. (2007, in prep.) and D.~J. Eisenstein et~al. (2007, in prep.).}',$
-      '{b}{Absolute magnitudes (Vega; $h=0.7$) and stellar masses (\citealt{salpeter55} IMF; $0.1-100~M_{\sun}$) have '+$
-      'been derived using {\sc k-correct} \citep[ver.~4.1.3;][]{blanton06b}.}',$
-      '{c}{Absorption-corrected, rest-frame emission-line equivalent widths in \AA.}']
-    
-    texfile = paperpath+'mztable_ages_mzdata_'+filesuffix+'.tex'
-    splog, 'Writing '+texfile+'.'
-    openw, lun, texfile, /get_lun
-    printf, lun, '\begin{landscape}'
-    printf, lun, '\begin{deluxetable}{'+strjoin(colcenter)+'}'
-    printf, lun, '\tabletypesize{\tiny}'
-;   printf, lun, '\rotate'
-    printf, lun, '\tablecaption{AGES: Spectrophotometric Properties and Oxygen Abundances\label{table:ages_mzdata}}'
-    printf, lun, '\tablewidth{0pt}'
-    printf, lun, '\tablehead{'
-    niceprintf, lun, colhead
-    niceprintf, lun, colunits
-    printf, lun, '}'
-    printf, lun, '\startdata'
-
-    for i = 0L, 24L do begin
-;   for i = 0L, ngalaxy-1L do begin
-       line = strarr(ntags)
-       for j = 0L, ntags-1L do begin
-          if (j lt ntags-1L) then suffix = ' & ' else begin
-             if (i lt ngalaxy-1L) then suffix = ' \\ ' else suffix = ''
-          endelse
-          if (strcompress(ages[i].(j),/remove) eq '') then $
-            line[j] = '\nodata'+suffix else line[j] = ages[i].(j)+suffix
-       endfor
-       printf, lun, line
-    endfor
-    
-    printf, lun, '\enddata'
-;   printf, lun, '\tablecomments{'+tablecomments+'}'
-    niceprintf, lun, '\tablenotetext'+tablenotetext
-    printf, lun, '\end{deluxetable}'
-    printf, lun, '\clearpage'
-    printf, lun, '\end{landscape}'
-    free_lun, lun
-
-stop    
-
-; ---------------------------------------------------------------------------    
-; Table: delta-log(O/H) with redshift
-
-; read the output from FIT_MZLZEVOL
-    ohevol = mrdfits(mzpath+'ohevol.fits.gz',1)
-
-    table = {z: '', dlogoh: '', dlogoh_cor: ''}
-    table = replicate(table,n_elements(ohevol))
-    table.z = '$'+string(ohevol.z,format='(F4.2)')+'$'
-
-; L-Z, Q=0    
-    table1 = table 
-    table1.dlogoh = ['$'+string(ohevol.ldlogoh_noevol,format='(F6.2)')+'\pm'+$
-      string(ohevol.ldlogoh_noevol_err,format='(F6.2)')+'$']
-    table1.dlogoh_cor = ['$'+string(ohevol.ldlogoh_noevol_cor,format='(F6.2)')+'\pm'+$
-      string(ohevol.ldlogoh_noevol_cor_err,format='(F6.2)')+'$']
-; L-Z, Q=1.5
-    table2 = table 
-    table2.dlogoh = ['$'+string(ohevol.ldlogoh_levol,format='(F6.2)')+'\pm'+$
-      string(ohevol.ldlogoh_levol_err,format='(F6.2)')+'$']
-    table2.dlogoh_cor = ['$'+string(ohevol.ldlogoh_levol_cor,format='(F6.2)')+'\pm'+$
-      string(ohevol.ldlogoh_levol_cor_err,format='(F6.2)')+'$']
-
-    ntable = n_elements(table)
-    ntags = n_tags(table)
-    
-    colhead1 = $
-      '\colhead{} & '+$
-      '\colhead{Observed} & '+$
-      '\colhead{Corrected} \\'
-    colhead2 = $
-      '\colhead{Redshift} & '+$
-      '\colhead{$\langle \Delta\,\log\,({\rm O/H}) \rangle$} & '+$
-      '\colhead{$\langle \Delta\,\log\,({\rm O/H}) \rangle$} \\'
-    texcenter = ['c','c','c']
-
-    caption = 'Change in the Mean Oxygen Abundance\label{table:dlogohevol}'
-    
-; write out
-    texfile = paperpath+'mztable_dlogohevol_'+filesuffix+'.tex'
-    splog, 'Writing '+texfile
-    openw, lun, texfile, /get_lun
-    if keyword_set(emulateapj) then begin
-;      printf, lun, '\LongTables'
-    endif
-    printf, lun, '\begin{deluxetable}{'+strjoin(texcenter)+'}'
-;   printf, lun, '\tabletypesize{\small}'
-    printf, lun, '\tablecaption{'+caption+'}'
-    printf, lun, '\tablewidth{0pt}'
-    printf, lun, '\tablehead{'
-    niceprintf, lun, colhead1
-    niceprintf, lun, colhead2
-    printf, lun, '}'
-    printf, lun, '\startdata'
-; L-Z, Q=0    
-    printf, lun, '\cutinhead{\emph{L-Z}, $Q=0$}'
-    for ii = 0, ntable-1 do begin
-       line = strarr(ntags)
-       for jj = 0L, ntags-1 do begin
-          if (jj lt ntags-1) then suffix = ' & ' else suffix = ' \\ '
-;         if (jj lt ntags-1) then suffix = ' & ' else if (ii lt ntable-1) then $
-;           suffix = ' \\ ' else suffix = ''
-          line[jj] = table1[ii].(jj)+suffix
-       endfor
-       printf, lun, line
-    endfor
-; L-Z, Q=1.5
-    printf, lun, '\cutinhead{\emph{L-Z}, $Q=1.5$}'
-    for ii = 0, ntable-1 do begin
-       line = strarr(ntags)
-       for jj = 0L, ntags-1 do begin
-          if (jj lt ntags-1) then suffix = ' & ' else if (ii lt ntable-1) then $
-            suffix = ' \\ ' else suffix = ''
-          line[jj] = table2[ii].(jj)+suffix
-       endfor
-       printf, lun, line
-    endfor
-    printf, lun, '\enddata'
-;   printf, lun, '\tablecomments{'+tablecomments+'}'
-;   niceprintf, lun, '\tablenotetext'+tablenotetext
-    printf, lun, '\end{deluxetable}'
-    free_lun, lun
-
-stop
     
 return
 end
@@ -1673,3 +1260,492 @@ end
 ;;
 ;;stop
 ;;
+
+
+;;; ---------------------------------------------------------------------------    
+;;; Table: delta-log(O/H) with redshift
+;;
+;;; read the output from FIT_MZLZEVOL
+;;    ohevol = mrdfits(mzpath+'ohevol.fits.gz',1)
+;;
+;;    table = {z: '', dlogoh_q0: '', dlogoh_q0_cor: '', empty: '', $
+;;      dlogoh_q15: '', dlogoh_q15_cor: ''}
+;;    table = replicate(table,n_elements(ohevol))
+;;;   table.z = '$'+string(ohevol.z,format='(F4.2)')+'$'
+;;    table.z = '$'+['0.05-0.15','0.15-0.25','0.25-0.35','0.35-0.45','0.45-0.55','0.55-0.75']+'$'
+;;
+;;; LZ    
+;;    table1 = table
+;;; Q=0
+;;    pad = ['\phs','','','','','']
+;;    table1.dlogoh_q0 = [pad+'$'+string(ohevol.ldlogoh_noevol,format='(F5.2)')+'\pm'+$
+;;      string(ohevol.ldlogoh_noevol_err,format='(F5.2)')+'$']
+;;    table1.dlogoh_q0_cor = [pad+'$'+string(ohevol.ldlogoh_noevol_cor,format='(F5.2)')+'\pm'+$
+;;      string(ohevol.ldlogoh_noevol_cor_err,format='(F5.2)')+'$']
+;;; Q=1.5
+;;    table1.dlogoh_q15 = [pad+'$'+string(ohevol.ldlogoh_levol,format='(F5.2)')+'\pm'+$
+;;      string(ohevol.ldlogoh_levol_err,format='(F5.2)')+'$']
+;;    table1.dlogoh_q15_cor = [pad+'$'+string(ohevol.ldlogoh_levol_cor,format='(F5.2)')+'\pm'+$
+;;      string(ohevol.ldlogoh_levol_cor_err,format='(F5.2)')+'$']
+;;
+;;; MZ
+;;    table2 = table
+;;; Q=0
+;;    pad = ['\phs','','','','','']
+;;    table2.dlogoh_q0 = [pad+'$'+string(ohevol.mdlogoh,format='(F5.2)')+'\pm'+$
+;;      string(ohevol.mdlogoh_err,format='(F5.2)')+'$']
+;;    table2.dlogoh_q0_cor = [pad+'$'+string(ohevol.mdlogoh_noevol_cor,format='(F5.2)')+'\pm'+$
+;;      string(ohevol.mdlogoh_noevol_cor_err,format='(F5.2)')+'$']
+;;; Q=1.5
+;;    table2.dlogoh_q15 = [pad+'$'+string(ohevol.mdlogoh,format='(F5.2)')+'\pm'+$
+;;      string(ohevol.mdlogoh_err,format='(F5.2)')+'$']
+;;    pad = ['\phs','','\phs','','','']
+;;    table2.dlogoh_q15_cor = [pad+'$'+string(ohevol.mdlogoh_levol_cor,format='(F5.2)')+'\pm'+$
+;;      string(ohevol.mdlogoh_levol_cor_err,format='(F5.2)')+'$']
+;;
+;;    tags = tag_names(table1)
+;;    ntable = n_elements(table1)
+;;    ntags = n_tags(table1)
+;;    
+;;    colhead1 = $
+;;      '\colhead{} & '+$
+;;      '\multicolumn{2}{c}{\emph{L-Z}, $Q=0$} & '+$
+;;      '\colhead{} & '+$
+;;      '\multicolumn{2}{c}{\emph{L-Z}, $Q=1.5$} \\ '
+;;    colhead2 = $
+;;      '\colhead{} & '+$
+;;      '\multicolumn{2}{c}{\emph{M-Z}, $Q=0$} & '+$
+;;      '\colhead{} & '+$
+;;      '\multicolumn{2}{c}{\emph{M-Z}, $Q=1.5$} \\ '
+;;    colhead3 = '\cline{2-3}\cline{5-6}'
+;;    colhead4 = $
+;;      '\colhead{Redshift} & '+$
+;;      '\colhead{$\langle \Delta\,\log\,({\rm O/H}) \rangle_{\rm obs}$} & '+$
+;;      '\colhead{$\langle \Delta\,\log\,({\rm O/H}) \rangle_{\rm cor}$} & '+$
+;;      '\colhead{} & '+$
+;;      '\colhead{$\langle \Delta\,\log\,({\rm O/H}) \rangle_{\rm obs}$} & '+$
+;;      '\colhead{$\langle \Delta\,\log\,({\rm O/H}) \rangle_{\rm cor}$} '
+;;    colhead5 = '\cline{1-6}'
+;;    texcenter = ['c','c','c','c','c','c']
+;;
+;;    caption = 'Relative Change in Mean Oxygen Abundance '+$
+;;      'with Redshift\label{table:dlogohevol}'
+;;    
+;;; write out
+;;    texfile = paperpath+'mztable_dlogohevol_'+filesuffix+'.tex'
+;;    splog, 'Writing '+texfile
+;;    openw, lun, texfile, /get_lun
+;;    if keyword_set(emulateapj) then begin
+;;;      printf, lun, '\LongTables'
+;;    endif
+;;    printf, lun, '\begin{deluxetable}{'+strjoin(texcenter)+'}'
+;;;   printf, lun, '\tabletypesize{\small}'
+;;    printf, lun, '\tablecaption{'+caption+'}'
+;;    printf, lun, '\tablewidth{0pt}'
+;;    printf, lun, '\tablehead{'
+;;    niceprintf, lun, colhead1
+;;    niceprintf, lun, colhead3
+;;    niceprintf, lun, colhead4
+;;    printf, lun, '}'
+;;    printf, lun, '\startdata'
+;;; LZ header and data
+;;;   printf, lun, colhead1
+;;;   printf, lun, colhead3
+;;    for ii = 0, ntable-1 do begin
+;;       line = strarr(ntags)
+;;       for jj = 0L, ntags-1 do begin
+;;          if (jj lt ntags-1) then suffix = ' & ' else suffix = ' \\ '
+;;;         if (jj lt ntags-1) then suffix = ' & ' else if (ii lt ntable-1) then $
+;;;           suffix = ' \\ ' else suffix = ''
+;;          if strmatch(tags[jj],'*empty*',/fold) then line[jj] = suffix else $
+;;            line[jj] = table1[ii].(jj)+suffix
+;;       endfor
+;;       printf, lun, line
+;;    endfor
+;;; MZ header and data
+;;    printf, lun, colhead5
+;;    printf, lun, colhead2
+;;    printf, lun, colhead3
+;;    printf, lun, colhead4+' \\'
+;;    printf, lun, colhead5
+;;    for ii = 0, ntable-1 do begin
+;;       line = strarr(ntags)
+;;       for jj = 0L, ntags-1 do begin
+;;          if (jj lt ntags-1) then suffix = ' & ' else if (ii lt ntable-1) then $
+;;            suffix = ' \\ ' else suffix = ''
+;;          if strmatch(tags[jj],'*empty*',/fold) then line[jj] = suffix else $
+;;            line[jj] = table2[ii].(jj)+suffix
+;;       endfor
+;;       printf, lun, line
+;;    endfor
+;;    printf, lun, '\enddata'
+;;;   printf, lun, '\tablecomments{'+tablecomments+'}'
+;;;   niceprintf, lun, '\tablenotetext'+tablenotetext
+;;    printf, lun, '\end{deluxetable}'
+;;    free_lun, lun
+;;
+;;stop
+;;    
+;;; ---------------------------------------------------------------------------    
+;;; Table: local MZ relation
+;;
+;;    ss = mrdfits(mzpath+'mzlocal_sdss_coeffs.fits.gz',1)
+;;    aa = mrdfits(mzpath+'mzlocal_ages_coeffs.fits.gz',1)
+;;
+;;    table = {sample: '', ngal: '', zrange: '', a1: '', b1: '', c1: '', scatter: ''}
+;;    table = replicate(table,4)
+;;
+;;    table.sample = ['AGES','SDSS','Tremonti+04\tablenotemark{d}','Adopted\tablenotemark{e}']
+;;    table.ngal = ['$'+string([aa[1].ngal,ss[1].ngal,53400],format='(I0)')+'$','\nodata']
+;;
+;;    table.zrange = ['$0.05<z<0.15$','$0.033<z<0.25$','$0.005<z<0.25$','$z\approx0.1$']
+;;    table.a1 = [$
+;;      '$'+string(aa[1].coeff[0],format='(F5.3)')+'\pm'+string(aa[1].coeff_err[0],format='(F5.3)')+'$',$
+;;      '$'+string(ss[1].coeff[0],format='(F5.3)')+'\pm'+string(ss[1].coeff_err[0],format='(F5.3)')+'$',$
+;;      '$'+string('9.10284',format='(F5.3)')+'$',$
+;;      '$'+string(aa[2].coeff[0],format='(F5.3)')+'\pm'+string(aa[2].coeff_err[0],format='(F5.3)')+'$']
+;;    table.b1 = [$
+;;      '$'+string(aa[1].coeff[1],format='(F5.3)')+'\pm'+string(aa[1].coeff_err[1],format='(F5.3)')+'$',$
+;;      '$'+string(ss[1].coeff[1],format='(F5.3)')+'\pm'+string(ss[1].coeff_err[1],format='(F5.3)')+'$',$
+;;      '$'+string('0.16154',format='(F5.3)')+'$',$
+;;      '$'+string(aa[2].coeff[1],format='(F5.3)')+'\pm'+string(aa[2].coeff_err[1],format='(F5.3)')+'$']
+;;    table.c1 = [$
+;;      '\nodata',$
+;;      '$'+string(ss[1].coeff[2],format='(F7.4)')+'\pm'+string(ss[1].coeff_err[2],format='(F7.4)')+'$',$
+;;      '$'+string('-0.08026',format='(F7.4)')+'$',$
+;;      '$'+string(aa[2].coeff[2],format='(F7.4)')+'\pm'+string(aa[2].coeff_err[2],format='(F7.4)')+'$']
+;;
+;;    table.scatter = ['$'+string([aa[1].scatter,ss[1].scatter,'0.10'],$
+;;      format='(F4.2)')+'$','\nodata']
+;;    struct_print, table
+;;
+;;    ntable = n_elements(table)
+;;    ntags = n_tags(table)
+;;    
+;;    colhead1 = $
+;;      '\colhead{} & '+$
+;;      '\colhead{} & '+$
+;;      '\colhead{Redshift} & '+$
+;;      '\multicolumn{3}{c}{Coefficients\tablenotemark{b}} & '+$
+;;      '\colhead{} \\'
+;;    colhead2 = '\cline{4-6}'
+;;    colhead3 = $
+;;      '\colhead{Sample} & '+$
+;;      '\colhead{$N_{\rm gal}$\tablenotemark{a}} & '+$
+;;      '\colhead{Range} & '+$
+;;      '\colhead{$a$} & '+$
+;;      '\colhead{$b$} & '+$
+;;      '\colhead{$c$} & '+$
+;;      '\colhead{Scatter\tablenotemark{c}}'
+;;    texcenter = ['c','c','c','c','c','c','c']
+;;
+;;    tablecomments = ['Each mass-metallicity relation was derived by computing '+$
+;;      'the median oxygen abundance in $0.1$~dex wide bins of stellar mass and '+$
+;;      'fitting a...']
+;;    caption = 'Local Mass-Metallicity Relation\label{table:mzlocal}'
+;;
+;;    tablenotetext = [$
+;;      '{a}{Number of galaxies included in the fit.}',$
+;;      '{b}{The data were fitted to a function of the form $12+\log\,({\rm O/H}) = a + b[\log\,(\mathcal{M})-10.5] + [\log\,(\mathcal{M})-10.5]^2$.}',$
+;;      '{c}{$1\sigma$ dispersion in $\log\,({\rm O/H})$, relative to the polynomial fit.}',$
+;;      '{d}{Mass-metallicity relation from \citet{tremonti04a}, shifted by $+0.05$~dex '+$
+;;        'in $12+\log\,({\rm O/H})$ to match the zero-point of our adopted \citet{kobulnicky04a} '+$
+;;        'abundance calibration.}',$
+;;      '{e}{Adopted stellar mass-metallicity relation, taken to be the average '+$
+;;      'of the SDSS and and \citet{tremonti04a} relations.}']
+;;    
+;;; write out
+;;    texfile = paperpath+'mztable_mzlocal_'+filesuffix+'.tex'
+;;    splog, 'Writing '+texfile
+;;    openw, lun, texfile, /get_lun
+;;    if keyword_set(emulateapj) then begin
+;;;      printf, lun, '\LongTables'
+;;    endif
+;;    printf, lun, '\begin{deluxetable}{'+strjoin(texcenter)+'}'
+;;;   printf, lun, '\tabletypesize{\small}'
+;;    printf, lun, '\tablecaption{'+caption+'}'
+;;    printf, lun, '\tablewidth{0pt}'
+;;    printf, lun, '\tablehead{'
+;;    niceprintf, lun, colhead1
+;;    niceprintf, lun, colhead2
+;;    niceprintf, lun, colhead3
+;;    printf, lun, '}'
+;;    printf, lun, '\startdata'
+;;    for ii = 0, ntable-1 do begin
+;;       line = strarr(ntags)
+;;       for jj = 0L, ntags-1 do begin
+;;          if (jj lt ntags-1) then suffix = ' & ' else if (ii lt ntable-1) then $
+;;            suffix = ' \\ ' else suffix = ''
+;;          line[jj] = table[ii].(jj)+suffix
+;;       endfor
+;;       printf, lun, line
+;;    endfor
+;;    printf, lun, '\enddata'
+;;    printf, lun, '\tablecomments{'+tablecomments+'}'
+;;    niceprintf, lun, '\tablenotetext'+tablenotetext
+;;    printf, lun, '\end{deluxetable}'
+;;    free_lun, lun
+;;
+;;; ---------------------------------------------------------------------------    
+;;; Table: local LZ relation
+;;
+;;    ss = mrdfits(mzpath+'lzlocal_sdss_coeffs.fits.gz',1)
+;;    aa = mrdfits(mzpath+'lzlocal_ages_coeffs.fits.gz',1)
+;;
+;;    table = {sample: '', ngal: '', zrange: '', intercept: '', slope: '', scatter: ''}
+;;    table = replicate(table,4)
+;;
+;;    table.sample = ['AGES','SDSS','Tremonti+04\tablenotemark{d}','Adopted\tablenotemark{e}']
+;;    table.ngal = ['$'+string([aa[1].ngal,ss[1].ngal,53400],format='(I0)')+'$','\nodata']
+;;
+;;    table.zrange = ['$0.05<z<0.15$','$0.033<z<0.25$','$0.005<z<0.25$','$z\approx0.1$']
+;;    table.slope = '$'+string([aa[1].coeff[1],ss[1].coeff[1],'-0.186',$
+;;      aa[2].coeff[1]],format='(F6.3)')+'\pm'+string([aa[1].coeff_err[1],$
+;;      ss[1].coeff_err[1],'0.001',aa[2].coeff_err[1]],format='(F5.3)')+'$'
+;;    table.intercept = '$'+string([aa[1].coeff[0],ss[1].coeff[0],'9.058',$
+;;      aa[2].coeff[0]],format='(F5.3)')+'\pm'+string([aa[1].coeff_err[0],$
+;;      ss[1].coeff_err[0],'0.018',aa[2].coeff_err[0]],format='(F5.3)')+'$'
+;;    table.scatter = ['$'+string([aa[1].scatter,ss[1].scatter,'0.16'],$
+;;      format='(F4.2)')+'$','\nodata']
+;;    struct_print, table
+;;
+;;    ntable = n_elements(table)
+;;    ntags = n_tags(table)
+;;    
+;;    colhead1 = $
+;;      '\colhead{} & '+$
+;;      '\colhead{} & '+$
+;;      '\colhead{Redshift} & '+$
+;;      '\multicolumn{2}{c}{Coefficients\tablenotemark{b}} & '+$
+;;      '\colhead{} \\'
+;;    colhead2 = '\cline{4-5}'
+;;    colhead3 = $
+;;      '\colhead{Sample} & '+$
+;;      '\colhead{$N_{\rm gal}$\tablenotemark{a}} & '+$
+;;      '\colhead{Range} & '+$
+;;      '\colhead{$a$} & '+$
+;;      '\colhead{$b$} & '+$
+;;      '\colhead{Scatter\tablenotemark{c}}'
+;;    texcenter = ['c','c','c','c','c','c']
+;;
+;;    tablecomments = ['Each luminosity-metallicity relation was derived using an '+$
+;;      'ordinary least-squares linear bisector fit to all objects with $-24.0<M_{0.1g}<-17.5$.']
+;;    caption = 'Local $g$-band Luminosity-Metallicity Relation\label{table:glzlocal}'
+;;
+;;    tablenotetext = [$
+;;      '{a}{Number of galaxies included in the fit.}',$
+;;      '{b}{The data were fitted to a function of the form $12+\log\,({\rm O/H}) = a + b(M_{0.1g}+20.5)$.}',$
+;;      '{c}{$1\sigma$ dispersion in $\log\,({\rm O/H})$, relative to the best fit.}',$
+;;      '{d}{$g$-band luminosity-metallicity relation from \citet{tremonti04a}, shifted by $+0.05$~dex '+$
+;;        'in $12+\log\,({\rm O/H})$ to match the zero-point of our adopted \citet{kobulnicky04a} '+$
+;;        'abundance calibration.}',$
+;;      '{e}{Adopted $g$-band luminosity-metallicity relation, taken to be the average '+$
+;;      'of the SDSS and AGES relations.}']
+;;    
+;;; write out
+;;    texfile = paperpath+'mztable_glzlocal_'+filesuffix+'.tex'
+;;    splog, 'Writing '+texfile
+;;    openw, lun, texfile, /get_lun
+;;    if keyword_set(emulateapj) then begin
+;;;      printf, lun, '\LongTables'
+;;    endif
+;;    printf, lun, '\begin{deluxetable}{'+strjoin(texcenter)+'}'
+;;;   printf, lun, '\tabletypesize{\small}'
+;;    printf, lun, '\tablecaption{'+caption+'}'
+;;    printf, lun, '\tablewidth{0pt}'
+;;    printf, lun, '\tablehead{'
+;;    niceprintf, lun, colhead1
+;;    niceprintf, lun, colhead2
+;;    niceprintf, lun, colhead3
+;;    printf, lun, '}'
+;;    printf, lun, '\startdata'
+;;    for ii = 0, ntable-1 do begin
+;;       line = strarr(ntags)
+;;       for jj = 0L, ntags-1 do begin
+;;          if (jj lt ntags-1) then suffix = ' & ' else if (ii lt ntable-1) then $
+;;            suffix = ' \\ ' else suffix = ''
+;;          line[jj] = table[ii].(jj)+suffix
+;;       endfor
+;;       printf, lun, line
+;;    endfor
+;;    printf, lun, '\enddata'
+;;    printf, lun, '\tablecomments{'+tablecomments+'}'
+;;    niceprintf, lun, '\tablenotetext'+tablenotetext
+;;    printf, lun, '\end{deluxetable}'
+;;    free_lun, lun
+;;
+;;stop    
+;;    
+;;; ---------------------------------------------------------------------------    
+;;; Table: measured properties
+;;
+;;    ngalaxy = n_elements(agesdust)
+;;    srt = sort(agesancillary.ages_id)
+;;
+;;    ages = replicate({id: '', ra: '', dec: '', z: '', weight: '', $
+;;      m_b: '', m_v: '', m_r: '', mass: '', $
+;;      oii: '', hbeta: '', oiii: ''},ngalaxy)
+;;    ntags = n_tags(ages)
+;;
+;;    ages.id     = string(agesancillary[srt].ages_id,format='(I0)')
+;;    ages.ra     = dec2hms(agesancillary[srt].ra/15D,/colon)
+;;    ages.dec    = dec2hms(agesancillary[srt].dec,/colon)
+;;    pos = where(agesancillary[srt].dec gt 0.0) & ages[pos].dec = '+'+ages[pos].dec
+;;
+;;    ages.z      = string(agesancillary[srt].z,format='(F6.4)')
+;;    ages.weight = string(agesancillary[srt].spec_weight,format='(F8.3)')
+;;
+;;    ages.m_b  = '$'+string(agesancillary[srt].m_b,format='(F6.2)')+'\pm'+string(agesancillary[srt].m_b_err,format='(F4.2)')+'$'
+;;    ages.m_v  = '$'+string(agesancillary[srt].m_v,format='(F6.2)')+'\pm'+string(agesancillary[srt].m_v_err,format='(F4.2)')+'$'
+;;    ages.m_r  = '$'+string(agesancillary[srt].m_r,format='(F6.2)')+'\pm'+string(agesancillary[srt].m_r_err,format='(F4.2)')+'$'
+;;    ages.mass = '$'+string(agesancillary[srt].kcorr_mass,format='(F5.2)')+'\pm'+string(agesancillary[srt].kcorr_mass_err>0.01,format='(F4.2)')+'$'
+;;    
+;;    format_flux_error, agesdust[srt].oii_3727_ew[0],  agesdust[srt].oii_3727_ew[1],  f_oii,  e_oii  & ages.oii   = '$'+f_oii +'\pm'+e_oii+'$'
+;;    format_flux_error, agesdust[srt].oiii_5007_ew[0], agesdust[srt].oiii_5007_ew[1], f_oiii, e_oiii & ages.oiii  = '$'+f_oiii+'\pm'+e_oiii+'$'
+;;    format_flux_error, agesdust[srt].h_beta_ew[0],    agesdust[srt].h_beta_ew[1],    f_hb,   e_hb   & ages.hbeta = '$'+f_hb  +'\pm'+e_hb+'$'
+;;
+;;; replace negative [O III] values with upper limits
+;;
+;;    neg = where(agesdust[srt].oiii_5007_ew[0] lt 0.0,nneg)
+;;    if (nneg ne 0L) then ages[neg].oiii = '$>'+string(agesdust[srt[neg]].oiii_5007_ew_limit,format='(F4.1)')+'$' ; make sure the limits are positive!
+;;;   format_flux_error, abs(agesdust[srt[neg]].oiii_5007_ew[0]), agesdust[srt[neg]].oiii_5007_ew[1], f, e
+;;    
+;;    colhead = strjoin('\colhead{'+['ID\tablenotemark{a}','$\alpha_{\rm J2000}$\tablenotemark{a}','$\delta_{\rm J2000}$\tablenotemark{a}',$
+;;      'Redshift\tablenotemark{a}','Weight\tablenotemark{a}',$
+;;      '$M_{B}$\tablenotemark{b}','$M_{V}$\tablenotemark{b}','$M_{R}$\tablenotemark{b}','$\log\,(M/M_{\sun})$\tablenotemark{b}',$
+;;      'EW([O~{\sc ii}~$\lambda3727$])\tablenotemark{c}','EW(H$\beta$)\tablenotemark{c}','EW([O~{\sc iii}~$\lambda5007$])\tablenotemark{c}']+'}',' & ')+' \\'
+;;    colunits = strjoin('\colhead{('+string(lindgen(ntags)+1L,format='(I0)')+')}',' & ') ;+' \\'
+;;    colcenter = replicate('c',ntags)
+;;
+;;    tablecomments = ['(1)','(2)']
+;;    tablecomments = strjoin(tablecomments,' ')
+;;    tablenotetext = [$
+;;      '{a}{AGES identification numbers, celestial coordinates, spectroscopic redshifts, and statistical weights are '+$
+;;      'taken from C.~S.~Kochanek et~al. (2007, in prep.) and D.~J. Eisenstein et~al. (2007, in prep.).}',$
+;;      '{b}{Absolute magnitudes (Vega; $h=0.7$) and stellar masses (\citealt{salpeter55} IMF; $0.1-100~M_{\sun}$) have '+$
+;;      'been derived using {\sc k-correct} \citep[ver.~4.1.3;][]{blanton06b}.}',$
+;;      '{c}{Absorption-corrected, rest-frame emission-line equivalent widths in \AA.}']
+;;    
+;;    texfile = paperpath+'mztable_ages_mzdata_'+filesuffix+'.tex'
+;;    splog, 'Writing '+texfile+'.'
+;;    openw, lun, texfile, /get_lun
+;;    printf, lun, '\begin{landscape}'
+;;    printf, lun, '\begin{deluxetable}{'+strjoin(colcenter)+'}'
+;;    printf, lun, '\tabletypesize{\tiny}'
+;;;   printf, lun, '\rotate'
+;;    printf, lun, '\tablecaption{AGES: Spectrophotometric Properties and Oxygen Abundances\label{table:ages_mzdata}}'
+;;    printf, lun, '\tablewidth{0pt}'
+;;    printf, lun, '\tablehead{'
+;;    niceprintf, lun, colhead
+;;    niceprintf, lun, colunits
+;;    printf, lun, '}'
+;;    printf, lun, '\startdata'
+;;
+;;    for i = 0L, 24L do begin
+;;;   for i = 0L, ngalaxy-1L do begin
+;;       line = strarr(ntags)
+;;       for j = 0L, ntags-1L do begin
+;;          if (j lt ntags-1L) then suffix = ' & ' else begin
+;;             if (i lt ngalaxy-1L) then suffix = ' \\ ' else suffix = ''
+;;          endelse
+;;          if (strcompress(ages[i].(j),/remove) eq '') then $
+;;            line[j] = '\nodata'+suffix else line[j] = ages[i].(j)+suffix
+;;       endfor
+;;       printf, lun, line
+;;    endfor
+;;    
+;;    printf, lun, '\enddata'
+;;;   printf, lun, '\tablecomments{'+tablecomments+'}'
+;;    niceprintf, lun, '\tablenotetext'+tablenotetext
+;;    printf, lun, '\end{deluxetable}'
+;;    printf, lun, '\clearpage'
+;;    printf, lun, '\end{landscape}'
+;;    free_lun, lun
+;;
+;;stop    
+;;
+;;; ---------------------------------------------------------------------------    
+;;; Table: delta-log(O/H) with redshift
+;;
+;;; read the output from FIT_MZLZEVOL
+;;    ohevol = mrdfits(mzpath+'ohevol.fits.gz',1)
+;;
+;;    table = {z: '', dlogoh: '', dlogoh_cor: ''}
+;;    table = replicate(table,n_elements(ohevol))
+;;    table.z = '$'+string(ohevol.z,format='(F4.2)')+'$'
+;;
+;;; L-Z, Q=0    
+;;    table1 = table 
+;;    table1.dlogoh = ['$'+string(ohevol.ldlogoh_noevol,format='(F6.2)')+'\pm'+$
+;;      string(ohevol.ldlogoh_noevol_err,format='(F6.2)')+'$']
+;;    table1.dlogoh_cor = ['$'+string(ohevol.ldlogoh_noevol_cor,format='(F6.2)')+'\pm'+$
+;;      string(ohevol.ldlogoh_noevol_cor_err,format='(F6.2)')+'$']
+;;; L-Z, Q=1.5
+;;    table2 = table 
+;;    table2.dlogoh = ['$'+string(ohevol.ldlogoh_levol,format='(F6.2)')+'\pm'+$
+;;      string(ohevol.ldlogoh_levol_err,format='(F6.2)')+'$']
+;;    table2.dlogoh_cor = ['$'+string(ohevol.ldlogoh_levol_cor,format='(F6.2)')+'\pm'+$
+;;      string(ohevol.ldlogoh_levol_cor_err,format='(F6.2)')+'$']
+;;
+;;    ntable = n_elements(table)
+;;    ntags = n_tags(table)
+;;    
+;;    colhead1 = $
+;;      '\colhead{} & '+$
+;;      '\colhead{Observed} & '+$
+;;      '\colhead{Corrected} \\'
+;;    colhead2 = $
+;;      '\colhead{Redshift} & '+$
+;;      '\colhead{$\langle \Delta\,\log\,({\rm O/H}) \rangle$} & '+$
+;;      '\colhead{$\langle \Delta\,\log\,({\rm O/H}) \rangle$} \\'
+;;    texcenter = ['c','c','c']
+;;
+;;    caption = 'Change in the Mean Oxygen Abundance\label{table:dlogohevol}'
+;;    
+;;; write out
+;;    texfile = paperpath+'mztable_dlogohevol_'+filesuffix+'.tex'
+;;    splog, 'Writing '+texfile
+;;    openw, lun, texfile, /get_lun
+;;    if keyword_set(emulateapj) then begin
+;;;      printf, lun, '\LongTables'
+;;    endif
+;;    printf, lun, '\begin{deluxetable}{'+strjoin(texcenter)+'}'
+;;;   printf, lun, '\tabletypesize{\small}'
+;;    printf, lun, '\tablecaption{'+caption+'}'
+;;    printf, lun, '\tablewidth{0pt}'
+;;    printf, lun, '\tablehead{'
+;;    niceprintf, lun, colhead1
+;;    niceprintf, lun, colhead2
+;;    printf, lun, '}'
+;;    printf, lun, '\startdata'
+;;; L-Z, Q=0    
+;;    printf, lun, '\cutinhead{\emph{L-Z}, $Q=0$}'
+;;    for ii = 0, ntable-1 do begin
+;;       line = strarr(ntags)
+;;       for jj = 0L, ntags-1 do begin
+;;          if (jj lt ntags-1) then suffix = ' & ' else suffix = ' \\ '
+;;;         if (jj lt ntags-1) then suffix = ' & ' else if (ii lt ntable-1) then $
+;;;           suffix = ' \\ ' else suffix = ''
+;;          line[jj] = table1[ii].(jj)+suffix
+;;       endfor
+;;       printf, lun, line
+;;    endfor
+;;; L-Z, Q=1.5
+;;    printf, lun, '\cutinhead{\emph{L-Z}, $Q=1.5$}'
+;;    for ii = 0, ntable-1 do begin
+;;       line = strarr(ntags)
+;;       for jj = 0L, ntags-1 do begin
+;;          if (jj lt ntags-1) then suffix = ' & ' else if (ii lt ntable-1) then $
+;;            suffix = ' \\ ' else suffix = ''
+;;          line[jj] = table2[ii].(jj)+suffix
+;;       endfor
+;;       printf, lun, line
+;;    endfor
+;;    printf, lun, '\enddata'
+;;;   printf, lun, '\tablecomments{'+tablecomments+'}'
+;;;   niceprintf, lun, '\tablenotetext'+tablenotetext
+;;    printf, lun, '\end{deluxetable}'
+;;    free_lun, lun
+;;
+;;stop
+;;    

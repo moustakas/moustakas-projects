@@ -22,8 +22,8 @@ pro mzplot_ohcalib, ps=ps
     endelse
 
 ; ------------------------------------------------------------
-; [NII]/Ha vs R23, illustrating that our galaxies belong on the upper
-; branch 
+; Figure 8 - AGES + SDSS - [NII]/Ha vs R23, illustrating that our
+; galaxies belong on the upper branch 
 
     sdssindx = where((sdssohdust.niiha gt -900.0) and $
       (sdssohdust.r23 gt -900.0),nsdss)
@@ -35,7 +35,7 @@ pro mzplot_ohcalib, ps=ps
 ;   levels = errorf((findgen(3)+1)/sqrt(2))
     xrange = [-1.65,-0.05]
     yrange = [-0.3,1.2]
-    xtitle = textoidl('log ([N II] \lambda6563/H\alpha)')
+    xtitle = textoidl('log ([N II] \lambda6584/H\alpha)')
     ytitle = textoidl('log (R_{23})')
     
     psfile = pspath+'niiha_vs_r23'+suffix
@@ -44,7 +44,7 @@ pro mzplot_ohcalib, ps=ps
 ; SDSS
     mzplot_scatterplot, /sdss, sdssohdust[sdssindx].niiha, alog10(sdssohdust[sdssindx].r23), $
       position=pos[*,0], xsty=1, ysty=1, xrange=xrange, yrange=yrange, $
-      xtitle=xtitle, ytitle=ytitle, levels=levels
+      xtitle=xtitle, ytitle=ytitle, levels=levels, /nogrey
     djs_oplot, -1.1*[1,1], [0.2,1.1], line=2, thick=6
     xyouts, -1.3, 0.5, 'Lower!cBranch', align=0.5, charsize=1.2, $
       charthick=2.5
@@ -54,7 +54,7 @@ pro mzplot_ohcalib, ps=ps
 ; AGES
     mzplot_scatterplot, agesohdust[agesindx].niiha, alog10(agesohdust[agesindx].r23), $
       /noerase, position=pos[*,1], xsty=1, ysty=1, xrange=xrange, yrange=yrange, $
-      xtitle=xtitle, ytitle='', ytickname=replicate(' ',10), levels=levels, npix=20
+      xtitle=xtitle, ytitle='', ytickname=replicate(' ',10), levels=levels, npix=20, /nogrey
 
 ;   plotsym, 6, 0.8, color=djs_icolor('red'), thick=3
 ;   lim = where(agesispec.bpt_nii_ha_limit gt -900.0)
@@ -67,12 +67,10 @@ pro mzplot_ohcalib, ps=ps
     xyouts, -0.6, 1.05, 'Upper Branch', align=0.5, charsize=1.2, $
       charthick=2.5
     legend, 'AGES', /left, /bottom, box=0, charsize=1.6, margin=0
-    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
-
-stop    
+    im_plotconfig, /psclose, psfile=psfile
 
 ; ------------------------------------------------------------
-; O/H_cor vs O/H_EW
+; Figure 9 - O/H_cor vs O/H_EW
     for ii = 0, 2 do begin
        case ii of
           0: begin
@@ -87,7 +85,7 @@ stop
           end
           2: begin
              t04 = 0 & m91 = 0 & kk04 = 1
-             ohrange1 = [8.45,9.25]
+             ohrange1 = [8.48,9.21]
              calib = 'kk04'
           end
        endcase
@@ -100,11 +98,14 @@ stop
        ewoh = ew.oh[m2]
        coroh = cor.oh[m1]
        resid = ewoh-coroh
-       gr = sdssancillary[ew.id[m2]].k_ugriz_absmag_01[1]-$
-         sdssancillary[ew.id[m2]].k_ugriz_absmag_01[2]
+       umb = sdssancillary[ew.id[m2]].k_ubvrijhk_absmag_00[0]-$
+         sdssancillary[ew.id[m2]].k_ubvrijhk_absmag_00[1]
+;      gmr = sdssancillary[ew.id[m2]].k_ugriz_absmag_01[1]-$
+;        sdssancillary[ew.id[m2]].k_ugriz_absmag_01[2]
 
        splog, calib
-       med = im_medxbin(gr,resid,0.05,minpts=50,/verbose)
+       med = im_medxbin(umb,resid,0.05,minpts=60,/verbose)
+;      med = im_medxbin(gmr,resid,0.05,minpts=50,/verbose)
 ;      med = im_medxbin(coroh,resid,0.05,minx=8.5,/verbose)
        splog, calib, mean(resid), median(resid), djsig(resid)
        
@@ -114,7 +115,7 @@ stop
 ; make the plot    
        psfile = pspath+'ohcor_vs_ohews_'+calib+suffix
        im_plotconfig, 6, pos, psfile=psfile, yspace=1.0, $
-         xmargin=[1.3,0.4], width=6.8, height=[4.0,3.0]
+         xmargin=[1.4,0.3], width=6.8, height=[4.0,3.0], charsize=2
 ; main plot
        mzplot_scatterplot, coroh, ewoh, position=pos[*,0], $
          /sdss, xsty=1, ysty=1, xrange=ohrange1, yrange=ohrange1, $
@@ -124,24 +125,24 @@ stop
 ;      mzplot_scatterplot, d4000, resid, /noerase, position=pos[*,1], $
 ;        /sdss, xsty=1, ysty=1, xrange=[0.8,2.0], yrange=0.4*[-1,1], $
 ;        xtitle=textoidl('D_{n}(4000)'), ytitle='Residuals (dex)'
-       mzplot_scatterplot, gr, resid, /noerase, position=pos[*,1], $
-         /sdss, xsty=1, ysty=1, xrange=[0.0,1.1], yrange=0.3*[-1,1], $
-         xtitle=textoidl('^{0.1}(g-r)'), ytitle='Residuals (dex)', $
+       mzplot_scatterplot, umb, resid, /noerase, position=pos[*,1], $
+         /sdss, xsty=1, ysty=1, xrange=[0.0,1.6], yrange=0.35*[-1,1], $
+         xtitle=textoidl('U - B'), ytitle='Residuals (dex)', $
          /nogrey, ccolor=djs_icolor('grey'), ytickinterval=0.2
        oploterror, med.xbin, med.medy, med.quant75-med.medy, psym=6, $
          color=djs_icolor('navy'), errthick=6, thick=6, $
          errcolor=djs_icolor('navy'), /hibar
-       oploterror, med.xbin, med.medy, med.medy-med.quant25, psym=6, $
+       oploterror, med.xbin, med.medy, med.medy-med.quant25, psym=3, $
          color=djs_icolor('navy'), errthick=6, thick=6, $
          errcolor=djs_icolor('navy'), /lobar
        djs_oplot, !x.crange, [0,0], line=0, thick=7;, color='red'
-       im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
+       im_plotconfig, /psclose, psfile=psfile
     endfor
 
 stop    
     
 ; ------------------------------------------------------------
-; 12+log(O/H) vs R23 for various calibrations
+; Figure A1 - 12+log(O/H) vs R23 for various calibrations
 
     model_logr23 = range(-0.5,1.0,1500)
     logu = [-3.5,-2.5]
@@ -177,7 +178,7 @@ stop
       color=djs_icolor(color), textcolor=djs_icolor(color), line=line, $
       thick=8, pspacing=1.8
     
-    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
+    im_plotconfig, /psclose, psfile=psfile
 
 stop
 stop
@@ -272,7 +273,7 @@ stop
     im_legend, '\alpha-^{0.1}(g-r)', /left, /top, box=0, margin=0
     im_legend, xstr, /right, /bottom, box=0, margin=0
     
-    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
+    im_plotconfig, /psclose, psfile=psfile
 
 ; ------------------------------------------------------------
 ; calibrate the EW-alpha relation; see BUILD_MZ_LOG12OH_SAMPLE
@@ -344,7 +345,7 @@ stop
     djs_oplot, graxis, poly(graxis,alpha_gr_coeff), line=0, $
       thick=5.0, color='dark red'
 
-    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
+    im_plotconfig, /psclose, psfile=psfile
 
 ; ------------------------------------------------------------
 ; effect on LZ of EWs vs reddening-corrected fluxes 
@@ -429,7 +430,7 @@ stop
     im_legend, '\sigma='+string(lzfit[3].scatter,format='(F4.2)'), $
       /right, /bottom, box=0, charsize=1.4, margin=0
 
-    im_plotconfig, /psclose, psfile=psfile, gzip=keyword_set(ps)
+    im_plotconfig, /psclose, psfile=psfile
 
 return
 end

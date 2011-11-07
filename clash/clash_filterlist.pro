@@ -1,4 +1,4 @@
-function clash_filterlist, short_filter=short_filter
+function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter
 ; jm11apr24ucsd 
     filterlist = [$
       'clash_wfc3_f225w.par',$
@@ -17,6 +17,23 @@ function clash_filterlist, short_filter=short_filter
       'clash_wfc3_f125w.par',$
       'clash_wfc3_f140w.par',$
       'clash_wfc3_f160w.par']
+    nice_filter = [$
+      'WFC3/UVIS-F225W',$
+      'WFC3/UVIS-F275W',$
+      'WFC3/UVIS-F336W',$
+      'WFC3/UVIS-F390W',$
+      'ACS-F435w',$
+      'ACS-F475w',$
+      'ACS-F606w',$
+      'ACS-F625w',$
+      'ACS-F775w',$
+      'ACS-F814w',$
+      'ACS-F850LP',$
+      'WFC3/IR-F105W',$
+      'WFC3/IR-F110W',$
+      'WFC3/IR-F125W',$
+      'WFC3/IR-F140W',$
+      'WFC3/IR-F160W']
     short_filter = [$
       'f225w',$ 
       'f275w',$

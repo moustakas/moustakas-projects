@@ -14,10 +14,11 @@ pro clash_bcg_isedfit, supergrid, models=models, isedfit=isedfit, $
     struct_print, super
 
 ; gather the BCG photometry - will eventually need a wrapper for this 
-    bcgfile = catpath+'a2261_bcg_apmag_'+['3arcsec','9arcsec','total']+'.txt'
-    cat = [read_postman(bcgfile[0]),read_postman(bcgfile[1]),read_postman(bcgfile[2])]
-    cat = struct_addtags(cat,replicate({z: 0.22331, galaxy: ''},3))
-    cat.galaxy = 'A2261 BCG - '+['3 arcsec','9 arcsec','Total']
+    bcgfile = catpath+['a2261_bcg_apmag_'+['3arcsec','9arcsec','total']+'.txt',$
+      'a2261_coreobj2_bcgsubtdata_15pix.txt']
+    cat = read_postman(bcgfile)
+    cat = struct_addtags(cat,replicate({z: 0.22331, galaxy: ''},4))
+    cat.galaxy = 'A2261 BCG - '+['3 arcsec','9 arcsec','Total','Knot']
     
     igm = '0'
     nzz = '3'

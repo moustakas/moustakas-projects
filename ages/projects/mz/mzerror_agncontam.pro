@@ -1,10 +1,16 @@
 pro mzerror_agncontam, ps=ps
 ; jm10aug05ucsd - model the systematic effects of residual AGN
-; contamination 
+; contamination
 
-    mzpath = ages_path(/projects)+'mz/'
-    pspath = ages_path(/papers)+'mz/FIG_MZ/'
-    if keyword_set(ps) then suffix = '.ps' else suffix = '.eps'
+    mzpath = mz_path()
+    qapath = mzpath+'qaplots/'
+    if keyword_set(ps) then begin
+       pspath = qapath
+       suffix = '.ps'
+    endif else begin
+       pspath = mz_path(/paper)
+       suffix = '.eps'
+    endelse
 
 ; read the relevant samples    
     hiianc = read_mz_sample(/mzhii_ancillary,/sdss)

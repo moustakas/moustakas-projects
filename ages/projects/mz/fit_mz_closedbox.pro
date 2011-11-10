@@ -33,7 +33,8 @@ function fit_mz_closedbox, mass, oh, weight, oh_err=oh_err, $
 ; fit to the full dataset *and* to the binned points
 ;   splog, 'Fitting binned points'
     medweight = ((mzbin.xbin ge fit_minmass) and (mzbin.xbin le fit_maxmass))/mzbin.sigymean^2
-    coeff = mpfitfun('mz_closedbox',mzbin.xbin,mzbin.medy,$
+;   coeff = mpfitfun('mz_closedbox',mzbin.xbin,mzbin.medy,$
+    coeff = mpfitfun('mz_closedbox',mzbin.xbin,mzbin.meany,$
       weight=medweight,parinfo=parinfo,functargs=functargs,$
       perror=coeff_err,dof=dof,covar=covar,status=mpstatus,$
       quiet=1,bestnorm=chi2,yfit=yfit)

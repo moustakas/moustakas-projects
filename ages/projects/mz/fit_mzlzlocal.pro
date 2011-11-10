@@ -22,10 +22,10 @@ pro fit_mzlzlocal, clobber=clobber, debug=debug, verbose=verbose
 ; fit the SDSS MZ relation using three different models, all three
 ; abundance calibrations, and using both EWs and reddening-corrected
 ; fluxes
-    fit_minmass = 8.8
-    fit_maxmass = 11.2
-    minmass = 8.0 ; 8.7
-    maxmass = 12.0 ; 11.0
+    fit_minmass = 9.5 ; 8.8
+    fit_maxmass = 11.0 ; 11.2
+    minmass = 9.2 ; 8.0 ; 8.7
+    maxmass = 11.4
     binsize = 0.05
     mingal = 50
     nmonte = 30

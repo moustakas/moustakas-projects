@@ -1,10 +1,10 @@
-function read_clash_catalog, cluster, redshift=redshift
+function read_clash_catalog, cluster, redshift=redshift, arcs=arcs
 ; jm11oct14ucsd - read SExtractor (default) or redshift catalog for a
 ; given cluster
 
-    path = clash_path(cluster,redshift=redshift)
+    path = clash_path(cluster,redshift=redshift,arcs=arcs)
 
-; read the redshift catalog    
+; optionally read the redshift catalog...
     if keyword_set(redshift) then begin
 
 ; temporarily deal MACS1206 - everything is different
@@ -54,10 +54,22 @@ function read_clash_catalog, cluster, redshift=redshift
        return, cat
     endif
 
-; read the photometric catalog
+; optionally read the arcs photometric catalog...
+    if keyword_set(arcs) then begin
+       file = path+'arcs.cat'
+       if file_test(file) eq 0 then begin
+          splog, 'Arcs SE catalog '+file+' not found!'
+          return, -1
+       endif
+       cat = rsex(file)
+       return, cat
+    endif
+       
+; ...otherwise read the photometric catalog
     thiscluster = repstr(strlowcase(cluster),'_','')
     file = path+thiscluster+'_ACSIR.cat'
-    if file_test(file) eq 0 then file = file+'.gz' ; try gzipped
+;   if file_test(file) eq 0 then file = file+'.gz' ; try gzipped
+    if file_test(file) eq 0 then file = repstr(file,'_ACSIR','')
     if file_test(file) eq 0 then begin
        splog, 'SE catalog '+file+' not found!'
        return, -1

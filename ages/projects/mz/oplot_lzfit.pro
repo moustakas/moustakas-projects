@@ -12,7 +12,7 @@ pro oplot_lzfit, coeff, band=band, linestyle=linestyle, linecolor=linecolor, $
        inrange = where((lz gt ohrange[0]+ohoffset) and $
          (lz lt ohrange[1]-ohoffset))
        djs_oplot, magaxis[inrange], lz[inrange], thick=10, $
-         line=linestyle, color=fsc_color(linecolor,99)
+         line=linestyle, color=im_color(linecolor)
        return
     endif
 
@@ -23,7 +23,7 @@ pro oplot_lzfit, coeff, band=band, linestyle=linestyle, linecolor=linecolor, $
     inrange = where((ohmodel gt ohrange[0]+ohoffset) and $
       (ohmodel lt ohrange[1]-ohoffset))
     djs_oplot, magaxis[inrange], ohmodel[inrange], $
-      thick=10, linestyle=linestyle, color=fsc_color(linecolor,101)
+      thick=7, linestyle=linestyle, color=im_color(linecolor)
 
 return
 end

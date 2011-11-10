@@ -58,7 +58,70 @@ pro mztables, preprint=preprint
     paperpath = ages_path(/papers)+'mz/'
 
 ; ---------------------------------------------------------------------------    
-; Table 6 - comparison with the literature
+; Table 6 - mass-dependent metallicity evolution
+    colhead1 = mzget_colhead(['Calibration','$a_{0}$','$a_{1}$'],/nobreak)
+;   colhead2 = mzget_colhead(['','(dex~$z^{-1}$)',''],/nobreak)
+    texcenter = ['c','c','c']
+
+    mzavg = mrdfits(mzpath+'mzevol_avg.fits.gz',1,/silent)
+    calib = [strtrim(strupcase(mzavg.calib),2),'Average']
+    
+    table = replicate({calib: '', a0: '', a1: ''},n_elements(calib))
+    ntable = n_elements(table)
+    ntags = n_tags(table)
+
+    table.calib = calib
+    table.a0 = '$'+string([reform(mzavg.dlogohdz_coeff_all[0,*]),mzavg.dlogohdz_coeff[0]],format='(F6.3)')+$
+      '\pm'+string([reform(mzavg.dlogohdz_coeff_err_all[0,*]),mzavg.dlogohdz_coeff_err[0]],format='(F6.3)')+'$'
+    table.a1 = '$'+string([reform(mzavg.dlogohdz_coeff_all[1,*]),mzavg.dlogohdz_coeff[1]],format='(F5.3)')+$
+      '\pm'+string([reform(mzavg.dlogohdz_coeff_err_all[1,*]),mzavg.dlogohdz_coeff_err[1]],format='(F5.3)')+'$'
+    struct_print, table
+    
+    caption = 'Stellar Mass Dependence of the Rate of Metallicity Evolution\tablenotemark{a}\label{table:dlogohdz}' 
+    tablenotetext = [$
+      '{a}{See equation~(\ref{eq:dlogohdz_bymass}) for the adopted linear model and the '+$
+      'definitions of $a_{0}$ (dex~$z^{-1}$) and $a_{1}$ (unitless).  ``Average" represents the '+$
+      'weighted average of the coefficients over the three calibrations.}']
+
+;   tablenotetext = [$
+;     '{a}{The coefficient $a_{0}$ gives the chemical enrichment \emph{rate} in dex~$z^{-1}$ of '+$
+;     'of $10^{10.5}$~\msun{} star-forming galaxies at $z=0.05-0.75$, and $a_{1}$ indicates the '+$
+;     'power-law dependence on stellar mass, as given by '+$
+;     '${\mathrm d}[\log\,(\textrm{O}/\textrm{H})]/{\mathrm d}z = a_{0} + a_{1} \log(\mass/10^{10.5}~\msun)$.}']
+    
+; write out
+    texfile = paperpath+'mztable_dlogohdz'+filesuffix+'.tex'
+    splog, 'Writing '+texfile
+    openw, lun, texfile, /get_lun
+    if keyword_set(emulateapj) then begin
+;      printf, lun, '\LongTables'
+    endif
+    printf, lun, '\begin{deluxetable}{'+strjoin(texcenter)+'}'
+;   printf, lun, '\tabletypesize{\small}'
+    printf, lun, '\tablecaption{'+caption+'}'
+    printf, lun, '\tablewidth{0pt}'
+    printf, lun, '\tablehead{'
+    niceprintf, lun, colhead1
+    niceprintf, lun, colhead2
+    printf, lun, '}'
+    printf, lun, '\startdata'
+    for ii = 0, ntable-1 do begin
+       line = strarr(ntags)
+       for jj = 0L, ntags-1 do begin
+          if (jj lt ntags-1) then suffix = ' & ' else if (ii lt ntable-1) then $
+            suffix = ' \\ ' else suffix = ''
+          line[jj] = table[ii].(jj)+suffix
+       endfor
+       printf, lun, line
+    endfor
+    printf, lun, '\enddata'
+;   printf, lun, '\tablecomments{'+tablecomments+'}'
+    niceprintf, lun, '\tablenotetext'+tablenotetext
+    printf, lun, '\end{deluxetable}'
+    free_lun, lun
+
+; ---------------------------------------------------------------------------    
+; Table 7 - comparison with the literature
 
     table = {sample: '', ngal: '', area: '', zrange: '', $
       diagnostic: '', mlrange: '', dlogoh: '', dz: ''};, remark: ''}
@@ -521,9 +584,9 @@ pro mztables, preprint=preprint
     ncalib = n_elements(calib)
 
     colhead1 = mzget_colhead(['','$\langle12+\log\,(\textrm{O}/\textrm{H})\rangle_{z=0.1}$',$
-      '${\mathrm d}\log\,(\textrm{O}/\textrm{H})/{\mathrm d}z$','',$
+      '${\mathrm d}[\log\,(\textrm{O}/\textrm{H})]/{\mathrm d}z$','',$
       '$\langle12+\log\,(\textrm{O}/\textrm{H})\rangle_{z=0.1}$',$
-      '${\mathrm d}\log\,(\textrm{O}/\textrm{H})/{\mathrm d}z$'])
+      '${\mathrm d}[\log\,(\textrm{O}/\textrm{H})]/{\mathrm d}z$'])
     colhead2 = mzget_colhead(['Calibration','(dex)','(dex $z^{-1}$)','','(dex)','(dex $z^{-1}$)'],/nobreak)
     texcenter = replicate('c',6)
 
@@ -537,16 +600,17 @@ pro mztables, preprint=preprint
       '','\multicolumn{2}{c}{'+masslabel[1,mm]+'}'])
 
     tablenotetext = [$
-      '{a}{The adopted linear model is given by: $\langle 12+\log\,(\textrm{O}/\textrm{H})\rangle = '+$
-      '\langle 12+\log\,(\textrm{O}/\textrm{H})\rangle_{z=0.1} + {\mathrm d}\log\,(\textrm{O}/\textrm{H})/'+$
+      '{a}{We model the measured change in the mean metallicity as a linear function of redshift '+$
+      'given by: $\langle 12+\log\,(\textrm{O}/\textrm{H})\rangle = '+$
+      '\langle 12+\log\,(\textrm{O}/\textrm{H})\rangle_{z=0.1} + {\mathrm d}[\log\,(\textrm{O}/\textrm{H})]/'+$
       '{\mathrm d}z\times(z-0.1)$, where $\langle12+\log\,(\textrm{O}/\textrm{H})\rangle_{z=0.1}$ is '+$
-      'the mean metallicity at $z=0.1$ and ${\mathrm d}\log\,(\textrm{O}/\textrm{H})/{\mathrm d}z$ is the '+$
+      'the mean metallicity at $z=0.1$ and ${\mathrm d}[\log\,(\textrm{O}/\textrm{H})]/{\mathrm d}z$ is the '+$
       'logarithmic rate of metallicity evolution.}']
     
     openw, lun, texfile, /get_lun
     printf, lun, '\begin{deluxetable*}{'+strjoin(texcenter)+'}[!h]'
-    printf, lun, '\tablecaption{Mass-Dependent Evolution of the Mean Metallicity of '+$
-      'Galaxies at $z=0.05-0.75$ \tablenotemark{a}\label{table:oh_bymass_coeff}}'
+    printf, lun, '\tablecaption{Linear Evolution of the Mean Metallicity of '+$
+      'Galaxies at $z=0.05-0.75$\tablenotemark{a}\label{table:oh_bymass_coeff}}'
     printf, lun, '\tablewidth{0pt}'
     printf, lun, '\tablehead{'
     niceprintf, lun, colhead1
@@ -724,7 +788,7 @@ pro mztables, preprint=preprint
       '\multicolumn{3}{c}{\lz\tablenotemark{c}}'])
     colhead2 = '\cline{3-6}\cline{8-10}'
     colhead3 = mzget_colhead(['Calibration\tablenotemark{a}','',$
-      '$12+\log\,\ohstar$','$\log\,(\mstar/10^{9}\, \msun$)','$\gamma$','$\sigma$\tablenotemark{d}','',$
+      '$\ohstar$','$\log\,(\mstar/10^{9}\, \msun$)','$\gamma$','$\sigma$\tablenotemark{d}','',$
       '$c_{0}$','$c_{1}$','$\sigma$\tablenotemark{d}'],/nobreak)
     texcenter = ['l','c',$
       replicate('c',4),'c',$
@@ -852,7 +916,7 @@ pro mztables, preprint=preprint
     printf, lun, '\end{deluxetable}'
     free_lun, lun
 
-    
+stop    
     
 ; ---------------------------------------------------------------------------    
 ; Table 1 - samples and numbers of galaxies

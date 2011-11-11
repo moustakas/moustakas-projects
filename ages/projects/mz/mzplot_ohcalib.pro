@@ -22,6 +22,47 @@ pro mzplot_ohcalib, ps=ps
     endelse
 
 ; ------------------------------------------------------------
+; Figure A1 - 12+log(O/H) vs R23 for various calibrations
+
+    model_logr23 = range(-0.5,1.0,1500)
+    logu = [-3.5,-2.5]
+    model_logq = logu+alog10(im_light(/cm))
+;   model_logq = alog10([2D7,1D8])
+;   logu = model_logq-alog10(im_light(/cm))
+    model_logo32 = [-1,-0]
+;   model_logo32 = [-0.6,-0.2]
+
+    xrange = [-0.2,1.1]
+    yrange = [8.1,9.3]
+    
+    psfile = pspath+'12oh_vs_r23'+suffix
+    im_plotconfig, 0, pos, psfile=psfile, height=5.5
+
+    djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
+      yrange=yrange, xrange=xrange, xtitle='log (R_{23})', $
+      ytitle='12 + log (O/H)'
+
+    djs_oplot, model_logr23, poly(model_logr23,[9.185D,-0.313D,-0.264D,-0.321D]), $
+      thick=8, line=0, color='red'
+    mzoplot_kk04_models, model_logr23=model_logr23, model_logq=model_logq, $
+      linestyle=[2,1], linecolor=['blue','orange'], /nolegend, thick=8
+    mzoplot_m91_models, model_logr23=model_logr23, model_logo32=model_logo32, $
+      linestyle=[3,5], linecolor=['dark green','magenta'], /nolegend, thick=8
+
+    label = ['T04','KK04: log(U)='+string(logu,format='(F4.1)'),$
+     'M91: log(O_{32})='+['','-']+strtrim(string(model_logo32,format='(F4.1)'),2)]
+    color = ['red','blue','orange','dark green','magenta']
+    line = [0,2,1,3,5]
+    
+    legend, textoidl(label), /left, /bottom, box=0, charsize=1.4, margin=1, $
+      color=djs_icolor(color), textcolor=djs_icolor(color), line=line, $
+      thick=8, pspacing=1.8
+    
+    im_plotconfig, /psclose, psfile=psfile
+
+stop    
+    
+; ------------------------------------------------------------
 ; Figure 8 - AGES + SDSS - [NII]/Ha vs R23, illustrating that our
 ; galaxies belong on the upper branch 
 
@@ -141,45 +182,6 @@ pro mzplot_ohcalib, ps=ps
 
 stop    
     
-; ------------------------------------------------------------
-; Figure A1 - 12+log(O/H) vs R23 for various calibrations
-
-    model_logr23 = range(-0.5,1.0,1500)
-    logu = [-3.5,-2.5]
-    model_logq = logu+alog10(im_light(/cm))
-;   model_logq = alog10([2D7,1D8])
-;   logu = model_logq-alog10(im_light(/cm))
-    model_logo32 = [-1,-0]
-;   model_logo32 = [-0.6,-0.2]
-
-    xrange = [-0.2,1.1]
-    yrange = [8.1,9.3]
-    
-    psfile = pspath+'12oh_vs_r23'+suffix
-    im_plotconfig, 0, pos, psfile=psfile, height=5.5
-
-    djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
-      yrange=yrange, xrange=xrange, xtitle='log (R_{23})', $
-      ytitle='12 + log (O/H)'
-
-    djs_oplot, model_logr23, poly(model_logr23,[9.185D,-0.313D,-0.264D,-0.321D]), $
-      thick=8, line=0, color='red'
-    mzoplot_kk04_models, model_logr23=model_logr23, model_logq=model_logq, $
-      linestyle=[2,1], linecolor=['blue','orange'], /nolegend, thick=8
-    mzoplot_m91_models, model_logr23=model_logr23, model_logo32=model_logo32, $
-      linestyle=[3,5], linecolor=['dark green','magenta'], /nolegend, thick=8
-
-    label = ['T04','KK04: log(U)='+string(logu,format='(F4.1)'),$
-     'M91: log(O_{32})='+['','-']+strtrim(string(model_logo32,format='(F4.1)'),2)]
-    color = ['red','blue','orange','dark green','magenta']
-    line = [0,2,1,3,5]
-    
-    legend, textoidl(label), /left, /bottom, box=0, charsize=1.4, margin=1, $
-      color=djs_icolor(color), textcolor=djs_icolor(color), line=line, $
-      thick=8, pspacing=1.8
-    
-    im_plotconfig, /psclose, psfile=psfile
-
 stop
 stop
 stop    

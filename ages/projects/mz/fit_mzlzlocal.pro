@@ -25,7 +25,7 @@ pro fit_mzlzlocal, clobber=clobber, debug=debug, verbose=verbose
     fit_minmass = 9.5 ; 8.8
     fit_maxmass = 11.0 ; 11.2
     minmass = 9.2 ; 8.0 ; 8.7
-    maxmass = 11.4
+    maxmass = 11.1
     binsize = 0.05
     mingal = 50
     nmonte = 30

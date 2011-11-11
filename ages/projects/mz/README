@@ -24,10 +24,11 @@ into AGN, SF, etc.
 [5] Fit the local and evolving MZ/LZ relations
   fit_mzlzlocal, /clobber
   mlfit_mzlzevol, /clobber
-  
-[6] Build the SDSS2AGES comparison sample, with and without evolution:
-  build_sdss2ages
-  build_sdss2ages, /evolve
+
+### Pegase modeling routines
+* mzpegase_build_models - build a fiducial set of Pegase models
+* mzpegase_read_models - read and parse the output from mzpegase_build_models 
+* mzpegase_galform_model - build a simple galaxy formation model
   
 ### Analysis plots (in approximate order of appearance in the paper) ###
 
@@ -37,11 +38,10 @@ into AGN, SF, etc.
 [4] mzplot_mzlzlocal - the local LZ and MZ relations
 [5] mzplot_mzlzevol - evolution of the LZ and MZ relations 
 [6] mzplot_ohevol - 
+[7] mzplot_literature - comparison with the literature
+[8] mzerror_agncontam - effect of AGN contamination
+[9] mzerror_apbias - effect of AGN contamination
+[10] mzpegase_plots - Pegase modeling plots
 
-
-###
-Simple modeling
-* build_mz_pegase_models
-* get_pegase_info - parse the output from build_mz_pegase_models
-* mz_galform_model - simple galaxy formation model
-* qaplot_mz_pegase_models - build some simple QAplots
+## Obsolete
+ * build_sdss2ages

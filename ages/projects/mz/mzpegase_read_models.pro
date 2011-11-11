@@ -4,7 +4,7 @@ function mzpegase_read_models
 
     zsun = 0.0134 ; Asplund+09
     log12ohsun = 8.69
-    maxzform = 8.0 ; maximum zf allowed
+    maxzform = 10.0 ; maximum zf allowed
     
     pegpath = ages_path(/projects)+'mz/pegase/'
     taufile = file_search(pegpath+'kroupa01_tau_*.fits.gz',count=ntau)

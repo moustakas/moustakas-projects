@@ -467,6 +467,8 @@ pro fit_mzlzevol, mzavg, clobber=clobber
 ; evolutionary coefficients for both P and R
       mzevol_coeffs: fltarr(5,3), mzevol_coeffs_err: fltarr(5,3), mzevol_chi2: fltarr(3), $
       mzevol_coeffs_r0zero: fltarr(5,3), mzevol_coeffs_err_r0zero: fltarr(5,3), mzevol_chi2_r0zero: fltarr(3), $
+      mzevol_coeffs_avg: fltarr(5), mzevol_coeffs_avg_err: fltarr(5), $
+      mzevol_coeffs_avg_r0zero: fltarr(5), mzevol_coeffs_avg_err_r0zero: fltarr(5), $
       p0avg: 0.0, p0avg_err: 0.0, r0avg: 0.0, r0avg_err: 0.0, p0r0_chi2: 0.0, $
       p0r0zero_avg: 0.0, p0r0zero_avg_err: 0.0, p0r0zero_chi2: 0.0, $
       
@@ -668,6 +670,13 @@ pro fit_mzlzevol, mzavg, clobber=clobber
     endfor
     
 ; average over all calibrations    
+    for pp = 0, 4 do begin
+       mzavg.mzevol_coeffs_avg[pp] = djs_mean(mzavg.mzevol_coeffs[pp,*])
+       mzavg.mzevol_coeffs_avg_err[pp] = djsig(mzavg.mzevol_coeffs[pp,*])
+       mzavg.mzevol_coeffs_avg_r0zero[pp] = djs_mean(mzavg.mzevol_coeffs_r0zero[pp,*])
+       mzavg.mzevol_coeffs_avg_err_r0zero[pp] = djsig(mzavg.mzevol_coeffs_r0zero[pp,*])
+    endfor
+    
     mzavg.r0avg = djs_mean(mzavg.mzevol_coeffs[3,*])
     mzavg.r0avg_err = djsig(mzavg.mzevol_coeffs[3,*])
     mzavg.p0avg = djs_mean(mzavg.mzevol_coeffs[4,*])

@@ -14,12 +14,7 @@ pro macs0329_z6arcs_isedfit, supergrid, models=models, isedfit=isedfit, $
     struct_print, super
 
 ; gather the photometry
-    alladi = rsex(datapath+'macs0329_z6arcs.cat')
-    allcat = read_clash_catalog('macs0329',/arcs)
-    spherematch, allcat.ra, allcat.dec, 15D*hms2dec(alladi.ra), hms2dec(alladi.dec), 1D/3600, m1, m2
-    cat = allcat[m1]
-    adi = alladi[m2]
-    struct_print, adi
+    cat = read_macs0329_z6arcs(adi=adi)
 
     igm = '1'
     nzz = '3'
@@ -34,7 +29,7 @@ pro macs0329_z6arcs_isedfit, supergrid, models=models, isedfit=isedfit, $
        paramfile = isedpath+prefix+'_supergrid'+string(super[gg].supergrid,$
          format='(i2.2)')+'_isedfit.par'
        clash_write_paramfile, paramfile, prefix=prefix, zminmax=zminmax, $
-         nzz=nzz, zlog=zlog, igm=igm, super=super[gg]
+         nzz=nzz, zlog=zlog, igm=igm, super=super[gg], /useirac
        
 ; build the models
        if keyword_set(models) then begin
@@ -44,7 +39,8 @@ pro macs0329_z6arcs_isedfit, supergrid, models=models, isedfit=isedfit, $
 
 ; do the fitting!
        if keyword_set(isedfit) then begin
-          clash_to_maggies, cat, maggies, ivarmaggies
+          clash_to_maggies, cat, maggies, ivarmaggies, /useirac
+          ivarmaggies[16:17,*] = 0.0
           isedfit, paramfile, maggies, ivarmaggies, adi.z, iopath=isedpath, $
             clobber=clobber, sfhgrid_paramfile=sfhgrid_paramfile, $
             isedfit_sfhgrid_dir=isedfit_sfhgrid_dir;, index=index
@@ -52,9 +48,12 @@ pro macs0329_z6arcs_isedfit, supergrid, models=models, isedfit=isedfit, $
 
 ; make some QAplots
        if keyword_set(qaplot) then begin
+          yrange = [30,21]
+          xrange = [2000,17000]
+;         xrange = [2000,70000]
           isedfit_qaplot, paramfile, result, iopath=isedpath, galaxy=adi.id, $
             index=index, clobber=clobber, isedfit_sfhgrid_dir=isedfit_sfhgrid_dir, $
-            outprefix=outprefix
+            outprefix=outprefix, xrange=xrange, yrange=yrange, xlog=0
        endif
     endfor
 

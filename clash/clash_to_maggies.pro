@@ -26,7 +26,7 @@
 ;-
 
 pro clash_to_maggies, clash, maggies, ivar, filterlist=filterlist, $
-  nominerror=nominerror
+  nominerror=nominerror, useirac=useirac
 
     ngal = n_elements(clash)    
     if (ngal le 0L) then begin
@@ -35,6 +35,10 @@ pro clash_to_maggies, clash, maggies, ivar, filterlist=filterlist, $
     endif
 
     filterlist = clash_filterlist(short_filter=filt)
+    if keyword_set(useirac) then begin
+       filterlist = [filterlist,(irac_filterlist())[0:1]]
+       filt = [filt,['ch1','ch2']]
+    endif
     nbands = n_elements(filterlist)
 
 ;; correct for Galactic extinction    
@@ -80,6 +84,13 @@ pro clash_to_maggies, clash, maggies, ivar, filterlist=filterlist, $
        if check[0] ne -1 then stop
     endfor
 
+; jm11nov13ucsd - replace with limits <5-sigma detections
+    lim = where((maggies gt 0.0) and (maggies*sqrt(ivar) lt 5.0),nlim)
+    if (nlim ne 0L) then begin
+       ivar[lim] = 1.0/(5.0*maggies[lim])^2.0
+       maggies[lim] = 0.0
+    endif
+    
 ; apply a minimum photometric error
     if (keyword_set(nominerror) eq 0) then begin
        minerr = replicate(0.02,nbands)

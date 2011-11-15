@@ -1,4 +1,4 @@
-pro mzerror_agncontam, ps=ps
+pro mzplot_agncontam, ps=ps
 ; jm10aug05ucsd - model the systematic effects of residual AGN
 ; contamination
 

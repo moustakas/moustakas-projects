@@ -1,8 +1,9 @@
-function mzpegase_galform_model, zobs, alpha=alpha, beta=beta, mass0=mass0, $
-  zform0=zform0, tau0=tau0
+function mzpegase_galform_model, zobs, alpha=alpha, beta=beta, $
+  mass0=mass0, zform0=zform0, tau0=tau0
 ; jm10nov05ucsd - generate a very simple galaxy formation model,
-; whereby tau is a simple power-law function of the total baryonic
-; mass and the formation redshift is a free parameter
+; whereby tau and the formation redshift are simple power-law
+; functions of the total baryonic mass; set the starting parameters to
+; match Noeske+07
 
     if (n_elements(zobs) eq 0) then zobs = 0.1
     
@@ -10,15 +11,16 @@ function mzpegase_galform_model, zobs, alpha=alpha, beta=beta, mass0=mass0, $
 ;   tau = tau0*(M/M0)^alpha
 ;   (1+zf) = (1+zf,0)(M/M0)^beta
 
+    normmass = 1D11 ; [Msun]
+
 ; fiducial normalization values    
-    if (n_elements(zform0) eq 0) then zform0 = 2.0
-    if (n_elements(mass0) eq 0) then mass0 = 10.0^11 ; [Msun]
-    if (n_elements(tau0) eq 0) then tau0 = 3.0 ; [Gyr]
+    if (n_elements(zform0) eq 0) then zform0 = 3.0
+    if (n_elements(tau0) eq 0) then tau0 = 5.0 ; [Gyr]
+;   if (n_elements(mass0) eq 0) then mass0 = 10.0^11 ; [Msun]
 
 ; fiducial parameter values    
-    if (n_elements(alpha) eq 0) then alpha = -0.5
-    if (n_elements(beta) eq 0) then beta = +0.2
-;   if (beta lt 0.2) then splog, 'Beware of beta<0.2!'
+    if (n_elements(alpha) eq 0) then alpha = -1.0
+    if (n_elements(beta) eq 0) then beta = +0.3
 
 ; read the output from mzpegase_build_models()
     pegmodels = mzpegase_read_models()
@@ -26,21 +28,24 @@ function mzpegase_galform_model, zobs, alpha=alpha, beta=beta, mass0=mass0, $
 
 ; generate a uniform grid in tau, but do not extrapolate the
 ; precomputed model grid
-    bigmbaryon = 10D^range(9.5,11.5,50)
-    bigtau = tau0*(bigmbaryon/mass0)^alpha
+    bigmbaryon = 10D^range(8.0,12.0,50)
+    bigtau = tau0*(bigmbaryon/normmass)^alpha
+;   bigtau = tau0*(bigmbaryon/mass0)^alpha
 
     ntau = 50 ; number of output models
     mintau = min(bigtau>min(pegmodels.tau))
     maxtau = max(bigtau<max(pegmodels.tau))
     tau = range(mintau,maxtau,ntau,/log)
-    mbaryon = mass0*(tau/tau0)^(1.0/alpha)
-    
-    zform = zform0*(mbaryon/mass0)^beta
-    flag = where(zform le zobs)
-    if flag[0] ne -1 then message, 'Too young - zform<zobs!'
+    mbaryon = normmass*(tau0/tau)^(-alpha)
+;   mbaryon = mass0*(tau/tau0)^(1.0/alpha)
 
+    zform = ((1.0+zform0)*(mbaryon/normmass)^beta-1.0)>zobs ; note!
+;   zform = zform0*(mbaryon/mass0)^beta
+    flag = where(zform lt 0.0)
+;   if flag[0] ne -1 then message, 'zform<0!!'
+    
 ; now pack the output structure    
-    model = replicate({alpha: alpha, beta: beta, mass0: mass0, zform0: zform0, $
+    model = replicate({alpha: alpha, beta: beta, zform0: zform0, $ ; mass0: mass0, 
       tau0: tau0, tau: 0.0, zform: 0.0, zobs: zobs, age: 0.0, $
       mbaryon: 0.0, mstar: 0.0, mgas: 0.0, sfr: 0.0, sfrm: 0.0, $
       zgas: 0.0, log12oh: 0.0},ntau)
@@ -65,6 +70,7 @@ function mzpegase_galform_model, zobs, alpha=alpha, beta=beta, mass0=mass0, $
     model.mstar = alog10(model.mstar*mscale)
     model.mgas = alog10(model.mgas*mscale)
     model.sfr = alog10(model.sfr*mscale)
+    model.sfrm = model.sfr-model.mstar+9.0 ; [Gyr^-1]
     
 return, model
 end

@@ -32,15 +32,15 @@ into AGN, SF, etc.
   
 ### Analysis plots (in approximate order of appearance in the paper) ###
 
-[1] mzplot_sample - sample selection and properties
-[2] mzplot_agn - AGN identification
-[3] mzplot_ohcalib - exploring calibration issues
-[4] mzplot_mzlzlocal - the local LZ and MZ relations
-[5] mzplot_mzlzevol - evolution of the LZ and MZ relations 
-[6] mzplot_ohevol - 
-[7] mzplot_literature - comparison with the literature
-[8] mzerror_agncontam - effect of AGN contamination
-[9] mzerror_apbias - effect of AGN contamination
+ [1] mzplot_sample - sample selection and properties
+ [2] mzplot_agn - AGN identification
+ [3] mzplot_ohcalib - exploring calibration issues
+ [4] mzplot_mzlzlocal - the local LZ and MZ relations
+ [5] mzplot_mzlzevol - evolution of the LZ and MZ relations 
+ [6] mzplot_ohevol - 
+ [7] mzplot_literature - comparison with the literature
+ [8] mzplot_agncontam - effect of AGN contamination
+ [9] mzplot_apbias - effect of AGN contamination
 [10] mzpegase_plots - Pegase modeling plots
 
 ## Obsolete

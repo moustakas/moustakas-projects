@@ -1,4 +1,4 @@
-pro mzerror_apbias, ps=ps
+pro mzplot_apbias, ps=ps
 ; jm10jul27ucsd - model the systematic effects of aperture bias
 
     mzpath = mz_path()

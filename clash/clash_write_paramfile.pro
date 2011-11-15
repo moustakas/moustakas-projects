@@ -1,9 +1,10 @@
 pro clash_write_paramfile, paramfile, prefix=prefix, zminmax=zminmax, $
-  nzz=nzz, zlog=zlog, igm=igm, super=super
+  nzz=nzz, zlog=zlog, igm=igm, super=super, useirac=useirac
 ; jm11oct14ucsd - support routine for the various clash_*_isedfit
 ; routines
     
     filters = clash_filterlist()
+    if keyword_set(useirac) then filters = [filters,(irac_filterlist())[0:1]]
 
     sfhgridstring = strtrim(super.sfhgrid,2)
     redcurvestring = redcurve2string(super.redcurve)

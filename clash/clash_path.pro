@@ -1,5 +1,5 @@
 function clash_path, cluster, catalogs=catalogs, redshift=redshift, $
-  arcs=arcs, isedfit=isedfit, montegrids=montegrids, bcgimf=bcgimf, $
+  ir=ir, arcs=arcs, isedfit=isedfit, montegrids=montegrids, bcgimf=bcgimf, $
   macs0329_z6arcs=macs0329_z6arcs
 ; jm11apr18ucsd - 
 
@@ -23,9 +23,9 @@ function clash_path, cluster, catalogs=catalogs, redshift=redshift, $
           endif
        endif
 
-; some clusters have ACSIR and others have ACS_IR       
-       clashpath = archivepath+thiscluster+'/HST/catalogs/mosaicdrizzle_image_pipeline/ACSIR_detection/'
-       if file_test(clashpath,/dir) eq 0 then clashpath = repstr(clashpath,'ACSIR','ACS_IR')
+       clashpath = archivepath+thiscluster+'/HST/catalogs/mosaicdrizzle_image_pipeline/'
+       if keyword_set(ir) then clashpath = clashpath+'IR_detection/' else $
+         clashpath = clashpath+'ACS_IR_detection/'
 
        if keyword_set(redshift) then clashpath = archivepath+thiscluster+'/redshifts/'
        if keyword_set(arcs) then clashpath = archivepath+thiscluster+'/HST/PhotoZ/mosaicdrizzle_image_pipeline/IR_detection/html/'

@@ -82,14 +82,16 @@ pro clash_to_maggies, clash, maggies, ivar, filterlist=filterlist, $
        endif
        check = where(finite(maggies[ib,*]) eq 0 or finite(ivar[ib,*]) eq 0)
        if check[0] ne -1 then stop
-    endfor
 
-; jm11nov13ucsd - replace with limits <5-sigma detections
-    lim = where((maggies gt 0.0) and (maggies*sqrt(ivar) lt 5.0),nlim)
-    if (nlim ne 0L) then begin
-       ivar[lim] = 1.0/(5.0*maggies[lim])^2.0
-       maggies[lim] = 0.0
-    endif
+; jm11nov13ucsd - replace <5-sigma photometry with limits 
+       lim = where((maggies[ib,*] gt 0.0) and (maggies[ib,*]*sqrt(ivar[ib,*]) lt 5.0) and $
+         strmatch(filterlist[ib],'*irac*') eq 0,nlim)
+;      lim = where((maggies gt 0.0) and (maggies*sqrt(ivar) lt 5.0),nlim)
+       if (nlim ne 0L) then begin
+          ivar[ib,lim] = 1.0/(5.0*maggies[ib,lim])^2.0
+          maggies[ib,lim] = 0.0
+       endif 
+    endfor
     
 ; apply a minimum photometric error
     if (keyword_set(nominerror) eq 0) then begin

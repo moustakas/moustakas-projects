@@ -19,8 +19,8 @@ function mzpegase_galform_model, zobs, alpha=alpha, beta=beta, $
 ;   if (n_elements(mass0) eq 0) then mass0 = 10.0^11 ; [Msun]
 
 ; fiducial parameter values    
-    if (n_elements(alpha) eq 0) then alpha = -1.0
-    if (n_elements(beta) eq 0) then beta = +0.3
+    if (n_elements(alpha) eq 0) then alpha = 1.0
+    if (n_elements(beta) eq 0) then beta = 0.3
 
 ; read the output from mzpegase_build_models()
     pegmodels = mzpegase_read_models()
@@ -29,14 +29,14 @@ function mzpegase_galform_model, zobs, alpha=alpha, beta=beta, $
 ; generate a uniform grid in tau, but do not extrapolate the
 ; precomputed model grid
     bigmbaryon = 10D^range(8.0,12.0,50)
-    bigtau = tau0*(bigmbaryon/normmass)^alpha
+    bigtau = tau0*(bigmbaryon/normmass)^(-alpha)
 ;   bigtau = tau0*(bigmbaryon/mass0)^alpha
 
     ntau = 50 ; number of output models
     mintau = min(bigtau>min(pegmodels.tau))
     maxtau = max(bigtau<max(pegmodels.tau))
     tau = range(mintau,maxtau,ntau,/log)
-    mbaryon = normmass*(tau0/tau)^(-alpha)
+    mbaryon = normmass*(tau0/tau)^(alpha)
 ;   mbaryon = mass0*(tau/tau0)^(1.0/alpha)
 
     zform = ((1.0+zform0)*(mbaryon/normmass)^beta-1.0)>zobs ; note!

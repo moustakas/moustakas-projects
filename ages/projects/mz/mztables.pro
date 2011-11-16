@@ -864,7 +864,7 @@ pro mztables, preprint=preprint
     ntable = n_elements(table)
     ntags = n_tags(table)
 
-    table.zrange = string(zbins.zlo,format='(F4.2)')+'-'+string(zbins.zup,format='(F4.2)')
+    table.zrange = '$'+string(zbins.zlo,format='(F4.2)')+'-'+string(zbins.zup,format='(F4.2)')+'$'
     table.mblimit = string(limits.mblimit_50,format='(F6.2)')
     table.masslimit = string(limits.masslimit_50,format='(F5.2)')
 

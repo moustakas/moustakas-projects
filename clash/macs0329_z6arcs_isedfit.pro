@@ -40,7 +40,7 @@ pro macs0329_z6arcs_isedfit, supergrid, models=models, isedfit=isedfit, $
 ; do the fitting!
        if keyword_set(isedfit) then begin
           clash_to_maggies, cat, maggies, ivarmaggies, /useirac
-          ivarmaggies[16:17,*] = 0.0
+;         ivarmaggies[16:17,*] = 0.0
           isedfit, paramfile, maggies, ivarmaggies, adi.z, iopath=isedpath, $
             clobber=clobber, sfhgrid_paramfile=sfhgrid_paramfile, $
             isedfit_sfhgrid_dir=isedfit_sfhgrid_dir;, index=index
@@ -48,12 +48,12 @@ pro macs0329_z6arcs_isedfit, supergrid, models=models, isedfit=isedfit, $
 
 ; make some QAplots
        if keyword_set(qaplot) then begin
-          yrange = [30,21]
-          xrange = [2000,17000]
-;         xrange = [2000,70000]
+          yrange = [32,21]
+;         xrange = [2000,17000] & xlog = 0
+          xrange = [2000,70000] & xlog = 1
           isedfit_qaplot, paramfile, result, iopath=isedpath, galaxy=adi.id, $
             index=index, clobber=clobber, isedfit_sfhgrid_dir=isedfit_sfhgrid_dir, $
-            outprefix=outprefix, xrange=xrange, yrange=yrange, xlog=0
+            outprefix=outprefix, xrange=xrange, yrange=yrange, xlog=xlog
        endif
     endfor
 

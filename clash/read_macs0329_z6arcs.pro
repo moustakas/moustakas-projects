@@ -59,17 +59,27 @@ function read_macs0329_z6arcs, adi=adi
     cat[3] = addphot(cat[3],allcat[these])
 
 ; add IRAC
-    cat.ch1_mag = -2.5*alog10(irac.ch1*10.0^(-0.4*23.9))
-    cat.ch1_magerr = 2.5*irac.ch1_err/irac.ch1/alog(10)
+    cat.ch1_mag = irac.ch1
+    cat.ch1_magerr = irac.ch1_err
+    cat.ch2_mag = irac.ch2
+    cat.ch2_magerr = irac.ch2_err
 
-    gd = where(irac.ch2 gt 0.0)
-    cat[gd].ch2_mag = -2.5*alog10(irac[gd].ch2*10.0^(-0.4*23.9))
-    cat[gd].ch2_magerr = 2.5*irac[gd].ch2_err/irac[gd].ch2/alog(10)
+;   lim = where(irac.ch2 gt 90)
+;   irac[lim].ch2_err = irac[lim].ch2_err-2.5*alog10(2) ; convert to 1-sigma
+    
+;; photometry from Leonidas:
+;    cat.ch1_mag = -2.5*alog10(irac.ch1*10.0^(-0.4*23.9))
+;    cat.ch1_magerr = 2.5*irac.ch1_err/irac.ch1/alog(10)
+;
+;    gd = where(irac.ch2 gt 0.0)
+;    cat[gd].ch2_mag = -2.5*alog10(irac[gd].ch2*10.0^(-0.4*23.9))
+;    cat[gd].ch2_magerr = 2.5*irac[gd].ch2_err/irac[gd].ch2/alog(10)
+;
+;    lim = where(irac.ch2 lt 0.0 and irac.ch2_err gt 0.0)
+;    cat[lim].ch2_mag = 99.0
+;    cat[lim].ch2_magerr = -2.5*alog10(irac[lim].ch2_err*10.0^(-0.4*23.9))
 
-    lim = where(irac.ch2 lt 0.0 and irac.ch2_err gt 0.0)
-    cat[lim].ch2_mag = 99.0
-    cat[lim].ch2_magerr = -2.5*alog10(irac[lim].ch2_err*10.0^(-0.4*23.9))
-
+; old code:    
 ;   spherematch, allcat.ra, allcat.dec, 15D*hms2dec(adi[3].ra), hms2dec(adi[3].dec), 1D/3600, m1, m2, maxmatch=0
 ;   srt = sort(m2) & m1 = m1[srt] & m2 = m2[srt]
 ;   cat = allcat[m1]

@@ -10,7 +10,10 @@ pro macs0329_z6arcs, supergrid, models=models, isedfit=isedfit, $
     isedfit_sfhgrid_dir = clash_path(/monte)
     sfhgrid_paramfile = getenv('CLASH_DIR')+'/clash_sfhgrid.par'
 
-    filters = strtrim(clash_filterlist(nice=nice_filters),2)
+    filters = [clash_filterlist(nice=nice_filters),(irac_filterlist())[0:1]]
+    nice_filters = [nice_filters,'ch1','ch2']
+;   filters = strtrim(clash_filterlist(nice=nice_filters),2)
+
     filtinfo = im_filterspecs(filterlist=filters)
     weff = filtinfo.weff
     hwhm = filtinfo.fwhm/2.0
@@ -42,7 +45,125 @@ pro macs0329_z6arcs, supergrid, models=models, isedfit=isedfit, $
     niceprint, galaxy, ised.mass_50-alog10(adi.mu), 1E3*ised.age_50, ised.z_50/0.019, $
       ised.av_50, 10^(ised.sfr_50-alog10(adi.mu)), 1E3*ised.tau_50
     
+; ---------------------------------------------------------------------------
+; make a QAplot showing the best-fitting SEDs and posterior distributions
+    isedfitpsfile = datapath+prefix+'_isedfit.ps'
+    im_plotconfig, 0, pos, psfile=isedfitpsfile, ymargin=[1.0,1.1], $
+      height=5.0
+
+    xtitle1 = textoidl('Observed Wavelength (\AA)')
+    xtitle2 = textoidl('Rest Wavelength (\AA)')
+    ytitle1 = textoidl('m_{AB}')
+
+    yrange = [32,21.0]
+    xrange1 = [2000,70000]
+    xlog = 1
+;   yrange = [30.5,24.0]
+;   xrange1 = [2000,17000]
+    for ii = 0, n_elements(cat)-1 do begin
+       xrange2 = xrange1/(1.0+ised[ii].zobj)
+       plot, [0], [0], /nodata, xrange=xrange1, yrange=yrange, $
+         xsty=9, ysty=1, xtitle=xtitle1, ytitle=ytitle1, xlog=xlog, $
+         xtickinterval=3000, position=pos, xtickformat='(I0)'
+       axis, /xaxis, xsty=1, xtitle=xtitle2, xrange=xrange2, xlog=xlog
+
+       oplot, model[ii].wave, model[ii].flux, line=0
+       
+; overplot the observed and model photometry
+       used = where((ised[ii].maggies gt 0.0) and $ ; used in the fitting
+         (ised[ii].ivarmaggies gt 0.0),nused)
+       notused = where((ised[ii].maggies gt 0.0) and $ ; not used in the fitting
+         (ised[ii].ivarmaggies eq 0.0),nnotused)
+       nodata = where((ised[ii].maggies eq 0.0) and $ ; no measurement
+         (ised[ii].ivarmaggies eq 0.0),nnodata)
+
+       djs_oplot, weff[used], -2.5*alog10(ised[ii].bestmaggies[used]), $
+         psym=symcat(6,thick=6), symsize=2.5
+
+       used = where((ised[ii].maggies gt 0.0) and $ ; used in the fitting
+         (ised[ii].ivarmaggies gt 0.0),nused)
+       upper = where((ised[ii].maggies le 0.0) and $ ; upper limit
+         (ised[ii].ivarmaggies gt 0.0),nupper)
+
+       if (nused ne 0L) then begin
+          mab = maggies2mag(ised[ii].maggies[used],$
+            ivar=ised[ii].ivarmaggies[used],magerr=mab_err)
+          oploterror, weff[used], mab, hwhm[used], mab_err, psym=symcat(16), $
+            symsize=2.0, color=im_color('firebrick'), $
+            errcolor=im_color('firebrick'), errthick=!p.thick
+       endif
+
+       if (nupper ne 0) then begin
+          mab = maggies2mag(1.0/sqrt(ised[ii].ivarmaggies[upper]))
+          oploterror, weff[upper], mab, hwhm[upper], mab*0.0, psym=symcat(18), $
+            symsize=3.0, color=im_color('steel blue'), $
+            errcolor=im_color('steel blue'), errthick=!p.thick
+       endif
+
+;; overplot uvis, acs, and ir separately 
+;       uvis = where(strmatch(nice_filters,'*uvis*',/fold))
+;       mab = maggies2mag(ised[ii].maggies[uvis],$
+;         ivar=ised[ii].ivarmaggies[uvis],magerr=mab_err)
+;       oploterror, filtinfo[uvis].weff, mab, mab_err, psym=symcat(16), $
+;         symsize=2.0, color=fsc_color('dodger blue',101), $
+;         errcolor=fsc_color('dodger blue',101), errthick=!p.thick
+;       
+;       acs = where(strmatch(nice_filters,'*acs*',/fold))
+;       mab = maggies2mag(ised[ii].maggies[acs],$
+;         ivar=ised[ii].ivarmaggies[acs],magerr=mab_err)
+;       oploterror, filtinfo[acs].weff, mab, mab_err, psym=symcat(16), $
+;         symsize=2.0, color=fsc_color('tan',101), $
+;         errcolor=fsc_color('tan',101), errthick=!p.thick
+;       
+;       ir = where(strmatch(nice_filters,'*ir*',/fold))
+;       mab = maggies2mag(ised[ii].maggies[ir],$
+;         ivar=ised[ii].ivarmaggies[ir],magerr=mab_err)
+;       oploterror, filtinfo[ir].weff, mab, mab_err, psym=symcat(16), $
+;         symsize=2.0, color=fsc_color('firebrick',101), $
+;         errcolor=fsc_color('firebrick',101), errthick=!p.thick
     
+       label = galaxy[ii]
+;      label = [galaxy[ii],'z = '+string(ised[ii].zobj,format='(F6.4)')]
+       legend, textoidl(label), /left, /top, box=0, charsize=1.7, $
+         margin=0, spacing=2.2
+
+       label = [$
+         'log (M/M'+sunsymbol()+') = '+strtrim(string(ised[ii].mass_50-alog10(adi[ii].mu),format='(F12.2)'),2),$
+         'Age = '+strtrim(string(ised[ii].age_50*1E3,format='(I0)'),2)+' Myr',$
+         'Z/Z'+sunsymbol()+' = '+strtrim(string(ised[ii].Z_50/0.019,format='(F12.2)'),2),$
+         'A_{V} = '+strtrim(string(ised[ii].av_50,format='(F12.2)'),2)+' mag',$
+         '\tau = '+strtrim(string(ised[ii].tau_50,format='(F12.2)'),2)+' Gyr',$
+         '\psi = '+strtrim(string(10^(ised[ii].sfr_50-alog10(adi[ii].mu)),$
+         format='(F12.2)'),2)+' M'+sunsymbol()+' yr^{-1}']
+;        'log (b_{100}) = '+strtrim(string(ised[ii].b100_50,format='(F12.3)'),2)]
+       legend, textoidl(label), /left, /top, box=0, spacing=1.9, charsize=1.4, $
+         position=[15000.0,yrange[0]-(yrange[0]-yrange[1])*0.44], /data
+    endfor
+    im_plotconfig, psfile=isedfitpsfile, /psclose
+
+; plot the NxN distributions of parameters as an upper triangle
+    for ii = 0, n_elements(cat)-1 do begin
+       psfile = datapath+strlowcase(adi[ii].id)+'_manyd.ps'
+       splog, 'Writing '+psfile
+       manyd = transpose([[mstar[*,ii]],[age[*,ii]],[Z[*,ii]/0.02],[av[*,ii]],[sfr0[*,ii]]])
+       label = textoidl(['log (M/M'+sunsymbol()+')','Age (Gyr)','Z/Z'+sunsymbol(),'A_{V} (mag)','log (\psi)'])
+
+       im_manyd_scatterplot, fltarr(ndraw)+1, manyd, psfile, label=label, $
+         axis_char_scale=1.5, /internal, outliers=0, $
+         /nogrey, keynote=keynote, levels=errorf((dindgen(2)+1)/sqrt(2)), $
+         /upper
+    endfor       
+
+;; merge everything into a single postscript file and then convert to
+;; PDF
+;    outfile = datapath+prefix+'.pdf'
+;    allfiles = [isedfitpsfile,datapath+strlowcase(adi.id)+'_manyd.ps']
+;    spawn, 'gs -q -dNOPAUSE -sDEVICE=pdfwrite '+$
+;      '-sOutputFile='+outfile+' -dBATCH '+strjoin(allfiles,' '), /sh
+    
+stop    
+
+
 ; ---------------------------------------------------------------------------
 ; make a plot for the paper    
     this = 1
@@ -196,119 +317,6 @@ stop
     im_legend, galaxy, /right, /top, box=0, line=line, $
       color=col, charsize=1.5
     im_plotconfig, psfile=psfile, /psclose, /pdf
-    
-stop    
-    
-; ---------------------------------------------------------------------------
-; make a QAplot showing the best-fitting SEDs and posterior distributions
-    isedfitpsfile = datapath+prefix+'_isedfit.ps'
-    im_plotconfig, 0, pos, psfile=isedfitpsfile, ymargin=[1.0,1.1], $
-      height=5.0
-
-    xtitle1 = textoidl('Observed Wavelength (\AA)')
-    xtitle2 = textoidl('Rest Wavelength (\AA)')
-    ytitle1 = textoidl('m_{AB}')
-
-    yrange = [30.5,24.0]
-    xrange1 = [2000,17000]
-    for ii = 0, n_elements(cat)-1 do begin
-       xrange2 = xrange1/(1.0+isedfit[ii].zobj)
-       plot, [0], [0], /nodata, xrange=xrange1, yrange=yrange, $
-         xsty=9, ysty=1, xtitle=xtitle1, ytitle=ytitle1, xlog=0, $
-         xtickinterval=3000, position=pos, xtickformat='(I0)'
-       axis, /xaxis, xsty=1, xtitle=xtitle2, xrange=xrange2, xlog=0
-
-       oplot, model[ii].wave, model[ii].flux, line=0
-       
-; overplot the observed and model photometry
-       used = where((isedfit[ii].maggies gt 0.0) and $ ; used in the fitting
-         (isedfit[ii].ivarmaggies gt 0.0),nused)
-       notused = where((isedfit[ii].maggies gt 0.0) and $ ; not used in the fitting
-         (isedfit[ii].ivarmaggies eq 0.0),nnotused)
-       nodata = where((isedfit[ii].maggies eq 0.0) and $ ; no measurement
-         (isedfit[ii].ivarmaggies eq 0.0),nnodata)
-
-       djs_oplot, weff[used], -2.5*alog10(isedfit[ii].bestmaggies[used]), $
-         psym=symcat(6,thick=6), symsize=2.5
-
-       used = where((isedfit[ii].maggies gt 0.0) and $ ; used in the fitting
-         (isedfit[ii].ivarmaggies gt 0.0),nused)
-       upper = where((isedfit[ii].maggies le 0.0) and $ ; upper limit
-         (isedfit[ii].ivarmaggies gt 0.0),nupper)
-
-       if (nused ne 0L) then begin
-          mab = maggies2mag(isedfit[ii].maggies[used],$
-            ivar=isedfit[ii].ivarmaggies[used],magerr=mab_err)
-          oploterror, weff[used], mab, hwhm[used], mab_err, psym=symcat(16), $
-            symsize=2.0, color=im_color('firebrick'), $
-            errcolor=im_color('firebrick'), errthick=!p.thick
-       endif
-
-       if (nupper ne 0) then begin
-          mab = maggies2mag(1.0/sqrt(isedfit[ii].ivarmaggies[upper]))
-          oploterror, weff[upper], mab, hwhm[upper], mab*0.0, psym=symcat(18), $
-            symsize=3.0, color=im_color('steel blue'), $
-            errcolor=im_color('steel blue'), errthick=!p.thick
-       endif
-
-;; overplot uvis, acs, and ir separately 
-;       uvis = where(strmatch(nice_filters,'*uvis*',/fold))
-;       mab = maggies2mag(isedfit[ii].maggies[uvis],$
-;         ivar=isedfit[ii].ivarmaggies[uvis],magerr=mab_err)
-;       oploterror, filtinfo[uvis].weff, mab, mab_err, psym=symcat(16), $
-;         symsize=2.0, color=fsc_color('dodger blue',101), $
-;         errcolor=fsc_color('dodger blue',101), errthick=!p.thick
-;       
-;       acs = where(strmatch(nice_filters,'*acs*',/fold))
-;       mab = maggies2mag(isedfit[ii].maggies[acs],$
-;         ivar=isedfit[ii].ivarmaggies[acs],magerr=mab_err)
-;       oploterror, filtinfo[acs].weff, mab, mab_err, psym=symcat(16), $
-;         symsize=2.0, color=fsc_color('tan',101), $
-;         errcolor=fsc_color('tan',101), errthick=!p.thick
-;       
-;       ir = where(strmatch(nice_filters,'*ir*',/fold))
-;       mab = maggies2mag(isedfit[ii].maggies[ir],$
-;         ivar=isedfit[ii].ivarmaggies[ir],magerr=mab_err)
-;       oploterror, filtinfo[ir].weff, mab, mab_err, psym=symcat(16), $
-;         symsize=2.0, color=fsc_color('firebrick',101), $
-;         errcolor=fsc_color('firebrick',101), errthick=!p.thick
-    
-       label = [galaxy[ii],'z = '+string(isedfit[ii].zobj,format='(F6.4)')]
-       legend, textoidl(label), /left, /top, box=0, charsize=1.7, $
-         margin=0, spacing=2.2
-
-       label = [$
-         'log (M/M'+sunsymbol()+') = '+strtrim(string(isedfit[ii].mass,format='(F12.2)'),2),$
-         'Age = '+strtrim(string(isedfit[ii].age*1E3,format='(F12.1)'),2)+' Myr',$
-         'Z/Z'+sunsymbol()+' = '+strtrim(string(isedfit[ii].Z/0.02,format='(F12.2)'),2),$
-         'A_{V} = '+strtrim(string(isedfit[ii].av,format='(F12.3)'),2)+' mag',$
-         '\tau = '+strtrim(string(isedfit[ii].tau,format='(F12.1)'),2)+' Gyr',$
-         'log \psi_{100} = '+strtrim(string(isedfit[ii].sfr100,format='(F12.3)'),2)+' M'+sunsymbol()+' yr^{-1}',$
-         'log (b_{100}) = '+strtrim(string(isedfit[ii].b100,format='(F12.3)'),2)]
-       legend, textoidl(label), /left, /top, box=0, spacing=1.9, charsize=1.4, $
-         position=[10000.0,yrange[0]-(yrange[0]-yrange[1])*0.44], /data
-    endfor
-    im_plotconfig, psfile=isedfitpsfile, /psclose
-
-; plot the NxN distributions of parameters as an upper triangle
-    for ii = 0, n_elements(cat)-1 do begin
-       psfile = datapath+strlowcase(adi[ii].id)+'_manyd.ps'
-       splog, 'Writing '+psfile
-       manyd = transpose([[mstar[*,ii]],[age[*,ii]],[Z[*,ii]/0.02],[av[*,ii]],[sfr0[*,ii]]])
-       label = textoidl(['log (M/M'+sunsymbol()+')','Age (Gyr)','Z/Z'+sunsymbol(),'A_{V} (mag)','log (\psi)'])
-
-       im_manyd_scatterplot, fltarr(ndraw)+1, manyd, psfile, label=label, $
-         axis_char_scale=1.5, /internal, outliers=0, $
-         /nogrey, keynote=keynote, levels=errorf((dindgen(2)+1)/sqrt(2)), $
-         /upper
-    endfor       
-
-; merge everything into a single postscript file and then convert to
-; PDF
-    outfile = datapath+prefix+'.pdf'
-    allfiles = [isedfitpsfile,datapath+strlowcase(adi.id)+'_manyd.ps']
-    spawn, 'gs -q -dNOPAUSE -sDEVICE=pdfwrite '+$
-      '-sOutputFile='+outfile+' -dBATCH '+strjoin(allfiles,' '), /sh
     
 stop    
     

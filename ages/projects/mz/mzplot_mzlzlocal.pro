@@ -116,7 +116,7 @@ pro mzplot_mzlzlocal, ps=ps
        mzplot_scatterplot, /ages, ainfo.mass, ainfo.oh, weight=ainfo.weight, $
          /noerase, position=pos[*,1], xstyle=1, ystyle=1, xtitle=mzplot_masstitle(), $
          ytitle='', xrange=massrange1, yrange=ohrange1, ytickname=replicate(' ',10), $
-         levels=ageslevels, npix=16, ccolor=djs_icolor('grey'), /nogrey, xtickinterval=0.5
+         levels=ageslevels, npix=16, ccolor=djs_icolor('grey'), /nogrey, xtickinterval=1
 
 ;      djs_oplot, ainfo.mass[lim], ainfo.oh[lim], weight=ainfo.weight[lim], psym=6, sym=0.1, color='yellow'
        djs_oplot, mzlocal.bin_mass, mzlocal.bin_oh_mean, $

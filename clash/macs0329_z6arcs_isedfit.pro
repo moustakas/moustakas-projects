@@ -1,5 +1,5 @@
-pro macs0329_z6arcs_isedfit, supergrid, models=models, isedfit=isedfit, $
-  qaplot=qaplot, clobber=clobber
+pro macs0329_z6arcs_isedfit, models=models, isedfit=isedfit, $
+  qaplot=qaplot, clobber=clobber, usemag=usemag
 ; jm11nov08ucsd - fit the z~6 arcs in macs0329
 
     isedpath = clash_path(/ised)
@@ -9,12 +9,12 @@ pro macs0329_z6arcs_isedfit, supergrid, models=models, isedfit=isedfit, $
     sfhgrid_paramfile = getenv('CLASH_DIR')+'/clash_sfhgrid.par'
 
 ; read the supergrid parameter file
-    supergrid = 2 ; current supergrid for this project
-    super = get_clash_supergrid(2,nsuper=nsuper)
+    supergrid = [2,3] ; current supergrids for this project
+    super = get_clash_supergrid(supergrid,nsuper=nsuper)
     struct_print, super
 
 ; gather the photometry
-    cat = read_macs0329_z6arcs(adi=adi)
+    cat = read_z6arcs_photometry(adi=adi)
 
     igm = '1'
     nzz = '3'
@@ -39,9 +39,7 @@ pro macs0329_z6arcs_isedfit, supergrid, models=models, isedfit=isedfit, $
 
 ; do the fitting!
        if keyword_set(isedfit) then begin
-          clash_to_maggies, cat, maggies, ivarmaggies, /useirac
-;         ivarmaggies[16:17,*] = 0.0
-          isedfit, paramfile, maggies, ivarmaggies, adi.z, iopath=isedpath, $
+          isedfit, paramfile, cat.maggies, cat.ivarmaggies, adi.z, iopath=isedpath, $
             clobber=clobber, sfhgrid_paramfile=sfhgrid_paramfile, $
             isedfit_sfhgrid_dir=isedfit_sfhgrid_dir;, index=index
        endif       

@@ -13,6 +13,8 @@ typedef struct {
 } GRID;
 
 GRID   1   1 chab     fsps       1 # (preliminary!) A2261 arcs
-GRID   2   2 chab     fsps       0 # MACS0329 z~6 arcs
+GRID   2   2 chab     fsps       0 # MACS0329 z~6 arcs - delayed
+GRID   3   3 chab     fsps       0 # MACS0329 z~6 arcs - simple tau
+
 GRID  10  10 chab     fsps       1 # bcg(s)
 GRID  11  11 chab     fsps       1

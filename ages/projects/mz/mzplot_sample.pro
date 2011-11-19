@@ -26,6 +26,119 @@ pro mzplot_sample, ps=ps
     dist = 3.085678D19     ; fiducial distance [10 pc in cm]
 
 ; ------------------------------------------------------------
+; Figures 2 & 3 - AGES - H-beta, [OII], and [OIII] selection
+    agesparent = read_mz_sample(/parent)
+    agesmass = read_mz_sample(/mass)
+    agesispec = read_ages(/ppxf)
+
+    match, agesparent.ages_id, agesispec.ages_id, m1, m2
+    srt = sort(m1) & m1 = m1[srt] & m2 = m2[srt]
+    agesispec = agesispec[m2]
+
+    ages_hbcut = mz_hbcut()
+    ages_snrcut = 1.0
+    ages_oiihbcut = -0.3
+;   ages_ewcut = 0.0
+;   ages_sigmacut = 400.0 
+
+    zaxis = range(0.01,1.0,100)
+    scale = 1D-40
+    zrange = [0.0,0.8]
+    ages_dfactor = 4.0*!dpi*dluminosity(agesispec.z,/cm)^2
+    
+    sel1 = where($
+      (agesispec.h_beta[0] gt ages_hbcut) and $
+      (agesispec.h_beta[0]/agesispec.h_beta[1] gt ages_snrcut) and $ ; nominal cut
+;     (agesispec.h_beta_ew[0] gt ages_ewcut) and $
+;     (agesispec.h_beta_sigma[0] lt ages_sigmacut) and $ ; nominal cut
+      (agesispec.oii_3727[1] ne -2.0))
+    rej1 = where($
+      (agesispec.h_beta[0] le ages_hbcut) and $
+      (agesispec.h_beta[0]/agesispec.h_beta[1] gt ages_snrcut) and $ ; nominal cut
+;     (agesispec.h_beta_ew[0] gt ages_ewcut) and $
+;     (agesispec.h_beta_sigma[0] lt ages_sigmacut) and $
+      (agesispec.oii_3727[1] ne -2.0))
+
+    sel2 = where($
+      (agesispec.h_beta[0] gt ages_hbcut) and $
+;     (agesispec.h_beta_ew[0] gt ages_ewcut) and $
+;     (agesispec.h_beta_sigma[0] lt ages_sigmacut) and $
+      (agesispec.oii_3727[1] ne -2.0) and $
+      (agesispec.oii_3727[0] gt 10^ages_oiihbcut*agesispec.h_beta[0]))
+    rej2 = where($
+      (agesispec.h_beta[0] gt ages_hbcut) and $
+;     (agesispec.h_beta_ew[0] gt ages_ewcut) and $
+;     (agesispec.h_beta_sigma[0] lt ages_sigmacut) and $
+      (agesispec.oii_3727[1] ne -2.0) and $
+      (agesispec.oii_3727[0] le 10^ages_oiihbcut*agesispec.h_beta[0]) and $
+      (agesispec.oii_3727[1] gt 0.0))
+    help, sel1, sel2
+    
+; Figure 2 - redshift vs H-beta
+    psfile = pspath+'z_vs_hb'+suffix
+    im_plotconfig, 6, pos, psfile=psfile, xmargin=[1.7,0.4], $
+      width=6.0, height=[3.0,3.0]
+
+; luminosity    
+    djs_plot, [0], [0], /nodata, position=pos[*,0], xsty=1, ysty=1, $
+      xrange=zrange, yrange=scale*[1.05D38,1.5D42], xtitle='', xtickname=replicate(' ',10), $
+      ytitle='L(H\beta) (10^{40} erg s^{-1})', /ylog
+    djs_oplot, agesispec[sel1].z, scale*ages_dfactor[sel1]*agesispec[sel1].h_beta[0], $
+      psym=symcat(9,thick=1), symsize=0.3, color=im_color('grey60')
+    djs_oplot, agesispec[rej1].z, scale*ages_dfactor[rej1]*agesispec[rej1].h_beta[0], $
+      psym=symcat(16), symsize=0.6, color=im_color('midnight blue')
+    djs_oplot, zaxis, scale*ages_hbcut*4.0*!dpi*dluminosity(zaxis,/cm)^2, line=0, thick=6
+    im_legend, 'F(H\beta)>3\times10^{-17} erg s^{-1} cm^{-2}', $
+      /right, /bottom, box=0, charsize=1.4, margin=0, line=0, thick=6
+
+; EW
+    djs_plot, [0], [0], /nodata, /noerase, position=pos[*,1], xsty=1, ysty=1, $
+      xrange=zrange, yrange=[0.1,150], xtitle='Redshift', $
+      ytitle='EW(H\beta) (\AA)', /ylog
+    djs_oplot, agesispec[sel1].z, agesispec[sel1].h_beta_ew[0], $
+      psym=symcat(9,thick=1), symsize=0.3, color=im_color('grey60')
+    djs_oplot, agesispec[rej1].z, agesispec[rej1].h_beta_ew[0], $
+      psym=symcat(16), symsize=0.6, color=im_color('midnight blue')
+;   djs_oplot, zaxis, ages_hbcut*4.0*!dpi*dluminosity(zaxis,/cm)^2/ages_l4861_limit, line=0, thick=6
+    im_plotconfig, /psclose, psfile=psfile
+
+; Figure 3 - [OII]/Hb and [OIII]/Hb vs redshift
+    psfile = pspath+'z_vs_oiihb_oiiihb'+suffix
+    im_plotconfig, 6, pos, psfile=psfile, xmargin=[1.7,0.4], $
+      width=6.0, height=[3.0,3.0], charsize=1.6
+
+; [OII]/Hb    
+    djs_plot, [0], [0], /nodata, position=pos[*,0], xsty=1, ysty=1, $
+      xrange=zrange, yrange=[-1.5,1.0], xtitle='', xtickname=replicate(' ',10), $
+      ytitle='log ([O II]/H\beta)'
+
+    lim = where(agesispec[sel1].oii_3727[1] eq -1.0,comp=det)
+    djs_oplot, agesispec[sel1[det]].z, alog10(agesispec[sel1[det]].oii_3727[0]/agesispec[sel1[det]].h_beta[0]), $
+      psym=symcat(9,thick=1), symsize=0.3, color=im_color('grey60')
+
+    plotsym, 1.0, 1.5, thick=4
+    djs_oplot, agesispec[sel1[lim]].z, alog10(agesispec[sel1[lim]].oii_3727_limit/agesispec[sel1[lim]].h_beta[0]), $
+      psym=8, color=im_color('orange red',101)
+    djs_oplot, !x.crange, ages_oiihbcut*[1,1], line=5, thick=6
+    
+; [OIII]/Hb
+    djs_plot, [0], [0], /nodata, /noerase, position=pos[*,1], xsty=1, ysty=1, $
+      xrange=zrange, yrange=[-1.8,1.5], xtitle='Redshift', $
+      ytitle='log ([O III] \lambda5007/H\beta)'
+
+    lim = where(agesispec[sel2].oiii_5007[1] eq -1.0,comp=det)
+    djs_oplot, agesispec[sel2[det]].z, alog10(agesispec[sel2[det]].oiii_5007[0]/$
+      agesispec[sel2[det]].h_beta[0]), psym=symcat(9,thick=1), symsize=0.3, color=im_color('grey60')
+
+    plotsym, 1.0, 0.8, thick=4
+    djs_oplot, agesispec[sel2[lim]].z, alog10(agesispec[sel2[lim]].oiii_5007_limit/$
+      agesispec[sel2[lim]].h_beta[0]), psym=8, color=im_color('orange red',101)
+    
+    im_plotconfig, /psclose, psfile=psfile
+
+stop    
+    
+; ------------------------------------------------------------
 ; Figure 6 - distribution of global properties - AGES & SDSS
 
 ;   sdssparent = read_mz_sample(/parent,/sdss)
@@ -430,117 +543,6 @@ stop
     
     im_plotconfig, /psclose, psfile=psfile
 
-; ------------------------------------------------------------
-; Figures 2 & 3 - AGES - H-beta, [OII], and [OIII] selection
-    agesparent = read_mz_sample(/parent)
-    agesmass = read_mz_sample(/mass)
-    agesispec = read_ages(/ppxf)
-
-    match, agesparent.ages_id, agesispec.ages_id, m1, m2
-    srt = sort(m1) & m1 = m1[srt] & m2 = m2[srt]
-    agesispec = agesispec[m2]
-
-    ages_hbcut = mz_hbcut()
-    ages_snrcut = 1.0
-    ages_oiihbcut = -0.3
-;   ages_ewcut = 0.0
-;   ages_sigmacut = 400.0 
-
-    zaxis = range(0.01,1.0,100)
-    scale = 1D-40
-    zrange = [0.0,0.8]
-    ages_dfactor = 4.0*!dpi*dluminosity(agesispec.z,/cm)^2
-    
-    sel1 = where($
-      (agesispec.h_beta[0] gt ages_hbcut) and $
-      (agesispec.h_beta[0]/agesispec.h_beta[1] gt ages_snrcut) and $ ; nominal cut
-;     (agesispec.h_beta_ew[0] gt ages_ewcut) and $
-;     (agesispec.h_beta_sigma[0] lt ages_sigmacut) and $ ; nominal cut
-      (agesispec.oii_3727[1] ne -2.0))
-    rej1 = where($
-      (agesispec.h_beta[0] le ages_hbcut) and $
-      (agesispec.h_beta[0]/agesispec.h_beta[1] gt ages_snrcut) and $ ; nominal cut
-;     (agesispec.h_beta_ew[0] gt ages_ewcut) and $
-;     (agesispec.h_beta_sigma[0] lt ages_sigmacut) and $
-      (agesispec.oii_3727[1] ne -2.0))
-
-    sel2 = where($
-      (agesispec.h_beta[0] gt ages_hbcut) and $
-;     (agesispec.h_beta_ew[0] gt ages_ewcut) and $
-;     (agesispec.h_beta_sigma[0] lt ages_sigmacut) and $
-      (agesispec.oii_3727[1] ne -2.0) and $
-      (agesispec.oii_3727[0] gt 10^ages_oiihbcut*agesispec.h_beta[0]))
-    rej2 = where($
-      (agesispec.h_beta[0] gt ages_hbcut) and $
-;     (agesispec.h_beta_ew[0] gt ages_ewcut) and $
-;     (agesispec.h_beta_sigma[0] lt ages_sigmacut) and $
-      (agesispec.oii_3727[1] ne -2.0) and $
-      (agesispec.oii_3727[0] le 10^ages_oiihbcut*agesispec.h_beta[0]) and $
-      (agesispec.oii_3727[1] gt 0.0))
-    help, sel1, sel2
-    
-; Figure 2 - redshift vs H-beta
-    psfile = pspath+'z_vs_hb'+suffix
-    im_plotconfig, 6, pos, psfile=psfile, xmargin=[1.7,0.4], $
-      width=6.0, height=[3.0,3.0]
-
-; luminosity    
-    djs_plot, [0], [0], /nodata, position=pos[*,0], xsty=1, ysty=1, $
-      xrange=zrange, yrange=scale*[1.05D38,1.5D42], xtitle='', xtickname=replicate(' ',10), $
-      ytitle='L(H\beta) (10^{40} erg s^{-1})', /ylog
-    djs_oplot, agesispec[sel1].z, scale*ages_dfactor[sel1]*agesispec[sel1].h_beta[0], $
-      psym=symcat(16), symsize=0.4;, color='grey'
-    djs_oplot, agesispec[rej1].z, scale*ages_dfactor[rej1]*agesispec[rej1].h_beta[0], $
-      psym=symcat(9,thick=6), symsize=0.5, color=im_color('dodger blue',101)
-    djs_oplot, zaxis, scale*ages_hbcut*4.0*!dpi*dluminosity(zaxis,/cm)^2, line=0, thick=6
-    im_legend, 'F(H\beta)>3\times10^{-17} erg s^{-1} cm^{-2}', $
-      /right, /bottom, box=0, charsize=1.4, margin=0, line=0, thick=6
-
-; EW
-    djs_plot, [0], [0], /nodata, /noerase, position=pos[*,1], xsty=1, ysty=1, $
-      xrange=zrange, yrange=[0.1,150], xtitle='Redshift', $
-      ytitle='EW(H\beta) (\AA)', /ylog
-    djs_oplot, agesispec[sel1].z, agesispec[sel1].h_beta_ew[0], $
-      psym=symcat(16), symsize=0.4;, color='grey'
-    djs_oplot, agesispec[rej1].z, agesispec[rej1].h_beta_ew[0], $
-      psym=symcat(9,thick=6), symsize=0.5, color=im_color('dodger blue',101)
-;   djs_oplot, zaxis, ages_hbcut*4.0*!dpi*dluminosity(zaxis,/cm)^2/ages_l4861_limit, line=0, thick=6
-    im_plotconfig, /psclose, psfile=psfile
-
-; Figure 3 - [OII]/Hb and [OIII]/Hb vs redshift
-    psfile = pspath+'z_vs_oiihb_oiiihb'+suffix
-    im_plotconfig, 6, pos, psfile=psfile, xmargin=[1.7,0.4], $
-      width=6.0, height=[3.0,3.0], charsize=1.6
-
-; [OII]/Hb    
-    djs_plot, [0], [0], /nodata, position=pos[*,0], xsty=1, ysty=1, $
-      xrange=zrange, yrange=[-1.5,1.0], xtitle='', xtickname=replicate(' ',10), $
-      ytitle='log ([O II]/H\beta)'
-
-    lim = where(agesispec[sel1].oii_3727[1] eq -1.0,comp=det)
-    djs_oplot, agesispec[sel1[det]].z, alog10(agesispec[sel1[det]].oii_3727[0]/agesispec[sel1[det]].h_beta[0]), $
-      psym=symcat(16), symsize=0.4;, color='grey'
-
-    plotsym, 1.0, 1.5, thick=4
-    djs_oplot, agesispec[sel1[lim]].z, alog10(agesispec[sel1[lim]].oii_3727_limit/agesispec[sel1[lim]].h_beta[0]), $
-      psym=8, color=im_color('orange red',101)
-    djs_oplot, !x.crange, ages_oiihbcut*[1,1], line=5, thick=6
-    
-; [OIII]/Hb
-    djs_plot, [0], [0], /nodata, /noerase, position=pos[*,1], xsty=1, ysty=1, $
-      xrange=zrange, yrange=[-1.8,1.5], xtitle='Redshift', $
-      ytitle='log ([O III] \lambda5007/H\beta)'
-
-    lim = where(agesispec[sel2].oiii_5007[1] eq -1.0,comp=det)
-    djs_oplot, agesispec[sel2[det]].z, alog10(agesispec[sel2[det]].oiii_5007[0]/$
-      agesispec[sel2[det]].h_beta[0]), psym=symcat(16), symsize=0.4;, color='grey'
-
-    plotsym, 1.0, 0.8, thick=4
-    djs_oplot, agesispec[sel2[lim]].z, alog10(agesispec[sel2[lim]].oiii_5007_limit/$
-      agesispec[sel2[lim]].h_beta[0]), psym=8, color=im_color('orange red',101)
-    
-    im_plotconfig, /psclose, psfile=psfile
-        
 ; ###########################################################################
 ; additional figures and QAplots
 

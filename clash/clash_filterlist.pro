@@ -1,6 +1,7 @@
 function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
-  zpt=zpt, alam=alam
+  zpt=zpt, alam=alam, useirac=useirac, weff=weff
 ; jm11apr24ucsd 
+
     filterlist = [$
       'clash_wfc3_f225w.par',$
       'clash_wfc3_f275w.par',$
@@ -60,39 +61,50 @@ function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
 ; # with and without galactic extinction included.
 ; # Extinctions derived using value from Schlegel dust maps:
 ; # E(B-V) = 0.06283
+;    zpt = [$
+;      24.09656D,$
+;      24.17417,$
+;      24.64529,$
+;      25.37141,$
+;      25.65779,$
+;      26.05926,$
+;      26.49116,$
+;      25.90669,$
+;      25.66506,$
+;      25.94335,$
+;      24.84247,$
+;      26.27068,$
+;      26.82514,$
+;      26.24736,$
+;      26.46450,$
+;      25.95590]
     zpt = [$
-      24.09656D,$
-      24.17417,$
-      24.64529,$
-      25.37141,$
-      25.65779,$
-      26.05926,$
-      26.49116,$
-      25.90669,$
-      25.66506,$
-      25.94335,$
-      24.84247,$
-      26.27068,$
-      26.82514,$
-      26.24736,$
-      26.46450,$
-      25.95590]
-    alam = [$
-      0.45016D,$ 
-      0.36981,$ 
-      0.30657,$ 
-      0.27188,$ 
-      0.24797,$ 
-      0.22433,$ 
-      0.17638,$ 
-      0.16089,$ 
-      0.12153,$ 
-      0.10977,$ 
-      0.08874,$ 
-      0.06113,$ 
-      0.05276,$ 
-      0.04559,$ 
-      0.03668,$ 
-      0.02831]
+      23.64640D,$
+      23.80435,$
+      24.33872,$
+      25.09953,$
+      25.40982,$
+      25.83493,$
+      26.31478,$
+      25.74580,$
+      25.54353,$
+      25.83358,$
+      24.75373,$
+      26.20955,$
+      26.77237,$
+      26.20177,$
+      26.42782,$
+      25.92759]    
+    
+; add IRAC    
+    if keyword_set(useirac) then begin
+       filterlist = [filterlist,(irac_filterlist())[0:1]]
+       nice_filter = [nice_filter,'IRAC-[ch1]','IRAC-[ch2]']
+       short_filter = [short_filter,'ch1','ch2']
+       zpt = [zpt,0.0,0.0]
+    endif
+
+    if arg_present(weff) then weff = k_lambda_eff(filterlist=filterlist)
+    
 return, filterlist
 end

@@ -16,7 +16,7 @@ function read_z6arcs_photometry, adi=adi
     
     cat = replicate({weff: weff, maggies: fltarr(nfilt), ivarmaggies: fltarr(nfilt), $
       limit: intarr(nfilt), mag: fltarr(nfilt), magerr_up: fltarr(nfilt), $
-      magerr_lo: fltarr(nfilt)},nobj)
+      magerr_lo: fltarr(nfilt), magerr: fltarr(nfilt)},nobj)
     file = datapath+'z6arc1.'+['1','2','3','4']+'HSTphotometry.cat'
     for jj = 0, nobj-1 do begin
        phot = rsex(file[jj])
@@ -31,6 +31,7 @@ function read_z6arcs_photometry, adi=adi
        cat[jj].mag[sig] = phot[sig].mag
        cat[jj].magerr_up[sig] = phot[sig].magerrhi
        cat[jj].magerr_lo[sig] = phot[sig].magerrlo
+       cat[jj].magerr[sig] = phot[sig].magerr
        
        cat[jj].limit[insig] = 1
        cat[jj].mag[insig] = phot[insig].mag2sig

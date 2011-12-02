@@ -1,5 +1,6 @@
 pro clash_write_paramfile, paramfile, prefix=prefix, zminmax=zminmax, $
-  nzz=nzz, zlog=zlog, igm=igm, super=super, useirac=useirac
+  nzz=nzz, zlog=zlog, igm=igm, super=super, useirac=useirac, $
+  filters=filters
 ; jm11oct14ucsd - support routine for the various clash_*_isedfit
 ; routines
     

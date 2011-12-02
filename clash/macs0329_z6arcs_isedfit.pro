@@ -1,5 +1,5 @@
 pro macs0329_z6arcs_isedfit, models=models, isedfit=isedfit, $
-  qaplot=qaplot, clobber=clobber, usemag=usemag
+  qaplot=qaplot, clobber=clobber, noirac=noirac
 ; jm11nov08ucsd - fit the z~6 arcs in macs0329
 
     isedpath = clash_path(/ised)
@@ -29,7 +29,8 @@ pro macs0329_z6arcs_isedfit, models=models, isedfit=isedfit, $
        paramfile = isedpath+prefix+'_supergrid'+string(super[gg].supergrid,$
          format='(i2.2)')+'_isedfit.par'
        clash_write_paramfile, paramfile, prefix=prefix, zminmax=zminmax, $
-         nzz=nzz, zlog=zlog, igm=igm, super=super[gg], /useirac
+         nzz=nzz, zlog=zlog, igm=igm, super=super[gg], /useirac, $
+         filters=filters
        
 ; build the models
        if keyword_set(models) then begin
@@ -39,6 +40,10 @@ pro macs0329_z6arcs_isedfit, models=models, isedfit=isedfit, $
 
 ; do the fitting!
        if keyword_set(isedfit) then begin
+          if keyword_set(noirac) then begin
+             irac = where(strmatch(filters,'*irac*',/fold))
+             cat.ivarmaggies[irac] = 0.0
+          endif
           isedfit, paramfile, cat.maggies, cat.ivarmaggies, adi.z, iopath=isedpath, $
             clobber=clobber, sfhgrid_paramfile=sfhgrid_paramfile, $
             isedfit_sfhgrid_dir=isedfit_sfhgrid_dir;, index=index

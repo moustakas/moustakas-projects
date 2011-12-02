@@ -23,9 +23,10 @@ pro macs0329_z6arcs, supergrid, models=models, isedfit=isedfit, $
     galaxy = repstr(adi.id,'arc_','Arc ')
     nobj = 4
 
-    if (n_elements(model) eq 0) then $
-      model = isedfit_restore(paramfile,ised,iopath=isedpath,$
-      isedfit_sfhgrid_dir=isedfit_sfhgrid_dir)
+    if (n_elements(model) eq 0) then begin
+       model = isedfit_restore(paramfile,ised,iopath=isedpath,$
+         isedfit_sfhgrid_dir=isedfit_sfhgrid_dir)
+    endif
 
     if (n_elements(mstar) eq 0L) then begin
        mstar = isedfit_reconstruct_posterior(paramfile,post=post,$
@@ -33,6 +34,25 @@ pro macs0329_z6arcs, supergrid, models=models, isedfit=isedfit, $
          age=age,Z=Z,tau=tau,sfr0=sfr0,b100=b100,av=av,sfrage=sfrage)
     endif
     ssfr = sfr0-mstar+9 
+
+; write out the best-fit model of arc 1.2
+    model_flam_igm = isedfit_restore(paramfile,ised,iopath=isedpath,$
+      isedfit_sfhgrid_dir=isedfit_sfhgrid_dir,/flam)
+    model_flam_noigm = isedfit_restore(paramfile,ised,iopath=isedpath,$
+      isedfit_sfhgrid_dir=isedfit_sfhgrid_dir,/flam,/noigm)
+    this = 1
+    openw, lun, datapath+adi[this].id+'_bestfit.txt', /get_lun
+    printf, lun, '## Maximum likelihood model fit to photometry of arc 1.2'
+    printf, lun, '## assuming z=6.18, with and without IGM attenuation.'
+    printf, lun, '# 1 wavelength [observed-frame, Angstrom]'
+    printf, lun, '# 2 flux [observed-frame, erg/s/cm^2/A]'
+    printf, lun, '# 3 flux_noigm [observed-frame, erg/s/cm^2/A]'
+    for ii = 0, n_elements(model_flam_igm[this].wave)-1 do printf, lun, $
+      model_flam_igm[this].wave[ii], model_flam_igm[this].flux[ii], $
+      model_flam_noigm[this].flux[ii], format='(2x,E12.5,3x,E12.5,3x,E12.5)'
+    free_lun, lun
+    
+stop    
     
 ;   niceprint, galaxy, ised.mass_50-alog10(adi.mu), ised.mass_err, $
 ;     1E3*ised.age_50, 1E3*ised.age_err, ised.z_50/0.019, ised.z_err/0.019, ised.av_50, $
@@ -166,7 +186,7 @@ pro macs0329_z6arcs, supergrid, models=models, isedfit=isedfit, $
 ;   djs_oplot, ised[this].age_50*[1,1], !y.crange, line=5, thick=8
     plot, [0], [0], xsty=1, ysty=1, /noerase, /nodata, yrange=[0,1.05], $
       xrange=[-0.04,0.92], position=pos[*,1], ytitle='', charsize=1.4, $
-      xtitle='<Age> (Gyr)', ytickname=replicate(' ',10), $
+      xtitle=textoidl('Age_{w} (Gyr)'), ytickname=replicate(' ',10), $
       xtickinterval=0.2
 
     plot, [0], [0], xsty=5, ysty=5, /noerase, /nodata, yrange=[0,1.1], $

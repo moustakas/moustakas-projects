@@ -54,6 +54,24 @@ pro mzpegase_plots, ps=ps, optimize=optimize
     endfor
 
 ; ---------------------------------------------------------------------------
+
+    maxis = range(9.0,11.2,50)
+    zz = [0.1,0.3,0.5,0.7]
+    nzz = n_elements(zz)
+    yield = 0.01
+    
+    djs_plot, [0], [0], /nodata, xrange=[9,11.4], yrange=[8.0,9.5]
+    for ii = 0, nzz-1 do begin
+       eta = (10^maxis/10D^10.0)^(-2.0/3.0)
+       alpha = (0.5-0.1*zz[ii])*(10^maxis/10D^10.0)^0.25
+       zism = yield/(1+eta)*(1/(1-alpha))
+       djs_oplot, maxis, alog10(zism/0.02)+8.7, line=ii
+    endfor
+    
+
+stop    
+    
+; ---------------------------------------------------------------------------
 ; optimize the parameters of the model
     if keyword_set(optimize) then begin
        parinfo = replicate({value: 1D, limited: [0,0], limits: [0D,0D], fixed: 0},4)

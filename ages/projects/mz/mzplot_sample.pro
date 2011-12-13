@@ -84,9 +84,9 @@ pro mzplot_sample, ps=ps
       xrange=zrange, yrange=scale*[1.05D38,1.5D42], xtitle='', xtickname=replicate(' ',10), $
       ytitle='L(H\beta) (10^{40} erg s^{-1})', /ylog
     djs_oplot, agesispec[sel1].z, scale*ages_dfactor[sel1]*agesispec[sel1].h_beta[0], $
-      psym=symcat(9,thick=1), symsize=0.3, color=im_color('grey60')
+      psym=symcat(9,thick=0.5), symsize=0.3, color=im_color('grey20')
     djs_oplot, agesispec[rej1].z, scale*ages_dfactor[rej1]*agesispec[rej1].h_beta[0], $
-      psym=symcat(16), symsize=0.6, color=im_color('midnight blue')
+      psym=symcat(16), symsize=0.6, color=im_color('dodger blue')
     djs_oplot, zaxis, scale*ages_hbcut*4.0*!dpi*dluminosity(zaxis,/cm)^2, line=0, thick=6
     im_legend, 'F(H\beta)>3\times10^{-17} erg s^{-1} cm^{-2}', $
       /right, /bottom, box=0, charsize=1.4, margin=0, line=0, thick=6
@@ -96,9 +96,9 @@ pro mzplot_sample, ps=ps
       xrange=zrange, yrange=[0.1,150], xtitle='Redshift', $
       ytitle='EW(H\beta) (\AA)', /ylog
     djs_oplot, agesispec[sel1].z, agesispec[sel1].h_beta_ew[0], $
-      psym=symcat(9,thick=1), symsize=0.3, color=im_color('grey60')
+      psym=symcat(9,thick=0.5), symsize=0.3, color=im_color('grey20')
     djs_oplot, agesispec[rej1].z, agesispec[rej1].h_beta_ew[0], $
-      psym=symcat(16), symsize=0.6, color=im_color('midnight blue')
+      psym=symcat(16), symsize=0.6, color=im_color('dodger blue')
 ;   djs_oplot, zaxis, ages_hbcut*4.0*!dpi*dluminosity(zaxis,/cm)^2/ages_l4861_limit, line=0, thick=6
     im_plotconfig, /psclose, psfile=psfile
 
@@ -109,12 +109,12 @@ pro mzplot_sample, ps=ps
 
 ; [OII]/Hb    
     djs_plot, [0], [0], /nodata, position=pos[*,0], xsty=1, ysty=1, $
-      xrange=zrange, yrange=[-1.5,1.0], xtitle='', xtickname=replicate(' ',10), $
+      xrange=zrange, yrange=[-1.6,1.0], xtitle='', xtickname=replicate(' ',10), $
       ytitle='log ([O II]/H\beta)'
 
-    lim = where(agesispec[sel1].oii_3727[1] eq -1.0,comp=det)
-    djs_oplot, agesispec[sel1[det]].z, alog10(agesispec[sel1[det]].oii_3727[0]/agesispec[sel1[det]].h_beta[0]), $
-      psym=symcat(9,thick=1), symsize=0.3, color=im_color('grey60')
+     lim = where(agesispec[sel1].oii_3727[1] eq -1.0,comp=det)
+     djs_oplot, agesispec[sel1[det]].z, alog10(agesispec[sel1[det]].oii_3727[0]/agesispec[sel1[det]].h_beta[0]), $
+       psym=symcat(9,thick=0.5), symsize=0.3, color=im_color('grey20')
 
     plotsym, 1.0, 1.5, thick=4
     djs_oplot, agesispec[sel1[lim]].z, alog10(agesispec[sel1[lim]].oii_3727_limit/agesispec[sel1[lim]].h_beta[0]), $
@@ -123,12 +123,12 @@ pro mzplot_sample, ps=ps
     
 ; [OIII]/Hb
     djs_plot, [0], [0], /nodata, /noerase, position=pos[*,1], xsty=1, ysty=1, $
-      xrange=zrange, yrange=[-1.8,1.5], xtitle='Redshift', $
+      xrange=zrange, yrange=[-1.4,1.2], xtitle='Redshift', $
       ytitle='log ([O III] \lambda5007/H\beta)'
 
     lim = where(agesispec[sel2].oiii_5007[1] eq -1.0,comp=det)
     djs_oplot, agesispec[sel2[det]].z, alog10(agesispec[sel2[det]].oiii_5007[0]/$
-      agesispec[sel2[det]].h_beta[0]), psym=symcat(9,thick=1), symsize=0.3, color=im_color('grey60')
+      agesispec[sel2[det]].h_beta[0]), psym=symcat(9,thick=0.5), symsize=0.3, color=im_color('grey20')
 
     plotsym, 1.0, 0.8, thick=4
     djs_oplot, agesispec[sel2[lim]].z, alog10(agesispec[sel2[lim]].oiii_5007_limit/$

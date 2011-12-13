@@ -91,7 +91,7 @@ pro mzplot_mzlzevol, ps=ps
           mzplot_scatterplot, xx, yy, weight=ww, noerase=(iz gt 0), $
             position=pos[*,iz], xrange=xrange, yrange=yrange, xsty=1, ysty=1, $
             xtitle=xtitle, ytitle=ytitle, xtickname=xtickname, $
-            ytickname=ytickname, _extra=extra, ccolor=djs_icolor('grey'), $
+            ytickname=ytickname, _extra=extra, ccolor=im_color('grey30',201), $
             /nogrey, levels=levels, xtickinterval=2
           djs_oplot, limits.mblimit_50[iz]*[1,1], yrange+[-0.1,+0.1], line=1, thick=8
 
@@ -136,8 +136,6 @@ pro mzplot_mzlzevol, ps=ps
 
 ; print, (abs(mzavg.p0r0zero_avg)-abs(mzavg.lz_s0_avg))/mzavg.lz_slope_avg
 
-stop    
-    
 ; --------------------------------------------------
 ; Figure 13 - AGES - MZ evolution
     xrange = [8.8,11.3]
@@ -211,7 +209,7 @@ stop
           mzplot_scatterplot, xx, yy, weight=ww, noerase=(iz gt 0), $
             position=pos[*,iz], xrange=xrange, yrange=yrange, xsty=1, ysty=1, $
             xtitle=xtitle, ytitle=ytitle, xtickname=xtickname, $
-            ytickname=ytickname, _extra=extra, ccolor=djs_icolor('grey'), $
+            ytickname=ytickname, _extra=extra, ccolor=im_color('grey30',201), $
             /nogrey, levels=levels, xtickinterval=1
 ;         djs_oplot, limits.masslimit_50[iz]*[1,1], yrange+[+0.1,-0.1], line=1, thick=8
 

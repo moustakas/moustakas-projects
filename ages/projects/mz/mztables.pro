@@ -46,17 +46,14 @@ function mzget_colhead, head, nobreak=nobreak
 return, colhead
 end
 
-pro mztables, preprint=preprint
+pro mztables
 ; jm07apr11nyu - based on WRITE_ATLAS_TABLES
 ; jm10oct12ucsd - major rewrite
 
-; by default build emulateapj format tables    
-    if keyword_set(preprint) then filesuffix = '_preprint' else $
-      filesuffix = '_apj'
-
     mzpath = mz_path()
     paperpath = ages_path(/papers)+'mz/'
-
+    filesuffix = ''
+    
 ; ---------------------------------------------------------------------------    
 ; Table 6 - mass-dependent metallicity evolution
     colhead1 = mzget_colhead(['Calibration','$a_{0}$','$a_{1}$'],/nobreak)
@@ -64,24 +61,31 @@ pro mztables, preprint=preprint
     texcenter = ['c','c','c']
 
     mzavg = mrdfits(mzpath+'mzevol_avg.fits.gz',1,/silent)
-    calib = [strtrim(strupcase(mzavg.calib),2),'Average']
+    calib = strtrim(strupcase(mzavg.calib),2)
+;   calib = [strtrim(strupcase(mzavg.calib),2),'Average']
     
     table = replicate({calib: '', a0: '', a1: ''},n_elements(calib))
     ntable = n_elements(table)
     ntags = n_tags(table)
 
     table.calib = calib
-    table.a0 = '$'+string([reform(mzavg.dlogohdz_coeff_all[0,*]),mzavg.dlogohdz_coeff[0]],format='(F6.3)')+$
-      '\pm'+string([reform(mzavg.dlogohdz_coeff_err_all[0,*]),mzavg.dlogohdz_coeff_err[0]],format='(F6.3)')+'$'
-    table.a1 = '$'+string([reform(mzavg.dlogohdz_coeff_all[1,*]),mzavg.dlogohdz_coeff[1]],format='(F5.3)')+$
-      '\pm'+string([reform(mzavg.dlogohdz_coeff_err_all[1,*]),mzavg.dlogohdz_coeff_err[1]],format='(F5.3)')+'$'
+    table.a0 = '$'+string(reform(mzavg.dlogohdz_coeff_all[0,*]),format='(F6.3)')+$
+      '\pm'+string(reform(mzavg.dlogohdz_coeff_err_all[0,*]),format='(F6.3)')+'$'
+    table.a1 = '$'+string(reform(mzavg.dlogohdz_coeff_all[1,*]),format='(F5.3)')+$
+      '\pm'+string(reform(mzavg.dlogohdz_coeff_err_all[1,*]),format='(F5.3)')+'$'
+;   table.a0 = '$'+string([reform(mzavg.dlogohdz_coeff_all[0,*]),mzavg.dlogohdz_coeff[0]],format='(F6.3)')+$
+;     '\pm'+string([reform(mzavg.dlogohdz_coeff_err_all[0,*]),mzavg.dlogohdz_coeff_err[0]],format='(F6.3)')+'$'
+;   table.a1 = '$'+string([reform(mzavg.dlogohdz_coeff_all[1,*]),mzavg.dlogohdz_coeff[1]],format='(F5.3)')+$
+;     '\pm'+string([reform(mzavg.dlogohdz_coeff_err_all[1,*]),mzavg.dlogohdz_coeff_err[1]],format='(F5.3)')+'$'
     struct_print, table
-    
+
     caption = 'Stellar Mass Dependence of the Rate of Metallicity Evolution\tablenotemark{a}\label{table:dlogohdz}' 
     tablenotetext = [$
-      '{a}{See equation~(\ref{eq:dlogohdz_bymass}) for the adopted linear model and the '+$
-      'definitions of $a_{0}$ (dex~$z^{-1}$) and $a_{1}$ (unitless).  ``Average" represents the '+$
-      'weighted average of the coefficients over the three calibrations.}']
+      '{a}{Mass-dependent rate of metallicity evolution given by ${\mathrm d}[\log\,(\textrm{O}/\textrm{H})]/{\mathrm d}z = '+$
+      'a_{0} + a_{1} \log\,(\mass/10^{10.5}~\msun)$, where the units of $a_{0}$ are dex per unit redshift.}']
+
+;See equation~(\ref{eq:dlogohdz_bymass}) for the adopted linear model and the '+$
+;      'definitions of $a_{0}$ (dex~$z^{-1}$) and $a_{1}$ (unitless).}']
 
 ;   tablenotetext = [$
 ;     '{a}{The coefficient $a_{0}$ gives the chemical enrichment \emph{rate} in dex~$z^{-1}$ of '+$
@@ -530,10 +534,6 @@ pro mztables, preprint=preprint
     texfile = paperpath+'mztable_litoh'+filesuffix+'.tex'
     splog, 'Writing '+texfile
     openw, lun, texfile, /get_lun
-    if (keyword_set(preprint) eq 0) then begin
-       printf, lun, '\LongTables'
-       printf, lun, '\begin{landscape}'
-    endif
     printf, lun, '\begin{deluxetable}{'+strjoin(texcenter)+'}'
 ;   printf, lun, '\tabletypesize{\tiny}'
     printf, lun, '\tablecaption{'+caption+'}'
@@ -916,8 +916,6 @@ pro mztables, preprint=preprint
     printf, lun, '\end{deluxetable}'
     free_lun, lun
 
-stop    
-    
 ; ---------------------------------------------------------------------------    
 ; Table 1 - samples and numbers of galaxies
     agesparent = read_mz_sample(/parent)
@@ -1101,10 +1099,6 @@ stop
     printf, lun, '\end{deluxetable}'
     free_lun, lun
 
-stop
-stop
-stop    
-    
 return
 end
 

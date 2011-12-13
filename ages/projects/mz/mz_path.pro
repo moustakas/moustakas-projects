@@ -9,7 +9,7 @@ function mz_path, isedfit=isedfit, montegrids=montegrids, paper=paper, $
       '/projects/ages/mz_isedfit/'
     if keyword_set(montegrids) then return, getenv('IM_ARCHIVE_DIR')+$
       '/projects/ages/mz_isedfit/montegrids/'
-    if keyword_set(paper) then return, getenv('IM_PAPERS_DIR')+'/projects/ages/mz/FIG_MZ/'
+    if keyword_set(paper) then return, getenv('IM_PAPERS_DIR')+'/projects/ages/mz/'
 
 return, mzpath
 end

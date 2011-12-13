@@ -35,6 +35,97 @@ pro mzplot_mzlzlocal, ps=ps
     alzbinsize = 0.2
 
 ; ---------------------------------------------------------------------------    
+; Figure 12 - SDSS LZ relation showing four separate calibrations
+    magrange = [-17.9,-22.7]
+    ohrange1 = [8.3,9.35]
+
+    sdsslevels = [0.25,0.5,0.75,0.9,0.975]
+    outcolor = 'grey60'
+
+    ohtitle1 = mzplot_ohtitle(/fluxcor)
+
+    kk04color = 'firebrick'   & kk04psym = 9 & kk04symsize = 0.8 & kk04line = 5
+    m91color = 'dodger blue'  & m91psym = 6  & m91symsize  = 0.8 & m91line = 3
+    t04color = 'forest green' & t04psym = 5  & t04symsize  = 0.8 & t04line = 4
+    mpacolor = 'black'    & mpapsym = 4  & mpasymsize  = 0.8 & mpaline = 0
+    tremonticolor = 'purple'    & tremontiline = 2
+    
+    psfile = pspath+'lzlocal_sdss_calibcompare'+suffix
+    im_plotconfig, 5, pos, psfile=psfile, charsize=1.6;, width=[4.5,4.5]
+
+    errcut = 0.2
+
+; reference LZ relation
+    refline = mpaline
+    refcolor = 'black'
+    lzlocalref = mrdfits(mzpath+'lzlocal_sdss_fluxcor_mpajhu.fits.gz',1)
+
+; for the plot, apply an error cut so that the contours get rendered
+; correctly     
+    
+; KK04    
+    lzlocal = mrdfits(mzpath+'lzlocal_sdss_fluxcor_kk04.fits.gz',1)
+
+    sinfo = mzlz_grab_info(sdssohnodust,sdssancillary,sdssmass,/kk04,$
+      /flux,/nolimit,/errcut)
+    mzplot_scatterplot, /sdss, sinfo.mb_ab, sinfo.oh, weight=sinfo.weight, $
+      position=pos[*,0], xstyle=1, ystyle=1, xtitle='', xtickname=replicate(' ',10), $
+      ytitle=ohtitle1, xrange=magrange, yrange=ohrange1, $
+      levels=sdsslevels, xtickinterval=1, $
+      ccolor=im_color('grey30',201), /nogrey, outcolor=im_color('grey70',202)
+    oplot_lzfit, lzlocal.coeff, linestyle=kk04line, linecolor=kk04color
+    oplot_lzfit, lzlocalref.coeff, linestyle=refline, linecolor=refcolor
+    im_legend, ['KK04'], /right, /bottom, box=0, charsize=1.3, margin=0, $
+      color=kk04color, line=kk04line, pspacing=1.9, thick=10
+
+; M91
+    lzlocal = mrdfits(mzpath+'lzlocal_sdss_fluxcor_m91.fits.gz',1)
+
+    sinfo = mzlz_grab_info(sdssohnodust,sdssancillary,sdssmass,/m91,/flux,/nolimit,/errcut)
+    mzplot_scatterplot, /sdss, sinfo.mb_ab, sinfo.oh, weight=sinfo.weight, $
+      position=pos[*,1], /noerase, xstyle=1, ystyle=1, xtitle='', xtickname=replicate(' ',10), $
+      ytitle='', ytickname=replicate(' ',10), xrange=magrange, yrange=ohrange1, $
+      levels=sdsslevels, xtickinterval=1, $
+      ccolor=im_color('grey30',201), /nogrey, outcolor=im_color('grey70',202)
+    oplot_lzfit, lzlocal.coeff, linestyle=m91line, linecolor=m91color
+    oplot_lzfit, lzlocalref.coeff, linestyle=refline, linecolor=refcolor
+    im_legend, ['M91'], /right, /bottom, box=0, charsize=1.3, margin=0, $
+      color=m91color, line=m91line, pspacing=1.9, thick=10
+
+; T04
+    lzlocal = mrdfits(mzpath+'lzlocal_sdss_fluxcor_t04.fits.gz',1)
+
+    sinfo = mzlz_grab_info(sdssohnodust,sdssancillary,sdssmass,/t04,/flux,/nolimit,/errcut)
+    mzplot_scatterplot, /sdss, sinfo.mb_ab, sinfo.oh, weight=sinfo.weight, $
+      position=pos[*,2], /noerase, xstyle=1, ystyle=1, xtitle=mzplot_mbtitle(), $
+      ytitle=ohtitle1, xrange=magrange, yrange=ohrange1, $
+      levels=sdsslevels, xtickinterval=1, $
+      ccolor=im_color('grey30',201), /nogrey, outcolor=im_color('grey70',202)
+    oplot_lzfit, lzlocalref.coeff, linestyle=refline, linecolor=refcolor
+    oplot_lzfit, lzlocal.coeff, linestyle=t04line, linecolor=t04color
+    im_legend, ['T04'], /right, /bottom, box=0, charsize=1.3, margin=0, $
+      color=t04color, line=t04line, pspacing=1.9, thick=10
+
+; MPA-JHU
+    lzlocal = mrdfits(mzpath+'lzlocal_sdss_fluxcor_mpajhu.fits.gz',1)
+
+    sinfo = mzlz_grab_info(sdssohnodust,sdssancillary,sdssmass,/mpa,/flux,/nolimit,/errcut)
+    mzplot_scatterplot, /sdss, sinfo.mb_ab, sinfo.oh, weight=sinfo.weight, $
+      position=pos[*,3], /noerase, xstyle=1, ystyle=1, xtitle=mzplot_mbtitle(), $
+      ytitle='', ytickname=replicate(' ',10), xrange=magrange, yrange=ohrange1, $
+      levels=sdsslevels, xtickinterval=1, $
+      ccolor=im_color('grey30',201), /nogrey, outcolor=im_color('grey70',202)
+    oplot_lzfit, lzlocal.coeff, linestyle=mpaline, linecolor=mpacolor
+    oplot_lzfit, lzlocalref.coeff, linestyle=refline, linecolor=refcolor
+    oplot_lzfit, linestyle=tremontiline, linecolor=tremonticolor, /tremonti
+;   im_legend, 'MPA-JHU', /right, /bottom, box=0, charsize=1.3, margin=0, $
+;     color=mpacolor, line=mpaline, pspacing=1.9, thick=10
+    im_legend, ['MPA-JHU','Tremonti+04'], /right, /bottom, box=0, charsize=1.3, margin=0, $
+      color=[mpacolor,tremonticolor], line=[mpaline,tremontiline], pspacing=1.9, thick=10
+
+    im_plotconfig, /psclose, psfile=psfile
+
+; ---------------------------------------------------------------------------    
 ; Figure 11 - SDSS and low-redshift AGES MZ relation at z~0.1 for all
 ; three calibrations 
 ;   massrange1 = [9.2,11.4]
@@ -42,8 +133,8 @@ pro mzplot_mzlzlocal, ps=ps
 ;   ohrange1 = [8.25,9.45]
     verbose = 1
     
-    sdsslevels = [0.25,0.5,0.75,0.9,0.95]
-    ageslevels = [0.25,0.5,0.75,0.9]
+    sdsslevels = [0.25,0.5,0.75,0.9,0.975]
+    ageslevels = [0.25,0.5,0.75,0.9,0.975]
 
     massaxis = range(8.8,11.4,500)
     
@@ -91,8 +182,8 @@ pro mzplot_mzlzlocal, ps=ps
        mzplot_scatterplot, /sdss, sinfo.mass, sinfo.oh, weight=sinfo.weight, $
          position=pos[*,0], xstyle=1, ystyle=1, xtitle=mzplot_masstitle(), $
          ytitle=ohtitle1, xrange=massrange1, yrange=ohrange1, $
-         levels=sdsslevels, ccolor=djs_icolor('grey'), /nogrey, $
-         outcolor=im_color('grey60',101), xtickinterval=1
+         levels=sdsslevels, ccolor=im_color('grey30',201), /nogrey, $
+         outcolor=im_color('grey70',202), xtickinterval=1
 
        oploterror, abin.xbin, abin.meany, abin.sigymean, psym=symcat(16,thick=7), $
          symsize=1.1, thick=6, color=im_color('blue',101), $
@@ -116,7 +207,8 @@ pro mzplot_mzlzlocal, ps=ps
        mzplot_scatterplot, /ages, ainfo.mass, ainfo.oh, weight=ainfo.weight, $
          /noerase, position=pos[*,1], xstyle=1, ystyle=1, xtitle=mzplot_masstitle(), $
          ytitle='', xrange=massrange1, yrange=ohrange1, ytickname=replicate(' ',10), $
-         levels=ageslevels, npix=16, ccolor=djs_icolor('grey'), /nogrey, xtickinterval=1
+         levels=ageslevels, npix=16, ccolor=im_color('grey30',201), /nogrey, $
+         xtickinterval=1, outcolor=im_color('grey70',202)
 
 ;      djs_oplot, ainfo.mass[lim], ainfo.oh[lim], weight=ainfo.weight[lim], psym=6, sym=0.1, color='yellow'
        djs_oplot, mzlocal.bin_mass, mzlocal.bin_oh_mean, $
@@ -135,106 +227,14 @@ pro mzplot_mzlzlocal, ps=ps
     endfor
 
 ; ---------------------------------------------------------------------------    
-; Figure 12 - SDSS LZ relation showing four separate calibrations
-    magrange = [-17.5,-22.7]
-    ohrange1 = [8.4,9.3]
-
-    sdsslevels = [0.25,0.5,0.75,0.9,0.95]
-    outcolor = 'grey60'
-
-    ohtitle1 = mzplot_ohtitle(/fluxcor)
-
-    kk04color = 'firebrick'   & kk04psym = 9 & kk04symsize = 0.8 & kk04line = 5
-    m91color = 'dodger blue'  & m91psym = 6  & m91symsize  = 0.8 & m91line = 3
-    t04color = 'forest green' & t04psym = 5  & t04symsize  = 0.8 & t04line = 4
-    mpacolor = 'black'    & mpapsym = 4  & mpasymsize  = 0.8 & mpaline = 0
-    tremonticolor = 'purple'    & tremontiline = 2
-    
-    psfile = pspath+'lzlocal_sdss_calibcompare'+suffix
-    im_plotconfig, 5, pos, psfile=psfile, charsize=1.6;, width=[4.5,4.5]
-
-    errcut = 0.2
-
-; reference LZ relation
-    refline = mpaline
-    refcolor = 'black'
-    lzlocalref = mrdfits(mzpath+'lzlocal_sdss_fluxcor_mpajhu.fits.gz',1)
-
-; for the plot, apply an error cut so that the contours get rendered
-; correctly     
-    
-; KK04    
-    lzlocal = mrdfits(mzpath+'lzlocal_sdss_fluxcor_kk04.fits.gz',1)
-
-    sinfo = mzlz_grab_info(sdssohnodust,sdssancillary,sdssmass,/kk04,$
-      /flux,/nolimit,/errcut)
-    mzplot_scatterplot, /sdss, sinfo.mb_ab, sinfo.oh, weight=sinfo.weight, $
-      position=pos[*,0], xstyle=1, ystyle=1, xtitle='', xtickname=replicate(' ',10), $
-      ytitle=ohtitle1, xrange=magrange, yrange=ohrange1, $
-      levels=sdsslevels, outcolor=im_color(outcolor,101), xtickinterval=1, $
-      ccolor=djs_icolor('grey'), /nogrey
-    oplot_lzfit, lzlocal.coeff, linestyle=kk04line, linecolor=kk04color
-    oplot_lzfit, lzlocalref.coeff, linestyle=refline, linecolor=refcolor
-    im_legend, ['KK04'], /right, /bottom, box=0, charsize=1.3, margin=0, $
-      color=kk04color, line=kk04line, pspacing=1.9, thick=10
-
-; M91
-    lzlocal = mrdfits(mzpath+'lzlocal_sdss_fluxcor_m91.fits.gz',1)
-
-    sinfo = mzlz_grab_info(sdssohnodust,sdssancillary,sdssmass,/m91,/flux,/nolimit,/errcut)
-    mzplot_scatterplot, /sdss, sinfo.mb_ab, sinfo.oh, weight=sinfo.weight, $
-      position=pos[*,1], /noerase, xstyle=1, ystyle=1, xtitle='', xtickname=replicate(' ',10), $
-      ytitle='', ytickname=replicate(' ',10), xrange=magrange, yrange=ohrange1, $
-      levels=sdsslevels, outcolor=im_color(outcolor,101), xtickinterval=1, $
-      ccolor=djs_icolor('grey'), /nogrey
-    oplot_lzfit, lzlocal.coeff, linestyle=m91line, linecolor=m91color
-    oplot_lzfit, lzlocalref.coeff, linestyle=refline, linecolor=refcolor
-    im_legend, ['M91'], /right, /bottom, box=0, charsize=1.3, margin=0, $
-      color=m91color, line=m91line, pspacing=1.9, thick=10
-
-; T04
-    lzlocal = mrdfits(mzpath+'lzlocal_sdss_fluxcor_t04.fits.gz',1)
-
-    sinfo = mzlz_grab_info(sdssohnodust,sdssancillary,sdssmass,/t04,/flux,/nolimit,/errcut)
-    mzplot_scatterplot, /sdss, sinfo.mb_ab, sinfo.oh, weight=sinfo.weight, $
-      position=pos[*,2], /noerase, xstyle=1, ystyle=1, xtitle=mzplot_mbtitle(), $
-      ytitle=ohtitle1, xrange=magrange, yrange=ohrange1, $
-      levels=sdsslevels, outcolor=im_color(outcolor,101), xtickinterval=1, $
-      ccolor=djs_icolor('grey'), /nogrey
-    oplot_lzfit, lzlocalref.coeff, linestyle=refline, linecolor=refcolor
-    oplot_lzfit, lzlocal.coeff, linestyle=t04line, linecolor=t04color
-    im_legend, ['T04'], /right, /bottom, box=0, charsize=1.3, margin=0, $
-      color=t04color, line=t04line, pspacing=1.9, thick=10
-
-; MPA-JHU
-    lzlocal = mrdfits(mzpath+'lzlocal_sdss_fluxcor_mpajhu.fits.gz',1)
-
-    sinfo = mzlz_grab_info(sdssohnodust,sdssancillary,sdssmass,/mpa,/flux,/nolimit,/errcut)
-    mzplot_scatterplot, /sdss, sinfo.mb_ab, sinfo.oh, weight=sinfo.weight, $
-      position=pos[*,3], /noerase, xstyle=1, ystyle=1, xtitle=mzplot_mbtitle(), $
-      ytitle='', ytickname=replicate(' ',10), xrange=magrange, yrange=ohrange1, $
-      levels=sdsslevels, outcolor=im_color(outcolor,101), xtickinterval=1, $
-      ccolor=djs_icolor('grey'), /nogrey
-    oplot_lzfit, lzlocal.coeff, linestyle=mpaline, linecolor=mpacolor
-    oplot_lzfit, lzlocalref.coeff, linestyle=refline, linecolor=refcolor
-    oplot_lzfit, linestyle=tremontiline, linecolor=tremonticolor, /tremonti
-;   im_legend, 'MPA-JHU', /right, /bottom, box=0, charsize=1.3, margin=0, $
-;     color=mpacolor, line=mpaline, pspacing=1.9, thick=10
-    im_legend, ['MPA-JHU','Tremonti+04'], /right, /bottom, box=0, charsize=1.3, margin=0, $
-      color=[mpacolor,tremonticolor], line=[mpaline,tremontiline], pspacing=1.9, thick=10
-
-    im_plotconfig, /psclose, psfile=psfile
-
-; ---------------------------------------------------------------------------    
 ; Figure 10 - SDSS MZ relation showing four separate calibrations; 
 ; see FIT_MZLZLOCAL for the adopted sample cuts
     massrange = [8.9,11.5]
 ;   massrange = [8.4,11.6]
-    ohrange1 = [8.4,9.3]
+    ohrange1 = [8.3,9.35]
 ;   ohrange1 = [8.3,9.3]
     verbose = 1
-    sdsslevels = [0.25,0.5,0.75,0.9,0.95]
-    outcolor = 'grey60'
+    sdsslevels = [0.25,0.5,0.75,0.9,0.975]
 
     ohtitle1 = mzplot_ohtitle(/fluxcor)
 
@@ -270,8 +270,8 @@ pro mzplot_mzlzlocal, ps=ps
     mzplot_scatterplot, /sdss, sinfo.mass, sinfo.oh, weight=sinfo.weight, $
       position=pos[*,0], xstyle=1, ystyle=1, xtitle='', xtickname=replicate(' ',10), $
       ytitle=ohtitle1, xrange=massrange, yrange=ohrange1, $
-      levels=sdsslevels, outcolor=djs_icolor('grey'), xtickinterval=1, $
-      ccolor=djs_icolor('grey'), /nogrey
+      levels=sdsslevels, outcolor=im_color('grey70',200), xtickinterval=1, $
+      ccolor=im_color('grey30',201), /nogrey
 ;   djs_oplot, sinfo.mass[toss], sinfo.oh[toss], psym=6, sym=0.1, color='red'
     djs_oplot, mzlocal.bin_mass, mzlocal.bin_oh_mean, psym=symcat(kk04psym,thick=7), $
       symsize=kk04symsize, thick=6, color=im_color(kk04color,101)
@@ -301,8 +301,8 @@ pro mzplot_mzlzlocal, ps=ps
     mzplot_scatterplot, /sdss, sinfo.mass, sinfo.oh, weight=sinfo.weight, $
       position=pos[*,1], /noerase, xstyle=1, ystyle=1, xtitle='', xtickname=replicate(' ',10), $
       ytitle='', ytickname=replicate(' ',10), xrange=massrange, yrange=ohrange1, $
-      levels=sdsslevels, outcolor=djs_icolor('grey'), xtickinterval=1, $
-      ccolor=djs_icolor('grey'), /nogrey
+      levels=sdsslevels, outcolor=im_color('grey70',200), xtickinterval=1, $
+      ccolor=im_color('grey30',201), /nogrey
 ;   djs_oplot, sinfo.mass[bad], sinfo.oh[bad], psym=3, color='blue'
 ;   djs_oplot, sinfo.mass[lim], sinfo.oh[lim], psym=3, color='dark green'
     djs_oplot, mzlocal.bin_mass, mzlocal.bin_oh_mean, psym=symcat(m91psym,thick=7), $
@@ -328,8 +328,8 @@ pro mzplot_mzlzlocal, ps=ps
     mzplot_scatterplot, /sdss, sinfo.mass, sinfo.oh, weight=sinfo.weight, $
       position=pos[*,2], /noerase, xstyle=1, ystyle=1, xtitle=mzplot_masstitle(), $
       ytitle=ohtitle1, xrange=massrange, yrange=ohrange1, $
-      levels=sdsslevels, outcolor=djs_icolor('grey'), xtickinterval=1, $
-      ccolor=djs_icolor('grey'), /nogrey
+      levels=sdsslevels, outcolor=im_color('grey70',200), xtickinterval=1, $
+      ccolor=im_color('grey30',201), /nogrey
     djs_oplot, mzlocal.bin_mass, mzlocal.bin_oh_mean, psym=symcat(t04psym,thick=7), $
       symsize=t04symsize, thick=6, color=im_color(t04color,101)
 ;   djs_oplot, maxis, mz_closedbox(maxis,mzlocal.coeff), thick=7, $
@@ -353,8 +353,8 @@ pro mzplot_mzlzlocal, ps=ps
     mzplot_scatterplot, /sdss, sinfo.mass, sinfo.oh, weight=sinfo.weight, $
       position=pos[*,3], /noerase, xstyle=1, ystyle=1, xtitle=mzplot_masstitle(), $
       ytitle='', ytickname=replicate(' ',10), xrange=massrange, yrange=ohrange1, $
-      levels=sdsslevels, outcolor=djs_icolor('grey'), xtickinterval=1, $
-      ccolor=djs_icolor('grey'), /nogrey
+      levels=sdsslevels, outcolor=im_color('grey70',200), xtickinterval=1, $
+      ccolor=im_color('grey30',201), /nogrey
     djs_oplot, mzlocal.bin_mass, mzlocal.bin_oh_mean, psym=symcat(mpapsym,thick=7), $
       symsize=mpasymsize, thick=6, color=im_color(mpacolor,101)
 ;   djs_oplot, mzlocal.bin_mass, mzlocal.bin_oh_mean, psym=6
@@ -381,7 +381,8 @@ pro mzplot_mzlzlocal, ps=ps
 
     im_plotconfig, /psclose, psfile=psfile
 
-
+stop    
+    
 ; ###########################################################################
 ; additional figures and QAplots
 
@@ -515,8 +516,8 @@ pro mzplot_mzlzlocal, ps=ps
        mzplot_scatterplot, /sdss, sinfo.mb_ab, sinfo.oh, weight=sinfo.weight, $
          position=pos[*,0], xstyle=1, ystyle=1, xtitle=mzplot_mbtitle(), $
          ytitle=ohtitle1, xrange=magrange1, yrange=ohrange1, $
-         levels=sdsslevels, $;ccolor=djs_icolor('grey'), $ ; /nogrey, $
-         outcolor=djs_icolor('grey'), /nogrey
+         levels=sdsslevels, $;ccolor=im_color('grey30',201), $ ; /nogrey, $
+         outcolor=im_color('grey70',200), /nogrey
 ;       oploterror, abin.xbin, abin.medy, abin.sigymean, psym=symcat(16,thick=7), $
 ;         symsize=1.1, thick=6, color=im_color('blue',101), $
 ;         errcolor=im_color('blue',101)
@@ -532,7 +533,7 @@ pro mzplot_mzlzlocal, ps=ps
        mzplot_scatterplot, /ages, ainfo.mb_ab, ainfo.oh, weight=ainfo.weight, $
          /noerase, position=pos[*,1], xstyle=1, ystyle=1, xtitle=mzplot_mbtitle(), $
          ytitle='', xrange=magrange1, yrange=ohrange1, ytickname=replicate(' ',10), $
-         levels=ageslevels, npix=14, /nogrey;, ccolor=djs_icolor('grey');, /nogrey
+         levels=ageslevels, npix=14, /nogrey;, ccolor=im_color('grey30',201);, /nogrey
 
 ;      sixlin, ainfo.mb_ab-lz_pivotmag(), ainfo.oh, a, $
 ;        siga, b, sigb, weight=ainfo.weight
@@ -680,7 +681,7 @@ end
 ;    mzplot_scatterplot, info.mass, info.oh, /sdss, position=pos[*,0], $
 ;      xsty=1, ysty=1, xrange=massrange1, yrange=ohrange1, $
 ;      xtitle=mzplot_masstitle(), ytitle=ytitle, $
-;      /nogrey, ccolor=djs_icolor('grey')
+;      /nogrey, ccolor=im_color('grey30',201)
 ;    legend, ['Quadratic Polynomial','Double Power-law',$
 ;      'Broken Power-law','Closed-Box Model'], $
 ;      /right, /bottom, box=0, margin=0, charsize=1.4, $

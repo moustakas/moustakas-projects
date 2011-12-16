@@ -156,6 +156,61 @@ pro do_parse_ediscs_gandalf_specfit, run34=run34, debug=debug, $
          linefit = etemplates else $
            linefit = total(etemplates,2)
 
+; some line IDs, for convenience       
+       isneon = where(strtrim(linepars[these[fitlines]].name,2) eq 'NeIII_3869')
+       isoii = where(strtrim(linepars[these[fitlines]].name,2) eq 'OII_3727')
+       isoiii = where(strtrim(linepars[these[fitlines]].name,2) eq 'OIII_5007')
+       ishb = where(strtrim(linepars[these[fitlines]].name,2) eq 'H_beta')
+       ishg = where(strtrim(linepars[these[fitlines]].name,2) eq 'H_gamma')
+       ishd = where(strtrim(linepars[these[fitlines]].name,2) eq 'H_delta')
+       ishe = where(strtrim(linepars[these[fitlines]].name,2) eq 'H_epsilon')
+       ish5 = where(strtrim(linepars[these[fitlines]].name,2) eq 'H5')
+
+; these were visually identified as spurious; set amplitude=0
+
+; cl1018       
+       if strmatch(raw[iobj].galaxy,'*1018471-1210513*') then sol[1,isoiii] = 0.0 
+       if strmatch(raw[iobj].galaxy,'*1018473-1213164*') then sol[1,isoiii] = 0.0 
+       if strmatch(raw[iobj].galaxy,'*1018497-1211242*') then sol[1,ishb] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1018438-1212352*') then sol[1,ishb] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1018433-1214242*') then sol[1,isneon] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1018495-1208392*') then sol[1,ishe] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1018430-1212568*') then sol[1,isneon] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1018364-1208375*') then sol[1,isneon] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1018478-1209105*') then sol[1,ishd] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1018363-1210541*') then sol[1,isneon] = 0.0
+
+; cl1037       
+       if strmatch(raw[iobj].galaxy,'*1037528-1243508*') then sol[1,isoiii] = 0.0 
+       if strmatch(raw[iobj].galaxy,'*1037598-1245433*') then sol[1,isneon] = 0.0 
+       if strmatch(raw[iobj].galaxy,'*1037534-1246259*') then sol[1,isoii] = 0.0 ; drop both [OII] and [OIII]
+       if strmatch(raw[iobj].galaxy,'*1037534-1246259*') then sol[1,isoiii] = 0.0 
+       if strmatch(raw[iobj].galaxy,'*1037495-1246452*') then sol[1,isoiii] = 0.0 ; drop both H-beta and [OIII]
+       if strmatch(raw[iobj].galaxy,'*1037495-1246452*') then sol[1,ishb] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1037529-1246428*') then sol[1,ishb] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1037463-1244588*') then sol[1,isneon] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1037541-1246241*') then sol[1,ishb] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1037571-1246441*') then sol[1,ishb] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1037557-1244033*') then sol[1,isoiii] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1037472-1246088*') then sol[1,isoiii] = 0.0
+
+; cl1040
+       if strmatch(raw[iobj].galaxy,'*1040421-1157094*') then sol[1,isneon] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1040483-1156427*') then sol[1,ishd] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1040398-1154056*') then sol[1,ishb] = 0.0 ; drop both H-beta and H-gamma
+       if strmatch(raw[iobj].galaxy,'*1040398-1154056*') then sol[1,ishg] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1040460-1154260*') then sol[1,ishg] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1040391-1157386*') then sol[1,ish5] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1040322-1157171*') then sol[1,ishb] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1040368-1158078*') then sol[1,ish5] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1040351-1156435*') then sol[1,ishd] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1040419-1155198*') then sol[1,isneon] = 0.0 ; drop both H-beta and [NeIII]
+       if strmatch(raw[iobj].galaxy,'*1040419-1155198*') then sol[1,ishb] = 0.0 
+       if strmatch(raw[iobj].galaxy,'*1040386-1153055*') then sol[1,ishg] = 0.0 
+       if strmatch(raw[iobj].galaxy,'*1040380-1152303*') then sol[1,ishg] = 0.0 ; drop all three lines
+       if strmatch(raw[iobj].galaxy,'*1040380-1152303*') then sol[1,ishd] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1040380-1152303*') then sol[1,ishe] = 0.0
+
 ; remove undetected emission lines from both the matrix of
 ; best-fitting parameters *and* the emission-line templates; demand
 ; S/N>3 on the amplitude of each line
@@ -165,6 +220,34 @@ pro do_parse_ediscs_gandalf_specfit, run34=run34, debug=debug, $
          bestfit/fluxscale,mask,etemplates/fluxscale,linepars,sol,$
          esol,snrcut=snrcut_line,velscale=velscale,debug=debug,$
          new_etemplates=new_etemplates,new_linepars=new_linepars)
+       
+; these lines should have been kept through visual inspection; restore 
+       if strmatch(raw[iobj].galaxy,'*1018473-1213164*') then begin
+          new_sol[*,ishg] = sol[*,ishg]
+          new_etemplates[*,ishg] = etemplates[*,ishg]/fluxscale
+       endif
+       if strmatch(raw[iobj].galaxy,'*1037554-1242291*') then begin
+          new_sol[*,ishd] = sol[*,ishd]
+          new_etemplates[*,ishd] = etemplates[*,ishd]/fluxscale
+       endif
+       if strmatch(raw[iobj].galaxy,'*1037463-1244588*') then begin
+          new_sol[*,ishd] = sol[*,ishd]
+          new_etemplates[*,ishd] = etemplates[*,ishd]/fluxscale
+       endif
+       if strmatch(raw[iobj].galaxy,'*1040488-1157059*') then begin
+          new_sol[*,ishd] = sol[*,ishd]
+          new_etemplates[*,ishd] = etemplates[*,ishd]/fluxscale
+       endif
+       if strmatch(raw[iobj].galaxy,'*1040383-1156311*') then begin
+          new_sol[*,ishg] = sol[*,ishg]
+          new_etemplates[*,ishg] = etemplates[*,ishg]/fluxscale
+       endif
+       if strmatch(raw[iobj].galaxy,'*1040415-1156559*') then begin
+          new_sol[*,ishd] = sol[*,ishd]
+          new_etemplates[*,ishd] = etemplates[*,ishd]/fluxscale
+       endif
+
+       
        new_etemplates = fluxscale*new_etemplates
        
        if (size(new_etemplates,/n_dim) eq 1) then $
@@ -264,10 +347,10 @@ pro parse_ediscs_gandalf_specfit, debug=debug, solar=solar
 
 ; parse RUN12 and R23 separately; then merge and line-match to the
 ; info structure
-    do_parse_ediscs_gandalf_specfit, run34=0, debug=debug, $
-      solar=solar, specdata=specdata12, specfit=specfit12
     do_parse_ediscs_gandalf_specfit, run34=1, debug=debug, $
       solar=solar, specdata=specdata34, specfit=specfit34
+    do_parse_ediscs_gandalf_specfit, run34=0, debug=debug, $
+      solar=solar, specdata=specdata12, specfit=specfit12
 
 ; line-match
     ediscs = read_ediscs(/spec1d)

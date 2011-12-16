@@ -1,0 +1,12 @@
+# Parameter set describing the "supergrids" to consider
+
+typedef struct {
+ int supergrid;        # supergrid number
+ int sfhgrid;          # SFHgrid number (see clash_sfhgrid.par)
+ char imf;             # IMF
+ char synthmodels;     # choice of population synthesis models
+ int redcurve;         # reddening curve (0=calzetti; 1=charlot)
+} GRID;
+
+GRID   1   1 chab     bc03  0  # calzetti, no bursts
+GRID   2   2 chab     bc03  0  # calzetti, bursts

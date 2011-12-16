@@ -84,7 +84,7 @@ pro mzplot_sample, ps=ps
       xrange=zrange, yrange=scale*[1.05D38,1.5D42], xtitle='', xtickname=replicate(' ',10), $
       ytitle='L(H\beta) (10^{40} erg s^{-1})', /ylog
     djs_oplot, agesispec[sel1].z, scale*ages_dfactor[sel1]*agesispec[sel1].h_beta[0], $
-      psym=symcat(9,thick=0.5), symsize=0.3, color=im_color('grey20')
+      psym=symcat(6,thick=0.5), symsize=0.3, color=im_color('grey20')
     djs_oplot, agesispec[rej1].z, scale*ages_dfactor[rej1]*agesispec[rej1].h_beta[0], $
       psym=symcat(16), symsize=0.6, color=im_color('dodger blue')
     djs_oplot, zaxis, scale*ages_hbcut*4.0*!dpi*dluminosity(zaxis,/cm)^2, line=0, thick=6
@@ -96,7 +96,7 @@ pro mzplot_sample, ps=ps
       xrange=zrange, yrange=[0.1,150], xtitle='Redshift', $
       ytitle='EW(H\beta) (\AA)', /ylog
     djs_oplot, agesispec[sel1].z, agesispec[sel1].h_beta_ew[0], $
-      psym=symcat(9,thick=0.5), symsize=0.3, color=im_color('grey20')
+      psym=symcat(6,thick=0.5), symsize=0.3, color=im_color('grey20')
     djs_oplot, agesispec[rej1].z, agesispec[rej1].h_beta_ew[0], $
       psym=symcat(16), symsize=0.6, color=im_color('dodger blue')
 ;   djs_oplot, zaxis, ages_hbcut*4.0*!dpi*dluminosity(zaxis,/cm)^2/ages_l4861_limit, line=0, thick=6
@@ -114,7 +114,7 @@ pro mzplot_sample, ps=ps
 
      lim = where(agesispec[sel1].oii_3727[1] eq -1.0,comp=det)
      djs_oplot, agesispec[sel1[det]].z, alog10(agesispec[sel1[det]].oii_3727[0]/agesispec[sel1[det]].h_beta[0]), $
-       psym=symcat(9,thick=0.5), symsize=0.3, color=im_color('grey20')
+       psym=symcat(6,thick=0.5), symsize=0.3, color=im_color('grey20')
 
     plotsym, 1.0, 1.5, thick=4
     djs_oplot, agesispec[sel1[lim]].z, alog10(agesispec[sel1[lim]].oii_3727_limit/agesispec[sel1[lim]].h_beta[0]), $
@@ -128,7 +128,7 @@ pro mzplot_sample, ps=ps
 
     lim = where(agesispec[sel2].oiii_5007[1] eq -1.0,comp=det)
     djs_oplot, agesispec[sel2[det]].z, alog10(agesispec[sel2[det]].oiii_5007[0]/$
-      agesispec[sel2[det]].h_beta[0]), psym=symcat(9,thick=0.5), symsize=0.3, color=im_color('grey20')
+      agesispec[sel2[det]].h_beta[0]), psym=symcat(6,thick=0.5), symsize=0.3, color=im_color('grey20')
 
     plotsym, 1.0, 0.8, thick=4
     djs_oplot, agesispec[sel2[lim]].z, alog10(agesispec[sel2[lim]].oiii_5007_limit/$
@@ -623,7 +623,7 @@ stop
     djs_oplot, sdssispec[sel1].z, scale*sdss_dfactor[sel1]*sdssispec[sel1].h_beta[0], $
       psym=symcat(16), symsize=0.1, bin=20000L
     djs_oplot, sdssispec[rej1].z, scale*sdss_dfactor[rej1]*sdssispec[rej1].h_beta[0], $
-      psym=symcat(9,thick=2), symsize=0.1, bin=5000L, color=im_color('dodger blue',101)
+      psym=symcat(6,thick=2), symsize=0.1, bin=5000L, color=im_color('dodger blue',101)
     djs_oplot, zaxis, scale*sdss_hbcut*4.0*!dpi*dluminosity(zaxis,/cm)^2, line=0, thick=6, color='red'
     im_legend, 'F(H\beta)>1\times10^{-16} erg s^{-1} cm^{-2}', $
       /right, /bottom, box=0, charsize=1.4, margin=0, line=0, thick=6
@@ -635,7 +635,7 @@ stop
     djs_oplot, sdssispec[sel1].z, sdssispec[sel1].h_beta_ew[0], $
       psym=symcat(16), symsize=0.1, bin=20000
     djs_oplot, sdssispec[rej1].z, sdssispec[rej1].h_beta_ew[0], $
-      psym=symcat(9,thick=2), symsize=0.1, bin=5000L, color=im_color('dodger blue',101)
+      psym=symcat(6,thick=2), symsize=0.1, bin=5000L, color=im_color('dodger blue',101)
     im_plotconfig, /psclose
 
 ; [OII]/Hb and [OIII]/Hb vs redshift

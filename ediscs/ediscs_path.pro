@@ -4,8 +4,8 @@ function ediscs_path, papers=papers, specfit=specfit, $ ; analysis=analysis, $
   mycatalogs=mycatalogs
 ; jm06sep27nyu
 
-    datapath = getenv('RESEARCHPATH')+'/projects/ediscs/'
-    paperspath = getenv('PAPERSPATH')+'/projects/ediscs/'
+    datapath = getenv('IM_RESEARCH_DIR')+'/projects/ediscs/'
+    paperspath = getenv('IM_PAPERS_DIR')+'/projects/ediscs/'
 
     if keyword_set(papers) then return, paperspath
     if keyword_set(specfit) then return, datapath+'specfit/'

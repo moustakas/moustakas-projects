@@ -214,9 +214,9 @@ pro qaplots_ediscs_sfh
     uindx = uniq(allcl,sort(allcl))
     cl = allcl[uindx]
 
-    for ii = 2, 2 do begin
-;   for ii = 0, n_elements(cl)-1 do begin
-       psfile = sfhpath+'qaplots_v2.0/qa_specfit_'+cl[ii]+'.ps'
+;   for ii = 6, n_elements(cl)-1 do begin
+    for ii = 0, n_elements(cl)-1 do begin
+       psfile = sfhpath+'qaplots/qa_specfit_'+cl[ii]+'.ps'
        iscl = where(strtrim(cluster.cluster,2) eq cl[ii],niscl)
        isfield = where(strtrim(field.cluster,2) eq cl[ii],nisfield)
        splog, cl[ii], niscl, nisfield

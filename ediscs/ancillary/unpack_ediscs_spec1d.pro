@@ -65,8 +65,8 @@ pro unpack_ediscs_spec1d, outinfo, debug=debug
     outinfo.comment = strtrim(info.spec_comment,2)
     
     good = where(strmatch(info.spec_ra,'*99:99:99.9*') eq 0B,ngoodcoords)
-    outinfo[good].ra = im_hms2dec(info[good].spec_ra)*15.0D
-    outinfo[good].dec = im_hms2dec(info[good].spec_dec)
+    outinfo[good].ra = hms2dec(info[good].spec_ra)*15.0D
+    outinfo[good].dec = hms2dec(info[good].spec_dec)
 ;   outinfo.ra = strtrim(info.spec_ra,2)
 ;   outinfo.dec = strtrim(info.spec_dec,2)
 
@@ -93,9 +93,9 @@ pro unpack_ediscs_spec1d, outinfo, debug=debug
 ; assign group/cluster membership; first check if the object is
 ; in Bianca's group catalog; if not, then use the official
 ; membership flag 
-       match = where(strtrim(outinfo[igal].galaxy,2) eq strtrim(groups.galaxy,2),nmatch)
-       if (nmatch ne 0) then begin
-          subname = strtrim(strmid(groups[match].cluster,13),2)
+       match1 = where(strtrim(outinfo[igal].galaxy,2) eq strtrim(groups.galaxy,2),nmatch1)
+       if (nmatch1 ne 0) then begin
+          subname = strtrim(strmid(groups[match1].cluster,13),2)
           outinfo[igal].memberflag = '1'+subname
        endif else outinfo[igal].memberflag = outinfo[igal].original_memberflag
        
@@ -115,6 +115,10 @@ pro unpack_ediscs_spec1d, outinfo, debug=debug
           outinfo[igal].cluster_nmember   = cl[match].nmember
           outinfo[igal].cluster_bcg       = cl[match].bcg
           outinfo[igal].cluster_fieldname = cl[match].fieldname
+          if strmatch(outinfo[igal].cluster_fieldname,'*1040*') then begin
+;            print, outinfo[igal].galaxy, outinfo[igal].z, outinfo[igal].cluster_subname
+;            stop
+          endif
        endif
           
 ; parse the spectra       

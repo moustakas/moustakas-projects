@@ -6,10 +6,10 @@ function read_irclusters, maggies=maggies, ivarmaggies=ivarmaggies
     cat = struct_addtags(zcat,phot)
 
     splog, 'Enforcing z>0.01 minimum redshift!'
-    cat.z = cat.z>0.01
+    cat.z = cat.z>0.01D
 
 ; fluxes are in microJy, so to convert to maggies multiply by this factor:    
-    factor = 10.0^(-0.4*23.9)
+    factor = 10D^(-0.4*23.9)
     maggies = transpose([[cat.bw],[cat.r],[cat.i],[cat.j],[cat.h],$
       [cat.ks],[cat.ch1],[cat.ch2],[cat.ch3],[cat.ch4]])*factor
     dflux = transpose([[cat.dbw],[cat.dr],[cat.di],[cat.dj],[cat.dh],[cat.dks],$

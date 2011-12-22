@@ -1,11 +1,18 @@
-function read_sfh_comments
+function read_sfh_comments, moustakas=moustakas
 
-    qapath = ediscs_path(/projects)+'sfh/qaplots/'
-    readcol, qapath+'all_qa_comments.txt', id, memb, specfile, $
-      snr, qual, comments, delim=';', skip=1, /silent, $
-      format='A,I,A,F,A,A'
+    data = {id: '', memb: 0, specfile: '', snr: 0.0, fixed: '', qual: '', comments: ''}
+
+    qapath = ediscs_path(/projects)+'sfh/'
+    if keyword_set(moustakas) then begin
+       readcol, qapath+'moustakas_qa_comments.txt', id, memb, specfile, $
+         snr, fixed, qual, comments, delim=';', skip=1, /silent, $
+         format='A,I,A,F,A,A,A'
+    endif else begin
+       readcol, qapath+'all_qa_comments.txt', id, memb, specfile, $
+         snr, qual, comments, delim=';', skip=1, /silent, $
+         format='A,I,A,F,A,A'
+    endelse
     ngal = n_elements(id)
-    data = {id: '', memb: 0, specfile: '', snr: 0.0, qual: '', comments: ''}
     data = replicate(data,ngal)
 
     data.id = strtrim(id,2)
@@ -15,5 +22,7 @@ function read_sfh_comments
     data.qual = strtrim(qual,2)
     data.comments = strtrim(comments,2)
 
+    if keyword_set(moustakas) then data.fixed = strtrim(fixed,2)
+    
 return, data
 end

@@ -1,4 +1,4 @@
-pro build_ediscs_sfh_sample, clobber=clobber, debug=debug
+pro build_ediscs_sfh_sample, clobber=clobber
 ; jm10may03ucsd - build the EDisCS/SFH samples; use the smoothed
 ; indices measured by EDISCS_SFH_INDICES
 

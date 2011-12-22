@@ -211,6 +211,119 @@ pro do_parse_ediscs_gandalf_specfit, run34=run34, debug=debug, $
        if strmatch(raw[iobj].galaxy,'*1040380-1152303*') then sol[1,ishd] = 0.0
        if strmatch(raw[iobj].galaxy,'*1040380-1152303*') then sol[1,ishe] = 0.0
 
+; cl1054-11
+       if strmatch(raw[iobj].galaxy,'*1054249-1147556*') then sol[1,ishb] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1054218-1145596*') then sol[1,ish5] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1054251-1145360*') then sol[1,ish5] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1054303-1148158*') then sol[1,isoiii] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1054292-1149028*') then sol[1,isoiii] = 0.0 ; drop all three lines
+       if strmatch(raw[iobj].galaxy,'*1054292-1149028*') then sol[1,ishd] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1054292-1149028*') then sol[1,ishg] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1054254-1147523*') then sol[1,ishe] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1054174-1145346*') then sol[1,ishe] = 0.0 ; drop both lines
+       if strmatch(raw[iobj].galaxy,'*1054174-1145346*') then sol[1,ish5] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1054187-1144271*') then sol[1,isoiii] = 0.0
+
+; cl1054-12
+       if strmatch(raw[iobj].galaxy,'*1054451-1247336*') then sol[1,ishd] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1054409-1246529*') then sol[1,ish5] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1054478-1244244*') then sol[1,ishg] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1054515-1244509*') then sol[1,isneon] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1054481-1242297*') then sol[1,ishb] = 0.0
+
+; cl1059       
+       if strmatch(raw[iobj].galaxy,'*1059102-1254115*') then sol[1,isoiii] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1059104-1253211*') then sol[1,ishg] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1059022-1253465*') then sol[1,ish5] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1059083-1254086*') then sol[1,isoiii] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1059156-1250183*') then sol[1,isoiii] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1059046-1252230*') then sol[1,ishg] = 0.0
+
+; cl1103
+       if strmatch(raw[iobj].galaxy,'*1103386-1247210*') then sol[1,ishg] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1103349-1246462*') then sol[1,ishg] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1103401-1244377*') then sol[1,ishg] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1103339-1243415*') then sol[1,ishd] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1103438-1247251*') then sol[1,ishb] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1103363-1246220*') then sol[1,ish5] = 0.0
+
+; cl1138       
+       if strmatch(raw[iobj].galaxy,'*1138022-1135459*') then sol[1,ishg] = 0.0 ; drop both lines
+       if strmatch(raw[iobj].galaxy,'*1138022-1135459*') then sol[1,isoiii] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1138096-1135223*') then sol[1,isneon] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1138035-1135015*') then sol[1,ishb] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1138027-1136019*') then sol[1,ishg] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1138091-1136270*') then sol[1,ishg] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1138100-1136361*') then sol[1,ishd] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1138176-1133209*') then sol[1,ishg] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1138117-1137542*') then sol[1,ishg] = 0.0 ; drop both lines
+       if strmatch(raw[iobj].galaxy,'*1138117-1137542*') then sol[1,isoiii] = 0.0
+
+; cl1202       
+       if strmatch(raw[iobj].galaxy,'*1202433-1224247*') then sol[1,isoiii] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1202406-1221340*') then sol[1,ish5] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1202435-1222204*') then sol[1,isneon] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1202394-1221263*') then sol[1,isoiii] = 0.0 ; drop both lines
+       if strmatch(raw[iobj].galaxy,'*1202394-1221263*') then sol[1,ishd] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1202483-1226436*') then sol[1,isoiii] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1202436-1224248*') then sol[1,isoiii] = 0.0 ; drop both lines
+       if strmatch(raw[iobj].galaxy,'*1202436-1224248*') then sol[1,ishb] = 0.0
+
+; cl1216
+       if strmatch(raw[iobj].galaxy,'*1216451-1158493*') then sol[1,isneon] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1216514-1200313*') then sol[1,ishb] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1216516-1201306*') then sol[1,isoiii] = 0.0
+
+
+; cl1227       
+       if strmatch(raw[iobj].galaxy,'*1227581-1135364*') then sol[1,ishg] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1228001-1136095*') then sol[1,isneon] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1227539-1138173*') then sol[1,isoiii] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1227531-1138340*') then sol[1,ishd] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1227496-1140094*') then sol[1,isneon] = 0.0
+
+; cl1232       
+       if strmatch(raw[iobj].galaxy,'*1232296-1250119*') then sol[1,ishd] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1232370-1248239*') then sol[1,isoiii] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1232323-1251267*') then sol[1,isneon] = 0.0
+
+; cl1301
+       if strmatch(raw[iobj].galaxy,'*1301400-1139163*') then sol[1,isneon] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1301327-1141429*') then sol[1,isoiii] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1301393-1140056*') then sol[1,isneon] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1301389-1142223*') then sol[1,ishg] = 0.0
+
+; cl1353
+       if strmatch(raw[iobj].galaxy,'*1353021-1135395*') then sol[1,isoiii] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1353109-1139550*') then sol[1,isoii] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1353023-1137540*') then sol[1,ishe] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1353017-1137209*') then sol[1,ishd] = 0.0 ; drop both lines
+       if strmatch(raw[iobj].galaxy,'*1353017-1137209*') then sol[1,ishe] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1353037-1136152*') then sol[1,ishb] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1353027-1137363*') then sol[1,isoiii] = 0.0
+
+; cl1354
+       if strmatch(raw[iobj].galaxy,'*1354153-1233027*') then sol[1,ishe] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1354098-1231098*') then sol[1,ish5] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1354055-1234136*') then sol[1,ish5] = 0.0 ; drop both lines
+       if strmatch(raw[iobj].galaxy,'*1354055-1234136*') then sol[1,isoiii] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1354190-1234440*') then sol[1,ishe] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1354111-1234049*') then sol[1,isneon] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1354147-1231467*') then sol[1,ish5] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1354184-1233370*') then sol[1,ish5] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1354091-1229456*') then sol[1,ishb] = 0.0 ; drop three lines
+       if strmatch(raw[iobj].galaxy,'*1354091-1229456*') then sol[1,ishe] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1354091-1229456*') then sol[1,isoiii] = 0.0
+
+; cl1411       
+       if strmatch(raw[iobj].galaxy,'*1411047-1148287*') then sol[1,isoiii] = 0.0
+
+; cl1420
+       if strmatch(raw[iobj].galaxy,'*1420228-1233529*') then sol[1,isoiii] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1420120-1238131*') then sol[1,ishb] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1420118-1234482*') then sol[1,ish5] = 0.0
+       if strmatch(raw[iobj].galaxy,'*1420157-1237446*') then sol[1,isneon] = 0.0
+
 ; remove undetected emission lines from both the matrix of
 ; best-fitting parameters *and* the emission-line templates; demand
 ; S/N>3 on the amplitude of each line
@@ -246,8 +359,79 @@ pro do_parse_ediscs_gandalf_specfit, run34=run34, debug=debug, $
           new_sol[*,ishd] = sol[*,ishd]
           new_etemplates[*,ishd] = etemplates[*,ishd]/fluxscale
        endif
-
+       if strmatch(raw[iobj].galaxy,'*1054198-1146337*') then begin
+          new_sol[*,ishd] = sol[*,ishd]
+          new_etemplates[*,ishd] = etemplates[*,ishd]/fluxscale
+       endif
+       if strmatch(raw[iobj].galaxy,'*1059070-1251486*') then begin
+          new_sol[*,isoii] = sol[*,isoii]
+          new_etemplates[*,isoii] = etemplates[*,isoii]/fluxscale
+       endif
+       if strmatch(raw[iobj].galaxy,'*1103398-1246578*') then begin
+          new_sol[*,ishd] = sol[*,ishd]
+          new_etemplates[*,ishd] = etemplates[*,ishd]/fluxscale
+       endif
+; check from here
+       if strmatch(raw[iobj].galaxy,'*1138046-1133092*') then begin
+          new_sol[*,ishd] = sol[*,ishd]
+          new_etemplates[*,ishd] = etemplates[*,ishd]/fluxscale
+       endif
+       if strmatch(raw[iobj].galaxy,'*1138119-1132413*') then begin
+          new_sol[*,isoii] = sol[*,isoii]
+          new_etemplates[*,isoii] = etemplates[*,isoii]/fluxscale
+       endif
+       if strmatch(raw[iobj].galaxy,'*1138127-1134190*') then begin
+          new_sol[*,ishd] = sol[*,ishd]
+          new_etemplates[*,ishd] = etemplates[*,ishd]/fluxscale
+       endif
+       if strmatch(raw[iobj].galaxy,'*1202483-1226436*') then begin
+          new_sol[*,ishd] = sol[*,ishd]
+          new_etemplates[*,ishd] = etemplates[*,ishd]/fluxscale
+       endif
+       if strmatch(raw[iobj].galaxy,'*1216447-1201282*') then begin
+          new_sol[*,ishe] = sol[*,ishe]
+          new_etemplates[*,ishe] = etemplates[*,ishe]/fluxscale
+       endif
+       if strmatch(raw[iobj].galaxy,'*1216452-1203134*') then begin
+          new_sol[*,ishe] = sol[*,ishe]
+          new_etemplates[*,ishe] = etemplates[*,ishe]/fluxscale
+          new_sol[*,ishd] = sol[*,ishd]
+          new_etemplates[*,ishd] = etemplates[*,ishd]/fluxscale
+       endif
+       if strmatch(raw[iobj].galaxy,'*1216480-1200220*') then begin
+          new_sol[*,ishg] = sol[*,ishg]
+          new_etemplates[*,ishg] = etemplates[*,ishg]/fluxscale
+       endif
+       if strmatch(raw[iobj].galaxy,'*1216439-1158425*') then begin
+          new_sol[*,ishd] = sol[*,ishd]
+          new_etemplates[*,ishd] = etemplates[*,ishd]/fluxscale
+       endif
+       if strmatch(raw[iobj].galaxy,'*1227548-1137529*') then begin
+          new_sol[*,ishg] = sol[*,ishg]
+          new_etemplates[*,ishg] = etemplates[*,ishg]/fluxscale
+          new_sol[*,ishd] = sol[*,ishd]
+          new_etemplates[*,ishd] = etemplates[*,ishd]/fluxscale
+       endif
+       if strmatch(raw[iobj].galaxy,'*1227574-1137236*') then begin
+          new_sol[*,ishg] = sol[*,ishg]
+          new_etemplates[*,ishg] = etemplates[*,ishg]/fluxscale
+       endif
+       if strmatch(raw[iobj].galaxy,'*1301345-1142378*') then begin
+          new_sol[*,isoii] = sol[*,isoii]
+          new_etemplates[*,isoii] = etemplates[*,isoii]/fluxscale
+       endif
+       if strmatch(raw[iobj].galaxy,'*1353026-1139464*') then begin
+          new_sol[*,ishg] = sol[*,ishg]
+          new_etemplates[*,ishg] = etemplates[*,ishg]/fluxscale
+          new_sol[*,ishd] = sol[*,ishd]
+          new_etemplates[*,ishd] = etemplates[*,ishd]/fluxscale
+       endif
+       if strmatch(raw[iobj].galaxy,'*1354049-1234087*') then begin
+          new_sol[*,ishd] = sol[*,ishd]
+          new_etemplates[*,ishd] = etemplates[*,ishd]/fluxscale
+       endif
        
+; ...now continue       
        new_etemplates = fluxscale*new_etemplates
        
        if (size(new_etemplates,/n_dim) eq 1) then $

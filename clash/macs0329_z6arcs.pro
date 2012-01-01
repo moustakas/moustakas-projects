@@ -35,24 +35,22 @@ pro macs0329_z6arcs, supergrid, models=models, isedfit=isedfit, $
     endif
     ssfr = sfr0-mstar+9 
 
-; write out the best-fit model of arc 1.2
-    model_flam_igm = isedfit_restore(paramfile,ised,iopath=isedpath,$
-      isedfit_sfhgrid_dir=isedfit_sfhgrid_dir,/flam)
-    model_flam_noigm = isedfit_restore(paramfile,ised,iopath=isedpath,$
-      isedfit_sfhgrid_dir=isedfit_sfhgrid_dir,/flam,/noigm)
-    this = 1
-    openw, lun, datapath+adi[this].id+'_bestfit.txt', /get_lun
-    printf, lun, '## Maximum likelihood model fit to photometry of arc 1.2'
-    printf, lun, '## assuming z=6.18, with and without IGM attenuation.'
-    printf, lun, '# 1 wavelength [observed-frame, Angstrom]'
-    printf, lun, '# 2 flux [observed-frame, erg/s/cm^2/A]'
-    printf, lun, '# 3 flux_noigm [observed-frame, erg/s/cm^2/A]'
-    for ii = 0, n_elements(model_flam_igm[this].wave)-1 do printf, lun, $
-      model_flam_igm[this].wave[ii], model_flam_igm[this].flux[ii], $
-      model_flam_noigm[this].flux[ii], format='(2x,E12.5,3x,E12.5,3x,E12.5)'
-    free_lun, lun
-    
-stop    
+;; write out the best-fit model of arc 1.2
+;    model_flam_igm = isedfit_restore(paramfile,ised,iopath=isedpath,$
+;      isedfit_sfhgrid_dir=isedfit_sfhgrid_dir,/flam)
+;    model_flam_noigm = isedfit_restore(paramfile,ised,iopath=isedpath,$
+;      isedfit_sfhgrid_dir=isedfit_sfhgrid_dir,/flam,/noigm)
+;    this = 1
+;    openw, lun, datapath+adi[this].id+'_bestfit.txt', /get_lun
+;    printf, lun, '## Maximum likelihood model fit to photometry of arc 1.2'
+;    printf, lun, '## assuming z=6.18, with and without IGM attenuation.'
+;    printf, lun, '# 1 wavelength [observed-frame, Angstrom]'
+;    printf, lun, '# 2 flux [observed-frame, erg/s/cm^2/A]'
+;    printf, lun, '# 3 flux_noigm [observed-frame, erg/s/cm^2/A]'
+;    for ii = 0, n_elements(model_flam_igm[this].wave)-1 do printf, lun, $
+;      model_flam_igm[this].wave[ii], model_flam_igm[this].flux[ii], $
+;      model_flam_noigm[this].flux[ii], format='(2x,E12.5,3x,E12.5,3x,E12.5)'
+;    free_lun, lun
     
 ;   niceprint, galaxy, ised.mass_50-alog10(adi.mu), ised.mass_err, $
 ;     1E3*ised.age_50, 1E3*ised.age_err, ised.z_50/0.019, ised.z_err/0.019, ised.av_50, $
@@ -66,6 +64,15 @@ stop
       ised[ii].z_50/0.019, ised[ii].av_50, 10^(ised[ii].sfr_50-alog10(adi[ii].mu)), 10^median(ssfr[*,ii]), $
       getredshift(getage(zobj)-median(sfrage[*,ii]));, format='(A8,2x,F6.3,2x,I0,2x,F7.3,2x,F8.3)'
 
+; mass: 0.4 dex
+; sfrage: 0.37 dex
+; metallicity: 0.2 dex
+; sfrage: 0.07 dex
+; dust: 0.21 mag
+
+    
+stop    
+    
 ; ---------------------------------------------------------------------------
 ; make a plot for the paper    
     this = 1

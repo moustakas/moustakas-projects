@@ -2,7 +2,7 @@ pro alpha_reduce_night, datapath, setup=setup, side=side, clobber=clobber, $
   flat=flat, arc=arc, slitflat=slitflat, proc=proc, emlines=emlines, $
   dotrace=dotrace, skysub=skysub, extract=extract, calibrate=calibrate, $
   coadd=coadd, dostandards=dostandards, makesens=makesens, linlist=linlist, $
-  nycoeff=nycoeff, nocoeff=nocoeff, sigrej_2darc=sigrej_2darc
+  nycoeff=nycoeff, nocoeff=nocoeff, sigrej_2darc=sigrej_2darc, combine=combine
 ; jm09jan06nyu - wrapper to reduce one night of alpha data; very
 ; modular 
     
@@ -285,11 +285,26 @@ pro alpha_reduce_night, datapath, setup=setup, side=side, clobber=clobber, $
 ; ##################################################
 ; combine multiple exposures of the same object, which must be run on
 ; even a single object
-;   if keyword_set(combine) then begin
-;      for jj = 0L, nobj-1L do begin
-;         mike_combspec, mike, setup, obj[jj], side, /useboxflux
-;      endfor
-;   endif
+    if keyword_set(combine) then begin
+       splog, 'Combining exposures...'
+       for jj = 0, nobj-1 do begin
+          objfil = mike_getfil('obj_fil',setup,$
+            SUBFIL=mike[objindx[jj]].img_root,/name)
+          objstr = xmrdfits(objfil,1,STRUCTYP='mikeobjstrct',/silent)
+; read "my" object structure to identify the orders we care about 
+          if keyword_set(dostandards) then begin
+             these_ordrs = objstr.order
+          endif else begin
+             myobjfil = repstr(objfil,'Obj_','myObj_')+'.gz'
+             splog, 'Reading '+myobjfil
+             myobjstr = mrdfits(myobjfil,1,/silent)
+             these_ordrs = myobjstr.ordr
+             if (n_elements(myobjstr) eq 1) then these_ordrs = [these_ordrs,these_ordrs]
+             mike_combspec, mike, setup, obj[jj], side, $
+               ordrs=these_ordrs, /boxcar
+          endelse
+       endfor
+    endif
     
 ; ##################################################
 ; read the extracted 1D spectra and stitch the orders together;  also

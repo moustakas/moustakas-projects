@@ -135,7 +135,7 @@ pro qaplot_alpha_arcfit, arcfile, iter=iter, rejcut=rejcut, qafile=qafile
       stats[rej].order, psym=6, symsize=1.2, color='red'
     djs_oplot, !x.crange, rejcut*[1,1], line=0, thick=3
 
-    im_plotconfig, psfile=qafile, /psclose, /gzip
+    im_plotconfig, psfile=qafile, /psclose, /pdf
     
 return
 end

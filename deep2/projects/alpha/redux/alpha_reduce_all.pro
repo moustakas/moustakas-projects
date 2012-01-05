@@ -3,7 +3,8 @@ pro alpha_reduce_all, night, preproc=preproc, blue=blue, fixheaders=fixheaders, 
   slitflat=slitflat, proc=proc, emlines=emlines, dotrace=dotrace, skysub=skysub, $
   extract=extract, calibrate=calibrate, coadd=coadd, dostandards=dostandards, $
   makesens=makesens, stage1=stage1, stage2=stage2, stage3=stage3, $
-  final_spec1d=final_spec1d, tarballs=tarballs, qaplot_arcfit=qaplot_arcfit
+  final_spec1d=final_spec1d, tarballs=tarballs, qaplot_arcfit=qaplot_arcfit, $
+  combine=combine
 ; jm09jan06nyu - uber-wrapper to reduce *all* the alpha data; the
 ; default is to just reduce the RED data, unless /BLUE is set 
 
@@ -173,7 +174,7 @@ pro alpha_reduce_all, night, preproc=preproc, blue=blue, fixheaders=fixheaders, 
             flat=flat, arc=arc, slitflat=slitflat, proc=proc, emlines=emlines, $
             dotrace=dotrace, skysub=skysub, extract=extract, calibrate=calibrate, $
             coadd=coadd, dostandards=dostandards, makesens=makesens, linlist=linlist, $
-            nycoeff=nycoeff, nocoeff=nocoeff, sigrej_2darc=sigrej_2darc
+            nycoeff=nycoeff, nocoeff=nocoeff, sigrej_2darc=sigrej_2darc, combine=combine
        endif
     endfor ; close NIGHT
 

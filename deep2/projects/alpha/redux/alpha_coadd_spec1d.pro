@@ -244,7 +244,8 @@ pro alpha_coadd_spec1d, mike, info, side=side, datapath=datapath, $
 
     if (n_elements(qafile) ne 0L) then begin
        dfpsclose
-       spawn, 'gzip -f '+qafile
+;      spawn, 'ps2pdf '+qafile+' '+repstr(qafile,'.ps','.pdf')+' ; \rm '+qafile, /sh
+;      spawn, 'gzip -f '+qafile
        im_plotfaves
     endif
 

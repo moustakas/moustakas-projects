@@ -106,7 +106,7 @@ pro qaplot_alpha_arcfit_night, mike, setup, side, linlist=linlist, qafile=qafile
       'N(F>0.05)='+string(nbad,format='(I0)')], $
       /right, /top, box=0, charsize=1.4
 
-    im_plotconfig, psfile=qafile, /psclose, /gzip
+    im_plotconfig, psfile=qafile, /psclose, /pdf
     
 return
 end

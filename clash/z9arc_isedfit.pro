@@ -8,21 +8,28 @@ pro z9arc_isedfit, models=models, isedfit=isedfit, $
     isedfit_sfhgrid_dir = clash_path(/monte)
     sfhgrid_paramfile = getenv('CLASH_DIR')+'/clash_sfhgrid.par'
 
-; read the supergrid parameter file
-    supergrid = 4
-    super = get_clash_supergrid(supergrid,nsuper=nsuper)
-    struct_print, super
-
 ; gather the photometry
     cat = read_z9arc()
-    ngal = n_elements(cat)
-    cat = struct_addtags(replicate({z: 9.560},ngal),cat)
+
+; read the supergrid parameter file
+;   supergrid = 4
+;   prefix = 'z9arc'
+;   zminmax = [9.50,9.60]
+
+; -------------------------
+; test a low-redshift dusty solution!    
+    supergrid = 5 
+    prefix = 'z9arc_lowz'
+    zminmax = [3.1,3.3]
+    cat.z = 3.2
+; -------------------------
+    
+    super = get_clash_supergrid(supergrid,nsuper=nsuper)
+    struct_print, super
 
     igm = '1'
     nzz = '3'
     zlog = '0'
-    prefix = 'z9arc'
-    zminmax = [9.50,9.60]
 
 ; loop on each supergrid
     for gg = 0, nsuper-1 do begin
@@ -54,15 +61,17 @@ pro z9arc_isedfit, models=models, isedfit=isedfit, $
 
 ; make some QAplots
        if keyword_set(qaplot) then begin
-          yrange = [35,23]
+          yrange = [35,26]
 ;         xrange = [2000,17000] & xlog = 0
           xrange = [2000,70000] & xlog = 1
-          isedfit_qaplot, paramfile, result, iopath=isedpath, $
-            galaxy='Aperture '+string(cat.ap,format='(I0)'), $
+          isedfit_qaplot, paramfile, result, iopath=isedpath, galaxy=cat.galaxy, $
             index=index, clobber=clobber, isedfit_sfhgrid_dir=isedfit_sfhgrid_dir, $
             outprefix=outprefix, xrange=xrange, yrange=yrange, xlog=xlog
        endif
     endfor
 
+    
+    
+    
 return
 end

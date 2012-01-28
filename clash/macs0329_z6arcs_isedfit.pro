@@ -9,7 +9,8 @@ pro macs0329_z6arcs_isedfit, models=models, isedfit=isedfit, $
     sfhgrid_paramfile = getenv('CLASH_DIR')+'/clash_sfhgrid.par'
 
 ; read the supergrid parameter file
-    supergrid = [2,3] ; current supergrids for this project
+    supergrid = 3 ; current supergrids for this project
+;   supergrid = [2,3] ; current supergrids for this project
     super = get_clash_supergrid(supergrid,nsuper=nsuper)
     struct_print, super
 

@@ -79,14 +79,14 @@ pro clash_to_maggies, clash, maggies, ivar, filterlist=filterlist, $
           if check[0] ne -1 then stop
 
 ; jm11nov13ucsd - replace <5-sigma photometry with 2-sigma limits 
-          lim = where((clash.(ftag) lt 90.0) and (maggies[ib,*] gt 0.0) and (maggies[ib,*]*sqrt(ivar[ib,*]) lt 5.0),nlim)
+;         lim = where((clash.(ftag) lt 90.0) and (maggies[ib,*] gt 0.0) and (maggies[ib,*]*sqrt(ivar[ib,*]) lt 5.0),nlim)
 ;         lim = where((maggies[ib,*] gt 0.0) and (maggies[ib,*]*sqrt(ivar[ib,*]) lt 2.0) and $
 ;           strmatch(filterlist[ib],'*irac*') eq 0,nlim)
+          nlim = 0
           if (nlim ne 0L) then begin
-             ivar[ib,lim] = 1.0/(2.0*maggies[ib,lim])^2.0
+             ivar[ib,lim] = 1.0/maggies[ib,lim]^2.0
              maggies[ib,lim] = 0.0
           endif
-;if ib eq 3 then stop
        endif else begin
           if strmatch(filterlist[ib],'*irac*',/fold) then fact = 1D else fact = 10D^(-0.4D*zpt[ib])
 

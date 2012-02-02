@@ -37,6 +37,8 @@ end
 pro talk_12feb_siena, keynote=keynote, noevol=noevol
 ; jm12jan28ucsd - miscellaneous plots for my 2012 Feb talk at Siena
 
+    common com_siena, model, mstar, isedfit
+    
     mfpath = mf_path()
     mfspath = mf_path(/mfs)
     isedpath = mf_path(/isedfit)
@@ -51,83 +53,43 @@ pro talk_12feb_siena, keynote=keynote, noevol=noevol
 
 ; --------------------------------------------------
 ; SED-fitting example
-    field = 'cfhtls_xmm'
-    sfhgrid = 1
-    supergrid = 1
-    ndraw = isedfit_ndraw() ; number of random draws
-
     isedpath = mf_path(/isedfit)
     isedfit_sfhgrid_dir = mf_path(/montegrids)
 
-; need all the chunks in memory!       
-    chunkfile = file_search(isedpath+'sfhgrid01/charlot/'+field+$
-      '_bc03_chab_chunk_????.fits.gz',count=nchunk)
-    for jj = 0, nchunk-1 do begin
-       modelgrid1 = mrdfits(chunkfile[jj],1)
-       modelgrid1 = struct_trimtags(temporary(modelgrid1),except='modelmaggies')
-       if (jj eq 0) then modelgrid = temporary(modelgrid1) else $
-         modelgrid = [temporary(modelgrid),temporary(modelgrid1)]
-    endfor
-    nmodel = n_elements(modelgrid)
-    nage = n_elements(modelgrid[0].age)
-    nallmodel = nmodel*nage
-    
-    bigage    = reform(modelgrid.age,nallmodel)
-    bigmass   = reform(modelgrid.mstar,nallmodel)
-    bigtau    = reform(rebin(reform(modelgrid.tau,1,nmodel),nage,nmodel),nallmodel)
-    bigZ      = reform(rebin(reform(modelgrid.Z,1,nmodel),nage,nmodel),nallmodel)
-    bigav     = reform(rebin(reform(modelgrid.mu*modelgrid.av,1,nmodel),nage,nmodel),nallmodel)
-    bignburst = reform(rebin(reform(modelgrid.nburst,1,nmodel),nage,nmodel),nallmodel)
-    
-;   splog, 'Reconstructing SFHs'
-;   bigsfr = bigage*0D
-;   bigsfr100 = bigage*0D       ; average over the previous 100 Myr
-;   bigb100 = bigage*0D         ; birthrate parameter
-;   bigmgal = bigage*0D         ; galaxy mass ignoring mass loss 
-;   for imod = 0L, nmodel-1 do begin
-;      tindx = lindgen(nage)+imod*nage
-;      sfr = isedfit_reconstruct_sfh(modelgrid[imod],outage=bigage[tindx],$
-;        sfr100=sfr100,b100=b100,mgalaxy=mgal)
-;      bigsfr[tindx] = sfr          ; alog10(sfr)
-;      bigsfr100[tindx] = sfr100    ; alog10(sfr100) 
-;      bigb100[tindx] = b100
-;      bigmgal[tindx] = mgal
-;   endfor
+    paramfile = isedpath+'cfhtls_xmm_supergrid01_isedfit.par'
+    sfhgrid_paramfile = getenv('PRIMUS_DIR')+'/pro/science/mf/mf_sfhgrid.par'
 
-; build the parameter file name    
-    paramfile = isedpath+field+'_supergrid01_isedfit.par'
-    params = read_isedfit_paramfile(paramfile,sfhgrid=sfhgrid)
-    params.sfhgrid = string(sfhgrid,format='(I2.2)')
-    params.imf = 'chab'
-    params.synthmodels = 'bc03'
-    params.redcurve = redcurve2string(1) ; charlot
+    ndraw = isedfit_ndraw() ; number of random draws
 
-    pp = read_mf_ubersample(field)
+; pick the galaxy
+    pp = read_mf_ubersample('cfhtls_xmm')
     ra = 34.776369D & dec = -5.3947370D ; picked this one by eye
     spherematch, pp.ra, pp.dec, ra, dec, 1D/3600.0, m1, m2
     index = m1[0]
     galaxy = hogg_iau_name(ra,dec,'CFHTLS-XMM')
 
-; build the posterior distribution in mass    
-    isedfit = read_mf_isedfit(field,supergrid=supergrid,rows=index,post=post)
-    isedfit = isedfit[0] & post = post[0]
 
-    logscale_err = post.scale_err/post.scale/alog(10)
-    logscale = alog10(post.scale) + randomn(seed,ndraw)*logscale_err
-    pofm = alog10(bigmass[post.draws])+logscale
+    if (n_elements(model) eq 0) then begin
+       model = isedfit_restore(paramfile,isedfit,iopath=isedpath,$
+         isedfit_sfhgrid_dir=isedfit_sfhgrid_dir,index=index)
+    endif
 
-    model = isedfit_restore(paramfile,junk,params=params,$
-      iopath=isedpath,index=index,isedfit_sfhgrid_dir=isedfit_sfhgrid_dir)
-    filters = strtrim(get_mf_filters(field,nice_filte=nice_filters),2)
+    if (n_elements(mstar) eq 0L) then begin
+       mstar = isedfit_reconstruct_posterior(paramfile,post=post,$
+         isedfit_sfhgrid_dir=isedfit_sfhgrid_dir,iopath=isedpath,$
+;        age=age,Z=Z,tau=tau,sfr0=sfr0,b100=b100,av=av,sfrage=sfrage,$
+         index=index)
+    endif
+
+    filters = strtrim(get_mf_filters('cfhtls_xmm',nice_filte=nice_filters),2)
     filtinfo = im_filterspecs(filterlist=filters)
 
-    xtitle1 = textoidl('Observed Wavelength (\AA)')
-    xtitle2 = textoidl('Rest Wavelength (\AA)')
-    ytitle1 = textoidl('m_{AB}')
+    xtitle1 = textoidl('Observed-Frame Wavelength (\AA)')
+    ytitle1 = textoidl('AB Magnitude')
 
     yrange = [28.5,18.5]
     xrange1 = [1000.0,6E4]
-    xrange2 = xrange1/(1.0+isedfit.zobj)
+    ticks1 = [1000,4000,10000,40000]
     
     psfile = talkpath+'isedfit_example.ps'
     im_plotconfig, 8, pos, psfile=psfile, ymargin=[1.0,1.1], keynote=keynote
@@ -136,16 +98,22 @@ pro talk_12feb_siena, keynote=keynote, noevol=noevol
       keycolor = djs_icolor('default')
 
     plot, [0], [0], /nodata, xrange=xrange1, yrange=yrange, $
-      xsty=9, ysty=1, xtitle=xtitle1, ytitle=ytitle1, /xlog, $
-      xtickinterval=1000, position=pos, color=keycolor
-    axis, /xaxis, xsty=1, xtitle=xtitle2, xrange=xrange2, /xlog, color=keycolor
+      xsty=9, ysty=9, xtitle=xtitle1, ytitle=ytitle1, /xlog, $
+      position=pos, color=keycolor, $
+      xtickformat='(I0)', xticks=n_elements(ticks1)-1, xtickv=ticks1
     oplot, model.wave, model.flux, line=0, color=keycolor; color='grey'
 
 ; overplot the filter names
-    nice_filters = repstr(repstr(nice_filters,'ch1','[3.6]'),'ch2','[4.5]')
-    for ii = 0, n_elements(filters)-1 do xyouts, filtinfo[ii].weff, $
-      28.0, nice_filters[ii], /data, align=0.5, color=keycolor, $
-      charsize=1.4
+;   nice_filters = repstr(repstr(nice_filters,'ch1','[3.6]'),'ch2','[4.5]')
+;   for ii = 0, n_elements(filters)-1 do xyouts, filtinfo[ii].weff, $
+;     28.0, nice_filters[ii], /data, align=0.5, color=keycolor, $
+;     charsize=1.4
+    xyouts, mean(k_lambda_eff(filterlist=galex_filterlist())), 28.0, $
+      'ultraviolet', /data, align=0.5, color=im_color('powder blue'), charsize=1.4
+    xyouts, mean(k_lambda_eff(filterlist=sdss_filterlist())), 28.0, $
+      'optical', /data, align=0.5, color=im_color('forest green'), charsize=1.4
+    xyouts, mean(k_lambda_eff(filterlist=(irac_filterlist())[0:1])), 28.0, $
+      'mid-infrared', /data, align=0.5, color=im_color('tan'), charsize=1.4
     
 ; overplot the observed and model photometry
     used = where((isedfit.maggies gt 0.0) and $ ; used in the fitting
@@ -155,51 +123,40 @@ pro talk_12feb_siena, keynote=keynote, noevol=noevol
     nodata = where((isedfit.maggies eq 0.0) and $ ; no measurement
       (isedfit.ivarmaggies eq 0.0),nnodata)
 
-    djs_oplot, filtinfo[used].weff, -2.5*alog10(isedfit[used].bestmaggies), $
-      psym=symcat(6,thick=6), symsize=2.5
+;   djs_oplot, filtinfo[used].weff, -2.5*alog10(isedfit[used].bestmaggies), $
+;     psym=symcat(6,thick=6), symsize=2.5
 
 ; overplot galex, cfhtls, and irac
     galex = where(strmatch(filters,'*galex*',/fold))
     mab = maggies2mag(isedfit.maggies[galex],$
       ivar=isedfit.ivarmaggies[galex],magerr=mab_err)
-    oploterror, filtinfo[galex].weff, mab, mab_err, psym=symcat(16), $
-      symsize=2.0, color=fsc_color('dodger blue',101), $
-      errcolor=fsc_color('dodger blue',101), errthick=!p.thick
+    oploterror, filtinfo[galex].weff, mab, mab_err, psym=symcat(15), $
+      symsize=3.0, color=im_color('powder blue',101), $
+      errcolor=im_color('powder blue',101), errthick=!p.thick
     
     optical = where(strmatch(filters,'*capak*',/fold))
     mab = maggies2mag(isedfit.maggies[optical],$
       ivar=isedfit.ivarmaggies[optical],magerr=mab_err)
-    oploterror, filtinfo[optical].weff, mab, mab_err, psym=symcat(16), $
-      symsize=2.0, color=fsc_color('tan',101), $
-      errcolor=fsc_color('tan',101), errthick=!p.thick
+    oploterror, filtinfo[optical].weff, mab, mab_err, psym=symcat(15), $
+      symsize=3.0, color=im_color('forest green',101), $
+      errcolor=im_color('forest green',101), errthick=!p.thick
     
     irac = where(strmatch(filters,'*irac*',/fold))
     mab = maggies2mag(isedfit.maggies[irac],$
       ivar=isedfit.ivarmaggies[irac],magerr=mab_err)
-    oploterror, filtinfo[irac].weff, mab, mab_err, psym=symcat(16), $
-      symsize=2.0, color=fsc_color('firebrick',101), $
-      errcolor=fsc_color('firebrick',101), errthick=!p.thick
+    oploterror, filtinfo[irac].weff, mab, mab_err, psym=symcat(15), $
+      symsize=3.0, color=im_color('tan',101), $
+      errcolor=im_color('tan',101), errthick=!p.thick
     
-    label = [$
-      galaxy,'z = '+string(isedfit.zobj,format='(F6.4)'),$
-      'log (M/M'+sunsymbol()+')_{best} = '+strtrim(string(isedfit.mass,format='(F12.2)'),2),$
-      'log (M/M'+sunsymbol()+')_{median} = '+strtrim(string(isedfit.mass_50,format='(F12.2)'),2)]
-;   label = [$
-;     galaxy,'z = '+string(isedfit.zobj,format='(F6.4)'),$
-;     'log (M/M'+sunsymbol()+') = '+strtrim(string(isedfit.mass_avg,format='(F12.2)'),2)+$
-;     '\pm'+strtrim(string(isedfit.mass_err,format='(F12.2)'),2)]
-
-     legend, textoidl(label), /left, /top, box=0, charsize=1.5, $
-       margin=0, textcolor=keycolor, spacing=2.2
-
 ; inset with P(M)     /noerase, 
-    im_plothist, pofm, bin=0.02, /noplot, xx, yy
-    im_plothist, pofm, bin=0.02, xsty=3, ysty=1, /noerase, yrange=[0,max(yy)*1.05], $
-      position=[0.55,0.3,0.9,0.6], /fill, fcolor=im_color('goldenrod'), $
-      ytitle='P(M)', xtitle='Stellar Mass', color=keycolor, $
-      ytickname=replicate(' ',10), charsize=1.5, xrange=isedfit.mass_50+3.5*isedfit.mass_err*[-1,1]
-    oplot, isedfit.mass_50*[1,1], !y.crange, line=0, thick=6, color=djs_icolor('black')
-    oplot, isedfit.mass*[1,1], !y.crange, line=5, thick=6, color=djs_icolor('black')
+    im_plothist, mstar, bin=0.04, /noplot, xx, yy
+    im_plothist, mstar, bin=0.04, xsty=9, ysty=5, /noerase, yrange=[0,max(yy)*1.05], $
+      position=[0.55,0.35,0.9,0.65], /fill, fcolor=im_color('grey60'), $
+      ytitle='P(M)', xtitle='log (Stellar Mass)  (M'+sunsymbol()+')', color=keycolor, $
+      ytickname=replicate(' ',10), charsize=1.5, xrange=isedfit.mass_50+4*isedfit.mass_err*[-1,1], $
+      xtickinterval=0.2
+;   oplot, isedfit.mass_50*[1,1], !y.crange, line=0, thick=6, color=djs_icolor('black')
+;   oplot, isedfit.mass*[1,1], !y.crange, line=5, thick=6, color=djs_icolor('black')
 
     im_plotconfig, psfile=psfile, /psclose, keynote=keynote
 
@@ -342,7 +299,7 @@ stop
       395,295,308,430,5,437,255,227,36,374,94,174,380,125,297,239,168,274,285,52,$
       394,132,369,343,75,415,269,493,65,366,266,410,126,265,325,136,311,301,242,89,$
       109,157,464,296,219,345,277,382,22,113,178,419,241,8,447,432,212,389,463,263,226,472]
-    
+    stop
     outfile = datapath+'rc3_montage.jpg'
     cmd = 'montage -bordercolor black -borderwidth 1 '+ $
       '-tile '+strtrim(nrow,2)+'x'+strtrim(nrow,2)+' -geometry +0+0 '+$

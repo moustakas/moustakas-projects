@@ -41,7 +41,7 @@ function read_vagc_garching, sample=sample, letter=letter, $
     
     if (n_elements(sample) eq 0) then sample = 'dr72'
     if (n_elements(letter) eq 0) then letter = 'bsafe'
-    if (n_elements(poststr) eq 0) then poststr = '25'
+    if (n_elements(poststr) eq 0) then poststr = '0'
     suffix = sample+letter+poststr
 
     if (n_elements(sdss_sample) eq 0L) then sdss_sample = sample

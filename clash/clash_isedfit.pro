@@ -8,7 +8,7 @@ pro clash_write_paramfile, paramfile, prefix=prefix, zminmax=zminmax, nzz=nzz, $
     
     splog, 'Writing '+paramfile
     zrange = string(zminmax[0],format='(f4.2)')+','+string(zminmax[1],$
-      format='(f4.2)')+','+nzz+' # [minz,maxz,dz]'
+      format='(f4.2)')+','+nzz+' # [minz,maxz,nz]'
     openw, lun, paramfile, /get_lun
     printf, lun, 'synthmodels          '+synthmodels
     printf, lun, 'imf                  '+imf

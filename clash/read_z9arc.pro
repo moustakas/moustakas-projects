@@ -26,7 +26,7 @@ function read_z9arc
     filt = clash_filterlist(short=short,weff=weff,zpt=zpt,nice=nice,/useirac)
     nfilt = n_elements(filt)
 
-    readcol, datapath+'jdrp.lis', ap, f160w, f160werr, f140w, f140werr, f125w, f125werr, f110w, f110werr, $
+    readcol, datapath+'final.lis', ap, f160w, f160werr, f140w, f140werr, f125w, f125werr, f110w, f110werr, $
       f105w, f105werr, f850lp, f850lperr, f814w, f814werr, f775w, f775werr, f625w, f625werr, f606w, f606werr, $
       f555w, f555werr, f475w, f475werr, f435w, f435werr, f390w, f390werr, f336w, f336werr, f275w, f275werr, $
       f225w, f225werr, ch1, ch1err, ch2, ch2err, skip=1, /silent

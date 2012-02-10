@@ -1,0 +1,27 @@
+# iSEDfit SFH grid parameters
+
+typedef struct {
+ int sfhgrid;          # grid number
+ float tau[2];         # tau interval [Gyr]
+ int oneovertau;       # if ==1 then draw from 1/TAU (like GAMMA in Salim+07)
+ int delayed;          # if ==1 then use SFR=t/tau^2*exp(-t/tau), in which case GAMMA==TAU (note!)
+ float Z[2];           # metallicity interval
+ float av[2];          # A_V interval or gamma distribution parameters
+ int flatav;           # flat A_V prior (default is a gamma distribution)?
+ float mu[2];          # for use with the Charlot & Fall attenuation curve
+ int flatmu;           # flat mu prior (default is a gamma distribution)?
+ float pburst;         # probability of a burst in PBURSTINTERVAL Gyr
+ float pburstinterval; # burst interval [Gyr]
+ float fburst[2];      # burst mass fraction interval
+ float dtburst[2];     # burst duration interval [Gyr]
+ float fractrunc;      # fraction of the models with truncated bursts
+ float tauburst;       # truncated final burst characteristic timescale [Gyr]
+ int nage;             # number of age bins
+ float minage;         # minimum model age [Gyr]
+ float maxage;         # maximum model age [Gyr]
+ int nmonte;           # number of Monte Carlo models
+} PARAMS;
+
+PARAMS 1 {0.01 5.0} 0 0 {0.0002 0.03} {0.0 5.0} 1 {-1  -1} 0  -1  -1 {  -1 -1} {  -1  -1} -1 -1 50 0.005 2.0  500 # no bursts
+PARAMS 2 {0.01 5.0} 0 0 {0.0002 0.03} {0.0 5.0} 1 {-1  -1} 0 0.5 1.0 {0.04  4} {0.03 0.3} -1 -1 50 0.005 2.0 1000 # bursts
+PARAMS 3 {-1.0 5.0} 0 0 {0.0002 0.03} {0.0 5.0} 1 {-1  -1} 0  -1  -1 {  -1 -1} {  -1  -1} -1 -1 50 0.005 2.0  500 # no bursts, rising SFHs

@@ -1,6 +1,6 @@
 function clash_path, cluster, catalogs=catalogs, redshift=redshift, $
   ir=ir, arcs=arcs, isedfit=isedfit, montegrids=montegrids, bcgimf=bcgimf, $
-  macs0329_z6arcs=macs0329_z6arcs, z9arc=z9arc
+  macs0329_z6arcs=macs0329_z6arcs, santorini=santorini
 ; jm11apr18ucsd - 
 
     clashpath = getenv('CLASH_DATA')+'/'
@@ -9,7 +9,7 @@ function clash_path, cluster, catalogs=catalogs, redshift=redshift, $
     if keyword_set(montegrids) then clashpath = clashpath+'montegrids/'
     if keyword_set(bcgimf) then clashpath = clashpath+'projects/bcgimf/'
     if keyword_set(macs0329_z6arcs) then clashpath = clashpath+'projects/macs0329_z6arcs/'
-    if keyword_set(z9arc) then clashpath = clashpath+'projects/z9arc/'
+    if keyword_set(santorini) then clashpath = clashpath+'projects/santorini/'
 
 ; if CLUSTER has been given, then build the relevant ARCHIVE path;
 ; assume the user wants the 'catalogs' directory by default; deal with

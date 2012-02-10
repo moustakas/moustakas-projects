@@ -14,7 +14,7 @@ pro clash_write_paramfile, paramfile, prefix=prefix, zminmax=zminmax, $
     
     splog, 'Writing '+paramfile
     zrange = string(zminmax[0],format='(F4.2)')+','+string(zminmax[1],$
-      format='(F4.2)')+','+nzz+','+zlog+' # [minz,maxz,dz,log?]'
+      format='(F4.2)')+','+strtrim(nzz,2)+','+strtrim(zlog,2)+' # [minz,maxz,dz,log?]'
     openw, lun, paramfile, /get_lun
     printf, lun, 'h100                 '+string(h100,format='(F4.2)')
     printf, lun, 'omega0               '+string(omega0,format='(F4.2)')
@@ -25,7 +25,7 @@ pro clash_write_paramfile, paramfile, prefix=prefix, zminmax=zminmax, $
     printf, lun, 'redcurve             '+redcurvestring
     printf, lun, 'prefix               '+prefix
     printf, lun, 'redshift             '+zrange
-    printf, lun, 'igm                  '+igm+' # [0=no, 1=yes]'
+    printf, lun, 'igm                  '+strtrim(igm,2)+' # [0=no, 1=yes]'
     printf, lun, 'maxold               0 # [0=no, 1=yes]'
     printf, lun, 'filterlist           '+strjoin(filters,',')
     free_lun, lun 

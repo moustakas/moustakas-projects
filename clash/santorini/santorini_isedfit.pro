@@ -1,35 +1,26 @@
-pro z9arc_isedfit, models=models, isedfit=isedfit, $
+pro santorini_isedfit, supergrid, models=models, isedfit=isedfit, $
   qaplot=qaplot, clobber=clobber, noirac=noirac
-; jm11nov08ucsd - fit the z~6 arcs in macs0329
+; jm11nov08ucsd - fit the z=9.6 galaxy, santorini
 
-    isedpath = clash_path(/ised)
-    datapath = clash_path(/z9arc)
-
-    isedfit_sfhgrid_dir = clash_path(/monte)
-    sfhgrid_paramfile = getenv('CLASH_DIR')+'/clash_sfhgrid.par'
+    isedpath = clash_path(/santorini)+'isedfit/'
+    isedfit_sfhgrid_dir = clash_path(/santorini)+'montegrids/'
+    sfhgrid_paramfile = getenv('CLASH_DIR')+'/santorini/santorini_sfhgrid.par'
 
 ; gather the photometry
-    cat = read_z9arc()
+    cat = read_santorini()
 
-; read the supergrid parameter file
-;   supergrid = 4
-;   prefix = 'z9arc'
-;   zminmax = [9.50,9.60]
+; consider both the z=9.6 and z=3.23 solutions
+    prefix = 'santorini'
+    cat = replicate(cat,2)
+    cat[1].z = 3.23
 
-; -------------------------
-; test a low-redshift dusty solution!    
-    supergrid = 5 
-    prefix = 'z9arc_lowz'
-    zminmax = [3.1,3.3]
-    cat.z = 3.2
-; -------------------------
+    zminmax = [3.2,9.6]
+    nzz = 50
+    zlog = 0
+    igm = 1
     
-    super = get_clash_supergrid(supergrid,nsuper=nsuper)
+    super = get_santorini_supergrid(supergrid,nsuper=nsuper)
     struct_print, super
-
-    igm = '1'
-    nzz = '3'
-    zlog = '0'
 
 ; loop on each supergrid
     for gg = 0, nsuper-1 do begin
@@ -50,28 +41,20 @@ pro z9arc_isedfit, models=models, isedfit=isedfit, $
 ; do the fitting!
        if keyword_set(isedfit) then begin
           clash_to_maggies, cat, maggies, ivarmaggies, /usemag, /useirac
-;         if keyword_set(noirac) then begin
-;            irac = where(strmatch(filters,'*irac*',/fold))
-;            cat.ivarmaggies[irac] = 0.0
-;         endif
           isedfit, paramfile, maggies, ivarmaggies, cat.z, iopath=isedpath, $
             clobber=clobber, sfhgrid_paramfile=sfhgrid_paramfile, $
-            isedfit_sfhgrid_dir=isedfit_sfhgrid_dir;, index=index
+            isedfit_sfhgrid_dir=isedfit_sfhgrid_dir
        endif       
 
 ; make some QAplots
        if keyword_set(qaplot) then begin
-          yrange = [35,26]
-;         xrange = [2000,17000] & xlog = 0
+          yrange = [31,22]
           xrange = [2000,70000] & xlog = 1
           isedfit_qaplot, paramfile, result, iopath=isedpath, galaxy=cat.galaxy, $
             index=index, clobber=clobber, isedfit_sfhgrid_dir=isedfit_sfhgrid_dir, $
             outprefix=outprefix, xrange=xrange, yrange=yrange, xlog=xlog
        endif
     endfor
-
-    
-    
     
 return
 end

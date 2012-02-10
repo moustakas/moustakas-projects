@@ -17,12 +17,10 @@ function addphot, in, all
 return, out
 end
 
-function read_z9arc
+function read_santorini
 ; jm11dec14ucsd - read the z=9 photometry
 
-    isedpath = clash_path(/ised)
-    datapath = clash_path(/z9arc)
-
+    datapath = clash_path(/santorini)
     filt = clash_filterlist(short=short,weff=weff,zpt=zpt,nice=nice,/useirac)
     nfilt = n_elements(filt)
 
@@ -38,7 +36,7 @@ function read_z9arc
       [f775werr],[f814werr],[f850lperr],[f105werr],[f110werr],[f125werr],[f140werr],$
       [f160werr],[ch1err],[ch2err]]
     
-    cat = {galaxy: '', z: 9.56, mu: 17.0, ap: 0.0}
+    cat = {galaxy: 'Santorini', z: 9.56, mu: 17.0, ap: 0.0}
     for ii = 0, nfilt-1 do cat = create_struct(cat,$
       short[ii]+'_mag',-99.0,short[ii]+'_magerr',-99.0)
     cat = replicate(cat,ngal)

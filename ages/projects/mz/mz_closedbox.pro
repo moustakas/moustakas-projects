@@ -1,7 +1,8 @@
 function mz_closedbox, logmass, params
 ; see the discussion section in the paper
 
-    mratio = params[1]/(10^(logmass-9D))
+    mratio = params[1]/10D^logmass
+;   mratio = params[1]/(10^(logmass-9D))
 ; good    
 ;   model = params[0] - mratio^(-params[2])
     model = params[0] - alog10(1+mratio^params[2])

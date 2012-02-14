@@ -1,5 +1,5 @@
 pro santorini_isedfit, supergrid, models=models, isedfit=isedfit, $
-  qaplot=qaplot, clobber=clobber, noirac=noirac
+  qaplot=qaplot, clobber=clobber, noirac=noirac, lowz=lowz
 ; jm11nov08ucsd - fit the z=9.6 galaxy, santorini
 
     isedpath = clash_path(/santorini)+'isedfit/'
@@ -10,12 +10,15 @@ pro santorini_isedfit, supergrid, models=models, isedfit=isedfit, $
     cat = read_santorini()
 
 ; consider both the z=9.6 and z=3.23 solutions
-    prefix = 'santorini'
-    cat = replicate(cat,2)
-    cat[1].z = 3.23
-
-    zminmax = [3.2,9.6]
-    nzz = 50
+    if keyword_set(lowz) then begin
+       prefix = 'santorini_lowz'
+       cat.z = 3.23
+       zminmax = [3.2,3.3]
+    endif else begin
+       prefix = 'santorini'
+       zminmax = [9.5,9.6]
+    endelse
+    nzz = 3
     zlog = 0
     igm = 1
     

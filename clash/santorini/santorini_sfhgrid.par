@@ -2,26 +2,32 @@
 
 typedef struct {
  int sfhgrid;          # grid number
- float tau[2];         # tau interval [Gyr]
- int oneovertau;       # if ==1 then draw from 1/TAU (like GAMMA in Salim+07)
- int delayed;          # if ==1 then use SFR=t/tau^2*exp(-t/tau), in which case GAMMA==TAU (note!)
- float Z[2];           # metallicity interval
- float av[2];          # A_V interval or gamma distribution parameters
- int flatav;           # flat A_V prior (default is a gamma distribution)?
- float mu[2];          # for use with the Charlot & Fall attenuation curve
- int flatmu;           # flat mu prior (default is a gamma distribution)?
- float pburst;         # probability of a burst in PBURSTINTERVAL Gyr
- float pburstinterval; # burst interval [Gyr]
- float fburst[2];      # burst mass fraction interval
- float dtburst[2];     # burst duration interval [Gyr]
- float fractrunc;      # fraction of the models with truncated bursts
- float tauburst;       # truncated final burst characteristic timescale [Gyr]
  int nage;             # number of age bins
+ int nmonte;           # number of Monte Carlo models
+ float tau[2];         # tau min-max interval [Gyr] (but see ONEOVERTAU and DELAYED)
+ float Z[2];           # metallicity min-max interval
+ float av[2];          # AV minmax interval or gamma distribution parameters (mag)
+ float mu[2];          # for use with the Charlot & Fall attenuation curve
+ float fburst[2];      # burst mass fraction min-max interval (see paper)
+ float dtburst[2];     # burst duration min-max interval [Gyr]
+ float tautrunc[2];    # truncated final burst characteristic timescale [Gyr]
  float minage;         # minimum model age [Gyr]
  float maxage;         # maximum model age [Gyr]
- int nmonte;           # number of Monte Carlo models
+ float mintburst;      # minimum TBURST time [Gyr]
+ float maxtburst;      # maximum TBURST time [Gyr]
+ float pburst;         # probability of a burst in PBURSTINTERVAL Gyr
+ float pburstinterval; # time interval between MINTBURST and MAXTBURST over which a burst can occur [Gyr]
+ float fractrunc;      # fraction of the models with truncated bursts (default 0)
+ int oneovertau;       # if ==1 then draw from 1/TAU (like GAMMA in Salim+07)
+ int delayed;          # if ==1 then adopt SFR(t)=t/tau^2*exp(-t/tau)
+ int flatav;           # flat AV prior (default is a gamma distribution)?
+ int flatmu;           # flat MU prior (default is a gamma distribution)?
+ int flatfburst;       # flat FBURST prior (default is logarithmic)?
+ int flatdtburst;      # flat DTBURST prior (default is logarithmic)?
+ int bursttype;        # burst type: 0 (step function, default), 1 (gaussian), 2 (step function with exponential wings)
 } PARAMS;
 
-PARAMS 1 {0.01 5.0} 0 0 {0.0002 0.03} {0.0 5.0} 1 {-1  -1} 0  -1  -1 {  -1 -1} {  -1  -1} -1 -1 50 0.005 2.0  500 # no bursts
-PARAMS 2 {0.01 5.0} 0 0 {0.0002 0.03} {0.0 5.0} 1 {-1  -1} 0 0.5 1.0 {0.04  4} {0.03 0.3} -1 -1 50 0.005 2.0 1000 # bursts
-PARAMS 3 {0.01 1.0} 0 0 {0.0002 0.03} {0.0 5.0} 1 {-1  -1} 0  -1  -1 {  -1 -1} {  -1  -1} -1 -1 50 0.005 2.0  500 # no bursts, rising SFHs
+PARAMS 1 50 500 {0.01  1.0} {0.0002 0.03} {0.0 3.0} {0.0 1.0} {-1.0 -1.0} {-1.0 -1.0} {-1.0 -1.0} 0.005 0.5  -1.0 -1.0 -1.0 -1.0 -1.0 0 1 1 1 -1 -1 -1 # delayed, lots of dust & metals
+PARAMS 2 50 500 {0.01  1.0} {0.004 0.004} {0.0 0.0} {0.0 1.0} {-1.0 -1.0} {-1.0 -1.0} {-1.0 -1.0} 0.005 0.5  -1.0 -1.0 -1.0 -1.0 -1.0 0 1 1 1 -1 -1 -1 # delayed, no dust, low metals
+PARAMS 3 50 500 {0.01  1.0} {0.004 0.004} {0.0 0.0} {0.0 1.0} {-1.0 -1.0} {-1.0 -1.0} {-1.0 -1.0} 0.005 0.5  -1.0 -1.0 -1.0 -1.0 -1.0 0 0 1 1 -1 -1 -1 # simple tau
+PARAMS 4 50 500 { 0.1  0.1} {0.004 0.004} {0.0 0.0} {0.0 1.0} {0.01  1.0} {0.01  0.1} {-1.0 -1.0} 0.005 0.5 0.005  0.5  0.5 0.05 -1.0 0 0 1 1  0  0  1 # bursts

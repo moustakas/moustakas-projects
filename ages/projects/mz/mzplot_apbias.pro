@@ -169,7 +169,7 @@ pro mzplot_apbias, ps=ps
     indx = shuffle_indx(ngal)
     for ii = 0, ngal-1 do plots, ages[indx[ii]].z, ages[indx[ii]].infiber_i, $
       psym=symcat(bigpsym[indx[ii]],thick=8), symsize=bigsymsize[indx[ii]], $
-      color=im_color(bigcolor[indx[ii]])
+      color=im_color(bigcolor[indx[ii]]), noclip=0
     
 ;   djs_oplot, ages.z, ages.infiber_i, psym=symcat(16), $
 ;     symsize=0.4, color='grey'

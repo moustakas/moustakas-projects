@@ -31,7 +31,7 @@ end
 
 pro santorini_rebuild_posteriors
 
-    common com_santorini, allpost, postmodel
+    common com_santorini, allpost, allised, postmodel
     
     datapath = clash_path(/santorini)
     isedpath = datapath+'isedfit/'
@@ -44,6 +44,7 @@ pro santorini_rebuild_posteriors
 
     cat = read_santorini()
 
+    supergrid = [1,2,3,4]
     super = get_santorini_supergrid(supergrid,nsuper=nsuper)
 ;   super = super[0:2] & nsuper = 3
     struct_print, super
@@ -57,6 +58,12 @@ pro santorini_rebuild_posteriors
     for ii = 0, nsuper-1 do begin
        paramfile = isedpath+'santorini_supergrid0'+strtrim(ii+1,2)+'_isedfit.par'
        splog, paramfile
+
+       model = isedfit_restore(paramfile,allised1,iopath=isedpath,$
+         isedfit_sfhgrid_dir=isedfit_sfhgrid_dir,/nomodel)
+       if allised1.nburst eq 0 then begin
+          if ii eq 0 then allised = allised1 else allised = [allised,allised1]
+       endif
 
        delvarx, post
        mstar = isedfit_reconstruct_posterior(paramfile,post=post,$
@@ -122,6 +129,90 @@ pro santorini_plots, supergrid, models=models, isedfit=isedfit, $
     
     if n_elements(allpost) eq 0 then santorini_rebuild_posteriors
 
+    niceprint, allised.mass_50-logmu, allised.sfr_50-logmu, allised.sfrage_50*1E3, $
+      allised.mass-logmu, allised.sfr-logmu, allised.sfrage*1E3
+    
+    splog, weighted_quantile(allpost[1].sfrage*1E3,quant=0.95)
+    splog, getredshift(getage(9.6)-0.220)
+
+; ---------------------------------------------------------------------------
+; SED plot for the paper
+    paramfile = isedpath+'santorini_supergrid02_isedfit.par'
+    model = isedfit_restore(paramfile,ised,iopath=isedpath,$
+      isedfit_sfhgrid_dir=isedfit_sfhgrid_dir)
+
+    psfile = datapath+'santorini_supergrid02_sed.eps'
+    im_plotconfig, 0, pos, psfile=psfile, height=5.0, ymargin=[1.0,1.0]
+
+    xtitle1 = textoidl('Observed-Frame Wavelength (\AA)')
+    xtitle2 = textoidl('Rest-Frame Wavelength (\AA)')
+    ytitle1 = textoidl('Apparent AB Magnitude')
+
+    yrange = [29.0,24.0]
+    xrange1 = [1900,70000]
+
+    ticks1 = [3000,12000,40000]
+    ticks2 = [250,500,1000,2000,4000]
+
+    xrange2 = xrange1/(1.0+ised.zobj)
+    plot, [0], [0], /nodata, xrange=xrange1, yrange=yrange, $
+      xsty=9, ysty=1, xtitle=xtitle1, ytitle=ytitle1, xlog=1, $
+      position=pos, xtickformat='(I0)', xticks=n_elements(ticks1)-1, xtickv=ticks1
+    axis, /xaxis, xsty=1, xtitle=xtitle2, xrange=xrange2, xlog=1, $
+      xticks=n_elements(ticks2)-1, xtickv=ticks2
+
+    nww = 100
+    ww = shuffle_indx(ndraw,num=nww)
+
+;    for ii = 0, nww-1 do begin
+;       djs_oplot, postmodel[ww[ii]].wave, postmodel[ww[ii]].flux, $
+;         line=0, thick=1, color=im_color('grey80')
+;;      cc = get_kbrd(1)
+;    endfor
+
+;   polyfill, [postmodel[0].wave,reverse(postmodel[0].wave)], $
+;     [min(postmodel.flux,dim=2),reverse(max(postmodel.flux,dim=2))], $
+;     /data, color=im_color('tan'), noclip=0, /fill
+;   im_legend, [cat[ii].galaxy,'z_{phot} = '+string(cat[0].z,format='(F4.2)')], $
+;     /left, /top, box=0, margin=0, charsize=1.7
+    oplot, model[0].wave, model[0].flux, line=0
+    
+    mab = maggies2mag(ised[0].maggies,ivar=ised[0].ivarmaggies,$
+      lomagerr=loerr,himagerr=hierr,magnsigma=mabupper,nsigma=2.0)
+    good = where(mab gt -99.0,ngood,comp=upper,ncomp=nupper)
+
+    djs_oplot, weff[good], -2.5*alog10(ised[0].bestmaggies[good]), $
+      psym=symcat(6,thick=6), symsize=2.5, color=im_color('steel blue')
+
+    if (ngood ne 0L) then begin
+       oploterror, weff[good], mab[good], loerr[good], psym=symcat(16), $
+         symsize=2.0, color=im_color('firebrick'), $
+         errcolor=im_color('firebrick'), errthick=8, /lobar
+       oploterror, weff[good], mab[good], hierr[good], psym=3, $
+         symsize=2.0, color=im_color('firebrick'), $
+         errcolor=im_color('firebrick'), errthick=8, /hibar
+    endif
+
+    if (nupper ne 0) then begin
+       djs_oplot, weff[upper], mabupper[upper], psym=symcat(11,thick=6), $
+         symsize=3.0, color=im_color('grey20')
+    endif
+
+    im_plotconfig, /psclose, psfile=psfile, /pdf, /pskeep
+
+; ---------------------------------------------------------------------------
+; SFRAGE vs AV for supergrid01 for Wei
+    psfile = datapath+'santorini_sfrage_vs_av.eps'
+    im_plotconfig, 0, pos, psfile=psfile, height=5.0, ymargin=[1.0,1.0]
+
+    hogg_scatterplot, allpost[0].sfrage*1E3, allpost[0].av, $
+      xrange=[-20,300], yrange=[-0.1,2], xsty=1, ysty=1, $
+      xtitle=textoidl('<t>_{SFR} (Myr)'), ytitle=textoidl('A_{V} (mag)'), $
+      /outliers, levels=[0.25,0.5,0.75,0.9], outcolor=djs_icolor('black'), $
+      ynpix=12, xnpix=12, /nogrey, /internal
+    
+    im_plotconfig, /psclose, psfile=psfile, /pdf, /pskeep    
+
 ; ---------------------------------------------------------------------------
 ; compare the posterior distributions on mass, SFR, and age
     psfile = datapath+'santorini_sfh_dependence.eps'
@@ -165,13 +256,11 @@ pro santorini_plots, supergrid, models=models, isedfit=isedfit, $
     
     djs_plot, [0], [0], xsty=5, ysty=5, /nodata, /noerase, $
       position=pos[*,3], xrange=[0,1], yrange=[0,1]
-    im_legend, ['Delayed \tau','\tau','Bursty'], box=1, position=[0.15,0.7], $
+    im_legend, ['Delayed \tau','Simple \tau','Bursty'], box=1, position=[0.15,0.7], $
       color=[c1,c2,c3], line=[l1,l2,l3], pspacing=1.9, thick=8
 
     im_plotconfig, /psclose, psfile=psfile, /pdf, /pskeep
 
-stop    
-    
 ; ---------------------------------------------------------------------------
 ; posterior distributions plots
 
@@ -212,117 +301,36 @@ stop
     im_plotconfig, 5, pos, psfile=psfile, xspace=0.3, yspace=1.0, $
       xmargin=[1.0,0.5], height=3.5*[1,1], width=4*[1,1], charsize=1.8
 
-    render_postplot, allpost[1].mstar-logmu, pos[*,0], xrange=[7.0,9.5], $
+    render_postplot, allpost[1].mstar-logmu, pos[*,0], xrange=[6.5,9.5], $
       ytitle='Probability', xtitle='log (M_{*}/M'+sunsymbol()+')', $
       xtickinterval=1
 ;     monte=allpost[1].bigmass+median(allpost[1].mstar-logmu)+1.5
 
-    render_postplot, allpost[1].sfr0-logmu, pos[*,1], /noerase, xrange=[-0.5,0.5], $ ; xrange=minmax(allpost[1].sfr0-logmu)*[0.99,1.01], $
+    render_postplot, allpost[1].sfr0-logmu, pos[*,1], /noerase, xrange=[-0.5,0.3], $ ; xrange=minmax(allpost[1].sfr0-logmu)*[0.99,1.01], $
       xtitle='log (SFR /M'+sunsymbol()+' yr^{-1})';, monte=allpost[1].bigsfr+10
     
     render_postplot, allpost[1].tau, pos[*,2], /noerase, xrange=[-0.2,1.2], $
       ytitle='Probability', xtitle='\tau (Gyr)', xtickinterval=0.5;monte=monte.tau, $
     
-    render_postplot, allpost[1].sfrage*1E3, pos[*,3], xrange=[-5,300], /noerase, $
-      xtitle='t_{w} (Myr)', xtickinterval=100
+    render_postplot, allpost[1].sfrage*1E3, pos[*,3], xrange=[-10,500], /noerase, $
+      xtitle='<t>_{SFR} (Myr)', xtickinterval=100
+;   im_plothist, allpost[1].sfrage*1E3, /cumu, /overplot, color='red'
 
     im_plotconfig, /psclose, psfile=psfile, /pdf, /pskeep
 
-; ---------------------------------------------------------------------------
-; SED plot for the paper
-    paramfile = isedpath+'santorini_supergrid02_isedfit.par'
-    model = isedfit_restore(paramfile,ised,iopath=isedpath,$
-      isedfit_sfhgrid_dir=isedfit_sfhgrid_dir)
-
-    psfile = datapath+'santorini_supergrid02_sed.eps'
-    im_plotconfig, 0, pos, psfile=psfile, height=5.0, ymargin=[1.0,1.0]
-
-    xtitle1 = textoidl('Observed-Frame Wavelength (\AA)')
-    xtitle2 = textoidl('Rest-Frame Wavelength (\AA)')
-    ytitle1 = textoidl('Apparent AB Magnitude')
-
-    yrange = [30.0,24.0]
-    xrange1 = [1900,70000]
-
-    ticks1 = [4000,12000,30000]
-    ticks2 = [250,500,1000,2000,4000]
-
-    xrange2 = xrange1/(1.0+ised.zobj)
-    plot, [0], [0], /nodata, xrange=xrange1, yrange=yrange, $
-      xsty=9, ysty=1, xtitle=xtitle1, ytitle=ytitle1, xlog=1, $
-      position=pos, xtickformat='(I0)', xticks=n_elements(ticks1)-1, xtickv=ticks1
-    axis, /xaxis, xsty=1, xtitle=xtitle2, xrange=xrange2, xlog=1, $
-      xticks=n_elements(ticks2)-1, xtickv=ticks2
-;   for ii = 0, 75 do begin
-;      djs_oplot, postmodel[ii].wave, postmodel[ii].flux, $
-;        line=0, thick=1, color=im_color('grey80')
-;      cc = get_kbrd(1)
-;   endfor
-;   prob = exp(-0.5*(post.chi2-ised.chi2))
-;   prob = prob/total(prob,/double)
-;   ww = where(prob gt weighted_quantile(prob,quant=0.25
-    nww = 100
-    ww = shuffle_indx(ndraw,num=nww)
-;   ww = [1017,4,545,153,854,1841,438,1868,415,605,1438,1141,595,1558,1926,1241,1206,108,163,1597,1454,$
-;     199,313,1680,1108,1853,641,1764,1742,1739,1789,1727,1712,1872,1902,1313,57,1549,1270,556,1699,1039,$
-;     1251,112,191,1297,629,1961,1376,921,195,1968,859,1542,242,1927,621,1265,961,550,1358,282,1192,1380,$
-;     54,1803,979,337,1954,1867,483,1592,1488,38,235,27,1532,1303,1741,1304,568,35,1552,1472,797,372,239,$
-;     81,1426,880,1576,948,1814,1564,279,1170,179,1599,66,1041]
-    for ii = 0, nww-1 do begin
-       djs_oplot, postmodel[ww[ii]].wave, postmodel[ww[ii]].flux, $
-         line=0, thick=1, color=im_color('grey80')
-;      cc = get_kbrd(1)
-    endfor
-;   polyfill, [postmodel[0].wave,reverse(postmodel[0].wave)], $
-;     [min(postmodel.flux,dim=2),reverse(max(postmodel.flux,dim=2))], $
-;     /data, color=im_color('tan'), noclip=0, /fill
-;   im_legend, [cat[ii].galaxy,'z_{phot} = '+string(cat[0].z,format='(F4.2)')], $
-;     /left, /top, box=0, margin=0, charsize=1.7
-    oplot, model[0].wave, model[0].flux, line=0
-    
-    used = where((ised[0].maggies gt 0.0) and $ ; used in the fitting
-      (ised[0].ivarmaggies gt 0.0),nused)
-    upper = where((ised[0].maggies le 0.0) and $ ; upper limit
-      (ised[0].ivarmaggies gt 0.0),nupper)
-
-    djs_oplot, weff[used], -2.5*alog10(ised[0].bestmaggies[used]), $
-      psym=symcat(6,thick=6), symsize=2.5, color=im_color('steel blue')
-
-    if (nused ne 0L) then begin
-       mab = maggies2mag(ised[0].maggies[used],$
-         ivar=ised[0].ivarmaggies[used],magerr=mab_err)
-       oploterror, weff[used], mab, mab_err, psym=symcat(16), $
-         symsize=2.0, color=im_color('firebrick'), $
-         errcolor=im_color('firebrick'), errthick=8
-    endif
-
-    if (nupper ne 0) then begin
-       mab = maggies2mag(1.0/sqrt(ised[0].ivarmaggies[upper]))
-       djs_oplot, weff[upper], mab, psym=symcat(11,thick=6), $
-         symsize=3.0, color=im_color('grey20')
-    endif
-
-    im_plotconfig, /psclose, psfile=psfile, /pdf, /pskeep
-
-stop
-
-; ---------------------------------------------------------------------------
-; plot the NxN distributions of parameters as an upper triangle
-    this = 0 ; z=9.56 solution
-    
-    psfile = datapath+'santorini_manyd.eps'
-    splog, 'Writing '+psfile
-    manyd = transpose([[allpost[this].mstar],[allpost[this].sfrage],[allpost[this].Z/0.019],[allpost[this].av],[allpost[this].sfr0]])
-    label = textoidl(['log (M/M'+sunsymbol()+')','t_{w} (Gyr)','Z/Z'+sunsymbol(),'A_{V} (mag)','log (\psi/M'+sunsymbol()+' yr^{-1})'])
-    
-    im_manyd_scatterplot, fltarr(ndraw)+1, manyd, psfile, label=label, $
-      axis_char_scale=1.4, /internal, outliers=1, $
-      /nogrey, levels=errorf((dindgen(2)+1)/sqrt(2)), /upper, /fill
-    spawn, 'ps2pdf '+psfile+' '+repstr(psfile,'.eps','.pdf'), /sh
-
-stop    
-
-
+;; ---------------------------------------------------------------------------
+;; plot the NxN distributions of parameters as an upper triangle
+;    this = 0 ; z=9.56 solution
+;    
+;    psfile = datapath+'santorini_manyd.eps'
+;    splog, 'Writing '+psfile
+;    manyd = transpose([[allpost[this].mstar],[allpost[this].sfrage],[allpost[this].Z/0.019],[allpost[this].av],[allpost[this].sfr0]])
+;    label = textoidl(['log (M/M'+sunsymbol()+')','t_{w} (Gyr)','Z/Z'+sunsymbol(),'A_{V} (mag)','log (\psi/M'+sunsymbol()+' yr^{-1})'])
+;    
+;    im_manyd_scatterplot, fltarr(ndraw)+1, manyd, psfile, label=label, $
+;      axis_char_scale=1.4, /internal, outliers=1, $
+;      /nogrey, levels=errorf((dindgen(2)+1)/sqrt(2)), /upper, /fill
+;    spawn, 'ps2pdf '+psfile+' '+repstr(psfile,'.eps','.pdf'), /sh
 
 return
 end

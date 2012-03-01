@@ -1,22 +1,3 @@
-function addphot, in, all
-    filt = clash_filterlist(short=short,zpt=zpt)
-    out = in
-    nall = n_elements(all)
-    for ii = 0, n_elements(short)-1 do begin
-       gd = where(finite(all.(tag_indx(all,short[ii]+'_fluxerr'))))
-       totflux = total(all[gd].(tag_indx(all[gd],short[ii]+'_flux')))
-       totferr = sqrt(total(all[gd].(tag_indx(all[gd],short[ii]+'_fluxerr'))^2))
-       if (totflux le 0) then begin
-          out.(tag_indx(out,short[ii]+'_mag')) = 99.0 
-          out.(tag_indx(out,short[ii]+'_magerr')) = -2.5*alog10(totferr)+zpt[ii]
-       endif else begin
-          out.(tag_indx(out,short[ii]+'_mag')) = -2.5*alog10(totflux)+zpt[ii]
-          out.(tag_indx(out,short[ii]+'_magerr')) = 2.5*totferr/totflux/alog(10)
-       endelse
-    endfor
-return, out
-end
-
 function read_santorini
 ; jm11dec14ucsd - read the z=9 photometry
 
@@ -36,16 +17,20 @@ function read_santorini
       [f775werr],[f814werr],[f850lperr],[f105werr],[f110werr],[f125werr],[f140werr],$
       [f160werr],[ch1err],[ch2err]]
     
-    cat = {galaxy: 'Santorini', z: 9.56, mu: 17.0, ap: 0.0}
+    cat = {galaxy: 'Santorini', z: 9.60, mu: 17.0, ap: 0.0}
     for ii = 0, nfilt-1 do cat = create_struct(cat,$
-      short[ii]+'_mag',-99.0,short[ii]+'_magerr',-99.0)
+      short[ii]+'_flux',-99.0,short[ii]+'_fluxerr',-99.0)
+;   for ii = 0, nfilt-1 do cat = create_struct(cat,$
+;     short[ii]+'_mag',-99.0,short[ii]+'_magerr',-99.0)
     cat = replicate(cat,ngal)
     cat.ap = ap
-    cat.galaxy = 'Aperture '+string(cat.ap,format='(I0)')
+    cat.galaxy = 'Santorini'
        
     for ii = 0, nfilt-1 do begin
-       magindx = tag_indx(cat,short[ii]+'_mag')
-       magerrindx = tag_indx(cat,short[ii]+'_magerr')
+       magindx = tag_indx(cat,short[ii]+'_flux')
+       magerrindx = tag_indx(cat,short[ii]+'_fluxerr')
+;      magindx = tag_indx(cat,short[ii]+'_mag')
+;      magerrindx = tag_indx(cat,short[ii]+'_magerr')
        cat.(magindx) = mag[*,ii]
        cat.(magerrindx) = magerr[*,ii]
     endfor

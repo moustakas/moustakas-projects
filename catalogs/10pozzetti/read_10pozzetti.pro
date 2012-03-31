@@ -3,7 +3,8 @@ function read_10pozzetti, zbin, type234=type234, type1=type1, nolog=nolog, salpe
 ; Omega0=0.25, OmegaL=0.75, Chabrier IMF
 
     path = getenv('CATALOGS_DIR')+'/10pozzetti/'
-    file = path+'global_mass_function.dat'
+    file = path+'MF_all.dat'
+;   file = path+'global_mass_function.dat'
     if keyword_set(type1) then file = path+'MF_type1.dat'
     if keyword_set(type234) then file = path+'MF_type234.dat'
 
@@ -14,27 +15,27 @@ function read_10pozzetti, zbin, type234=type234, type1=type1, nolog=nolog, salpe
        case zbin of
           1: begin
              masslim = 8.3
-             if keyword_set(type1) then masslim = 9.0
+             if keyword_set(type1) then masslim = 9.4
              if keyword_set(type234) then masslim = 8.3
-             these = where(data.zlo eq 0.10D and data.mup ge masslim and data.ngal gt 0,ndata)
+             these = where(data.zlo eq 0.10D and data.mlo ge masslim and data.ngal gt 0,ndata)
           end
           2: begin
              masslim = 9.4
              if keyword_set(type1) then masslim = 9.8
              if keyword_set(type234) then masslim = 9.4
-             these = where(data.zlo eq 0.35D and data.mup ge masslim and data.ngal gt 0,ndata)
+             these = where(data.zlo eq 0.35D and data.mlo ge masslim and data.ngal gt 0,ndata)
           end
           3: begin
              masslim = 10.1
              if keyword_set(type1) then masslim = 10.3
              if keyword_set(type234) then masslim = 10.0
-             these = where(data.zlo eq 0.55D and data.mup ge masslim and data.ngal gt 0,ndata)
+             these = where(data.zlo eq 0.55D and data.mlo ge masslim and data.ngal gt 0,ndata)
           end
           4: begin
              masslim = 10.6
              if keyword_set(type1) then masslim = 10.6
              if keyword_set(type234) then masslim = 10.4
-             these = where(data.zlo eq 0.75D and data.mup ge masslim and data.ngal gt 0,ndata)
+             these = where(data.zlo eq 0.75D and data.mlo ge masslim and data.ngal gt 0,ndata)
           end
           else: message, 'ZBIN must be 1-4!'
        endcase

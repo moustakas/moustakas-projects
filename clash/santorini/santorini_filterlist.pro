@@ -1,4 +1,4 @@
-function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
+function santorini_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
   zpt=zpt, alam=alam, useirac=useirac, weff=weff, fwhm=fwhm, pivotwave=pivotwave, $
   width=width
 ; jm11apr24ucsd 

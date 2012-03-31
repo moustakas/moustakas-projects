@@ -17,7 +17,7 @@ function read_santorini
       [f775werr],[f814werr],[f850lperr],[f105werr],[f110werr],[f125werr],[f140werr],$
       [f160werr],[ch1err],[ch2err]]
     
-    cat = {galaxy: 'Santorini', z: 9.60, mu: 17.0, ap: 0.0}
+    cat = {galaxy: 'Santorini', z: 9.60, mu: 15.0, ap: 0.0}
     for ii = 0, nfilt-1 do cat = create_struct(cat,$
       short[ii]+'_flux',-99.0,short[ii]+'_fluxerr',-99.0)
 ;   for ii = 0, nfilt-1 do cat = create_struct(cat,$

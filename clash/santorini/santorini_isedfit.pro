@@ -10,6 +10,10 @@ pro santorini_isedfit, supergrid, models=models, isedfit=isedfit, $
     cat = read_santorini()
 
 ; consider both the z=9.6 and z=3.23 solutions
+    if n_elements(supergrid) eq 0 then supergrid = [1,2,3,4,6]
+    check = where(supergrid eq 5)
+    if check[0] ne -1 and (keyword_set(lowz) eq 0) then $
+      message, 'SUPERGRID=5 requires /LOWZ'
     if keyword_set(lowz) then begin
        prefix = 'santorini_lowz'
        cat.z = 3.2
@@ -18,7 +22,7 @@ pro santorini_isedfit, supergrid, models=models, isedfit=isedfit, $
     endif else begin
        prefix = 'santorini'
        zminmax = [9.5,9.7]
-       if n_elements(supergrid) eq 0 then supergrid = [1,2,3,4]
+       if n_elements(supergrid) eq 0 then supergrid = [1,2,3,4,6]
     endelse
     nzz = 3
     zlog = 0
@@ -46,6 +50,7 @@ pro santorini_isedfit, supergrid, models=models, isedfit=isedfit, $
 ; do the fitting!
        if keyword_set(isedfit) then begin
           santorini_to_maggies, cat, maggies, ivarmaggies
+;         ivarmaggies[15] = 0
           isedfit, paramfile, maggies, ivarmaggies, cat.z, iopath=isedpath, $
             clobber=clobber, sfhgrid_paramfile=sfhgrid_paramfile, $
             isedfit_sfhgrid_dir=isedfit_sfhgrid_dir

@@ -25,7 +25,8 @@
 ;   J. Moustakas, 2011 May 05, UCSD
 ;-
 
-pro santorini_to_maggies, clash, maggies, ivar, filterlist=filterlist, nominerror=nominerror
+pro santorini_to_maggies, clash, maggies, ivar, filterlist=filterlist, $
+  nominerror=nominerror, zpt=zpt
 
     ngal = n_elements(clash)    
     if (ngal le 0L) then begin
@@ -60,6 +61,7 @@ pro santorini_to_maggies, clash, maggies, ivar, filterlist=filterlist, nominerro
       35.1988,$
       21.56,$
       21.56]
+    zpt[0:15] = zpt[0:15]-0.3 ; aperture correction
     fact = 10D^(-0.4D*zpt)
 
 ; construct maggies and ivarmaggies in each band       
@@ -77,12 +79,14 @@ pro santorini_to_maggies, clash, maggies, ivar, filterlist=filterlist, nominerro
     endfor
     
 ; apply a minimum photometric error
-    if (keyword_set(nominerror) eq 0) then begin
-       minerr = replicate(0.02,nbands)
-       isirac = where(strmatch(filterlist,'*irac*',/fold))
+;   if (keyword_set(nominerror) eq 0) then begin
+;      minerr = replicate(0.6,nbands)
+;      minerr[16:17] = 0.0
+;      minerr = replicate(0.02,nbands)
+;      isirac = where(strmatch(filterlist,'*irac*',/fold))
 ;      if isirac[0] ne -1 then minerr[isirac] = 0.1 ; note!
-       k_minerror, maggies, ivar, minerr
-    endif
+;      k_minerror, maggies, ivar, minerr
+;   endif
 
 return   
 end

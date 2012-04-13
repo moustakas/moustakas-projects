@@ -2,7 +2,7 @@ function read_santorini
 ; jm11dec14ucsd - read the z=9 photometry
 
     datapath = clash_path(/santorini)
-    filt = clash_filterlist(short=short,weff=weff,zpt=zpt,nice=nice,/useirac)
+    filt = santorini_filterlist(short=short,weff=weff,zpt=zpt,nice=nice)
     nfilt = n_elements(filt)
 
     readcol, datapath+'final.lis', ap, f160w, f160werr, f140w, f140werr, f125w, f125werr, f110w, f110werr, $
@@ -11,11 +11,11 @@ function read_santorini
       f225w, f225werr, ch1, ch1err, ch2, ch2err, skip=1, /silent
     ngal = n_elements(ap)
     
-    mag = [[f225w],[f275w],[f336w],[f390w],[f435w],[f475w],[f606w],[f625w],$
+    mag = [[f225w],[f275w],[f336w],[f390w],[f435w],[f475w],[f555w],[f606w],[f625w],$
       [f775w],[f814w],[f850lp],[f105w],[f110w],[f125w],[f140w],[f160w],[ch1],[ch2]]
-    magerr = [[f225werr],[f275werr],[f336werr],[f390werr],[f435werr],[f475werr],[f606werr],[f625werr],$
-      [f775werr],[f814werr],[f850lperr],[f105werr],[f110werr],[f125werr],[f140werr],$
-      [f160werr],[ch1err],[ch2err]]
+    magerr = [[f225werr],[f275werr],[f336werr],[f390werr],[f435werr],[f475werr],[f555werr],$
+      [f606werr],[f625werr],[f775werr],[f814werr],[f850lperr],[f105werr],[f110werr],$
+      [f125werr],[f140werr],[f160werr],[ch1err],[ch2err]]
     
     cat = {galaxy: 'Santorini', z: 9.60, mu: 15.0, ap: 0.0}
     for ii = 0, nfilt-1 do cat = create_struct(cat,$

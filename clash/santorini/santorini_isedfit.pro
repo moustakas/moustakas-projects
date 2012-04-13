@@ -37,9 +37,8 @@ pro santorini_isedfit, supergrid, models=models, isedfit=isedfit, $
 
        paramfile = isedpath+prefix+'_supergrid'+string(super[gg].supergrid,$
          format='(i2.2)')+'_isedfit.par'
-       clash_write_paramfile, paramfile, prefix=prefix, zminmax=zminmax, $
-         nzz=nzz, zlog=zlog, igm=igm, super=super[gg], /useirac, $
-         filters=filters
+       santorini_write_paramfile, paramfile, prefix=prefix, zminmax=zminmax, $
+         nzz=nzz, zlog=zlog, igm=igm, super=super[gg], filters=filters
        
 ; build the models
        if keyword_set(models) then begin

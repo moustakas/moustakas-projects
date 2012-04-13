@@ -180,7 +180,7 @@ pro santorini_plots, supergrid, models=models, isedfit=isedfit, $
     isedfit_sfhgrid_dir = datapath+'montegrids/'
     sfhgrid_paramfile = getenv('CLASH_DIR')+'/santorini/santorini_sfhgrid.par'
 
-    filters = clash_filterlist(nice=nice_filters,/useirac,pivotwave=pivotwave,width=width)
+    filters = santorini_filterlist(nice=nice_filters,pivotwave=pivotwave,width=width)
     ndraw = isedfit_ndraw()
 
 ; gather the photometry and restore the results

@@ -34,34 +34,39 @@ pro santorini_to_maggies, clash, maggies, ivar, filterlist=filterlist, $
        return
     endif
 
-    filterlist = clash_filterlist(short_filter=filt,/useirac)
+    filterlist = santorini_filterlist(short_filter=filt)
     nbands = n_elements(filterlist)
 
     tags = filt+'_flux'
     errtags = filt+'_fluxerr'
 
 ; conversion factor to AB mags
-; 34.79325988246231       m1149_f555w_sci.fits
+; 
     zpt = [$
+; WFC3/UVIS
       32.9739,$
       32.9263,$
       32.9746,$
       33.7139,$
+; ACS/WFC
       33.8093,$
       34.2620,$
+      34.7933,$ ; F555W
       34.7106,$
       34.1231,$
       33.8965,$
       35.4940,$
       33.8511,$
+; WFC3/IR
       34.8709,$
       35.2621,$
       34.7311,$
       34.8603,$
-      35.1988,$
-      21.56,$
-      21.56]
-    zpt[0:15] = zpt[0:15]-0.3 ; aperture correction
+      35.1988]
+    zpt = zpt - 0.3 ; aperture correction
+
+; add IRAC
+    zpt = [zpt,21.56,21.56]
     fact = 10D^(-0.4D*zpt)
 
 ; construct maggies and ivarmaggies in each band       

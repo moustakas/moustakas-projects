@@ -15,7 +15,7 @@ function read_10bernardi, nolog=nolog, h100=h100, salpeter=salpeter
     mf.phierr = total([[data.phierr_lo],[data.phierr_up]],2)/2.0 ; average
     mf.phierr = mf.phierr+3*alog10(h100/oldh100)
 
-    if (keyword_set(salpeter) eq 0) then mf.mass -= 0.26 ; Salpeter-->Chabrier
+    if keyword_set(salpeter) then mf.mass += 0.26 ; Chabrier-->Salpeter
     
 return, mf
 end

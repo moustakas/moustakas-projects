@@ -27,4 +27,4 @@ typedef struct {
  int bursttype;        # burst type: 0 (step function, default), 1 (gaussian), 2 (step function with exponential wings)
 } PARAMS;
 
-PARAMS 1 300  50 {0.01 10.0} {0.0002  0.03} {0.0 3.0} {0.0 1.0} {-1.0 -1.0} {-1.0 -1.0} {-1.0 -1.0} 0.005 2.0  -1.0 -1.0 -1.0 -1.0 -1.0 0 0 1 1 -1 -1 0 # simple tau at lowz
+PARAMS 1 1000  50 {0.01 10.0} {0.0002  0.03} {0.0 5.0} {0.0 1.0} {-1.0 -1.0} {-1.0 -1.0} {-1.0 -1.0} 0.005 2.0  -1.0 -1.0 -1.0 -1.0 -1.0 0 0 1 1 -1 -1 0

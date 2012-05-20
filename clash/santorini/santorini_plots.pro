@@ -217,7 +217,7 @@ pro santorini_plots, supergrid, models=models, isedfit=isedfit, $
     paramfile = isedpath+'santorini_supergrid06_isedfit.par'
     model = isedfit_restore(paramfile,ised,iopath=isedpath,$
       isedfit_sfhgrid_dir=isedfit_sfhgrid_dir);,/fnu)
-
+stop
     psfile = datapath+'santorini_sed.eps'
     im_plotconfig, 0, pos, psfile=psfile, height=5.0, ymargin=[1.0,1.0]
 

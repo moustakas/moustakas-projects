@@ -93,7 +93,7 @@ pro santorini_rebuild_posteriors
     
     allpost = {supergrid: -1, mstar: fltarr(ndraw), sfrage: fltarr(ndraw), Z: fltarr(ndraw), $
       age: fltarr(ndraw), tau: fltarr(ndraw), sfr0: fltarr(ndraw), $
-      av: fltarr(ndraw), chi2: fltarr(ndraw)};, bigsfr: fltarr(nmodel), bigsfrage: fltarr(nmodel), $
+      av: fltarr(ndraw), chi2: fltarr(ndraw), ewoii: fltarr(ndraw)};, bigsfr: fltarr(nmodel), bigsfrage: fltarr(nmodel), $
 ;     bigmass: fltarr(nmodel)}
     allpost = replicate(allpost,nsuper)
     allpost.supergrid = supergrid
@@ -145,6 +145,21 @@ pro santorini_rebuild_posteriors
             isedfit_sfhgrid_dir=isedfit_sfhgrid_dir,iopath=isedpath)
 ;         plot, postmodel[0].wave, postmodel[0].flux, /xlog, xr=[1E4,4E4], yr=[30,20], ps=3
 ;         for bb = 1, ndraw-1 do djs_oplot, postmodel[bb].wave, postmodel[bb].flux, ps=3
+
+; get the posterior of EW([OII])
+          junk = isedfit_restore(paramfile,in_isedfit=temp,/flam,$
+            isedfit_sfhgrid_dir=isedfit_sfhgrid_dir,iopath=isedpath)
+
+          loii = 1.5*10.0^allpost[ii].sfr0/7.9D-42 ; from K98 - magnified luminosity!
+
+          zobj = 9.6
+          dl = dluminosity(zobj,/cm)
+          l3727 = dblarr(ndraw)
+          for bb = 0, ndraw-1 do l3727[bb] = interpol(junk[bb].flux*(1+zobj)*$ ; magnified!
+            4.0*!dpi*dl^2.0,junk[bb].wave/(1+zobj),3727.0)
+          ewoii = loii/l3727 ; [Angstrom] - magnification term drops out
+
+          allpost[ii].ewoii = ewoii ; [Angstrom, rest]
        endif
 
 ; reconstruct the posterior models for the lowz grid

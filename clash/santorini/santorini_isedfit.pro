@@ -49,7 +49,6 @@ pro santorini_isedfit, supergrid, models=models, isedfit=isedfit, $
 ; do the fitting!
        if keyword_set(isedfit) then begin
           santorini_to_maggies, cat, maggies, ivarmaggies
-;         ivarmaggies[15] = 0
           isedfit, paramfile, maggies, ivarmaggies, cat.z, iopath=isedpath, $
             clobber=clobber, sfhgrid_paramfile=sfhgrid_paramfile, $
             isedfit_sfhgrid_dir=isedfit_sfhgrid_dir

@@ -1,6 +1,7 @@
 function get_irclusters_supergrid, supergrid, nsuper=nsuper, superstring=superstring
 ; jm11dec16ucsd - read the supergrid parameter file    
-    supergrid_paramfile = getenv('IDL_PROJECTS_DIR')+'/ages/projects/irclusters/irclusters_supergrid.par'
+
+    supergrid_paramfile = getenv('IRCLUSTERS_DIR')+'/irclusters_supergrid.par'
     super = yanny_readone(supergrid_paramfile)
     
 ; get the requested supergrids

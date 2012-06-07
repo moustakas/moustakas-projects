@@ -1,30 +1,26 @@
 pro irclusters_isedfit, supergrid, models=models, isedfit=isedfit, $
   qaplot=qaplot, clobber=clobber, use_zcluster=use_zcluster
-; jm10oct26ucsd - measure stellar masses for galaxies in Brodwin's sample of IR-selected clusters
-; jm11aug30ucsd - everything updated
-; jm11dec16ucsd - and again, a major rewrite
+; jm12jun08ucsd - measure stellar masses for galaxies in Brodwin's sample of IR-selected clusters
 
-; echo "clash_bcg_isedfit, /model, /ised, /clob" | idl > & ~/clash.bcg.log & 
+; echo "irclustesr_isedfit, /model, /ised, /clob" | idl > & ~/irclusters.log & 
 
-    irpath = ages_path(/projects)+'irclusters/'
-    isedpath = irpath+'isedfit/'
-
-    isedfit_sfhgrid_dir = irpath+'montegrids/'
-    sfhgrid_paramfile = getenv('IDL_PROJECTS_DIR')+'/ages/projects/irclusters/irclusters_sfhgrid.par'
+    isedpath = irclusters_path(/isedfit)
+    isedfit_sfhgrid_dir = irclusters_path(/monte)
+    sfhgrid_paramfile = getenv('IRCLUSTERS_DIR')+'/irclusters_supergrid.par'
 
 ; read the supergrid parameter file
     super = get_irclusters_supergrid(supergrid,nsuper=nsuper)
     struct_print, super
 
-    igm = '0'
-    nzz = '100'
+    igm = '1'
+    nzz = '150'
     zlog = '0'
-    zminmax = [0.01D,2D]
+    zminmax = [0.01D,3.7D]
     prefix = 'irclusters'
 
 ; loop on each supergrid
     for gg = 0, nsuper-1 do begin
-       splog, 'working on grid '+strtrim(super[gg].supergrid,2)
+       splog, 'Working on grid '+strtrim(super[gg].supergrid,2)
 
        paramfile = isedpath+prefix+'_supergrid'+string(super[gg].supergrid,$
          format='(i2.2)')+'_isedfit.par'
@@ -79,50 +75,3 @@ pro irclusters_isedfit, supergrid, models=models, isedfit=isedfit, $
 
 return
 end
-
-;; --------------------------------------------------
-;; do the fitting!  do not use the NEWFIRM photometry nor IRAC/ch3-4
-;    if keyword_set(isedfit) then begin
-;       toss = where(strmatch(param.filterlist,'*ch3*') or $
-;         strmatch(param.filterlist,'*ch4*'))
-;       ivarmaggies[toss,*] = 0.0
-;;; fit at both the photometric redshift...
-;;       index = where((cat.z ge min(param.redshift)) and $
-;;         (cat.z le max(param.redshift)))
-;;       isedfit, paramfile, maggies, ivarmaggies, cat.z, $
-;;         iopath=iopath, clobber=clobber, index=index
-;;; ...and at the cluster redshift...
-;;;      res = mrdfits('BwRIJHKsirac_zclust_bc03_chab_calzetti_sfhgrid02.fits.gz',1)
-;;;      index = (where((res.mass_err lt 0.01) and (res.zobj gt 1.2) and (res.zobj lt 1.3) ))[0:49]
-;;       isedfit, paramfile, maggies, ivarmaggies, cat.zclust, $
-;;         iopath=iopath, outprefix=param.prefix+'_zclust', $
-;;         clobber=clobber;, index=index
-;;; ...and then refit at the photometric redshift excluding IRAC 
-;       index = where((cat.z ge min(param.redshift)) and $
-;         (cat.z le max(param.redshift)))
-;;      index = [200,239]
-;       alltoss = where(strmatch(param.filterlist,'*spitzer*'))
-;       ivarmaggies[alltoss,*] = 0.0
-;       isedfit, paramfile, maggies, ivarmaggies, cat.z, $
-;         iopath=iopath, outprefix=repstr(param.prefix,'irac',''), $
-;         clobber=clobber, index=index
-;    endif 
-
-;; --------------------------------------------------
-;    if keyword_set(qaplot) then begin
-;       cat = read_irclusters(maggies=maggies,ivarmaggies=ivarmaggies)
-;       ngal = n_elements(cat)
-;       qaindx = long(randomu(seed,100)*ngal)
-;       qaindx = qaindx[uniq(qaindx,sort(qaindx))]
-;       galaxy = 'Galaxy '+string(qaindx,format='(I4.4)')
-;       
-;; includes irac, photoz
-;       isedfit_qaplot, paramfile, iopath=iopath, index=qaindx, $
-;         galaxy=galaxy, clobber=clobber, outprefix=outprefix
-;; includes irac, zclust
-;       isedfit_qaplot, paramfile, iopath=iopath, index=qaindx, $
-;         galaxy=galaxy, clobber=clobber, outprefix=param.prefix+'_zclust'
-;; no irac, photoz
-;       isedfit_qaplot, paramfile, iopath=iopath, index=qaindx, $
-;         galaxy=galaxy, clobber=clobber, outprefix=repstr(param.prefix,'irac','')
-;    endif

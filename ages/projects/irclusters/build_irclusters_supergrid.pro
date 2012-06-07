@@ -2,8 +2,8 @@ pro build_irclusters_supergrid, supergrid, make_montegrid=make_montegrid, clobbe
 ; jm11dec16ucsd - build all the SFH grids we are going to need using
 ; the supergrid parameter file
 
-    isedfit_sfhgrid_dir = ages_path(/projects)+'irclusters/montegrids/'
-    sfhgrid_paramfile = getenv('IDL_PROJECTS_DIR')+'/ages/projects/irclusters/irclusters_sfhgrid.par'
+    isedfit_sfhgrid_dir = irclusters_path(/monte)
+    sfhgrid_paramfile = getenv('IRCLUSTERS_DIR')+'/irclusters_sfhgrid.par'
     
     super = get_irclusters_supergrid(supergrid,nsuper=nsuper)
     struct_print, super

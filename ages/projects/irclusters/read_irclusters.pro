@@ -1,6 +1,6 @@
 function read_irclusters, maggies=maggies, ivarmaggies=ivarmaggies
 ; jm10nov09ucsd - read the redshift and photometric catalog 
-    irpath = ages_path(/projects)+'irclusters/'
+    irpath = irclusters_path()
     zcat = rsex(irpath+'FullSample_v1.cat')
     phot = rsex(irpath+'FullSample.flux_v1')
     cat = struct_addtags(zcat,phot)

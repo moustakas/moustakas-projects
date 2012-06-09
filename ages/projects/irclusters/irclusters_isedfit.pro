@@ -6,14 +6,14 @@ pro irclusters_isedfit, supergrid, models=models, isedfit=isedfit, $
 
     isedpath = irclusters_path(/isedfit)
     isedfit_sfhgrid_dir = irclusters_path(/monte)
-    sfhgrid_paramfile = getenv('IRCLUSTERS_DIR')+'/irclusters_supergrid.par'
+    sfhgrid_paramfile = getenv('IRCLUSTERS_DIR')+'/irclusters_sfhgrid.par'
 
 ; read the supergrid parameter file
     super = get_irclusters_supergrid(supergrid,nsuper=nsuper)
     struct_print, super
 
     igm = '1'
-    nzz = '150'
+    nzz = '50'
     zlog = '0'
     zminmax = [0.01D,3.7D]
     prefix = 'irclusters'

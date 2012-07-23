@@ -174,7 +174,8 @@ pro alpha_reduce_all, night, preproc=preproc, blue=blue, fixheaders=fixheaders, 
             flat=flat, arc=arc, slitflat=slitflat, proc=proc, emlines=emlines, $
             dotrace=dotrace, skysub=skysub, extract=extract, calibrate=calibrate, $
             coadd=coadd, dostandards=dostandards, makesens=makesens, linlist=linlist, $
-            nycoeff=nycoeff, nocoeff=nocoeff, sigrej_2darc=sigrej_2darc, combine=combine
+            nycoeff=nycoeff, nocoeff=nocoeff, sigrej_2darc=sigrej_2darc, combine=combine, $
+            night=allnight[ii]
        endif
     endfor ; close NIGHT
 
@@ -190,30 +191,41 @@ pro alpha_reduce_all, night, preproc=preproc, blue=blue, fixheaders=fixheaders, 
 ;       qaplot_alpha_arcfit, arcfile+'.gz', qafile=qafile
 ;    endif
 
-stop    
-    
 ; ##################################################
-; build the final 1D spectra
+; build the final 1D spectra; just copy everything
     if keyword_set(final_spec1d) then begin
-       alpha_final_spec1d, alphapath+allnight+'/spec1d/', spec1dpath, fluxed=0
+       outpath = alphapath+'spec1d/'
+       for ii = 0, nnight-1 do begin
+          pushd, alphapath+allnight[ii]+'/spec1d/'
+          flist = [file_search('obj_???_[abc].fits'),file_search('*.ps')]
+          spawn, 'rsync -auv '+strjoin(flist,' ')+' '+outpath, /sh
+          popd
+       endfor
+
 ;      alpha_final_spec1d, alphapath+allnight+'/spec1d/', spec1dpath, fluxed=1
     endif
-       
+      
 ; ##################################################
 ; make tarballs
     if keyword_set(tarballs) then begin
-; 1d spectra from the individual nights
-       for ii = 0L, nnight-1L do begin
-          tarname = alphapath+'tar/'+allnight[ii]+'_spec1d.tar.gz'
-          pushd, alphapath+allnight[ii]+'/spec1d/'
-          flist = [file_search('*.fits'),file_search('*.ps.gz')]
-          spawn, 'tar czvf '+tarname+' '+strjoin(flist,' '), /sh
-          popd
-       endfor
+;; 1d spectra from the individual nights
+;       for ii = 0, nnight-1 do begin
+;          tarname = alphapath+'tar/'+allnight[ii]+'_spec1d.tar.gz'
+;          pushd, alphapath+allnight[ii]+'/spec1d/'
+;          flist = [file_search('obj_???_[abc].fits'),file_search('*.ps')]
+;          spawn, 'tar czvf '+tarname+' '+strjoin(flist,' '), /sh
+;          popd
+;       endfor
+;; final coadded spectra
+;       tarname = alphapath+'tar/final_spec1d.tar.gz'
+;       pushd, alphapath+'spec1d/'
+;       flist = [file_search('*.fits'),file_search('*.ps.gz')]
+;       spawn, 'tar czvf '+tarname+' '+strjoin(flist,' '), /sh
+;       popd
 ; final coadded spectra
        tarname = alphapath+'tar/final_spec1d.tar.gz'
        pushd, alphapath+'spec1d/'
-       flist = [file_search('*.fits'),file_search('*.ps.gz')]
+       flist = [file_search('*.fits'),file_search('*.ps')]
        spawn, 'tar czvf '+tarname+' '+strjoin(flist,' '), /sh
        popd
     endif

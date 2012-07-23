@@ -2,7 +2,8 @@ pro alpha_reduce_night, datapath, setup=setup, side=side, clobber=clobber, $
   flat=flat, arc=arc, slitflat=slitflat, proc=proc, emlines=emlines, $
   dotrace=dotrace, skysub=skysub, extract=extract, calibrate=calibrate, $
   coadd=coadd, dostandards=dostandards, makesens=makesens, linlist=linlist, $
-  nycoeff=nycoeff, nocoeff=nocoeff, sigrej_2darc=sigrej_2darc, combine=combine
+  nycoeff=nycoeff, nocoeff=nocoeff, sigrej_2darc=sigrej_2darc, combine=combine, $
+  night=night
 ; jm09jan06nyu - wrapper to reduce one night of alpha data; very
 ; modular 
     
@@ -312,7 +313,7 @@ pro alpha_reduce_night, datapath, setup=setup, side=side, clobber=clobber, $
     if keyword_set(coadd) then begin
 ; unfluxed spectra
        if (nobj gt 0L) then begin
-          qafile = datapath+'spec1d/qa_spec1d.ps'
+          qafile = datapath+'spec1d/qa_'+night+'_spec1d.ps'
           alpha_coadd_spec1d, mike[objindx], info, side=side, $
             datapath=datapath, qafile=qafile, fluxed=0
 ;; fluxed spectra

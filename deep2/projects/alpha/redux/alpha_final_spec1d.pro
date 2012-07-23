@@ -1,6 +1,8 @@
 pro alpha_final_spec1d, datapath, outpath, fluxed=fluxed
 ; jm09jan24nyu - coadd the final 1D spectra
 
+crummy code    
+    
     npath = n_elements(datapath)
     for ii = 0L, npath-1L do begin
        if keyword_set(fluxed) then $
@@ -41,7 +43,7 @@ pro alpha_final_spec1d, datapath, outpath, fluxed=fluxed
     obj = allobj[uniq(allobj,sort(allobj))]
     nobj = n_elements(obj)
 
-    for jj = 0L, nobj-1L do begin
+    for jj = 0, nobj-1 do begin
        these = where(obj[jj] eq allobj,nthese)
        outfile = outpath+prefix+obj[jj]+'.fits'
        outobj = allobj[these[0]]

@@ -150,9 +150,9 @@ function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
        nice_filter = [nice_filter,'IRAC-[ch1]','IRAC-[ch2]']
        short_filter = [short_filter,'ch1','ch2']
        zpt = [zpt,0.0,0.0]
-       pivotwave = [pivotwave,1D4*[3.551,4.496,5.724,7.884]]
+       pivotwave = [pivotwave,1D4*[3.551,4.496]]
 ;      width = [width,[0.7,1.0,1.5,3.0]*1D4] ; approximate for IRAC!
-       width = [width,[4313.0,5712,8197,16717]*2] ; approximate for IRAC!
+       width = [width,[4313.0,5712]*2] ; approximate for IRAC!
     endif
 
     if arg_present(weff) then weff = k_lambda_eff(filterlist=filterlist)

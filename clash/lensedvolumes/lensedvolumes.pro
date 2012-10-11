@@ -28,7 +28,6 @@ function lensedvolumes_getsed, tau, z, zform=zform
     zindx = findex(igmgrid.zgrid,z)
     igm = interpolate(igmgrid.igm,windx,zindx,/grid,missing=1.0)
     sed.flux = sed.flux*igm
-    
 return, sed
 end
 
@@ -40,6 +39,7 @@ pro lensedvolumes, starforming=starforming
     nfilt = n_elements(filt)
 
 ; redshift parameters    
+;   zz = range(11.9,12.0,3)
     zz = range(1.0,12.0,111)
 ;   zz = 7.0
     nzz = n_elements(zz)
@@ -53,26 +53,35 @@ pro lensedvolumes, starforming=starforming
     endelse
     
 ; set up the survey parameters    
-    nsurvey = 12
-    cat = replicate({survey: '', depth: 0.0, filt: '', absmag: fltarr(nfilt,nzz)},nsurvey)
+    nsurvey = 15
+    cat = replicate({survey: '', depth: 0.0, filt: '', redshift: zz, $
+      absmag: fltarr(nfilt,nzz)-48.6},nsurvey)
     cat.survey = ['TENIS','UltraVISTA','CANDELS-Wide','CANDELS-Deep',$
       'HUDF09','HUDF09-Parallels','WFC3-ERS','HIPPIES','BoRG09','BoRG12',$
-      'NICMOS+','MOIRCS/ISAAC']
-    cat.depth = [25.3,24.0,27.1,27.7,29.9,29.3,27.2,26.7,26.3,26.6,26.5,25.5]
+      'NICMOS+','MOIRCS/ISAAC','Suprime-Cam GOODS-N','Suprime-Cam SDF','HAWK-I BDF+NTTDF']
+    cat.depth = [25.3,24.0,27.1,27.7,29.9,29.3,27.2,26.7,26.3,26.6,26.5,25.5,25.9,26.1,26.5]
     cat.filt = ['twomass_Ks','twomass_H','clash_wfc3_f160w','clash_wfc3_f160w',$
       'clash_wfc3_f160w','clash_wfc3_f160w','clash_wfc3_f160w','clash_wfc3_f160w',$
-      'clash_wfc3_f160w','clash_wfc3_f160w','clash_wfc3_f160w','twomass_H']+'.par'
-
+      'clash_wfc3_f160w','clash_wfc3_f160w','clash_wfc3_f160w','twomass_H',$
+      'wfcam_Y','wfcam_Y','wfcam_Y']+'.par'
+    struct_print, struct_trimtags(cat,select=['survey','depth','filt'])
+    
     for iz = 0, nzz-1 do begin
 ; normalize the SED to the 5-sigma depth
        sed = lensedvolumes_getsed(tau,zz[iz]) ; SSP
        norm = reform(k_project_filters(k_lambda_to_edges(sed.wave),$
-         sed.flux,filterlist=cat.filt))/10^(-0.4*cat.depth)
+         sed.flux,filterlist=cat.filt))/10D^(-0.4D*cat.depth)
+;      for ii = 12, 12 do begin
        for ii = 0, nsurvey-1 do begin
-          cat[ii].absmag[*,iz] = -2.5*alog10(k_project_filters(k_lambda_to_edges(sed.restwave),$
-            sed.restflux/norm[ii],filterlist=filt))-48.6
-;         plot, sed.restwave, sed.restflux/norm[ii], xr=[1000,4D4], /xlog
-;         djs_oplot, sed.wave, sed.flux/norm[ii], color='orange'
+          if norm[ii] gt 0 then begin
+             maggies = (k_project_filters(k_lambda_to_edges(sed.restwave),$
+               sed.restflux/norm[ii],filterlist=filt))<1.0
+
+             cat[ii].absmag[*,iz] = -2.5*alog10(maggies)-48.6
+;            print, cat[ii].absmag[*,iz]
+;            plot, sed.restwave, sed.restflux/norm[ii], xr=[1000,4D4], /xlog
+;            djs_oplot, sed.wave, sed.flux/norm[ii], color='orange'
+          endif
        endfor
     endfor
 

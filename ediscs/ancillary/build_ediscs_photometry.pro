@@ -1,4 +1,4 @@
-pro build_ediscs_photometry, outphot, bamford=bamford, clobber=clobber
+pro build_ediscs_photometry, outphot, bamford=bamford, all=all, clobber=clobber
 ; jm09jun17ucsd - build the EDisCS photometry structure
 
     common ediscs_phot, allout

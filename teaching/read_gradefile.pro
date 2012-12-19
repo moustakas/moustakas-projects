@@ -5,6 +5,7 @@ function read_gradefile, file, unique_assignments=uassign
 ; read and parse the grade matrix and the four-line header
     nhead = 4
     data1 = djs_readlines(file,nhead=nhead,head=header1)
+    data1 = repstr(data1,'--','0')
     nstudent = n_elements(data1)
 
     ncol = n_elements(strsplit(data1[0],',',/extract))
@@ -16,7 +17,7 @@ function read_gradefile, file, unique_assignments=uassign
 
 ; assume that the first FIVE columns contain the student data (INFO),
 ; and the subsequent columns contain the assignment types (ASSIGN)
-    ninfo = 5
+    ninfo = 6
     nassign = ncol-ninfo
     sdata = data[0:ninfo-1,*]
     data = data[ninfo:ncol-1,*]
@@ -27,7 +28,7 @@ function read_gradefile, file, unique_assignments=uassign
     assign = strtrim(header[*,0],2)
     uassign = assign[uniq(assign,sort(assign))]
     nuassign = n_elements(uassign)
-    
+
 ; build the output structure    
     out = create_struct(sheader[0],' ') ; should be "last name"
     for ii = 1, ninfo-1 do out = create_struct(out,sheader[ii],'')
@@ -45,7 +46,7 @@ function read_gradefile, file, unique_assignments=uassign
 
        indx = tag_indx(out,repstr(uassign[ii]+'_details',' ','_')) ; second row
        out.(indx) = header[match,1]
-       
+
        indx = tag_indx(out,repstr(uassign[ii]+'_date',' ','_')) ; third row
        out.(indx) = header[match,2]
 

@@ -1,12 +1,14 @@
-pro phys390_f12_grades
+pro phys390_f12_grades, alldata, test=test, sendit=sendit
 ; jm12oct05siena - parse the grades for this class 
 
-    date = '12oct05' ; update this
+    path = '~/Dropbox/teaching/12fall/phys390/grades/'
+    
+    date = '12dec16' ; update this
     semester = 'Fall 2012'
     class = 'Physics 390: Introductory Astrophysics I'
     
 ; read the grade spreadsheet downloaded from GoogleDocs
-    gradefile = '~/Dropbox/teaching/12fall/phys390/grades/phys390_grades_'+date+'.csv'
+    gradefile = path+'phys390_grades_'+date+'.csv'
     data = read_gradefile(gradefile,unique_assignments=assign)
     nstudent = n_elements(data)
 
@@ -20,13 +22,13 @@ pro phys390_f12_grades
 ; specify the complete list of *possible* assignments and their
 ; relative weights
     allassign = ['Participation','Homework','Midterm',$
-      'Research Paper','Research Presentation','Final']
+      'Research Paper','Research Presentation','Final Exam']
     weight = [0.05,0.4,0.1,0.15,0.15,0.15]
 
     process_grades, data, assign=assign, allassign=allassign, $
-      weight=weight, class=class, semester=semester
-
-stop    
+      weight=weight, class=class, semester=semester, test=test, $
+      sendit=sendit, alldata=alldata
+    struct_print, alldata
 
 return
 end

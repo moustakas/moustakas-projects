@@ -74,10 +74,13 @@ pro isedfit_vs_salim, build_parent=build_parent, models=models, isedfit=isedfit,
 ; --------------------------------------------------
 ; initialize the global parameter file
     filterlist = [galex_filterlist(),sdss_filterlist()]
-    isedfit_init_paramfile, filterlist, prefix='salim', minz=0.05, $
+    write_isedfit_paramfile, filterlist, prefix='salim', minz=0.05, $
       maxz=0.2, nzz=30, zlog=zlog, h100=h100, omega0=omega0, $
       omegal=omegal, igm=0, isedpath=isedpath, clobber=clobber
 
+    
+    
+    
 stop    
     
 ; --------------------------------------------------

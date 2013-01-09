@@ -16,7 +16,7 @@ function read_03bell_smf, blue=blue, red=red, nolog=nolog, $
     data = rsex(file)
     ndata = n_elements(data)
 
-    mf = replicate({mass: 0.0, phi: 0.0, phierr: 0.0},ndata)
+    mf = replicate({mass: 0.0D, phi: 0.0D, phierr: 0.0D},ndata)
     mf.mass = data.mass-0.1+2*alog10(oldh100/h100) ; diet Salpeter-->Chabrier
 
     mf.phi = data.phi*(h100/oldh100)^3

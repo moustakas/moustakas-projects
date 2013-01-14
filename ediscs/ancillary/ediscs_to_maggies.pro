@@ -42,6 +42,13 @@ pro ediscs_to_maggies, phot, maggies, ivarmaggies, filterlist=filterlist
     minerrors = replicate(0.02,nband)
 
     filterlist = ediscs_filterlist()
+    vega2ab = k_vega2ab(filterlist=filterlist,/kurucz,/silent)
+
+; correct for Galactic extinction    
+    weff = k_lambda_eff(filterlist=filterlist)
+    kl = k_lambda(weff,/odonnell,/silent)
+    glactc, phot.ra, phot.dec, 2000.0, gl, gb, 1, /deg
+    ebv = dust_getval(gl,gb,/interp,/noloop)
 
     maggies = fltarr(nband,n_elements(phot))
     ivarmaggies = fltarr(nband,n_elements(phot))
@@ -50,7 +57,7 @@ pro ediscs_to_maggies, phot, maggies, ivarmaggies, filterlist=filterlist
        utag = tag_indx(phot[0], names[iband]+'_err')
        good = where((phot.(ftag) gt 0.0) and (phot.(utag) gt 0.0),ngood)
        if (ngood ne 0) then begin
-          mag = phot[good].(ftag)
+          mag = phot[good].(ftag) + vega2ab[iband] - kl[iband]*ebv[good]
           magerr = phot[good].(utag)
           maggies[iband,good] = 10.0^(-0.4*mag)
           notzero = where((maggies[iband,good] gt 0.0),nnotzero)

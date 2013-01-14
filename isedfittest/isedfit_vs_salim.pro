@@ -1,13 +1,19 @@
-pro isedfit_vs_salim, build_parent=build_parent, models=models, isedfit=isedfit, $
-  get_colors=get_colors, kcorrect=kcorrect, qaplot=qaplot, clobber=clobber, $
-  compare=compare
+pro isedfit_vs_salim, build_parent=build_parent, preliminaries=preliminaries, $
+  models=models, isedfit=isedfit, get_colors=get_colors, kcorrect=kcorrect, $
+  qaplot=qaplot, clobber=clobber, compare=compare
 
 ; echo "build_isedfit_sfhgrid, 5, /cl, /make" | idl > & ./monte5.log &
 ; echo "isedfit_vs_salim, /ised, /models, /cl" | idl > & doit1.log &
     
-    isedpath = getenv('IM_ARCHIVE_DIR')+'/projects/isedfit_vs_salim/'
-    paramfile = isedpath+'isedfit_vs_salim.par'
-
+    isedfit_dir = getenv('IM_ARCHIVE_DIR')+'/projects/isedfit_vs_salim/'
+    
+    prefix = 'salim'
+    isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
+    sfhgrid_paramfile = isedfit_dir+prefix+'_sfhgrid.par'
+    supergrid_paramfile = isedfit_dir+prefix+'_supergrid.par'
+    
+    filterlist = [galex_filterlist(),sdss_filterlist()]
+    
 ; --------------------------------------------------
 ; build a test sample    
     if keyword_set(build_parent) then begin
@@ -61,7 +67,7 @@ pro isedfit_vs_salim, build_parent=build_parent, models=models, isedfit=isedfit,
 ; --------------------------------------------------
 ; compute K-corrections
     if keyword_set(kcorrect) then begin
-       parent = mrdfits(isedpath+'parent.fits.gz',1)
+       parent = mrdfits(isedfit_dir+'parent.fits.gz',1)
        kcorr = mf_do_kcorrect(parent.z,parent.maggies,$
          parent.ivarmaggies,/just,maxiter=0,$
          filterlist=[galex_filterlist(),sdss_filterlist()])
@@ -72,26 +78,39 @@ pro isedfit_vs_salim, build_parent=build_parent, models=models, isedfit=isedfit,
     endif
     
 ; --------------------------------------------------
-; initialize the global parameter file
-    filterlist = [galex_filterlist(),sdss_filterlist()]
-    write_isedfit_paramfile, filterlist, prefix='salim', minz=0.05, $
-      maxz=0.2, nzz=30, zlog=zlog, h100=h100, omega0=omega0, $
-      omegal=omegal, igm=0, isedpath=isedpath, clobber=clobber
+; do the preliminaries: build the parameter files and the Monte Carlo
+; grids
+    if keyword_set(preliminaries) then begin
+       write_isedfit_paramfile, filterlist, prefix='salim', minz=0.05, $
+         maxz=0.2, nzz=30, isedfit_dir=isedfit_dir, /clobber
 
-    
-    
-    
-stop    
-    
+       nage = 50
+       nmonte = 1000
+       write_sfhgrid_paramfile, sfhgrid_paramfile, /clobber, $
+         nage=nage, nmonte=nmonte
+       write_sfhgrid_paramfile, sfhgrid_paramfile, /append, /preset_bursts, $
+         nage=nage, nmonte=nmonte
+       
+       supergrid = [1,2]
+       sfhgrid = [1,2]
+       write_supergrid_paramfile, supergrid_paramfile, synthmodels='bc03', $
+         supergrid=supergrid, sfhgrid=sfhgrid, /clobber
+
+       build_montegrids, sfhgrid_paramfile, supergrid_paramfile=supergrid_paramfile, $
+         isedfit_dir=isedfit_dir, /clobber
+    endif
+
 ; --------------------------------------------------
 ; build the models
-    if keyword_set(models) then isedfit_models, $
-      paramfile, isedpath=isedpath, clobber=clobber
-
+    if keyword_set(models) then begin
+       isedfit_models, isedfit_paramfile, supergrid_paramfile=supergrid_paramfile, $
+         isedfit_dir=isedfit_dir, clobber=clobber
+    endif
+    
 ; --------------------------------------------------
 ; do the fitting!  
     if keyword_set(isedfit) then begin
-;      salim = mrdfits(isedpath+'salim07.fits.gz',1)
+;      salim = mrdfits(isedfit_dir+'salim07.fits.gz',1)
 ;      ised = mrdfits('test1_bc03_chab_charlot_sfhgrid04.fits.gz',1)
 ;      index = where(ised.tau_avg gt 2 and ised.tau_avg lt 2.1 and $
 ;        (ised.sfr_avg-salim.sfr_avg) gt 1.3 and (ised.sfr_avg-salim.sfr_avg) lt 1.4)
@@ -99,15 +118,16 @@ stop
 ;      djs_oplot, ised[index].tau_avg, ised[index].sfr_avg-salim[index].sfr_avg, ps=3, color='orange'
 ;
 ;      outprefix = 'test2'
-       parent = mrdfits(isedpath+'parent.fits.gz',1)
+       parent = mrdfits(isedfit_dir+'parent.fits.gz',1)
 
-;; use salim's photometry!
+;; use samir's photometry!
 ;      parent.maggies = mag2maggies(salim.mab,magerr=salim.mab_err,ivarmaggies=iv)
 ;      parent.ivarmaggies = iv
 ;      parent.z = salim.z
 
-       isedfit, paramfile, parent.maggies, parent.ivarmaggies, parent.z, $
-         result, isedpath=isedpath, outprefix=outprefix, galchunksize=1000, $
+       isedfit, isedfit_paramfile, parent.maggies, parent.ivarmaggies, parent.z, $
+         result, supergrid_paramfile=supergrid_paramfile, sfhgrid_paramfile=sfhgrid_paramfile, $
+         isedfit_dir=isedfit_dir, outprefix=outprefix, galchunksize=1000, $
          clobber=clobber, index=index
     endif 
 
@@ -116,20 +136,20 @@ stop
 ; --------------------------------------------------
 ; make a QAplot
     if keyword_set(qaplot) then begin
-       jj = mrdfits(isedpath+'test1_bc03_chab_charlot_sfhgrid08.fits.gz',1)
-;      kk = mrdfits(isedpath+'kcorr.fits.gz',1)
+       jj = mrdfits(isedfit_dir+'test1_bc03_chab_charlot_sfhgrid08.fits.gz',1)
+;      kk = mrdfits(isedfit_dir+'kcorr.fits.gz',1)
        index = random_indices(n_elements(jj),50)
 ;      index = where(abs(jj.mass_50-kk.k_mass) gt 0.3)
-       isedfit_qaplot, paramfile, isedfit, isedpath=isedpath, galaxy=galaxy, $
+       isedfit_qaplot, paramfile, isedfit, isedfit_dir=isedfit_dir, galaxy=galaxy, $
          index=index, clobber=clobber, outprefix=outprefix
     endif
 
 ; --------------------------------------------------
     if keyword_set(compare) then begin
-       parent = mrdfits(isedpath+'parent.fits.gz',1)
-       kcorr = mrdfits(isedpath+'kcorr.fits.gz',1)
-       kauff = mrdfits(isedpath+'kauffmann.fits.gz',1)
-       salim = mrdfits(isedpath+'salim07.fits.gz',1)
+       parent = mrdfits(isedfit_dir+'parent.fits.gz',1)
+       kcorr = mrdfits(isedfit_dir+'kcorr.fits.gz',1)
+       kauff = mrdfits(isedfit_dir+'kauffmann.fits.gz',1)
+       salim = mrdfits(isedfit_dir+'salim07.fits.gz',1)
        ngal = n_elements(parent)
 
        residrange = 0.9*[-1,1]
@@ -153,7 +173,7 @@ stop
 ;         'Dust, Z=0.004-0.05, Truncated Bursts',$
 ;         'More Dust, Z=0.004-0.05, No bursts']
       
-       psfile = isedpath+'qaplot_ised_vs_salim.ps'
+       psfile = isedfit_dir+'qaplot_ised_vs_salim.ps'
        im_plotconfig, 10, pos, psfile=psfile, charsize=1.6, $
          yspace=[1.0,1.0], xmargin=[1.2,0.4], ymargin=[0.6,1.1];, $
 ;        height=[3.0,3.0]
@@ -232,7 +252,7 @@ stop
        for ii = 0, n_elements(sfhgrid)-1 do begin
           sfhg = 'sfhgrid'+string(sfhgrid[ii],format='(I2.2)')
           red = '_charlot'
-          sfhgridfile = isedpath+'test1_bc03_chab'+red+'_'+sfhg+'.fits.gz'
+          sfhgridfile = isedfit_dir+'test1_bc03_chab'+red+'_'+sfhg+'.fits.gz'
           splog, 'Reading '+sfhgridfile
           ised = mrdfits(sfhgridfile,1)
           isedmass = ised.mass_50 ; Chabrier

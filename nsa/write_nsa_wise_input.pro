@@ -11,36 +11,28 @@ pro wise_writeit, cat, outfile
 return
 end
 
-pro write_sdss_wise_input, write=write, parse=parse
-; jm13jan01siena - match the SDSS/DR9 catalog to IRSA/WISE:
-; http://irsa.ipac.caltech.edu/cgi-bin/Gator/nph-query
+pro write_nsa_wise_input, write=write, parse=parse
+; jm13jan21siena - match the NSA to IRSA/WISE:
+; http://irsa.ipac.caltech.edu/cgi-bin/Gator/nph-dd
 
 ; verify the formating of the table:
 ; http://irsa.ipac.caltech.edu/applications/TblCheck/
 
+    vv = 'v0_1_2'
+    
 ; search radius: 3"
-    dr = 'dr9'
-    outpath = sdss_path()+dr+'/'
+    outpath = getenv('IM_ARCHIVE_DIR')+'/nsa/'
     wisepath = outpath+'wise/'
-    photofile = outpath+'photoPosPlate-dr9.fits'
+    photofile = outpath+'nsa_'+vv+'.fits.gz'
     
     if keyword_set(write) then begin
-       cat = hogg_mrdfits(photofile,1,columns=['ra','dec'],nrow=50000L)  ;,range=[0,10000])
-       ngal = n_elements(cat)
-
-; split into NCHUNK files to avoid IRSA's file size limit
-       nchunk = 4
-       chunksize = ceil(ngal/nchunk)
-       for ii = 0, nchunk-1 do wise_writeit, cat[ii*chunksize:((ii+1)*chunksize-1)<(ngal-1)], $
-         wisepath+'sdss_'+dr+'_wise_input'+strtrim(ii+1,2)+'.tbl'
+       cat = mrdfits(photofile,1,columns=['ra','dec'],1)
+       wise_writeit, cat, wisepath+'nsa_'+vv+'_wise_input.tbl'
     endif
 
 ; code to parse the output and write the SDSS object_wise.fits file
     if keyword_set(parse) then begin
-       tbl = [im_read_tbl(wisepath+'sdss_'+dr+'_wise_output1.tbl'),$
-         im_read_tbl(wisepath+'sdss_'+dr+'_wise_output2.tbl'),$
-         im_read_tbl(wisepath+'sdss_'+dr+'_wise_output3.tbl'),$
-         im_read_tbl(wisepath+'sdss_'+dr+'_wise_output4.tbl')]
+       tbl = im_read_tbl(wisepath+'nsa_'+vv+'_wise_output.tbl')
        indx = tbl.cntr_01-1     ; index number in CAT
 
        fits_open, photofile, fcb
@@ -51,7 +43,7 @@ pro write_sdss_wise_input, write=write, parse=parse
 ;      out[indx] = im_struct_assign(tbl,out[indx],/nozero)
        out[indx] = tbl
 
-       im_mwrfits, out, outpath+'sdss_'+dr+'_wise.fits', /gzip, /clobber
+       im_mwrfits, out, outpath+'nsa_'+vv+'_wise.fits', /gzip, /clobber
     endif
 
 stop    

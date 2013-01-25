@@ -15,17 +15,23 @@ pro write_sdss_galex_input, gr=gr
     out = struct_addtags(replicate({sdss_id: 0L},ngal),cat)
     out.sdss_id = lindgen(ngal)
 
-; split into NCHUNK files to avoid Casjob's file size limits
-    nchunk = 4
-    chunksize = ceil(ngal/nchunk)
-    for ii = 0, nchunk-1 do begin
-       outfile = galexpath+'sdss_'+dr+'_galex_'+gr+'_input'+strtrim(ii+1,2)+'.dat'
-       openw, lun, outfile, /get_lun
-       printf, lun, '# sdss_id ra dec'
-       struct_print, cat[ii*chunksize:((ii+1)*chunksize-1)<(ngal-1)], $
-         lun=lun, ddigit=12, /no_head
-       free_lun, lun
-    endfor
+    outfile = galexpath+'sdss_'+dr+'_galex_'+gr+'_casjobs.dat'
+    openw, lun, outfile, /get_lun
+    printf, lun, '# sdss_id ra dec'
+    struct_print, cat, lun=lun, ddigit=12, /no_head
+    free_lun, lun
+
+;; split into NCHUNK files to avoid Casjob's file size limits
+;    nchunk = 4
+;    chunksize = ceil(ngal/nchunk)
+;    for ii = 0, nchunk-1 do begin
+;       outfile = galexpath+'sdss_'+dr+'_galex_'+gr+'_input'+strtrim(ii+1,2)+'.dat'
+;       openw, lun, outfile, /get_lun
+;       printf, lun, '# sdss_id ra dec'
+;       struct_print, cat[ii*chunksize:((ii+1)*chunksize-1)<(ngal-1)], $
+;         lun=lun, ddigit=12, /no_head
+;       free_lun, lun
+;    endfor
 
 stop
     

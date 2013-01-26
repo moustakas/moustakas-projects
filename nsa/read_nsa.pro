@@ -20,11 +20,8 @@
 ;-
 
 function read_nsa
-
     path = getenv('IM_DATA_DIR')+'/nsa/'
     file = 'nsa_v0_1_2.fits.gz'
-
     nsa = mrdfits(path+file,1)
-
 return, nsa    
 end

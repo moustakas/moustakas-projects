@@ -1,4 +1,4 @@
-pro envsfrm_zgroup, mlimit=mlimit, mproj=mproj, mz=mz
+pro nsa_zgroup, mlimit=mlimit, mproj=mproj, mz=mz
 
 ;; lf_distmod(0.05)=35.96
 ;; 17.77 - 35.96 = -18.19 +5.*alog10(h10) = ~-19.0
@@ -12,11 +12,10 @@ pro envsfrm_zgroup, mlimit=mlimit, mproj=mproj, mz=mz
     if (not keyword_set(mproj)) then mproj = 1.0E-4
     if (not keyword_set(mz)) then mz = 3.5E-4
 
-    infile0 = getenv('IM_DATA_DIR')+'/nsa/nsa_v0_1_2.fits.gz'
-    outfile = './envsfrm_zgroup_all_group_mlimit'+string(abs(mlimit), format='(f4.1)') + $
+    outfile = './nsa_zgroup_all_group_mlimit'+string(abs(mlimit), format='(f4.1)') + $
       '_mp' + string(mproj, format='(f7.5)') + '_mz'+ string(mz, format='(f7.5)') + '.fits'
 
-    nsa = mrdfits(infile0, 1) ; ,range=[0,1000])
+    nsa = read_nsa()
     group0 = {ra:0.0D, dec:0.0D, zdist:0.0, mult:0L, first:0L, $
               x:0.0D, y:0.0D, z:0.0D }
     member0 = {ra:0.0D, dec:0.0D, objno:0L, zdist:0.0, next:0L, ing:0L, $

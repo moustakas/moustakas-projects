@@ -1,0 +1,34 @@
+# redshifts
+wget -m --cut-dirs=3 -nH -np -N --reject="*~*" -erobots=off --ftp-user=ioannis --ftp-password=javert01 "ftp://archive.stsci.edu/pub/clash/outgoing/abell_383/redshifts/"
+wget -m --cut-dirs=3 -nH -np -N --reject="*~*" -erobots=off --ftp-user=ioannis --ftp-password=javert01 "ftp://archive.stsci.edu/pub/clash/outgoing/abell_2261/redshifts/"
+
+wget -m --cut-dirs=3 -nH -np -N --reject="*~*" -erobots=off --ftp-user=ioannis --ftp-password=javert01 "ftp://archive.stsci.edu/pub/clash/outgoing/macs1149/redshifts/"
+wget -m --cut-dirs=3 -nH -np -N --reject="*~*" -erobots=off --ftp-user=ioannis --ftp-password=javert01 "ftp://archive.stsci.edu/pub/clash/outgoing/macs1206/redshifts/"
+wget -m --cut-dirs=3 -nH -np -N --reject="*~*" -erobots=off --ftp-user=ioannis --ftp-password=javert01 "ftp://archive.stsci.edu/pub/clash/outgoing/macs2129/redshifts/"
+
+wget -m --cut-dirs=3 -nH -np -N --reject="*~*" -erobots=off --ftp-user=ioannis --ftp-password=javert01 "ftp://archive.stsci.edu/pub/clash/outgoing/rxj1347/redshifts/"
+
+
+##### ACS-IR-detected: catalogs
+wget -m --cut-dirs=3 -nH -np --ftp-user=ioannis --ftp-password=javert01 --accept=abell383_ACS_IR.cat "ftp://archive.stsci.edu/pub/clash/outgoing/abell_383/HST/catalogs/mosaicdrizzle_image_pipeline/ACS_IR_detection/"
+wget -m --cut-dirs=3 -nH -np --ftp-user=ioannis --ftp-password=javert01 --accept=abell2261_ACS_IR.cat.gz "ftp://archive.stsci.edu/pub/clash/outgoing/abell_2261/HST/catalogs/mosaicdrizzle_image_pipeline/ACS_IR_detection/"
+
+wget -m --cut-dirs=3 -nH -np --ftp-user=ioannis --ftp-password=javert01 --accept=macs1149_ACS_IR.cat.gz "ftp://archive.stsci.edu/pub/clash/outgoing/macs1149/HST/catalogs/mosaicdrizzle_image_pipeline/ACS_IR_detection/"
+wget -m --cut-dirs=3 -nH -np --ftp-user=ioannis --ftp-password=javert01 --accept=macs2129_ACS_IR.cat.gz "ftp://archive.stsci.edu/pub/clash/outgoing/macs2129/HST/catalogs/mosaicdrizzle_image_pipeline/ACS_IR_detection/"
+wget -m --cut-dirs=3 -nH -np --ftp-user=ioannis --ftp-password=javert01 --accept=macs1206_ACS_IR.cat.gz "ftp://archive.stsci.edu/pub/clash/outgoing/macs1206/HST/catalogs/mosaicdrizzle_image_pipeline/ACS_IR_detection/"
+
+wget -m --cut-dirs=3 -nH -np --ftp-user=ioannis --ftp-password=javert01 --accept=rxj1347_ACS_IR.cat.gz "ftp://archive.stsci.edu/pub/clash/outgoing/rxj1347/HST/catalogs/mosaicdrizzle_image_pipeline/ACS_IR_detection/"
+
+wget -m --cut-dirs=3 -nH -np --ftp-user=ioannis --ftp-password=javert01 --accept=macs0329_ACS_IR.cat "ftp://archive.stsci.edu/pub/clash/outgoing/macs0329/HST/catalogs/mosaicdrizzle_image_pipeline/ACS_IR_detection/"
+
+
+
+##### IR-detected: catalogs
+wget -m --cut-dirs=3 -nH -np --ftp-user=ioannis --ftp-password=javert01 --accept=macs0329_IR.cat "ftp://archive.stsci.edu/pub/clash/outgoing/macs0329/HST/catalogs/mosaicdrizzle_image_pipeline/IR_detection/"
+
+
+
+##################################################
+Photoz catalogs:
+
+wget -m --cut-dirs=3 -nH -np --ftp-user=ioannis --ftp-password=javert01 "ftp://archive.stsci.edu/pub/clash/outgoing/macs0329/HST/PhotoZ/mosaicdrizzle_image_pipeline/"

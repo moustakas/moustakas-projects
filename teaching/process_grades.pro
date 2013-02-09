@@ -41,14 +41,14 @@ pro process_grades, data, assign=assign, allassign=allassign, $
           printf, lun, 'scores are zero then you must make up that lab in order to'
           printf, lun, 'pass the class.  If you identify any errors please contact'
           printf, lun, 'me immediately.'
-;         printf, lun, '   -Prof. Moustakas (john.moustakas@gmail.com)'
+;         printf, lun, '   -Prof. Moustakas (jmoustakas@siena.edu)'
        endif else begin
           printf, lun, 'Listed below is each component of your grade (e.g., Homework),'
           printf, lun, 'and the score you have received on each assignment or examination.'
           printf, lun, 'The three numbers listed are the number of points earned, the'
           printf, lun, 'number of possible points, and the percent score.  If you '
           printf, lun, 'identify any errors please contact me immediately.'
-;         printf, lun, '   -Prof. Moustakas (john.moustakas@gmail.com)'
+;         printf, lun, '   -Prof. Moustakas (jmoustakas@siena.edu)'
        endelse
        printf, lun, ' '
 
@@ -163,7 +163,7 @@ pro process_grades, data, assign=assign, allassign=allassign, $
           endelse
        endelse
        printf, lun, ' '
-       printf, lun, '   -Prof. Moustakas (john.moustakas@gmail.com)'
+       printf, lun, '   -Prof. Moustakas (jmoustakas@siena.edu)'
 ; close and email the file
        free_lun, lun
        if keyword_set(test) then begin
@@ -177,7 +177,7 @@ pro process_grades, data, assign=assign, allassign=allassign, $
           printf, lun, 'This email is intended for '+name+'.  If this '
           printf, lun, 'email has been sent to the wrong individual then'
           printf, lun, 'please let me know as soon as possible.'
-          printf, lun, '   -Prof. Moustakas (john.moustakas@gmail.com)'
+          printf, lun, '   -Prof. Moustakas (jmoustakas@siena.edu)'
           free_lun, lun
 ;         data[ss].email = 'kineta.beach@gmail.com'
           if keyword_set(sendit) then begin

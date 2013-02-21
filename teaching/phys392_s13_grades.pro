@@ -3,7 +3,7 @@ pro phys392_s13_grades, alldata, test=test, sendit=sendit
 
     path = '~/Dropbox/Teaching/392-S13/grades/'
     
-    date = '13feb06' ; update this
+    date = '13feb16' ; update this
     semester = 'Spring 2013'
     class = 'Physics 392: Introductory Astrophysics II'
     

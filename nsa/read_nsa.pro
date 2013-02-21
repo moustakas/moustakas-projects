@@ -19,9 +19,12 @@
 ; General Public License for more details. 
 ;-
 
-function read_nsa
-    path = getenv('IM_DATA_DIR')+'/nsa/'
-    file = 'nsa_v0_1_2.fits.gz'
-    nsa = mrdfits(path+file,1)
+function read_nsa, wise=wise
+    file = getenv('IM_DATA_DIR')+'/nsa/nsa_v0_1_2.fits.gz'
+    nsa = mrdfits(file,1)
+    if arg_present(wise) then begin
+       file = getenv('IM_DATA_DIR')+'/nsa/nsa_v0_1_2_wise.fits.gz'
+       wise = mrdfits(file,1)
+    endif
 return, nsa    
 end

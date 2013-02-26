@@ -2,7 +2,7 @@ pro phys130_f12_grades, alldata, test=test, sendit=sendit, $
   midtermplots=midtermplots
 ; jm12oct05siena - parse the grades for this class 
 
-    path = '~/Dropbox/teaching/12fall/phys130/grades/'
+    path = getenv('TEACHING_DIR')+'/130-F12/grades/'
     
     date = '12dec16' ; update this
     semester = 'Fall 2012'

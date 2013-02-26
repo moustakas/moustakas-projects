@@ -37,48 +37,40 @@ function wise2lir, phot, chary=chary, dale=dale, rieke=rieke, $
 return, ir
 end
 
+pro lcs_lir, clobber=clobber
+; jm13feb26siena - read the output of LCS_MEMBERSHIP and compute IR 
+; properties for the sample
 
-pro build_lcs_nsa, clobber=clobber
-; jm13feb11siena - build a sample of galaxies from the NSA belonging
-; to the LCS cluster sample
-
-    common nsa_wise, nsa, wise
-    if n_elements(nsa) eq 0L then nsa = read_nsa(wise=wise)
+    common lcs_wise, allwise
+    if n_elements(allwise) eq 0L then allwise = mrdfits(getenv('IM_DATA_DIR')+$
+      '/nsa/nsa_v0_1_2_wise.fits.gz',1)
 
     lcspath = getenv('LCS_DATA')
-
     filters = [galex_filterlist(),sdss_filterlist(),wise_filterlist()]
     nfilters = n_elements(filters)
-    
+
     cl = rsex(getenv('LCS_DIR')+'/lcs_sample.cat')
     ncl = n_elements(cl)
     struct_print, cl
 
-    plot, nsa.ra, nsa.dec, ps=3, xr=[150,270.0], yr=[0,50]
-    djs_oplot, cl.ra, cl.dec, psym=6, thick=8, color='orange'
-
     for ii = 0, ncl-1 do begin
-       these = where(nsa.ra gt cl[ii].ra-3.0 and nsa.ra lt cl[ii].ra+3.0 and $
-         nsa.dec gt cl[ii].dec-3.0 and nsa.dec lt cl[ii].dec+3.0 and $
-         abs(nsa.zdist-cl[ii].vel/3E5) lt 0.005,ngal)
-;      these = these[0:10] & ngal = 11
-       
-       dist = djs_diff_angle(nsa[these].ra,nsa[these].dec,cl[ii].ra,cl[ii].dec)
-       djs_plot, dist, nsa[these].zdist, psym=8
-       djs_oplot, !x.crange, cl[ii].vel*[1,1]/3E5, color='red', thick=4
-;      im_plothist, nsa[these].zdist*3E5, bin=50
-;      djs_oplot, cl[ii].vel*[1,1], !y.crange, color='red', thick=4
+       nsafile = lcspath+strlowcase(cl[ii].cluster)+'_nsa.fits.gz'
+       nsa = mrdfits(nsafile,1)
+       wise = allwise[nsa.nsaid] ; pick the ones we care about
+       ngal = n_elements(nsa)
 
 ; build the output structure, including the complete photometry
-       wise_to_maggies, wise[these], wmm, wiv
-       maggies = [nsa[these].nmgy*1D-9,wmm]
-       ivarmaggies = [nsa[these].nmgy_ivar/1D-9^2,wiv]
+       wise_to_maggies, wise, wmm, wiv
+       maggies = [nsa.nmgy*1D-9,wmm]
+       ivarmaggies = [nsa.nmgy_ivar/1D-9^2,wiv]
        
-       out = struct_addtags(struct_trimtags(nsa[these],select=['nsaid','ra','dec','zdist']),$
+       out = struct_addtags(struct_trimtags(nsa,select=['nsaid','ra','dec','zdist']),$
          replicate({maggies: fltarr(nfilters), ivarmaggies: fltarr(nfilters)},ngal))
        out.maggies = maggies
        out.ivarmaggies = ivarmaggies
 
+stop       
+       
        ir_chary = wise2lir(out,filters=filters,/chary,debug=0)
        ir_dale = wise2lir(out,filters=filters,/dale,debug=0)
        out = struct_addtags(out,ir_chary)
@@ -92,16 +84,12 @@ pro build_lcs_nsa, clobber=clobber
 
 ;; correlate SFR/M with EW(Ha)
 ;       sfrm = (alog10(4.5D-44)+alog10(3.826D33)+out.lir_chary)-$
-;         alog10(nsa[these].mass)+9
-;       plot, nsa[these].haew, sfrm, psym=6, xr=[0.1,100], yr=[-3,1], /xlog
+;         alog10(nsa.mass)+9
+;       plot, nsa.haew, sfrm, psym=6, xr=[0.1,100], yr=[-3,1], /xlog
        
-; write out       
-       im_mwrfits, nsa[these], lcspath+strlowcase(cl[ii].cluster)+'_nsa.fits', clobber=clobber
-       im_mwrfits, out, lcspath+strlowcase(cl[ii].cluster)+'_lir.fits', clobber=clobber
-;      im_mwrfits, wise[these], lcspath+strlowcase(cl[ii].cluster)+'_wise.fits'
-
-stop       
-       
+; write out
+       lirfile = lcspath+strlowcase(cl[ii].cluster)+'_lir.fits'
+       im_mwrfits, out, lirfile, clobber=clobber
     endfor
 
 return

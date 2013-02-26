@@ -2,9 +2,9 @@ pro phys140_s13_grades, alldata, test=test, sendit=sendit, $
   midtermplots=midtermplots
 ; jm12oct05siena - parse the grades for this class 
 
-    path = '~/Dropbox/Teaching/140-S13/grades/'
+    path = getenv('TEACHING_DIR')+'/140-S13/grades/'
     
-    date = '13feb16' ; update this
+    date = '13feb23' ; update this
     semester = 'Spring 2013'
     class = 'Physics 140 - General Physics II'
 

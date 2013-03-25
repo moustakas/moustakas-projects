@@ -1,11 +1,11 @@
-function clash_path, cluster, catalogs=catalogs, redshift=redshift, $
+function clash_path, cluster, catalogs=catalogs, redshift=redshift, mosaics=mosaics, $
   ir=ir, arcs=arcs, isedfit=isedfit, montegrids=montegrids, bcgimf=bcgimf, $
   macs0329_z6arcs=macs0329_z6arcs, santorini=santorini, megaspitzer=megaspitzer, $
-  lensedvolumes=lensedvolumes, z11=z11
+  lensedvolumes=lensedvolumes, z11=z11, bcgmodels=bcgmodels, mas30=mas30
 ; jm11apr18ucsd - 
 
     clashpath = getenv('CLASH_DATA')+'/'
-    if keyword_set(catalogs) then clashpath = clashpath+'catalogs/'
+;   if keyword_set(catalogs) then clashpath = clashpath+'catalogs/'
     if keyword_set(isedfit) then clashpath = clashpath+'isedfit/'
     if keyword_set(montegrids) then clashpath = clashpath+'montegrids/'
     if keyword_set(bcgimf) then clashpath = clashpath+'projects/bcgimf/'
@@ -19,7 +19,8 @@ function clash_path, cluster, catalogs=catalogs, redshift=redshift, $
 ; assume the user wants the 'catalogs' directory by default; deal with
 ; the possibility that the cluster name has an underscore (or not)
     if n_elements(cluster) ne 0 then begin
-       archivepath = clashpath+'archive/'
+       archivepath = clashpath
+;      archivepath = clashpath+'archive/'
        thiscluster = strlowcase(cluster)
        if file_test(archivepath+thiscluster,/dir) eq 0 then begin
           thiscluster = repstr(strlowcase(cluster),'_','')
@@ -28,12 +29,27 @@ function clash_path, cluster, catalogs=catalogs, redshift=redshift, $
           endif
        endif
 
-       clashpath = archivepath+thiscluster+'/HST/catalogs/mosaicdrizzle_image_pipeline/'
-       if keyword_set(ir) then clashpath = clashpath+'IR_detection/' else $
-         clashpath = clashpath+'ACS_IR_detection/'
+       if keyword_set(catalogs) then begin
+          clashpath = archivepath+thiscluster+'/HST/catalogs/mosaicdrizzle_image_pipeline/'
+          if keyword_set(ir) then clashpath = clashpath+'IR_detection/' else $
+            clashpath = clashpath+'ACS_IR_detection/'
+;         clashpath = clashpath+'SExtractor/'
+       endif
 
+       if keyword_set(mosaics) then begin
+          if keyword_set(mas30) then suff = 'scale_30mas/' else suff = 'scale_65mas/'
+          clashpath = archivepath+thiscluster+'/HST/images/'+$
+            'mosaicdrizzle_image_pipeline/'+suff
+       endif
+       if keyword_set(bcgmodels) then begin
+          if keyword_set(mas30) then suff = '30mas/' else suff = ''
+          clashpath = archivepath+thiscluster+'/HST/galaxy_subtracted_images/marc/'+suff
+       endif
+       
        if keyword_set(redshift) then clashpath = archivepath+thiscluster+'/redshifts/'
-       if keyword_set(arcs) then clashpath = archivepath+thiscluster+'/HST/PhotoZ/mosaicdrizzle_image_pipeline/IR_detection/html/'
+       if keyword_set(arcs) then clashpath = archivepath+thiscluster+$
+         '/HST/PhotoZ/mosaicdrizzle_image_pipeline/IR_detection/html/'
+          
        if file_test(clashpath,/dir) eq 0 then message, 'Directory '+clashpath+' not found!'
     endif
     

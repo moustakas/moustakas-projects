@@ -1,9 +1,9 @@
 pro phys392_s13_grades, alldata, test=test, sendit=sendit
 ; jm13feb06siena - parse the grades for this class 
 
-    path = '~/Dropbox/Teaching/392-S13/grades/'
+    path = getenv('TEACHING_DIR')+'/392-S13/grades/'
     
-    date = '13feb16' ; update this
+    date = '13mar22' ; update this
     semester = 'Spring 2013'
     class = 'Physics 392: Introductory Astrophysics II'
     

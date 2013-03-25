@@ -1,13 +1,14 @@
-function read_clash_catalog, cluster, redshift=redshift, arcs=arcs, ir=ir
+function read_clash_catalog, cluster, redshift=redshift, arcs=arcs, ir=ir, $
+  path=path
 ; jm11oct14ucsd - read SExtractor (default) or redshift catalog for a
 ; given cluster
 
-    path = clash_path(cluster,redshift=redshift,arcs=arcs,ir=ir)
+    path = clash_path(cluster,redshift=redshift,arcs=arcs,ir=ir,/catalogs)
 
 ; optionally read the redshift catalog...
     if keyword_set(redshift) then begin
 
-; temporarily deal MACS1206 - everything is different
+; temporarily deal with MACS1206 - everything is different
        if strmatch(cluster,'*1206*') then begin
           file = path+'m1206_specz.cat'
           if file_test(file) eq 0 then file = file+'.gz' ; try gzipped
@@ -70,12 +71,26 @@ function read_clash_catalog, cluster, redshift=redshift, arcs=arcs, ir=ir
     if keyword_set(ir) then suffix = 'IR' else suffix = 'ACS_IR'
     file = path+thiscluster+'_'+suffix+'.cat'
     if file_test(file) eq 0 then begin
-       splog, 'SE catalog '+file+' not found!'
-       return, -1
-    endif
+       file = path+thiscluster+'_'+suffix+'.cat.gz'
+       if file_test(file) eq 0 then begin
+          file = path+strlowcase(cluster)+'_'+suffix+'.cat.gz' ; check different name
+          if file_test(file) eq 0 then begin
+             splog, 'SE catalog '+file+' not found!'
+             return, -1
+          endif
+       endif 
+    endif else begin
+       file = path+strlowcase(cluster)+'_'+suffix+'.cat' ; check different name
+       if file_test(file) eq 0 then begin
+          splog, 'SE catalog '+file+' not found!'
+          return, -1
+       endif
+    endelse 
 
-    if strmatch(file,'*.gz*') then spawn, 'gunzip '+file, /sh
+    if strmatch(file,'*.gz*') then gz = 1 else gz = 0
+    if gz then spawn, 'gunzip '+file, /sh
     cat = rsex(repstr(file,'.gz',''))
+    if gz then spawn, 'gzip '+repstr(file,'.gz',''), /sh
     
 return, cat    
 end

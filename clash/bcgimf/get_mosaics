@@ -1,0 +1,15 @@
+wget -m --cut-dirs=8 -nH -np --ftp-user=ioannis --accept="*.fits.gz" --ftp-password=javert01 "ftp://archive.stsci.edu/pub/clash/outgoing/abell_2261/HST/images/mosaicdrizzle_image_pipeline/scale_65mas/"
+
+wget -m --cut-dirs=3 -nH -np --ftp-user=ioannis --ftp-password=javert01 "ftp://archive.stsci.edu/pub/clash/outgoing/abell_2261/HST/catalogs/mosaicdrizzle_image_pipeline/ACS_IR_detection/"
+
+wget -m --spider --cut-dirs=3 -nH -np --ftp-user=ioannis --ftp-password=javert01 "ftp://archive.stsci.edu/pub/clash/outgoing/abell_2261/HST/galaxy_subtracted_images/marc/"
+
+
+wget -m --cut-dirs=3 -nH -np --ftp-user=ioannis --ftp-password=javert01 "ftp://archive.stsci.edu/pub/clash/outgoing/abell_2261/HST/galaxy_subtracted_images/marc/color_images/"
+
+
+
+wget -m --cut-dirs=7 -nH -np --ftp-user=ioannis --ftp-password=javert01 "ftp://archive.stsci.edu/pub/clash/outgoing/abell_2261/HST/galaxy_subtracted_images/marc/30mas"
+
+
+wget -m --cut-dirs=7 -nH -np --ftp-user=ioannis --ftp-password=javert01 "ftp://archive.stsci.edu/pub/clash/outgoing/abell_2261/HST/images/mosaicdrizzle_image_pipeline/scale_30mas/"

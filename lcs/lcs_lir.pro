@@ -56,7 +56,7 @@ pro lcs_lir, clobber=clobber
     for ii = 0, ncl-1 do begin
        nsafile = lcspath+strlowcase(cl[ii].cluster)+'_nsa.fits.gz'
        nsa = mrdfits(nsafile,1)
-       wise = allwise[nsa.nsaid] ; pick the ones we care about
+       wise = allwise[nsa.object_position] ; pick the ones we care about
        ngal = n_elements(nsa)
 
 ; build the output structure, including the complete photometry
@@ -69,8 +69,6 @@ pro lcs_lir, clobber=clobber
        out.maggies = maggies
        out.ivarmaggies = ivarmaggies
 
-stop       
-       
        ir_chary = wise2lir(out,filters=filters,/chary,debug=0)
        ir_dale = wise2lir(out,filters=filters,/dale,debug=0)
        out = struct_addtags(out,ir_chary)

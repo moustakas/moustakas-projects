@@ -1,7 +1,7 @@
 pro phys130_lab_f12_grades, alldata, test=test, sendit=sendit, final=final
 ; jm12oct05siena - parse the grades for this class 
 
-    path = '~/Dropbox/teaching/12fall/phys130/grades/'
+    path = getenv('TEACHING_DIR')+'/130-F12/grades/'
     
     date = '12dec04' ; update this
     semester = 'Fall 2012'

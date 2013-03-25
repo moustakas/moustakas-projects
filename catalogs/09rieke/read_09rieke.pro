@@ -74,19 +74,21 @@ function read_09rieke, local=local
     tags = (tag_names(temp1))[1:nmodel]
     temp.lir = strmid(tags,6)/100.0
     temp.l24 = (temp.lir-1.445)/0.945
-    
+
 ; now put the models into a standard format; the models are in Jy at
 ; an assumed distance of 10 Mpc
     filt24 = 'spitzer_mips_24.par'
     weff = (k_lambda_eff(filterlist=filt24))[0]
-    lsun = 3.826D33
-    light = 2.9979246D18
+    lsun = 3.826D33             ; [erg/s]
+    light = 2.9979246D18        ; [Angstrom/s]
     dist = 3.085678D18*10.0*1D6 ; [10 Mpc]
 
 ; oversample the models, otherwise the filter convolution is fubar     
-    nsamp = 5
     owave = temp.wave*1D4 ; [A]
+    nsamp = 10
     wave = range(min(owave),max(owave),npix*nsamp,/log) ; [A]
+;   nsamp = 1
+;   wave = owave
     
     data = {$
       lir:  dblarr(nmodel),$
@@ -110,6 +112,8 @@ function read_09rieke, local=local
          data.flux[*,ii]/1D40,filterlist=filt24)
        data.l24[ii] = f24*10.0^(-0.4*48.6)*1D40*(light/weff^2)*weff/lsun
     endfor
-
+;   niceprint, alog10(data.lir), temp.lir, alog10(data.lir)-temp.lir, $
+;     alog10(data.l24), temp.l24, alog10(data.l24)-temp.l24
+    
 return, data
 end

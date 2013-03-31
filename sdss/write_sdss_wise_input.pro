@@ -43,6 +43,8 @@ pro write_sdss_wise_input, write=write, parse=parse
          im_read_tbl(wisepath+'sdss_'+dr+'_wise_output4.tbl')]
        indx = tbl.cntr_01-1     ; index number in CAT
 
+THIS CODE IS WRONG! SEE WRITE_REDMAPPER_WISE_INPUT
+
        fits_open, photofile, fcb
        ngal = fcb.axis[1,1]
        close, /all

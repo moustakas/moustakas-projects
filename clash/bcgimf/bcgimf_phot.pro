@@ -11,8 +11,8 @@ pro bcgimf_phot, bcgmodel=bcgmodel, clobber=clobber, debug=debug
 ; jm13mar15siena
     
     bcgimfpath = getenv('BCGIMF_DATA')+'/'
-    mosaicpath = clash_path('abell_2261',/mosaics,/mas30)
-    modelpath = clash_path('abell_2261',/bcgmodels,/mas30)
+    mosaicpath = clash_path('abell_2261',/mosaics,mas30=keyword_set(bcgmodel))
+    modelpath = clash_path('abell_2261',/bcgmodels,mas30=keyword_set(bcgmodel))
 
     filt = bcgimf_filterlist(short=short,instr=instr,weff=weff)
     nfilt = n_elements(filt)
@@ -23,10 +23,13 @@ pro bcgimf_phot, bcgmodel=bcgmodel, clobber=clobber, debug=debug
     ebv = dust_getval(gl,gb,/interp,/noloop)
     kl = k_lambda(weff,/odon)
 
-    scale = '030mas'
-    pixscale = 0.030D ; [arcsec/pixel]
-;   scale = '065mas'
-;   pixscale = 0.065D ; [arcsec/pixel]
+    if keyword_set(bcgmodel) then begin
+       scale = '030mas'
+       pixscale = 0.030D        ; [arcsec/pixel]
+    endif else begin
+       scale = '065mas'
+       pixscale = 0.065D        ; [arcsec/pixel]
+    endelse
 
 ; read the F606W SE catalog to find and mask the foreground stars
 ; using the segmentation map
@@ -123,15 +126,19 @@ pro bcgimf_phot, bcgmodel=bcgmodel, clobber=clobber, debug=debug
 ;           invvar,calg='none',salg='none',flerr=flerr)
 ;         print, counts, counts2
 
-          phot[ir].maggies[ib] = counts*10.0^(-0.4*zpt)                   ; AB maggies
-          phot[ir].ivarmaggies[ib] = 1.0/(sqrt(sigma2)*10.0^(-0.4*zpt))^2 ; AB maggies
-          phot[ir].sb[ib] = -2.5*alog10(counts)+zpt-2.5*alog10(area)      ; surface brightness [mag/arcsec^2]
+          maggies = counts*10.0^(-0.4*zpt) ; AB maggies
+          errmaggies = sqrt(sigma2)*10.0^(-0.4*zpt)
+          ivarmaggies = 1.0/errmaggies^2
+
+          phot[ir].maggies[ib] = maggies
+          phot[ir].ivarmaggies[ib] = ivarmaggies
+          phot[ir].sb[ib] = -2.5*alog10(counts)+zpt-2.5*alog10(area)      ; SB [mag/arcsec^2]
        endfor
 ;      window, 2
 ;      plot, phot.radius, phot.sb[ib], psym=8, ysty=3, /xlog
     endfor 
 
-;   mag = maggies2mag(phot.maggies[5],ivarmaggies=phot.ivarmaggies[5],magerr=magerr)
+;   mag = maggies2mag(phot.maggies[0],ivarmaggies=phot.ivarmaggies[0],magerr=magerr)
 ;   plot, phot.radius, -2.5*alog10(phot.maggies[3]/phot.maggies[4]), psym=8 ; V-R
 
 ; write out

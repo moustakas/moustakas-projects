@@ -1,0 +1,8 @@
+Low-redshift Lyman-alpha emitters; project with Steven Finkelstein & Casey Papovich.
+
+Default is to fit with a sub-solar metallicity template, unless /SOLAR.
+
+* lozlae_gandalf_specfit
+* parse_lozlae_gandalf_specfit
+* qaplot_lozlae_gandalf_specfit
+

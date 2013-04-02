@@ -8,15 +8,17 @@ pro build_chaos_ppxf_templates, debug=debug
     dist = 10.0*3.085678D18 ; 10 pc [cm]
 
     agegrid = range(1.0,100.0,10,/log)
-    metal = 0.004 ; metallicity grid
+    metal = [0.004,0.02,0.05]   ; metallicity grid
     nmodel = n_elements(agegrid)
     nmetal = n_elements(metal)
 
     bc03_Z004 = im_read_bc03(age=agegrid*1E6/1E9,$ ; chabrier IMF
       bc03_extras=extras,/silent,metallicity=2)
-;   bc03_Z02 = im_read_bc03(age=agegrid*1E6/1E9,$
-;     bc03_extras=extras,/silent,metallicity=4)
-    bc03 = bc03_Z004
+    bc03_Z02 = im_read_bc03(age=agegrid*1E6/1E9,$
+      bc03_extras=extras,/silent,metallicity=4)
+    bc03_Z05 = im_read_bc03(age=agegrid*1E6/1E9,$
+      bc03_extras=extras,/silent,metallicity=5)
+    bc03 = [bc03_Z004,bc03_Z02,bc03_Z05]
 
 ; resample to be constant in linear wavelength    
     minwave = 3000D

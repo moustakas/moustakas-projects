@@ -65,7 +65,7 @@ pro chaos_zabs_vdisp, wave, flux, ferr, tempwave=tempwave, $
       linepars,velscale,wave[0],velscale/light,$
       l_rf_range=[min_fitwave1,max_fitwave1],sigma=300.0)
 
-    ages_ppxf, fit_tempflux, restflux, restferr, velscale, $
+    im_ppxf, fit_tempflux, restflux, restferr, velscale, $
       start, sol, goodpixels=goodpixels, plot=doplot, $
       moments=2, degree=degree, error=err, bestfit=bestfit, $
       /clean, /quiet, vmaxshift=vmaxshift, sigmamax=sigmamax
@@ -118,7 +118,7 @@ function chaos_fit_continuum, wave, flux, ferr, tempwave=tempwave, $
       where(restferr lt 1E5))
 
     ebv = ebv_guess
-    ages_ppxf, tempflux, restflux, restferr, velscale, start, $
+    im_ppxf, tempflux, restflux, restferr, velscale, start, $
       sol, goodpixels=goodpixels, plot=doplot, moments=0, degree=-1, $
       weights=continuum_coeff, bestfit=continuum, /clean, /quiet, $
       vmaxshift=vmaxshift, sigmamax=sigmamax, error=err, $
@@ -168,7 +168,7 @@ function chaos_fit_lines, wave, flux, ferr, continuum, smooth_continuum, $
 
     vsys = alog(zabs+1.0D)*light ; systemic velocity
     voffset = -(min(restwave)-min(tempwave))*light
-    kinematics  = [vsys*0.0+voffset,vdisp,0.0,0.0,0.0,0.0]    ; for AGES_GANDALF
+    kinematics  = [vsys*0.0+voffset,vdisp,0.0,0.0,0.0,0.0]    ; for IM_GANDALF
 
 ; now read the emission-line parameter file of lines we *want* to fit 
     alllinepars = read_gandalf_elinelist(linefile,$
@@ -260,12 +260,12 @@ pro chaos_gandalf_specfit, debug=debug, solar=solar
 ; path names and emission-line file names
     specfitpath = getenv('CHAOS_DATA')+'/'
     alllinefile = specfitpath+'gandalf_elinelist_all.dat'
-    linefile = specfitpath+'gandalf_elinelist_v2.0.dat'
+    linefile = specfitpath+'gandalf_elinelist_v1.0.dat'
 
-; read the templates (see BUILD_AGES_PPXF_TEMPLATES); resample and
-; convolve to AGES pixel size and instrumental resolution
-    velscale = ages_ppxf_velscale()
-    inst_vdisp = ages_ppxf_instvdisp()
+; read the templates (see BUILD_CHAOS_PPXF_TEMPLATES); resample and
+; convolve to CHAOS pixel size and instrumental resolution
+    velscale = chaos_ppxf_velscale()
+    inst_vdisp = chaos_ppxf_instvdisp()
     line_inst_vdisp = 0.0 ; inst_vdisp/3.0 ; [km/s]
     if (n_elements(fluxscale) eq 0) then fluxscale = 1D-17
 
@@ -288,7 +288,7 @@ pro chaos_gandalf_specfit, debug=debug, solar=solar
       fitlines=linepars,/actionfit)
 
 ; initialize the output data structure
-    nfinalpix = 5000
+    nfinalpix = 6300
     specdata_template = {$
       id:         0, $
       z:        0.0, $

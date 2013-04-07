@@ -173,6 +173,13 @@ pro bcgimf_a2261
 ;   djs_oploterr, 60.0*scale/2.0, ised[2].mass_50, yerr=ised[2].mass_err, $
 ;     psym=symcat(14,thick=5), symsize=3.5
 
+; X-ray
+    readcol, imfpath+'lensing/ABELL_2261_masses.dat', rmpc, Mr, Mrerr, $
+      dr, Mgas, Mgaserr, fgas, fgaserr, /silent
+    oploterror, rmpc*1E3, alog10(Mr), Mrerr/Mr/alog(10), psym=-8, symsize=2.5
+    oploterror, rmpc*1E3, alog10(mgas), mgaserr/mgas/alog(10), psym=-6, line=5, symsize=2.5
+    niceprint, rmpc*1E3, alog10(mgas), alog10(Mr)
+    
     im_plotconfig, psfile=psfile, /psclose, /pdf
 
 return

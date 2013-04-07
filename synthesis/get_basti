@@ -1,0 +1,7 @@
+wget -m --accept "LRS*" --cut-dirs=2 -nH -np "http://albione.oa-teramo.inaf.it/BASTI/SPECTRA_AE/"
+wget -m --accept "LRS*" --cut-dirs=2 -nH -np "http://albione.oa-teramo.inaf.it/BASTI/SPECTRA_SS/"
+
+wget -m --accept "HRS*" --cut-dirs=2 -nH -np "http://albione.oa-teramo.inaf.it/BASTI/SPECTRA_AE/"
+wget -m --accept "HRS*" --cut-dirs=2 -nH -np "http://albione.oa-teramo.inaf.it/BASTI/SPECTRA_SS/"
+wget -m --accept "MAG_files.tar" --cut-dirs=2 -nH -np "http://albione.oa-teramo.inaf.it/BASTI/MAG_ML/"
+wget -m --accept "MLR_files.tar" --cut-dirs=2 -nH -np "http://albione.oa-teramo.inaf.it/BASTI/MAG_ML/"

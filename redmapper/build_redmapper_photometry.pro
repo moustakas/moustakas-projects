@@ -1,8 +1,7 @@
 pro build_redmapper_photometry, out
 ; jm13mar28siena - merge the GALEX, SDSS, and WISE photometry 
 
-    ver = 'v5.2'
-    path = getenv('REDMAPPER_DATA')+'/catalogs/'
+    path = redmapper_path(/catalogs,version=ver)
 
     filt = redmapper_filterlist()
     nfilt = n_elements(filt)

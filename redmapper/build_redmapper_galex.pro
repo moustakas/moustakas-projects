@@ -33,7 +33,7 @@ pro build_redmapper_galex, out_galex, gr=gr, ver=ver, clobber=clobber
 
 ; see WRITE_REDMAPPER_GALEX_INPUT for how the input catalog was
 ; written
-    outpath = getenv('REDMAPPER_DATA')+'/catalogs/'
+    outpath = redmapper_path(/catalogs)
     galexpath = outpath
 
     cat = mrdfits(outpath+'dr8_run_redmapper_'+ver+$

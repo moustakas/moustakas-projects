@@ -1,12 +1,14 @@
 pro redmapper_isedfit, prelim=prelim, models=models, isedfit=isedfit, $
-  qaplot=qaplot, clobber=clobber, bcgmodel=bcgmodel
+  qaplot=qaplot, clobber=clobber, members=members, firstchunk=firstchunk, $
+  lastchunk=lastchunk
 ; jm13mar28siena
     
     prefix = 'redmapper'
     ver = 'v5.2'
+
+    catalogs_dir = redmapper_path(/catalogs)
+    isedfit_dir = redmapper_path(/isedfit)
     
-    catalogs_dir = getenv('REDMAPPER_DATA')+'/catalogs/'
-    isedfit_dir = getenv('REDMAPPER_DATA')+'/'
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
     sfhgrid_paramfile = isedfit_dir+prefix+'_sfhgrid.par'
     supergrid_paramfile = isedfit_dir+prefix+'_supergrid.par'
@@ -34,7 +36,7 @@ pro redmapper_isedfit, prelim=prelim, models=models, isedfit=isedfit, $
 
     imf = 'chab'
     redcurve = 1 ; Charlot & Fall
-    
+
 ; --------------------------------------------------
 ; do the preliminaries: build the parameter files and the Monte Carlo
 ; grids
@@ -66,17 +68,36 @@ pro redmapper_isedfit, prelim=prelim, models=models, isedfit=isedfit, $
 ; do the fitting
     if keyword_set(isedfit) then begin
        phot = mrdfits(catalogs_dir+'redmapper_'+ver+'_photometry.fits.gz',1)
-       allcl = phot.mem_match_id
-       cl = allcl[uniq(allcl,sort(allcl))]
+       ngal = n_elements(phot)
+       
+; split the members catalog into chunks since it's so big
+       if keyword_set(members) then begin
+          nchunk = 5
+          chunksize = ceil(ngal/float(nchunk))
+          if n_elements(firstchunk) eq 0 then firstchunk = 0
+          if n_elements(lastchunk) eq 0 then lastchunk = nchunk-1
 
-       phot = phot[where(phot.isbcg)]
-;      phot = phot[where(phot.mem_match_id lt 20)]
-;      outprefix = 'testcl1'
+          for ii = firstchunk, lastchunk do begin
+             splog, 'Working on CHUNK '+strtrim(ii+1,2)+'/'+strtrim(lastchunk+1,2)
+             outprefix = 'members_chunk'+string(ii,format='(I0)')
+             these = lindgen(chunksize)+ii*chunksize
+             these = these[where(these lt ngal)]
+             these = these[0:4999]
+             
+             isedfit, isedfit_paramfile, phot[these].maggies, phot[these].ivarmaggies, $
+               phot[these].z, result, isedfit_dir=isedfit_dir, clobber=clobber, $
+               supergrid_paramfile=supergrid_paramfile, outprefix=outprefix, $
+               sfhgrid_paramfile=sfhgrid_paramfile, galchunksize=5000L
+          endfor
+       endif else begin
+          outprefix = 'bcgs'
+          phot = phot[where(phot.isbcg)]
 
-       isedfit, isedfit_paramfile, phot.maggies, phot.ivarmaggies, $
-         phot.z, result, isedfit_dir=isedfit_dir, clobber=clobber, $
-         supergrid_paramfile=supergrid_paramfile, outprefix=outprefix, $
-         sfhgrid_paramfile=sfhgrid_paramfile, galchunksize=5000L
+          isedfit, isedfit_paramfile, phot.maggies, phot.ivarmaggies, $
+            phot.z, result, isedfit_dir=isedfit_dir, clobber=clobber, $
+            supergrid_paramfile=supergrid_paramfile, outprefix=outprefix, $
+            sfhgrid_paramfile=sfhgrid_paramfile, galchunksize=5000L
+       endelse
     endif
 
 ; --------------------------------------------------

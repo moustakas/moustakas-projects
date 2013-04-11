@@ -3,7 +3,7 @@ pro phys392_s13_grades, alldata, test=test, sendit=sendit
 
     path = getenv('TEACHING_DIR')+'/392-S13/grades/'
     
-    date = '13mar22' ; update this
+    date = '13apr10' ; update this
     semester = 'Spring 2013'
     class = 'Physics 392: Introductory Astrophysics II'
     

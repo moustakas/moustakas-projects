@@ -20,7 +20,7 @@ pro write_redmapper_wise_input, write=write, parse=parse
 
 ; search radius: 2"
     ver = 'v5.2'
-    outpath = getenv('REDMAPPER_DATA')+'/catalogs/'
+    outpath = redmapper_path(/catalogs)
     wisepath = outpath
     photofile = outpath+'dr8_run_redmapper_'+ver+'_lgt20_catalog_members.fits.gz'
 

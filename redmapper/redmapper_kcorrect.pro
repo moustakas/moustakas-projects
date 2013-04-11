@@ -4,9 +4,8 @@ pro redmapper_kcorrect, clobber=clobber
 ;   kcorr = mrdfits(redmapperpath+'redmapper_kcorrect.fits.gz',1)
 ;   kcorrect_qaplot, kcorr, psfile=redmapperpath+'qaplot_redmapper_kcorrect.ps', $
 ;     in_filterlist=redmapper_filterlist(), /clobber, vname='default.nolines'
-    
-    ver = 'v5.2'
-    redmapperpath = getenv('REDMAPPER_DATA')+'/catalogs/'
+
+    redmapperpath = redmapper_path(/catalogs,version=ver)
 
     h100 = 0.7
     vname = 'default'

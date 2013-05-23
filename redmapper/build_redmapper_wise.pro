@@ -11,7 +11,7 @@ pro wise_writeit, cat, outfile
 return
 end
 
-pro write_redmapper_wise_input, write=write, parse=parse
+pro build_redmapper_wise, query=query, parse=parse
 ; jm13mar28siena - match the REDMAPPER/v5.2 catalog to IRSA/WISE:
 ; http://irsa.ipac.caltech.edu/cgi-bin/Gator/nph-query
 
@@ -19,16 +19,15 @@ pro write_redmapper_wise_input, write=write, parse=parse
 ; http://irsa.ipac.caltech.edu/applications/TblCheck/
 
 ; search radius: 2"
-    ver = 'v5.2'
-    outpath = redmapper_path(/catalogs)
-    wisepath = outpath
-    photofile = outpath+'dr8_run_redmapper_'+ver+'_lgt20_catalog_members.fits.gz'
-
-    cat = hogg_mrdfits(photofile,1,columns=['ra','dec'],nrow=100000L) ;,range=[0,10000])
+    path = redmapper_path(/catalogs,version=ver)
+    cat = mrdfits(path+'dr8_run_redmapper_'+ver+$
+      '_lgt20_catalog_members.fits.gz',1)
     ngal = n_elements(cat)
 
-    if keyword_set(write) then wise_writeit, cat, $
-      wisepath+'redmapper_'+ver+'_wise_input.tbl'
+    if keyword_set(query) then begin
+       wise_writeit, cat, '~/tmp/redmapper_'+ver+'_wise_input.tbl'
+       return
+    endif
 
 ;; split into NCHUNK files to avoid IRSA's file size limit
 ;    nchunk = 3
@@ -40,7 +39,7 @@ pro write_redmapper_wise_input, write=write, parse=parse
 
 ; code to parse the output and write the REDMAPPER object_wise.fits file
     if keyword_set(parse) then begin
-       tbl = im_read_tbl(wisepath+'redmapper_'+ver+'_wise_output.tbl')
+       tbl = im_read_tbl('~/tmp/redmapper_'+ver+'_wise_output.tbl')
 
 ; remove duplicates the dumbest way possible
        uu = uniq(tbl.cntr_01,sort(tbl.cntr_01))
@@ -58,10 +57,8 @@ pro write_redmapper_wise_input, write=write, parse=parse
 ;
 ;         out[ii*chunksize:((ii+1)*chunksize-1)<(ngal-1)] = thisout
 ;      endfor
-       im_mwrfits, out, outpath+'redmapper_'+ver+'_wise.fits', /clobber
+       im_mwrfits, out, path+'redmapper_'+ver+'_wise.fits', /clobber
     endif
 
-stop    
-    
 return
 end    

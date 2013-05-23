@@ -1,12 +1,10 @@
 pro redmapper_isedfit, prelim=prelim, models=models, isedfit=isedfit, $
-  qaplot=qaplot, clobber=clobber, members=members, firstchunk=firstchunk, $
+  qaplot=qaplot, clobber=clobber, bcgs=bcgs, firstchunk=firstchunk, $
   lastchunk=lastchunk
 ; jm13mar28siena
-    
-    prefix = 'redmapper'
-    ver = 'v5.2'
 
-    catalogs_dir = redmapper_path(/catalogs)
+    prefix = 'redmapper'
+    catalogs_dir = redmapper_path(/catalogs,version=ver)
     isedfit_dir = redmapper_path(/isedfit)
     
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
@@ -67,43 +65,46 @@ pro redmapper_isedfit, prelim=prelim, models=models, isedfit=isedfit, $
 ; --------------------------------------------------
 ; do the fitting
     if keyword_set(isedfit) then begin
-       phot = mrdfits(catalogs_dir+'redmapper_'+ver+'_photometry.fits.gz',1)
+       phot = mrdfits(catalogs_dir+'redmapper_'+ver+'_phot.fits.gz',1)
        ngal = n_elements(phot)
-       
-; split the members catalog into chunks since it's so big
-       if keyword_set(members) then begin
-          nchunk = 5
-          chunksize = ceil(ngal/float(nchunk))
-          if n_elements(firstchunk) eq 0 then firstchunk = 0
-          if n_elements(lastchunk) eq 0 then lastchunk = nchunk-1
 
-          for ii = firstchunk, lastchunk do begin
-             splog, 'Working on CHUNK '+strtrim(ii+1,2)+'/'+strtrim(lastchunk+1,2)
-             outprefix = 'members_chunk'+string(ii,format='(I0)')
-             these = lindgen(chunksize)+ii*chunksize
-             these = these[where(these lt ngal)]
-             these = these[0:4999]
-             
-             isedfit, isedfit_paramfile, phot[these].maggies, phot[these].ivarmaggies, $
-               phot[these].z, result, isedfit_dir=isedfit_dir, clobber=clobber, $
-               supergrid_paramfile=supergrid_paramfile, outprefix=outprefix, $
-               sfhgrid_paramfile=sfhgrid_paramfile, galchunksize=5000L
-          endfor
-       endif else begin
+; split the members catalog into chunks since it's so big
+       if keyword_set(bcgs) then begin
           outprefix = 'bcgs'
           phot = phot[where(phot.isbcg)]
 
           isedfit, isedfit_paramfile, phot.maggies, phot.ivarmaggies, $
             phot.z, result, isedfit_dir=isedfit_dir, clobber=clobber, $
             supergrid_paramfile=supergrid_paramfile, outprefix=outprefix, $
-            sfhgrid_paramfile=sfhgrid_paramfile, galchunksize=5000L
-       endelse
+            sfhgrid_paramfile=sfhgrid_paramfile, galchunksize=2000L
+       endif else begin
+          nchunk = 8
+          chunksize = ceil(ngal/float(nchunk))
+          if n_elements(firstchunk) eq 0 then firstchunk = 0
+          if n_elements(lastchunk) eq 0 then lastchunk = nchunk-1
+
+          for ii = firstchunk, lastchunk do begin
+             splog, 'Working on CHUNK '+strtrim(ii,2)+'/'+strtrim(lastchunk+1,2)
+             splog, im_today()
+             t0 = systime(1)
+             outprefix = 'redmapper_chunk'+string(ii,format='(I0)')
+             these = lindgen(chunksize)+ii*chunksize
+             these = these[where(these lt ngal)]
+;            these = these[0:99] ; test!
+             
+             isedfit, isedfit_paramfile, phot[these].maggies, phot[these].ivarmaggies, $
+               phot[these].z, result, isedfit_dir=isedfit_dir, clobber=clobber, $
+               supergrid_paramfile=supergrid_paramfile, outprefix=outprefix, $
+               sfhgrid_paramfile=sfhgrid_paramfile, galchunksize=1000L
+             splog, 'Total time (min) = '+strtrim((systime(1)-t0)/60.0,2)
+          endfor
+       endelse 
     endif
 
 ; --------------------------------------------------
 ; make a QAplot
     if keyword_set(qaplot) then begin
-       phot = mrdfits(catalogs_dir+'redmapper_'+ver+'_photometry.fits.gz',1)
+       phot = mrdfits(catalogs_dir+'redmapper_'+ver+'_phot.fits.gz',1)
        allcl = phot.mem_match_id
        cl = allcl[uniq(allcl,sort(allcl))]
 

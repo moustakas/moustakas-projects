@@ -11,13 +11,13 @@ pro redmapper_kcorrect, clobber=clobber
     vname = 'default'
 ;   vname = 'default.nolines'
 
-    kcorrfile = redmapperpath+'redmapper_'+ver+'_kcorrect.fits'
+    kcorrfile = redmapperpath+'redmapper_'+ver+'_kcorr.fits'
     if im_file_test(kcorrfile+'.gz',clobber=clobber) then return
 
     filters = redmapper_filterlist()
     nfilt = n_elements(filters)
 
-    cat = mrdfits(redmapperpath+'redmapper_'+ver+'_photometry.fits.gz',1)
+    cat = mrdfits(redmapperpath+'redmapper_'+ver+'_phot.fits.gz',1)
     ngal = n_elements(cat)
 
     kcorr = {$

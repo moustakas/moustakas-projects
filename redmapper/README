@@ -1,0 +1,14 @@
+First query photometry for the sample:
+ build_redmapper_sdss - the output catalog is unique and pre-sorted
+ build_redmapper_wise, /query
+ build_redmapper_wise, /parse
+ build_redmapper_galex, /query
+ build_redmapper_galex
+
+Then merge everything together and compute K-corrections
+ build_redmapper_photometry
+ redmapper_kcorrect
+
+Run iSEDfit:
+ redmapper_isedfit, /prelim,  
+ 

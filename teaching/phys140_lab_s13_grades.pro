@@ -3,7 +3,7 @@ pro phys140_lab_s13_grades, alldata, test=test, sendit=sendit, final=final
 
     path = getenv('DROPBOX_DIR')+'/Teaching/140-S13/grades/'
     
-    date = '13mar13' ; update this
+    date = '13may10' ; update this
     semester = 'Spring 2013'
     class = 'Physics 140 - General Physics II - Lab'
     

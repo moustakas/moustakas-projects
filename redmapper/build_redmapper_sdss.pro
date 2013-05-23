@@ -1,11 +1,10 @@
-pro write_redmapper_casjobs_input
-; jm13mar28siena
-;
-    ver = 'v5.2'
-    outpath = getenv('REDMAPPER_DATA')+'/catalogs/'
-    galexpath = outpath
+pro build_redmapper_sdss
+; jm13mar28siena - build the SDSS catalog for the sample using
+; CasJobs; be sure to write the output file from CasJobs as
+; 'redmapper_'+ver+'_sdss.fits' 
 
-    cat = mrdfits(outpath+'dr8_run_redmapper_'+ver+$
+    path = redmapper_path(/catalogs,version=ver)
+    cat = mrdfits(path+'dr8_run_redmapper_'+ver+$
       '_lgt20_catalog_members.fits.gz',1)
     ngal = n_elements(cat)
 
@@ -13,7 +12,8 @@ pro write_redmapper_casjobs_input
     out.redmapper_id = lindgen(ngal)
     out.casid = photoid2casid(cat.photoid)
 
-    outfile = galexpath+'redmapper_'+ver+'_casjobs.dat'
+    outfile = '~/tmp/redmapper_'+ver+'_casjobs.dat'
+;   outfile = path+'redmapper_'+ver+'_casjobs.dat'
     openw, lun, outfile, /get_lun
     printf, lun, '# redmapper_id casid ra dec'
     struct_print, struct_trimtags(out,select=['redmapper_id','casid','ra','dec']), $

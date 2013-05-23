@@ -6,7 +6,7 @@ function ages_path, papers=papers, specfit=specfit, spec1d=spec1d, analysis=anal
 
     agespath = getenv('IM_DATA_DIR')+'/ages/'
     paperspath = getenv('IM_PAPERS_DIR')+'/projects/ages/'
-    archivepath = getenv('IM_ARCHIVE_DIR')+'/projects/ages/'
+    archivepath = getenv('IM_ARCHIVE_DIR')+'/data/ages/'
 
 ; general path names    
     

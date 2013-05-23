@@ -1,9 +1,9 @@
-pro phys392_s13_grades, alldata, test=test, sendit=sendit
+pro phys392_s13_grades, alldata, test=test, sendit=sendit, final=final
 ; jm13feb06siena - parse the grades for this class 
 
     path = getenv('TEACHING_DIR')+'/392-S13/grades/'
     
-    date = '13apr10' ; update this
+    date = '13may13' ; update this
     semester = 'Spring 2013'
     class = 'Physics 392: Introductory Astrophysics II'
     
@@ -26,7 +26,7 @@ pro phys392_s13_grades, alldata, test=test, sendit=sendit
 
     process_grades, data, assign=assign, allassign=allassign, $
       weight=weight, class=class, semester=semester, test=test, $
-      sendit=sendit, alldata=alldata
+      sendit=sendit, alldata=alldata, final=final
     struct_print, alldata
 
 return

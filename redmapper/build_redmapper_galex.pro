@@ -23,27 +23,35 @@ function casjobs_remove_double, cat
 return, outcat
 end
 
-pro build_redmapper_galex, out_galex, gr=gr, ver=ver, clobber=clobber
+pro build_redmapper_galex, out_galex, query=query, gr=gr, ver=ver, clobber=clobber
 ; jm13mar28siena - build a line-matched GALEX catalog for the REDMAPPER/v5.2
 ; sample using the CasJobs output (see the README in the
 ; REDMAPPER/catalogs directory)
 
     if (n_elements(gr) eq 0) then gr = 'gr6'
-    if (n_elements(ver) eq 0) then ver = 'v5.2'
 
-; see WRITE_REDMAPPER_GALEX_INPUT for how the input catalog was
-; written
-    outpath = redmapper_path(/catalogs)
-    galexpath = outpath
-
-    cat = mrdfits(outpath+'dr8_run_redmapper_'+ver+$
-      '_lgt20_catalog_members.fits.gz',1,$
-      columns=['ra','dec'])
+    path = redmapper_path(/catalogs,version=ver)
+    cat = mrdfits(path+'dr8_run_redmapper_'+ver+$
+      '_lgt20_catalog_members.fits.gz',1)
     ngal = n_elements(cat)
     redmapper_id = lindgen(ngal)
 
+; build the input catalog
+    if keyword_set(query) then begin
+       out = struct_addtags(replicate({redmapper_id: 0L},ngal),$
+         struct_trimtags(cat,select=['ra','dec']))
+       out.redmapper_id = redmapper_id
+       
+       outfile = '~/tmp/redmapper_'+ver+'_galex_'+gr+'_casjobs.dat'
+       openw, lun, outfile, /get_lun
+       printf, lun, '# redmapper_id ra dec'
+       struct_print, out, lun=lun, ddigit=12, /no_head
+       free_lun, lun
+       return
+    endif 
+    
 ; output filename    
-    outfile = outpath+'redmapper_'+ver+'_galex_'+gr+'.fits'
+    outfile = path+'redmapper_'+ver+'_galex_'+gr+'.fits'
     if file_test(outfile+'.gz') and (keyword_set(clobber) eq 0) then begin
        splog, 'Output file '+outfile+' exists; use /CLOBBER'
        return
@@ -51,7 +59,12 @@ pro build_redmapper_galex, out_galex, gr=gr, ver=ver, clobber=clobber
     
 ; read the Casjobs output; for some reason some input/output objects
 ; are repeated (not sure why), so remove them here
-    incat = mrdfits(galexpath+'redmapper_'+ver+'_galex_'+gr+'_casjobs.fits',1)
+    infile = '~/tmp/redmapper_'+ver+'_galex_'+gr+'_casjobs.fits'
+    if file_test(infile) eq 0 then begin
+       splog, 'Input file '+infile+' not found!'
+       return
+    endif
+    incat = mrdfits(infile,1)
     incat = casjobs_remove_double(incat)
     incat = struct_addtags(replicate({galex_object_position: -999L},$
       n_elements(incat)),temporary(incat))
@@ -82,8 +95,6 @@ pro build_redmapper_galex, out_galex, gr=gr, ver=ver, clobber=clobber
     out_galex.dec = cat.dec
     im_mwrfits, out_galex, outfile, /clobber
 
-stop    
-    
 return
 end
     

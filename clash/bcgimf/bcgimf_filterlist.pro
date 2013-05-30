@@ -73,47 +73,28 @@ function bcgimf_filterlist, short_filter=short_filter, nice_filter=nice_filter, 
       'wfc3ir',$
       'wfc3ir']
 
-; zeropoints (as of 2011-Nov-09)    
-
-; # MACS1206 mosdriz 20110815 2011-08-15
-; # Zeropoint (AB mag) for each filter
-; # with and without galactic extinction included.
-; # Extinctions derived using value from Schlegel dust maps:
-; # E(B-V) = 0.06283
-;    zpt = [$
-;      24.09656D,$
-;      24.17417,$
-;      24.64529,$
-;      25.37141,$
-;      25.65779,$
-;      26.05926,$
-;      26.49116,$
-;      25.90669,$
-;      25.66506,$
-;      25.94335,$
-;      24.84247,$
-;      26.27068,$
-;      26.82514,$
-;      26.24736,$
-;      26.46450,$
-;      25.95590]
+; Zeropoint (AB mag) for each filter =
+;   photzpt = sxpar(hdr,'PHOTZPT')
+;   photflam = sxpar(hdr,'PHOTFLAM')
+;   photplam = sxpar(hdr,'PHOTPLAM')
+;   zpt = photzpt - 2.5*alog10(photflam) - 5.0*alog10(photplam/5475.4)
     zpt = [$
-;     23.64640D,$
-;     23.80435,$
-;     24.33872,$
-      25.09953,$
-      25.40982,$
-      25.83493,$
-      26.31478,$
-      25.74580,$
-      25.54353,$
-      25.83358,$
-      24.75373,$
-      26.20955,$
-      26.77237,$
-      26.20177,$
-      26.42782,$
-      25.92759]    
+;     24.09656D,$
+;     24.17417,$
+;     24.64529,$
+      25.37141,$
+      25.65779,$
+      26.05926,$
+      26.49116,$
+      25.90669,$
+      25.66506,$
+      25.94335,$
+      24.84247,$
+      26.27068,$
+      26.82514,$
+      26.24736,$
+      26.46450,$
+      25.95590]
 
 ; http://www.stsci.edu/hst/wfc3/documents/handbooks/currentIHB/c06_uvis06.html#387761 - WFC3/UVIS
 ; http://www.stsci.edu/hst/wfc3/documents/handbooks/currentIHB/c07_ir06.html - WFC3/IR

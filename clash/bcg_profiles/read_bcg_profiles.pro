@@ -54,8 +54,8 @@ function read_bcg_profiles, cluster
 ; surface brightness
           mu = reform(newtxt[1,*])
           mu_err = reform(newtxt[2,*])
-          data1.mu[0:niso-1] = -2.5*alog10(mu)+2.5*alog10(scale^2)+$ ; [ABmag/arcsec^2]
-            zpt[ii]-kl[ii]*ebv  
+          data1.mu[0:niso-1] = -2.5*alog10(mu)+5.0*alog10(scale)+$ ; [ABmag/arcsec^2]
+            zpt[ii]-kl[ii]*ebv
           data1.mu_err[0:niso-1] = 2.5*mu_err/mu/alog(10)
           
 ;         splog, short[ii], niso, minmax(data1.sma)

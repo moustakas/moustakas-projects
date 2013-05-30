@@ -1,6 +1,6 @@
 function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
   zpt=zpt, alam=alam, useirac=useirac, weff=weff, fwhm=fwhm, pivotwave=pivotwave, $
-  width=width
+  width=width, instr=instr
 ; jm11apr24ucsd 
 
     filterlist = [$
@@ -54,6 +54,24 @@ function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
       'f125w',$
       'f140w',$
       'f160w']
+
+    instr = [$
+      'wfc3uvis',$
+      'wfc3uvis',$
+      'wfc3uvis',$
+      'wfc3uvis',$
+      'acs',$
+      'acs',$
+      'acs',$
+      'acs',$
+      'acs',$
+      'acs',$
+      'acs',$
+      'wfc3ir',$
+      'wfc3ir',$
+      'wfc3ir',$
+      'wfc3ir',$
+      'wfc3ir']
 
 ; Zeropoint (AB mag) for each filter =
 ;   photzpt = sxpar(hdr,'PHOTZPT')

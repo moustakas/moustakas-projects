@@ -1,14 +1,91 @@
-pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, $
-  parents=parents
+function streams_mge, image, badpixels=badpixels, pixscale=pixscale, $
+  model=model, twist=twist
+; fit the BCG using MGE; ToDo: fit the PSF using an MGE
+
+    forward_function multi_gauss, multi_gauss_twist
+    resolve_routine, 'mge_print_contours', /compile_full_file, /no_recompile
+    resolve_routine, 'mge_print_contours_twist', /compile_full_file, /no_recompile
+
+; find the galaxy              
+    find_galaxy, image, majoraxis, ellipticity, posangle, xcen, ycen, $
+      xcen_lum, ycen_lum, fraction=fraction, index=index, level=level, $
+      nblob=nblob, plot=plot, /quiet
+    
+; get the photometry
+    if keyword_set(twist) then begin
+       sectors_photometry_twist, image, ellipticity, posangle, xcen, ycen, $
+         radius, phi, counts, n_sectors=n_sectors, sector_width=sector_width, $
+         badpixels=badpixels, minlevel=minlevel
+    endif else begin
+       sectors_photometry, image, ellipticity, posangle, xcen, ycen, $
+         radius, phi, counts, n_sectors=n_sectors, sector_width=sector_width, $
+         badpixels=badpixels, minlevel=minlevel
+    endelse
+
+; do the MGE fitting
+    if keyword_set(twist) then begin
+       mge_fit_sectors_twist, radius, phi, counts, ellipticity, ngauss=ngauss, $
+         scale=pixscale, bulge_disk=bulge_disk, fastnorm=fastnorm, $
+         linear=linear, negative=negative, normpsf=normpsf, print=print, $
+         qbounds=qbounds, rbounds=rbounds, /quiet, sigmapsf=sigmapsf, $
+         outer_slope=outer_slope, sol=sol, absdev=absdev
+;      mge_print_contours_twist, image, ang, xpeak, ypeak, sol, model=model
+       model = multi_gauss_twist(sol,image,sigmapsf,normpsf,xpeak,ypeak,posangle)
+    endif else begin
+       mge_fit_sectors, radius, phi, counts, ellipticity, ngauss=ngauss, $
+         scale=pixscale, bulge_disk=bulge_disk, fastnorm=fastnorm, $
+         linear=linear, negative=negative, normpsf=normpsf, print=print, $
+         qbounds=qbounds, rbounds=rbounds, /quiet, sigmapsf=sigmapsf, $
+         outer_slope=outer_slope, sol=sol, absdev=absdev
+;      mge_print_contours, cutimage, ang, xpeak, ypeak, sol, model=model
+;      model = multi_gauss(sol,image,sigmapsf,normpsf,xcen,ycen,posangle)
+       model = float(multi_gauss(sol,image,0.0,1.0,xcen,ycen,posangle))
+       model1 = multi_gauss(sol,image,0.0,1.0,xcen,ycen,90) ; aligned
+    endelse
+    
+; get the surface brightness profile of the model along the semimajor
+; axis 
+    sz = size(image,/dim)
+    sma = range(1.0,200,200,/log)
+;   sma = range(0.0,200,201)
+    sb_sma = interpolate(model1[xcen:sz[0]-1,ycen],$ ;missing=0.0,$
+      findex(range(xcen,sz[0]-1,sz[0]-xcen),xcen+sma))
+    
+    mge = {$
+      majoraxis:   majoraxis,$
+      ellipticity: ellipticity,$
+      posangle:    posangle,$
+      xcen:        xcen,$
+      ycen:        ycen,$
+      xcen_lum:    xcen_lum,$
+      ycenlum:     ycen_lum,$
+      absdev:      absdev,$
+      sol:         sol,$
+      sma:         sma,$
+      sb_sma:      sb_sma}
+;     radius:      radius,$
+;     phi:         phi,$
+;     counts:      counts,$
+;     sbprofile:   radius*0.0}
+;   mge.sbprofile = sol[0,*]/(2.0*!dpi*sol[1,*]^2*sol[2,*])
+
+return, mge
+end
+    
+pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, bcg_prelim=bcg_prelim, $
+  parents=parents, stargal=stargal, children=children, measure=measure, $
+  rebuild_mosaic=rebuild_mosaic
 ; jm13may26siena - sky-subtract the CLASH clusters containing tidal
 ; streams 
 
     propath = getenv('CLASH_DIR')+'/streams/'
-    datapath = getenv('IM_ARCHIVE_DIR')+'/projects/streams/'
+    datapath = getenv('IM_ARCHIVE_DIR')+'/projects/clash/streams/'
 ;   datapath = getenv('IM_PROJECTS_DIR')+'/clash/streams/'
 
     filt = bcgimf_filterlist(short=short,instr=instr,weff=weff,zpt=zpt)
-    these = [9,12] ; = [F110W, F160W]
+;   these = [9,12] ; = [F110W, F160W]
+;   these = [8,9,10,11,12]
+    these = [8,9,12]
     filt = filt[these]
     short = short[these]
     instr = instr[these]
@@ -28,17 +105,19 @@ pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, $
 ; wrap on each cluster    
     for ic = 0, ncl-1 do begin
        splog, 'Working on cluster '+cluster[ic]
-       this =  where(cluster[ic] eq strtrim(clash.cluster_short,2))
+       path = datapath+cluster[ic]+'/'
+       
+       this =  where(cluster[ic] eq strtrim(clash.shortname,2))
+       arcsec2kpc = dangular(clash[this].z,/kpc)/206265D ; [kpc/arcsec]
        ebv = clash[this].ebv
 
-       if file_test(datapath+cluster[ic],/dir) eq 0 then $
-         spawn, 'mkdir -p '+datapath+cluster[ic]
+       if file_test(path,/dir) eq 0 then spawn, 'mkdir -p '+datapath+cluster[ic]
        mosaicpath = getenv('IM_ARCHIVE_DIR')+'/'+cluster[ic]+'/images/'
 ;      mosaicpath = getenv('IM_ARCHIVE_DIR')+'/'+cluster[ic]+'/patched_images/'
        catpath = getenv('IM_ARCHIVE_DIR')+'/'+cluster[ic]+'/catalogs/'
 
 ; --------------------------------------------------
-; do the sky subtraction
+; subtract the sky
        if keyword_set(skysubtract) then begin
           skyinfo = replicate({file: '', band: '', sblimit: 0.0, $
             mode: 0.0, sigma: 0.0, skew: 0.0, nsky: 0L},nfilt)
@@ -54,6 +133,7 @@ pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, $
           ycrop = ceil(minmax(where(total(data[reffilt].image,2) gt 0))/100.0)*100
 
 ; aggresively build an object mask
+          splog, 'Building object mask'
           dobjects, data.image[xcrop[0]:xcrop[1],ycrop[0]:ycrop[1]], $
             object=oimage, plim=5.0, fobject=fobj, dpsf=dpsf
           sz = size(fobj,/dim)
@@ -85,11 +165,11 @@ pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, $
 ;          endfor
 
           struct_print, skyinfo
-          im_mwrfits, skyinfo, datapath+cluster[ic]+'/'+cluster[ic]+'_skyinfo.fits', /clobber
+          im_mwrfits, skyinfo, path+cluster[ic]+'-skyinfo.fits', /clobber
           
 ; write out the sky-subtracted images
           for ib = 0, nfilt-1 do begin
-             outfile = datapath+cluster[ic]+'/'+cluster[ic]+'-'+short[ib]+'.fits'
+             outfile = path+cluster[ic]+'-'+short[ib]+'.fits'
              splog, 'Writing '+outfile
              hextract, data[ib].image-skyinfo[ib].mode, data[ib].header[0:data[ib].nhead-1], $
                newim, newhdr, xcrop[0], xcrop[1], ycrop[0], ycrop[1], /silent
@@ -106,7 +186,7 @@ pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, $
        if keyword_set(build_psf) then begin
           splog, 'Building the PSFs'
           
-          psfpath = getenv('CLASH_DATA')+'/psfs/indivfilters/'
+          psfpath = getenv('CLASH_DATA')+'/psfs-molino/indivfilters/'
           instr1 = repstr(instr,'acs','acswfc')
           for ib = 0, nfilt-1 do begin
              bpsf = mrdfits(psfpath+instr1[ib]+'_'+short[ib]+'.psfmos.fits',0,hdr,/silent)
@@ -114,17 +194,17 @@ pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, $
              dfit_mult_gauss, bpsf, 2, amp, psfsig, model=model, /quiet
              sxaddpar, hdr, 'PSFSIGMA', float(psfsig[0]), ' Gaussian sigma [pixel]'
 
-             outfile = datapath+cluster[ic]+'/'+cluster[ic]+'-'+short[ib]+'-bpsf.fits'
+             outfile = path+cluster[ic]+'-'+short[ib]+'-bpsf.fits'
              splog, 'Writing '+outfile
              mwrfits, float(bpsf), outfile, hdr, /create, /silent
              mwrfits, float(model), outfile, hdr, /silent
 
-; variable PSF; just use a constant here
-             sz = size(bpsf,/dim)
-             outfile = datapath+cluster[ic]+'/'+cluster[ic]+'-'+short[ib]+'-vpsf.fits'
-             mwrfits, float(bpsf), outfile, hdr, /create, /silent
-             mwrfits, bpsf*0+1, outfile, /silent
-             mwrfits, fltarr(1,1), outfile, /silent
+;; variable PSF; just use a constant here
+;             sz = size(bpsf,/dim)
+;             outfile = path+cluster[ic]+'-'+short[ib]+'-vpsf.fits'
+;             mwrfits, float(bpsf), outfile, hdr, /create, /silent
+;             mwrfits, bpsf*0+1, outfile, /silent
+;             mwrfits, fltarr(1,1), outfile, /silent
           endfor
           
 ; read the standard SE catalog; should replace this more generally
@@ -149,13 +229,56 @@ pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, $
        endif
 
 ; --------------------------------------------------
+; do a preliminary subtraction of the BCG in each band separately  
+       if keyword_set(bcg_prelim) then begin
+          splog, 'Preliminary BCG subtraction'
+
+          rmaxkpc = 60D                            ; [kpc]
+          rmax = ceil(rmaxkpc/arcsec2kpc/pixscale) ; [pixels]
+
+          for ii = 0, nfilt-1 do begin
+             imfile = cluster[ic]+'-'+short[ii]+'.fits.gz'
+             splog, 'Reading '+imfile
+             image = mrdfits(imfile,0,hdr,/silent)
+             invvar = mrdfits(imfile,1,ivarhdr,/silent)
+             
+; get a RMAXKPC by RMAXKPC cutout centered on the BCG
+             extast, hdr, astr
+             ad2xy, clash[this].ra_bcg, clash[this].dec_bcg, astr, xcen, ycen
+             xcen = fix(xcen)
+             ycen = fix(ycen)
+             hextract, image, hdr, cutimage, cuthdr, xcen-rmax, $
+               xcen+rmax, ycen-rmax, ycen+rmax, /silent
+             hextract, invvar, ivarhdr, cutinvvar, cutivarhdr, xcen-rmax, $
+               xcen+rmax, ycen-rmax, ycen+rmax, /silent
+             badpixels = where(cutinvvar le 0,nbad)
+             if nbad eq 0L then delvarx, badpixels
+
+             mge1 = streams_mge(cutimage,badpixels=badpixels,$
+               pixscale=pixscale,model=cutmodel,twist=twist)
+             help, mge1, /str
+
+; rebuild the original image with the BCG subtracted and write out 
+             model = image*0.0
+             embed_stamp, model, cutmodel, xcen-rmax, ycen-rmax
+;            atv, image-model, /bl
+
+             outfile = path+cluster[ic]+'-nobcg-'+short[ii]+'.fits'
+             splog, 'Writing '+file_basename(outfile)
+             mwrfits, image-model, outfile, hdr, /create
+             mwrfits, invvar, outfile, ivarhdr, /silent
+             spawn, 'gzip -f '+outfile
+          endfor
+       endif 
+       
+; --------------------------------------------------
 ; find parents; creates pcat, pimage, and parents files 
        if keyword_set(parents) then begin
           splog, 'Finding parents'
 
 ; write the PSET structure
-          base = cluster[ic]
-          imfiles = base+'/'+cluster[ic]+'-'+short+'.fits.gz'
+          base = cluster[ic]+'-nobcg'
+          imfiles = base+'-'+short+'.fits.gz'
           
           pset = {$
             base: base, $
@@ -163,72 +286,90 @@ pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, $
             ref: reffilt, $
             puse: intarr(nfilt)+1, $
             dopsf: intarr(nfilt)+1}
-          im_mwrfits, pset, datapath+cluster[ic]+'/'+cluster[ic]+'-pset.fits', /clobber
-          
-          plim = 10.0
-          dparents, cluster[ic], datapath+imfiles, ref=reffilt, $
+          im_mwrfits, pset, path+cluster[ic]+'-nobcg-pset.fits', $
+            /clobber, /nogzip
+
+          plim = 20.0
+          dparents, cluster[ic]+'-nobcg', path+imfiles, ref=reffilt, $
             noclobber=noclobber, plim=plim, pbuffer=pbuffer
        endif
 
 ; --------------------------------------------------
-; do stuff       
+; classify objects into stars and galaxies; also subtract foreground
+; PSF stars
+       if keyword_set(stargal) then begin
+          splog, 'Performing star-galaxy separation.'
+          base = cluster[ic]+'-nobcg'
 
-       if keyword_set(doit) then begin
-; find galaxies
-          skyinfo = mrdfits(datapath+cluster[ic]+'/'+cluster[ic]+'_skyinfo.fits.gz',1,/silent)
+          skyinfo = mrdfits(path+cluster[ic]+'-skyinfo.fits.gz',1,/silent)
+          niceprint, skyinfo.band, skyinfo.sigma
+          psffiles = file_search(path+cluster+'-'+short+'-bpsf.fits*')
 
-          image = mrdfits('parents/macs1206-parent-832.fits',2*reffilt,hdr)
-          ivar = mrdfits('parents/macs1206-parent-832.fits',2*reffilt+1,ihdr)
-          extast, hdr, astr
+          streams_stargal, base, plot=plot, gsmooth=gsmooth, glim=glim, $
+            gsaddle=gsaddle, nsigma=nsigma, noclobber=noclobber, $
+            psffiles=psffiles
+          heap_gc
+       endif
+
+; --------------------------------------------------
+; deblend into children
+       if keyword_set(children) then begin
+          splog, 'Deblending parents into children'
+          base = cluster[ic]+'-nobcg'
+          streams_children, base, noclobber=noclobber
+          heap_gc
+       endif
+
+; --------------------------------------------------
+; model each object
+       if keyword_set(measure) then begin
+          splog, 'Modeling!'
+          base = cluster[ic]+'-nobcg'
+          psffiles = file_search(path+cluster+'-'+short+'-bpsf.fits*')
+          streams_measure, base, psffiles=psffiles, noclobber=noclobber
+          heap_gc
+       endif
+
+; --------------------------------------------------
+; rebuild the mosaic with the galaxies subtracted
+       if keyword_set(rebuild_mosaic) then begin
+          splog, 'Rebuilding the mosaic!'
+          base = cluster[ic]+'-nobcg'
+          base2 = cluster[ic]
+
+          sub = 'atlases'
+          postfix = ''
           
-          simage = dsmooth(image,5)
-          ssig = skyinfo[reffilt].sigma
-          gsaddle = 1.0
-          minpeak = 2.0*ssig
-          dpeaks, simage, xc=xc, yc=yc, sigma=ssig, minpeak=minpeak, $
-            npeaks=ngals, /check, saddle=gsaddle;, /refine
-          
-          atv, image
-          atvplot, xc, yc, psym=8, color='red'
+          for ii = 0, nfilt-1 do begin
+             splog, 'Working on filter '+short[ii]
 
-          xy2ad, xc, yc, astr, ra1, dec1
-;         adxy, thdr, acat.racen, acat.deccen, xgals, ygals
-          dtemplates, image, xc, yc, templates=curr_templates, $
-            sersic=sersic, ikept=ikept
-
-;         psf = mrdfits('macs1206-f160w-bpsf.fits')
-          
-stop          
-          streams_stargal, /plot
-
-
-          
-      
-
-          
-          
-stop          
-
-
-
-; read the PSFs          
-          for ib = 0, nfilt-1 do begin
-             psffile = datapath+cluster[ic]+'/'+cluster[ic]+'-'+short[ib]+'-bpsf.fits'
-             bpsf1 = mrdfits(psffile,0,/silent)
-             if ib eq 0 then bpsf = bpsf1 else bpsf = [bpsf,bpsf1]
-          endfor
-          
-;         pbuffer = 0.5
-
-stop          
-          
-          dchildren, cluster[ic], 370, ref=reffilt, psfs=bpsf
-          
-          
-stop          
-       endif       
+             imfile = path+base2+'-'+short[ii]+'.fits.gz'
+             outfile = path+base2+'-'+short[ii]+'-model.fits'
+             image = gz_mrdfits(imfile,0,hdr,/silent)
+             invvar = gz_mrdfits(imfile,1,ivarhdr,/silent)
+             model = image*0
+             
+             pcat = gz_mrdfits(path+base+'-pcat.fits',1)
+             for iparent = 0L, n_elements(pcat)-1 do begin
+                splog, 'Parent ', iparent
+    
+                pstr = strtrim(string(iparent),2)
+                mfile = path+'/'+sub+'/'+pstr+'/'+base+'-'+pstr+ $
+                  '-measure'+postfix+'.fits.gz'
+                sfile = path+'/'+sub+'/'+pstr+'/'+base+'-'+pstr+ $
+                  '-sersic'+postfix+'.fits.gz'
+                if file_test(sfile) then begin
+                   model1 = gz_mrdfits(sfile,ii,hdr1,/silent)
+                   embed_stamp, model, model1, pcat[iparent].xst[ii], pcat[iparent].yst[ii]
+                endif
+             endfor
+             im_mwrfits, model, outfile, hdr, /nogzip, /clobber
+             im_mwrfits, image-model, outfile, hdr, /gzip, /append
+          endfor 
+stop
+       endif 
        
-    endfor
+    endfor ; close cluster loop
 
 return
 end

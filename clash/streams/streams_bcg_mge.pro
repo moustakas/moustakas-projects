@@ -1,11 +1,6 @@
 pro streams_bcg_mge
 ; jm13may23siena - fit the BCGs
 
-; rsync -auv coma2:"/clash-archive/clash_archive/macs1206/HST/images/mosaicdrizzle_image_pipeline/scale_65mas/macs1206_mosaic_065mas_wfc3ir_f160w_drz_20110815.fits.gz" ./
-; rsync -auv coma2:"/clash-archive/clash_archive/macs1206/HST/images/mosaicdrizzle_image_pipeline/scale_65mas/macs1206_mosaic_065mas_wfc3ir_f160w_wht_20110815.fits.gz" ./
-; rsync -auv coma2:"/clash-archive/clash_archive/macs1206/HST/catalogs/mosaicdrizzle_image_pipeline/IR_detection/SExtractor/detectionImage_SEGM.fits.gz" ./
-; rsync -auv coma2:"/clash-archive/clash_archive/macs1206/HST/catalogs/mosaicdrizzle_image_pipeline/IR_detection/SExtractor/macs1206_f160w.cat" ./
-
     cluster = 'macs1206'
     mosaicpath = getenv('IM_ARCHIVE_DIR')+'/'+cluster+'/images/'
     catpath = getenv('IM_ARCHIVE_DIR')+'/'+cluster+'/catalogs/'

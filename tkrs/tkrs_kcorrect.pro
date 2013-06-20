@@ -28,23 +28,22 @@ pro tkrs_kcorrect, zcat, result, write=write
     
     splog, 'Computing ugriz k-corrections'
     ugriz_kcorrect = im_kcorrect(zcat.z,obsmaggies,obsmaggies_ivar,$
-      obsfilters,band_shift=ugriz_band_shift,chi2=chi2,/sdss,$ ; note /SDSS
-      coeffs=coeffs,rmaggies=rmaggies,vname=vname,mass=mass,$
-      absmag=ugriz_absmag,ivarabsmag=ugriz_absmag_ivar,intsfh=intsfh,$
+      obsfilters,sdss_filterlist(),band_shift=ugriz_band_shift,$
+      chi2=chi2,coeffs=coeffs,rmaggies=rmaggies,vname=vname,mass=mass,$
+      absmag=ugriz_absmag,ivarabsmag=ugriz_absmag_ivar,$
       clineflux=cflux,omega0=omega0,omegal0=omegal0,/silent)
 
     splog, 'Computing UBVRI k-corrections'
     ubvri_kcorrect = im_kcorrect(zcat.z,obsmaggies,obsmaggies_ivar,$
-      obsfilters,band_shift=ubvri_band_shift,/vega,$ ; note /VEGA
+      obsfilters,bessell_filterlist(),band_shift=ubvri_band_shift,$ 
       vname=vname,absmag=ubvri_absmag,ivarabsmag=ubvri_absmag_ivar,$
       omega0=omega0,omegal0=omegal0,/silent)
 
     result_template = {$
-;     z:                          -999.0, $
+      zobj:                       -999.0, $
       abmaggies:      fltarr(nobsfilter), $
       abmaggies_ivar: fltarr(nobsfilter), $
       mass:                       -999.0, $
-      intsfh:                     -999.0, $
       coeffs:                  fltarr(5), $
       chi2:                       -999.0, $
       cflux_3727:                 -999.0, $
@@ -61,11 +60,10 @@ pro tkrs_kcorrect, zcat, result, write=write
     result = replicate(result_template,ngalaxy)
     result = struct_addtags(zcat,temporary(result))
 
-;   result.z                 = zcat.z
+    result.zobj              = zcat.z
     result.abmaggies         = obsmaggies
     result.abmaggies_ivar    = obsmaggies_ivar
     result.mass              = alog10(mass)   ; Chabrier IMF
-    result.intsfh            = alog10(intsfh) ; Chabrier IMF
     result.coeffs            = coeffs
     result.chi2              = chi2
     result.ugriz_absmag      = ugriz_absmag

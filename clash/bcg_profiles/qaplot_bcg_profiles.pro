@@ -5,8 +5,9 @@ pro qaplot_bcg_profiles
     qapath = getenv('CLASH_DATA')+'/bcg_profiles/'
 
     filt = clash_filterlist(short=short,weff=weff)
-    f160w = where(short eq 'f160w')
+    f814w = where(short eq 'f814w')
     f110w = where(short eq 'f110w')
+    f160w = where(short eq 'f160w')
 
 ; plot all the clusters; F110W is missing from MACS1423
     clash = rsex(getenv('CLASH_DIR')+'/clash_sample.sex')
@@ -22,7 +23,7 @@ pro qaplot_bcg_profiles
     
     sberrmax = 1.0
     for ii = 0, ncl-1 do begin
-       data = read_bcg_profiles(clash[ii].cluster_short)
+       data = read_bcg_profiles(clash[ii].shortname)
        if size(data,/type) eq 8 then begin ; good photometry
           ww = where(data[f110w].sma gt -90.0 and data[f160w].sma gt -90.0 and $
             data[f110w].mu_err lt sberrmax and data[f160w].mu_err lt sberrmax,nww)
@@ -42,6 +43,15 @@ pro qaplot_bcg_profiles
              djs_oplot, data[f160w].sma[ww], ircolor, psym=-8, $
                color=im_color(color), line=line
 ;            oploterror, data[f160w].sma[ww], ircolor, ircolor_err, psym=8
+
+; pack the results into a handy structure for writing out
+             out = replicate({sma: 0.0, f110w: 0.0, f160w: 0.0},nww)
+;            out = replicate({sma: 0.0, f814w: 0.0, f110w: 0.0, f160w: 0.0},nww)
+             out.sma = data[f160w].sma[ww]
+;            out.f814w = data[f814w].mu[ww]
+             out.f110w = data[f110w].mu[ww]
+             out.f160w = data[f160w].mu[ww]
+             wsex, out, outfile=qapath+clash[ii].shortname+'_sbprofiles.txt'
           endelse
        endif
     endfor

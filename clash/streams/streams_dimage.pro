@@ -1,23 +1,27 @@
 function streams_mge, image, badpixels=badpixels, pixscale=pixscale, $
-  model=model, twist=twist
+  model=model, twist=twist, plot=plot, minlevel=minlevel, $
+  bulge_disk=bulge_disk, sector_width=sector_width
 ; fit the BCG using MGE; ToDo: fit the PSF using an MGE
 
+    if n_elements(pixscale) eq 0 then pixscale = 1.0
+    if n_elements(minlevel) eq 0 then minlevel = 0.0
+    
     forward_function multi_gauss, multi_gauss_twist
     resolve_routine, 'mge_print_contours', /compile_full_file, /no_recompile
     resolve_routine, 'mge_print_contours_twist', /compile_full_file, /no_recompile
 
 ; find the galaxy              
-    find_galaxy, image, majoraxis, ellipticity, posangle, xcen, ycen, $
+    find_galaxy, image, size, ellipticity, posangle, xcen, ycen, $
       xcen_lum, ycen_lum, fraction=fraction, index=index, level=level, $
-      nblob=nblob, plot=plot, /quiet
+      nblob=nblob, plot=plot;, /quiet
     
 ; get the photometry
     if keyword_set(twist) then begin
-       sectors_photometry_twist, image, ellipticity, posangle, xcen, ycen, $
-         radius, phi, counts, n_sectors=n_sectors, sector_width=sector_width, $
+       sectors_photometry_twist, image, posangle, xcen, ycen, radius, $
+         phi, counts, n_sectors=n_sectors, sector_width=sector_width, $
          badpixels=badpixels, minlevel=minlevel
     endif else begin
-       sectors_photometry, image, ellipticity, posangle, xcen, ycen, $
+       sectors_photometry, image, ellipticity, posangle, xcen_lum, ycen_lum, $
          radius, phi, counts, n_sectors=n_sectors, sector_width=sector_width, $
          badpixels=badpixels, minlevel=minlevel
     endelse
@@ -25,12 +29,12 @@ function streams_mge, image, badpixels=badpixels, pixscale=pixscale, $
 ; do the MGE fitting
     if keyword_set(twist) then begin
        mge_fit_sectors_twist, radius, phi, counts, ellipticity, ngauss=ngauss, $
-         scale=pixscale, bulge_disk=bulge_disk, fastnorm=fastnorm, $
-         linear=linear, negative=negative, normpsf=normpsf, print=print, $
-         qbounds=qbounds, rbounds=rbounds, /quiet, sigmapsf=sigmapsf, $
+         scale=pixscale, negative=negative, normpsf=normpsf, print=print, $
+         qbounds=qbounds, rbounds=rbounds, sigmapsf=sigmapsf, $
          outer_slope=outer_slope, sol=sol, absdev=absdev
 ;      mge_print_contours_twist, image, ang, xpeak, ypeak, sol, model=model
-       model = multi_gauss_twist(sol,image,sigmapsf,normpsf,xpeak,ypeak,posangle)
+       model = multi_gauss_twist(sol,image,0.0,1.0,xcen,ycen,posangle)
+       model1 = multi_gauss_twist(sol,image,0.0,1.0,xcen,ycen,90) ; aligned left-right
     endif else begin
        mge_fit_sectors, radius, phi, counts, ellipticity, ngauss=ngauss, $
          scale=pixscale, bulge_disk=bulge_disk, fastnorm=fastnorm, $
@@ -40,29 +44,52 @@ function streams_mge, image, badpixels=badpixels, pixscale=pixscale, $
 ;      mge_print_contours, cutimage, ang, xpeak, ypeak, sol, model=model
 ;      model = multi_gauss(sol,image,sigmapsf,normpsf,xcen,ycen,posangle)
        model = float(multi_gauss(sol,image,0.0,1.0,xcen,ycen,posangle))
-       model1 = multi_gauss(sol,image,0.0,1.0,xcen,ycen,90) ; aligned
+       model1 = multi_gauss(sol,image,0.0,1.0,xcen,ycen,90) ; aligned left-right
     endelse
     
-; get the surface brightness profile of the model along the semimajor
-; axis 
+; get the surface brightness profile of the galaxy and the model along
+; the semi-major and semi-minor axes
     sz = size(image,/dim)
-    sma = range(1.0,200,200,/log)
-;   sma = range(0.0,200,201)
-    sb_sma = interpolate(model1[xcen:sz[0]-1,ycen],$ ;missing=0.0,$
-      findex(range(xcen,sz[0]-1,sz[0]-xcen),xcen+sma))
-    
+    raxis = [0.0,range(pixscale,1.5*size,200,/log)] ; position along the major,minor axes [pixels]
+    if keyword_set(twist) then begin
+       splog, 'Code me!'
+stop       
+    endif else begin
+; data
+       mjr = where(phi eq 0.0,nmjr)
+       mnr = where(phi eq 90.0,nmnr)
+       sb_major = interpolate(counts[mjr],findex(radius[mjr],raxis),missing=0.0)
+       sb_minor = interpolate(counts[mnr],findex(radius[mnr],raxis),missing=0.0)
+; model
+       sbmodel_major = reform(interpolate(model1[xcen:sz[0]-1,ycen],$
+         findex(range(xcen,sz[0]-1,sz[0]-xcen),xcen+raxis)))
+       sbmodel_minor = reform(interpolate(model1[xcen,ycen:sz[1]-1],$
+         findex(range(ycen,sz[1]-1,sz[1]-ycen),ycen+raxis)))
+
+       djs_plot, raxis, sb_major, psym=8, /xlog, /ylog, $
+         xrange=[raxis[1]<min(radius[mjr]),max(raxis)], $
+         yrange=[minlevel*0.9,max(counts)], xsty=3, ysty=3
+       djs_oplot, raxis, sbmodel_major, color='orange'
+       djs_oplot, 10^!x.crange, minlevel*[1,1], line=0
+
+stop       
+    endelse
+
     mge = {$
-      majoraxis:   majoraxis,$
-      ellipticity: ellipticity,$
-      posangle:    posangle,$
-      xcen:        xcen,$
-      ycen:        ycen,$
-      xcen_lum:    xcen_lum,$
-      ycenlum:     ycen_lum,$
-      absdev:      absdev,$
+      majoraxis:   size*pixscale,$ ; approximate galaxy "size" [arcsec]
+      ellipticity: ellipticity,$   ; average ellipticity = 1-b/a
+      posangle:    posangle,$      ; position angle measured from the image Y-axis
+      xcen:        xcen,$          ; galaxy x,y center [integer pixels]
+      ycen:        ycen,$   
+      xcen_lum:    xcen_lum,$      ; luminosity-weighted x,y centroid 
+      ycen_lum:    ycen_lum,$
+      absdev:      absdev,$        ; mean absolute deviation of the data from the model
       sol:         sol,$
-      sma:         sma,$
-      sb_sma:      sb_sma}
+      raxis:       raxis*pixscale,$ ; [arcsec]
+      sb_minor:      float(sb_minor),$
+      sb_major:      float(sb_major),$
+      sbmodel_minor: float(sbmodel_minor),$
+      sbmodel_major: float(sbmodel_major)}
 ;     radius:      radius,$
 ;     phi:         phi,$
 ;     counts:      counts,$
@@ -78,14 +105,14 @@ pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, bcg_prelim=bcg
 ; jm13may26siena - sky-subtract the CLASH clusters containing tidal
 ; streams 
 
-    propath = getenv('CLASH_DIR')+'/streams/'
-    datapath = getenv('IM_ARCHIVE_DIR')+'/projects/clash/streams/'
-;   datapath = getenv('IM_PROJECTS_DIR')+'/clash/streams/'
+    datapath = streams_path()
 
     filt = bcgimf_filterlist(short=short,instr=instr,weff=weff,zpt=zpt)
+;   niceprint, lindgen(n_elements(filt)), short, instr
 ;   these = [9,12] ; = [F110W, F160W]
 ;   these = [8,9,10,11,12]
-    these = [8,9,12]
+;   these = [6,9,12]
+    these = lindgen(n_elements(filt))
     filt = filt[these]
     short = short[these]
     instr = instr[these]
@@ -101,20 +128,27 @@ pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, bcg_prelim=bcg
     ncl = n_elements(cluster) 
 
     pixscale = 0.065D ; [arcsec/pixel]
+
+; region file that defines by the WFC3 footprint (created by
+; J. Rogers)     
+    wfc3regfile = datapath+'macs1206_f160w.reg'
     
 ; wrap on each cluster    
     for ic = 0, ncl-1 do begin
        splog, 'Working on cluster '+cluster[ic]
        path = datapath+cluster[ic]+'/'
+
+       base = cluster[ic]
+;      base = cluster[ic]+'-nobcg'
        
        this =  where(cluster[ic] eq strtrim(clash.shortname,2))
        arcsec2kpc = dangular(clash[this].z,/kpc)/206265D ; [kpc/arcsec]
        ebv = clash[this].ebv
 
        if file_test(path,/dir) eq 0 then spawn, 'mkdir -p '+datapath+cluster[ic]
-       mosaicpath = getenv('IM_ARCHIVE_DIR')+'/'+cluster[ic]+'/images/'
+       mosaicpath = getenv('IM_ARCHIVE_DIR')+'/'+cluster[ic]+'/HST/images/'+$
+         'mosaicdrizzle_image_pipeline/scale_65mas/'
 ;      mosaicpath = getenv('IM_ARCHIVE_DIR')+'/'+cluster[ic]+'/patched_images/'
-       catpath = getenv('IM_ARCHIVE_DIR')+'/'+cluster[ic]+'/catalogs/'
 
 ; --------------------------------------------------
 ; subtract the sky
@@ -123,12 +157,29 @@ pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, bcg_prelim=bcg
             mode: 0.0, sigma: 0.0, skew: 0.0, nsky: 0L},nfilt)
           skyinfo.band = short
           
-; read the original mosaics and inverse variance maps; crop to the
-; maximum range of the reference filter, F160W
+; read the original mosaics and inverse variance maps; crop all the
+; images to match the WFC3 footprint (since the reference filter is
+; F160W); also convert to physical units
+          splog, 'Reading data'
           data = im_fits_cube(file_search(mosaicpath+cluster[ic]+$
             '_mosaic_065mas_'+instr+'_'+short+'_drz_????????.fits*'))
           ivardata = im_fits_cube(file_search(mosaicpath+cluster[ic]+$
             '_mosaic_065mas_'+instr+'_'+short+'_wht_????????.fits*'))
+
+          wfc3mask = ds9polygon_indices(wfc3regfile,$
+            header=data[reffilt].header,/inverse)
+
+; [counts/s] --> [10^-12 erg/s/cm^2/Hz] (pico-maggies)          
+          factor = 10^(-0.4*(zpt-kl*ebv))*1D12 
+          for ib = 0, nfilt-1 do begin
+             data[ib].image = data[ib].image*factor[ib]
+             ivardata[ib].image = data[ib].image/factor[ib]^2
+             
+             data[ib].image[wfc3mask] = 0.0
+             ivardata[ib].image[wfc3mask] = 0.0
+          endfor
+
+; round to the nearest hundred pixels          
           xcrop = ceil(minmax(where(total(data[reffilt].image,1) gt 0))/100.0)*100
           ycrop = ceil(minmax(where(total(data[reffilt].image,2) gt 0))/100.0)*100
 
@@ -152,9 +203,10 @@ pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, bcg_prelim=bcg
              skyinfo[ib].nsky = nsky1
           endfor
 
-; compute the 3-sigma surface brightness limit
-          skyinfo.sblimit = -2.5*alog10(3*skyinfo.sigma)+5*alog10(pixscale)+zpt-kl*ebv
-          
+; compute the 1-sigma surface brightness limit
+;         skyinfo.sblimit = -2.5*alog10(skyinfo.sigma)+5*alog10(pixscale) ; +zpt-kl*ebv
+          skyinfo.sblimit = -2.5*alog10(skyinfo.sigma)+5*alog10(pixscale)-2.5*alog10(1D-12)
+
 ;; fit a plane          
 ;          xx = findgen(sz[0])#replicate(1,sz[1])
 ;          yy = replicate(1,sz[1])#findgen(sz[0])
@@ -206,26 +258,6 @@ pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, bcg_prelim=bcg
 ;             mwrfits, bpsf*0+1, outfile, /silent
 ;             mwrfits, fltarr(1,1), outfile, /silent
           endfor
-          
-; read the standard SE catalog; should replace this more generally
-; with my own call to SE or a kludge call to dimage
-;         imfiles = datapath+cluster[ic]+'/'+cluster[ic]+'-'+short+'.fits.gz'
-;         for ib = 0, nfilt-1 do begin
-;            streams_fitpsf, imfiles[ib], base=cluster[ic], maxnstar=50
-;         endfor
-             
-;          cat = rsex(getenv('IM_ARCHIVE_DIR')+'/'+cluster[ic]+'/'+cluster[ic]+'_IR.cat')
-;          for ib = 0, nfilt-1 do begin
-;             image = gz_mrdfits(imfiles[ib],0,hdr)
-;             extast, hdr, astr
-;
-;             cat = rsex(catpath+cluster[ic]+'_'+short[ib]+'.cat')
-;;            wstar = 
-;;            magindx = tag_indx(cat,short[ib]+'_mag')
-;;            wstar = where(cat.stel gt 0.9 and cat.(magindx) gt 0 and cat.(magindx) lt 90,nw)
-;;            ad2xy, cat[wstar].ra, cat[wstar].dec, astr, xx, yy
-;          endfor
-
        endif
 
 ; --------------------------------------------------
@@ -236,8 +268,9 @@ pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, bcg_prelim=bcg
           rmaxkpc = 60D                            ; [kpc]
           rmax = ceil(rmaxkpc/arcsec2kpc/pixscale) ; [pixels]
 
-          for ii = 0, nfilt-1 do begin
-             imfile = cluster[ic]+'-'+short[ii]+'.fits.gz'
+          for ib = nfilt-1, 0, -1 do begin
+;         for ib = 0, nfilt-1 do begin
+             imfile = cluster[ic]+'-'+short[ib]+'.fits.gz'
              splog, 'Reading '+imfile
              image = mrdfits(imfile,0,hdr,/silent)
              invvar = mrdfits(imfile,1,ivarhdr,/silent)
@@ -263,35 +296,86 @@ pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, bcg_prelim=bcg
              embed_stamp, model, cutmodel, xcen-rmax, ycen-rmax
 ;            atv, image-model, /bl
 
-             outfile = path+cluster[ic]+'-nobcg-'+short[ii]+'.fits'
+             outfile = path+cluster[ic]+'-nobcg-'+short[ib]+'.fits'
              splog, 'Writing '+file_basename(outfile)
+
              mwrfits, image-model, outfile, hdr, /create
              mwrfits, invvar, outfile, ivarhdr, /silent
              spawn, 'gzip -f '+outfile
           endfor
        endif 
+
+; find and subtract the stars in the reference image and in all the
+; other images (see streams_stargal)
+;      skyinfo = mrdfits(path+cluster[ic]+'-skyinfo.fits.gz',1,/silent)
+;      image = mrdfits(cluster[ic]+'-'+short[reffilt]+'.fits.gz',0,hdr)
+
+       reffilt = 12
+       skyinfo = mrdfits('macs1206-skyinfo.fits.gz',1,/silent)
+       glim = 3.0
+       gsmooth = 5.0
+       gsaddle = 10.0
+       ssig = skyinfo[reffilt].sigma
+       saddle = gsaddle*ssig
+
+       psf = mrdfits('macs1206-f160w-bpsf.fits',0)
+       image = mrdfits('macs1206-f160w.fits.gz',0,hdr)
+       invvar = mrdfits('macs1206-f160w.fits.gz',1,ihdr)
+       simage = dsmooth(image,gsmooth)
+       dpeaks, simage, xc=xgals, yc=ygals, sigma=ssig, minpeak=glim*ssig, $
+         npeaks=ngals, saddle=gsaddle, /refine, /check
+
+;; build the templates and deblend into children
+;       ww = where(xgals gt 535 and xgals lt 825 and ygals gt 1000 and ygals lt 1190)
+;       dtemplates, image, xgals[ww], ygals[ww], templates=temp, $
+;         sersic=sersic, ikept=ikept, sigma=ssig
+;
+;       dweights, image, invvar, temp, weights=weights, /nonneg
+;       dfluxes, image, temp, weights, xgals[ww], ygals[ww], $
+;         children=children, sigma=ssig
+
+; the above didn't work well; try just getting a cutout of the
+; largest galaxies
+       x0 = 420 & x1 = 720 & y0 = 900 & y1 = 1200
+       hextract, image, hdr, im, hd, x0, x1, y0, y1
+       hextract, invvar, ihdr, ivar, ihd, x0, x1, y0, y1
+       dpeaks, im, xc=xc, yc=yc, sigma=ssig, minpeak=glim*ssig, $
+         npeaks=ngals, saddle=gsaddle, /refine, /check, maxnpeaks=1
+stop
+
+       dmeasure, im, ivar, xcen=xc, ycen=yc, measure=measure, $
+         check=1, cpetrorad=cpetrorad, /fixcen, faper=faper
+       
+       dsersic2, im, ivar, xcen=xc, ycen=yc, sersic=ser, psf=psf, /fixcen, $
+         fixsky=0, model=model, bulge=bulge, disk=disk, /reinit
+
+       mosaic = image*0 & embed_stamp, mosaic, model-ser.sky, x0, y0
+
+       
+       
+stop       
        
 ; --------------------------------------------------
 ; find parents; creates pcat, pimage, and parents files 
        if keyword_set(parents) then begin
           splog, 'Finding parents'
 
-; write the PSET structure
-          base = cluster[ic]+'-nobcg'
           imfiles = base+'-'+short+'.fits.gz'
-          
           pset = {$
-            base: base, $
+            base:    base, $
             imfiles: imfiles, $
             ref: reffilt, $
             puse: intarr(nfilt)+1, $
             dopsf: intarr(nfilt)+1}
-          im_mwrfits, pset, path+cluster[ic]+'-nobcg-pset.fits', $
-            /clobber, /nogzip
+          im_mwrfits, pset, path+base+'-pset.fits', /clobber
 
-          plim = 20.0
-          dparents, cluster[ic]+'-nobcg', path+imfiles, ref=reffilt, $
+          plim = 8.0
+          pbuffer = 0.1
+          dparents, base, path+imfiles, ref=reffilt, /cenonly, $
             noclobber=noclobber, plim=plim, pbuffer=pbuffer
+          heap_gc
+
+; now clean up the parents!
        endif
 
 ; --------------------------------------------------
@@ -299,7 +383,6 @@ pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, bcg_prelim=bcg
 ; PSF stars
        if keyword_set(stargal) then begin
           splog, 'Performing star-galaxy separation.'
-          base = cluster[ic]+'-nobcg'
 
           skyinfo = mrdfits(path+cluster[ic]+'-skyinfo.fits.gz',1,/silent)
           niceprint, skyinfo.band, skyinfo.sigma
@@ -315,16 +398,27 @@ pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, bcg_prelim=bcg
 ; deblend into children
        if keyword_set(children) then begin
           splog, 'Deblending parents into children'
-          base = cluster[ic]+'-nobcg'
-          streams_children, base, noclobber=noclobber
+          streams_children, base, sersic=sersic, noclobber=noclobber
           heap_gc
        endif
 
 ; --------------------------------------------------
 ; model each object
        if keyword_set(measure) then begin
+
+; test code          
+          cutimage = mrdfits('atlases/303/macs1206-303-templates-0.fits',0,hdr)
+
+          mge1 = streams_mge(cutimage,badpixels=badpixels,$
+            pixscale=pixscale,model=cutmodel,twist=twist)
+          mge1 = streams_mge(cutimage,badpixels=badpixels,pixscale=pixscale,$
+            model=cutmodel,/twist,minlevel=3*ss[12].sigma)
+          help, mge1, /str
+          
+
+
+stop
           splog, 'Modeling!'
-          base = cluster[ic]+'-nobcg'
           psffiles = file_search(path+cluster+'-'+short+'-bpsf.fits*')
           streams_measure, base, psffiles=psffiles, noclobber=noclobber
           heap_gc
@@ -340,11 +434,11 @@ pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, bcg_prelim=bcg
           sub = 'atlases'
           postfix = ''
           
-          for ii = 0, nfilt-1 do begin
-             splog, 'Working on filter '+short[ii]
+          for ib = 0, nfilt-1 do begin
+             splog, 'Working on filter '+short[ib]
 
-             imfile = path+base2+'-'+short[ii]+'.fits.gz'
-             outfile = path+base2+'-'+short[ii]+'-model.fits'
+             imfile = path+base2+'-'+short[ib]+'.fits.gz'
+             outfile = path+base2+'-'+short[ib]+'-model.fits'
              image = gz_mrdfits(imfile,0,hdr,/silent)
              invvar = gz_mrdfits(imfile,1,ivarhdr,/silent)
              model = image*0
@@ -359,8 +453,8 @@ pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, bcg_prelim=bcg
                 sfile = path+'/'+sub+'/'+pstr+'/'+base+'-'+pstr+ $
                   '-sersic'+postfix+'.fits.gz'
                 if file_test(sfile) then begin
-                   model1 = gz_mrdfits(sfile,ii,hdr1,/silent)
-                   embed_stamp, model, model1, pcat[iparent].xst[ii], pcat[iparent].yst[ii]
+                   model1 = gz_mrdfits(sfile,ib,hdr1,/silent)
+                   embed_stamp, model, model1, pcat[iparent].xst[ib], pcat[iparent].yst[ib]
                 endif
              endfor
              im_mwrfits, model, outfile, hdr, /nogzip, /clobber

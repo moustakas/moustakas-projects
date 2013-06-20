@@ -11,7 +11,8 @@
 ;   31-July-2010
 ;-
 
-pro streams_measure, base, psffiles=psffiles, noclobber=noclobber
+pro streams_measure, base, psffiles=psffiles, bulgedisk=bulgedisk, $
+  mgefit=mgefit, noclobber=noclobber
 
     sub='atlases'
     postfix=''
@@ -58,8 +59,8 @@ pro streams_measure, base, psffiles=psffiles, noclobber=noclobber
 ; loop on each parent
     pcat=gz_mrdfits(base+'-pcat.fits',1)
 ;   for iparent = 200, 280 do begin
-;   for iparent = 279, 279 do begin
-    for iparent = 0L, n_elements(pcat)-1 do begin
+    for iparent = 242, 242 do begin
+;   for iparent = 0L, n_elements(pcat)-1 do begin
        splog, 'Parent ', iparent
     
        pstr = strtrim(string(iparent),2)
@@ -100,8 +101,19 @@ pro streams_measure, base, psffiles=psffiles, noclobber=noclobber
                    dmeasure, rimage, rinvvar, xcen=xcen, ycen=ycen, $
                      measure=r_measure
                    r_sersic=0
-                   dsersic, rimage, rinvvar, xcen=r_measure.xcen, ycen=r_measure.ycen, $
-                     sersic=r_sersic, /fixcen, /fixsky, model=refmodel, psf=psf
+
+                   if keyword_set(mgefit) then begin
+
+                   endif else begin
+                      if keyword_set(bulgedisk) then begin
+                         dsersic2, rimage, rinvvar, xcen=r_measure.xcen, ycen=r_measure.ycen, $
+                           sersic=r_sersic, /fixcen, /fixsky, model=refmodel, psf=psf, $
+                           bulge=bulge, disk=disk
+                      endif else begin
+                         dsersic, rimage, rinvvar, xcen=r_measure.xcen, ycen=r_measure.ycen, $
+                           sersic=r_sersic, /fixcen, /fixsky, model=refmodel, psf=psf
+                      endelse
+                   endelse
 ; this is a bug in Blanton's code, I think
 ;                  dsersic, rimage, rinvvar, xcen=xcen, ycen=ycen, sersic=r_sersic, $
 ;                    /fixcen, /fixsky, model=refmodel, psf=psf
@@ -174,9 +186,17 @@ pro streams_measure, base, psffiles=psffiles, noclobber=noclobber
                       curr_sersic.ycen= ycen
                       curr_sersic.sersicr50= r_sersic.sersicr50*scales[iband]
 
-                      dsersic, image, invvar, xcen=xcen, ycen=ycen, $
-                        sersic=curr_sersic, /onlyflux, /fixcen, /fixsky, $
-                        psf=psf, model=model
+                      if keyword_set(mgefit) then begin
+                         
+                      endif else begin
+                         if keyword_set(bulgedisk) then begin
+                            stop
+                         endif else begin
+                            dsersic, image, invvar, xcen=xcen, ycen=ycen, $
+                              sersic=curr_sersic, /onlyflux, /fixcen, /fixsky, $
+                              psf=psf, model=model
+                         endelse
+                      endelse
                       outmodel[*,*,iband] += model
                       
                       mall.nprof[iband]= tmp_measure.nprof

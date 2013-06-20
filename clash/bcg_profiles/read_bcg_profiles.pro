@@ -12,7 +12,7 @@ function read_bcg_profiles, cluster
     kl = k_lambda(weff,/odon)
     nfilt = n_elements(filt)
 
-    this =  where(strtrim(cluster,2) eq strtrim(clash.cluster_short,2))
+    this =  where(strtrim(cluster,2) eq strtrim(clash.shortname,2))
     if this[0] eq -1 then begin
        splog, 'Unknown cluster '+cluster
        return, -1

@@ -76,7 +76,9 @@ pro streams_stargal, base, plot=plot, gsmooth=gsmooth, glim=glim, $
 
     subdir= 'atlases'
     spawn, 'mkdir -p '+subdir, /sh
-    for iparent = 0L, n_elements(pcat)-1 do begin
+splog, 'HACK!'
+    for iparent = 303, 303 do begin
+;   for iparent = 0L, n_elements(pcat)-1 do begin
        splog, 'Parent ', iparent
        sgset.iparent=iparent
 
@@ -143,7 +145,7 @@ pro streams_stargal, base, plot=plot, gsmooth=gsmooth, glim=glim, $
 ; output subtracted images
        nimfile=subdir+'/'+strtrim(string(iparent),2)+'/'+base+ $
          '-nimage-'+strtrim(string(iparent),2)+'.fits'
-       for k=0L, nim-1L do wrfits, *nimages[k], nimfile, $
+       for k=0L, nim-1L do mwrfits, *nimages[k], nimfile, $
          *hdrs[k], create=(k eq 0), /silent
        spawn, 'gzip -f '+nimfile, /sh
     

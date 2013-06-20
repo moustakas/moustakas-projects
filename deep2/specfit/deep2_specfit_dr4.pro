@@ -1,8 +1,9 @@
-pro deep2_specfit, zcat, thismask=thismask, firstmask=firstmask, $
+pro deep2_specfit_dr4, zcat, thismask=thismask, firstmask=firstmask, $
   lastmask=lastmask, test=test, doplot=doplot, index=index1
 ; jm07sep26nyu - based on DEEP2_SPECFIT
 ; jm08sep04nyu - major rewrite based on the latest AGES_SPECFIT; now
 ;   uses ISPECLINEFIT_UNFLUXED() to do the continuum + line-fitting 
+; jm13jun18siena - updated to DR4
 
 ; ssh -X prism
 ; echo "deep2_specfit" | idl > & deep2_specfit.log.01 &
@@ -14,14 +15,14 @@ pro deep2_specfit, zcat, thismask=thismask, firstmask=firstmask, $
     if (n_elements(zcat) eq 0L) then zcat = read_deep2_zcat(/good)
 
     version = deep2_version(/ispec)
-    spec1dpath = deep2_path(/dr3)
-    base_specfitpath = deep2_path(/specfit)
-    specfitpath = deep2_path(/specfit)+version+'/'
+    spec1dpath = deep2_path(/dr4)
+    base_specfitpath = deep2_path(/specfit,/dr4)
+    specfitpath = deep2_path(/specfit,/dr4)
 
     linefile = base_specfitpath+'elinelist_'+version+'.dat'
 
-    if (n_elements(thismask) eq 0L) then thismask = fix(zcat[uniq(zcat.maskname,$
-      sort(zcat.maskname))].maskname)
+    if (n_elements(thismask) eq 0L) then thismask = fix(zcat[uniq(zcat.mask,$
+      sort(zcat.mask))].mask)
     nmask = n_elements(thismask)
 
     if (n_elements(firstmask) eq 0L) then firstmask = 0L
@@ -34,7 +35,7 @@ pro deep2_specfit, zcat, thismask=thismask, firstmask=firstmask, $
 
 ; read the spectra
 
-       these = where(thismask[imask] eq fix(zcat.maskname),nthese)
+       these = where(thismask[imask] eq fix(zcat.mask),nthese)
        if (nthese eq 0L) then begin
           splog, 'No spectra for mask '+strtrim(thismask[imask],2)
           continue
@@ -94,7 +95,6 @@ pro deep2_specfit, zcat, thismask=thismask, firstmask=firstmask, $
          struct_trimtags(zcat_mask,except=['MINWAVE','MAXWAVE']),$
          struct_trimtags(specdata,except=['GALAXY'])), specdatafile, /create
        spawn, 'gzip -f '+specdatafile, /sh
-
     endfor 
     splog, 'Total '+string((systime(1)-t0)/3600.0,format='(G0.0)')+' hours.'
 

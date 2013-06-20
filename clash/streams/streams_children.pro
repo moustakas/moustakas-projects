@@ -24,10 +24,9 @@
 ;   11-Jan-2006  Written by Blanton, NYU
 ;-
 ;------------------------------------------------------------------------------
-pro streams_children, base, noclobber=noclobber
+pro streams_children, base, sersic=sersic, noclobber=noclobber
 
     subdir='atlases'
-    sersic=1
 
 ; default to use base name same as directory name
     if n_elements(base) eq 0 then begin
@@ -49,15 +48,16 @@ pro streams_children, base, noclobber=noclobber
 ; loop on each parent
     pcat=gz_mrdfits(base+'-pcat.fits',1)
 
-;   for iparent = 279, 279 do begin
-    for iparent = 0L, n_elements(pcat)-1 do begin
+splog, 'HACK!!'
+    for iparent = 303, 303 do begin
+;   for iparent = 0L, n_elements(pcat)-1 do begin
        splog, 'Parent ', iparent
     
 ; read in star and galaxy locations
        sgsetfile=subdir+'/'+strtrim(string(iparent),2)+'/'+base+'-'+ $
          strtrim(string(iparent),2)+'-sgset.fits'
        sgset= gz_mrdfits(sgsetfile, 1)
-       
+
        if (sgset.ngals eq 0) then continue
        
 ; file for input images
@@ -73,7 +73,7 @@ pro streams_children, base, noclobber=noclobber
          '.fits'
        if(gz_file_test(acatfile) gt 0 AND $
          keyword_set(noclobber) gt 0) then continue
-    
+
 ; create acat structure to store children in
        acat=replicate({pid:iparent, $
          tuse:tuse, $
@@ -99,8 +99,8 @@ pro streams_children, base, noclobber=noclobber
           if(keyword_set(templates[kuse]) eq 0) then begin
           
 ; read in image to use for templates
-             timage= mrdfits(nimfile, kuse, thdr,/silent)
-          
+             timage= gz_mrdfits(nimfile, kuse, thdr,/silent)
+
 ; make galaxy templates
              splog, 'Making basic templates ...'
              adxy, thdr, acat.racen, acat.deccen, xgals, ygals
@@ -139,8 +139,8 @@ pro streams_children, base, noclobber=noclobber
           endif
           
  ; read in current image for galaxies
-          cimage= mrdfits(nimfile, k, hdr,/silent)
-          civar= mrdfits(pfile, k*2L+1,/silent)
+          cimage= gz_mrdfits(nimfile, k, hdr,/silent)
+          civar= gz_mrdfits(pfile, k*2L+1,/silent)
           nx=(size(cimage, /dim))[0]
           ny=(size(cimage, /dim))[1]
           
@@ -175,22 +175,22 @@ pro streams_children, base, noclobber=noclobber
              afile= subdir+'/'+ strtrim(string(iparent),2)+ $
                '/'+base+'-'+strtrim(string(iparent),2)+ $
                '-atlas-'+strtrim(string(aid),2)+'.fits'
-             mwrfits, children[*,*,i], afile, hdr, create=first
+             mwrfits, children[*,*,i], afile, hdr, create=first, /silent
              tfile= subdir+'/'+ strtrim(string(iparent),2)+ $
                '/'+base+'-'+strtrim(string(iparent),2)+ $
                '-templates-'+strtrim(string(aid),2)+'.fits'
-             mwrfits, ctemplates[*,*,i], tfile, hdr, create=first
+             mwrfits, ctemplates[*,*,i], tfile, hdr, create=first, /silent
           endfor
           
           pbase=base+'-parent-'+strtrim(string(iparent),2)+'.fits'
           pfile= 'parents/'+pbase
           opfile= subdir+'/'+ strtrim(string(iparent),2)+ $
             '/'+pbase
-          pim= mrdfits(pfile, 2*k, phdr)
-          mwrfits, pim, opfile, phdr, create=first
+          pim= gz_mrdfits(pfile, 2*k, phdr)
+          mwrfits, pim, opfile, phdr, create=first, /silent
           oifile= subdir+'/'+ strtrim(string(iparent),2)+ $
             '/'+base+'-ivar-'+strtrim(string(iparent),2)+'.fits'
-          mwrfits, civar, oifile, phdr, create=first
+          mwrfits, civar, oifile, phdr, create=first, /silent
        endfor
        
        if(n_tags(acat) gt 0) then begin

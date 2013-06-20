@@ -1,14 +1,15 @@
-pro deep2_check_spec1d, debug=debug
+pro deep2_check_spec1d_dr4, debug=debug
 ; jm07aug30nyu - based on DEEP2_CHECK_SPEC1D.DR2 (but not backwards
 ;                compatible!); much, much faster and smarter
 ; jm08sep03nyu - some small tweaks; note that setting /ALL in
 ;   'read_deep2_zcat' results in NOINZCATINDX=-1; the default is to
 ;   read the 'uniq' redshift catalog
+; jm13jun18siena - updated to DR4
 
-    dr = 'dr3'
+    dr = 'dr4'
 
-    datapath = deep2_path(/dr3)
-    analysis_path = deep2_path(/analysis)
+    datapath = deep2_path(/dr4)
+    catalogs_path = deep2_path(/catalogs)
 
     zcat = read_deep2_zcat(dr=dr)
     ngalaxy = n_elements(zcat)
@@ -22,8 +23,8 @@ pro deep2_check_spec1d, debug=debug
     
 ; now form the 1D spectrum name from the redshift catalog    
     
-    slit = string(zcat.slitname,format='(I3.3)')
-    mask = string(zcat.maskname,format='(I4.4)')
+    slit = string(zcat.slit,format='(I3.3)')
+    mask = string(zcat.mask,format='(I4.4)')
     obj = string(zcat.objname,format='(I0)')
     spec1dfile_zcat = 'spec1d.'+mask+'.'+slit+'.'+obj+'.fits'
     
@@ -53,9 +54,9 @@ pro deep2_check_spec1d, debug=debug
        splog, 'These should be equal: ', n_elements(spec1dfile_zcat), $
          n_elements(allgoodindx)+n_elements(nospec1dindx)
        zcat_nospec1d = zcat[nospec1dindx]
-       splog, 'Writing '+analysis_path+'zcat.'+dr+'.nospec1d.fits'
-       mwrfits, zcat_nospec1d, analysis_path+'zcat.'+dr+'.nospec1d.fits', /create
-       spawn, 'gzip -f '+analysis_path+'zcat.'+dr+'.nospec1d.fits', /sh
+       splog, 'Writing '+catalogs_path+'zcat.'+dr+'.nospec1d.fits'
+       mwrfits, zcat_nospec1d, catalogs_path+'zcat.'+dr+'.nospec1d.fits', /create
+       spawn, 'gzip -f '+catalogs_path+'zcat.'+dr+'.nospec1d.fits', /sh
     endif
 
 ; look for duplicates - none in the 2007-Aug version of DR3!
@@ -133,9 +134,9 @@ pro deep2_check_spec1d, debug=debug
     goodindx = where((zcat_out.junkspec1d eq 0) and (zcat_out.extract_flag eq 0))
     if (goodindx[0] ne -1L) then begin
        zcat_good = zcat_out[goodindx]
-       splog, 'Writing '+analysis_path+'zcat.'+dr+'.uniq.good.fits'
-       mwrfits, zcat_good, analysis_path+'zcat.'+dr+'.uniq.good.fits', /create
-       spawn, 'gzip -f '+analysis_path+'zcat.'+dr+'.uniq.good.fits', /sh
+       splog, 'Writing '+catalogs_path+'zcat.'+dr+'.uniq.good.fits'
+       mwrfits, zcat_good, catalogs_path+'zcat.'+dr+'.uniq.good.fits', /create
+       spawn, 'gzip -f '+catalogs_path+'zcat.'+dr+'.uniq.good.fits', /sh
     endif
 
 ; among the junk spectra, all of them have ZQUALITY<3; among the
@@ -143,9 +144,9 @@ pro deep2_check_spec1d, debug=debug
     junkindx = where(zcat_out.junkspec1d or zcat_out.extract_flag) 
     if (junkindx[0] ne -1L) then begin
        zcat_junk = zcat_out[junkindx]
-       splog, 'Writing '+analysis_path+'zcat.'+dr+'.junkspec1d.fits'
-       mwrfits, zcat_junk, analysis_path+'zcat.'+dr+'.junkspec1d.fits', /create
-       spawn, 'gzip -f '+analysis_path+'zcat.'+dr+'.junkspec1d.fits', /sh
+       splog, 'Writing '+catalogs_path+'zcat.'+dr+'.junkspec1d.fits'
+       mwrfits, zcat_junk, catalogs_path+'zcat.'+dr+'.junkspec1d.fits', /create
+       spawn, 'gzip -f '+catalogs_path+'zcat.'+dr+'.junkspec1d.fits', /sh
     endif
 
 stop    

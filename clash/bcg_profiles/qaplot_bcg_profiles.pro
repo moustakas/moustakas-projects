@@ -45,12 +45,15 @@ pro qaplot_bcg_profiles
 ;            oploterror, data[f160w].sma[ww], ircolor, ircolor_err, psym=8
 
 ; pack the results into a handy structure for writing out
-             out = replicate({sma: 0.0, f110w: 0.0, f160w: 0.0},nww)
+             out = replicate({sma: 0.0, f110w: 0.0, f110w_err: 0.0, $
+               f160w: 0.0, f160w_err: 0.0},nww)
 ;            out = replicate({sma: 0.0, f814w: 0.0, f110w: 0.0, f160w: 0.0},nww)
              out.sma = data[f160w].sma[ww]
 ;            out.f814w = data[f814w].mu[ww]
              out.f110w = data[f110w].mu[ww]
+             out.f110w_err = data[f110w].mu_err[ww]
              out.f160w = data[f160w].mu[ww]
+             out.f160w_err = data[f160w].mu_err[ww]
              wsex, out, outfile=qapath+clash[ii].shortname+'_sbprofiles.txt'
           endelse
        endif

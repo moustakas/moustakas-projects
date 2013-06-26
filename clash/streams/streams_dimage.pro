@@ -173,7 +173,7 @@ pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, bcg_prelim=bcg
           factor = 10^(-0.4*(zpt-kl*ebv))*1D12 
           for ib = 0, nfilt-1 do begin
              data[ib].image = data[ib].image*factor[ib]
-             ivardata[ib].image = data[ib].image/factor[ib]^2
+             ivardata[ib].image = ivardata[ib].image/factor[ib]^2
              
              data[ib].image[wfc3mask] = 0.0
              ivardata[ib].image[wfc3mask] = 0.0
@@ -341,10 +341,10 @@ pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, bcg_prelim=bcg
        hextract, invvar, ihdr, ivar, ihd, x0, x1, y0, y1
        dpeaks, im, xc=xc, yc=yc, sigma=ssig, minpeak=glim*ssig, $
          npeaks=ngals, saddle=gsaddle, /refine, /check, maxnpeaks=1
-stop
-
        dmeasure, im, ivar, xcen=xc, ycen=yc, measure=measure, $
-         check=1, cpetrorad=cpetrorad, /fixcen, faper=faper
+         check=check, cpetrorad=cpetrorad, /fixcen, faper=faper
+
+stop       
        
        dsersic2, im, ivar, xcen=xc, ycen=yc, sersic=ser, psf=psf, /fixcen, $
          fixsky=0, model=model, bulge=bulge, disk=disk, /reinit

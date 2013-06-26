@@ -3,7 +3,7 @@ pro phys140_s13_grades, alldata, test=test, sendit=sendit, final=final
 
     path = getenv('TEACHING_DIR')+'/140-S13/grades/'
     
-    date = '13may13' ; update this
+    date = '13jun25' ; update this
     semester = 'Spring 2013'
     class = 'Physics 140 - General Physics II'
 
@@ -16,9 +16,9 @@ pro phys140_s13_grades, alldata, test=test, sendit=sendit, final=final
 ; relative weights
     allassign = ['Homework','Lab','Midterm 1','Midterm 2','Midterm 3','Final Exam']
     weight = [0.2,0.15,0.15,0.15,0.15,0.2]
-
-    keep = where(data.final_exam gt 0.0)
-    data = data[keep]
+;   keep = where(strmatch(data.last_name,'*Ippo*'))
+;   keep = where(data.final_exam gt 0.0)
+;   data = data[keep]
     
     process_grades, data, assign=assign, allassign=allassign, $
       weight=weight, class=class, semester=semester, test=test, $

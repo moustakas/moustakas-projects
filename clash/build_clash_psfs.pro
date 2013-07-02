@@ -23,9 +23,10 @@ function get_cutouts, cat, imfile=imfile, npix=npix
     ivarfile = repstr(imfile,'drz','wht')
     image = mrdfits(imfile,0,hdr,/silent)
     invvar = mrdfits(ivarfile,0,ivarhdr,/silent)
+    exptime = sxpar(hdr,'EXPTIME')
     extast, hdr, astr
     out = replicate({xcen: 0D, ycen: 0D, ra: 0D, dec: 0D, fracmask: 0.0, $
-      image: fltarr(npix,npix), invvar: fltarr(npix,npix)},nstar)
+      sigma: 0.0, image: fltarr(npix,npix), invvar: fltarr(npix,npix)},nstar)
     for ii = 0, nstar-1 do begin
        print, ii+1, nstar, string(13b), format='("Cutting out star ",I0,"/",I0,A10,$)'
        xx = cat[ii].x_image
@@ -41,20 +42,32 @@ function get_cutouts, cat, imfile=imfile, npix=npix
        dobjects, bigcutout, obj=obj
        good = where(obj eq -1 and bigcutoutivar gt 0,ngood)
        if ngood eq 0 then stop
-       mmm, bigcutout[good], skymode, /silent
+       mmm, bigcutout[good], skymode, skysig, /silent
 ; now cutout a smaller stamp
        hextract, image, hdr, cutout, newhdr, x0-npix/2, $
          x0+npix/2, y0-npix/2, y0+npix/2, /silent
        hextract, invvar, hdr, cutoutivar, newivarhdr, x0-npix/2, $
          x0+npix/2, y0-npix/2, y0+npix/2, /silent
        cutoutsub = cutout-skymode
+
+; add the shot noise of the object in quadrature to the inverse
+; variance map; poisson error = sqrt(electrons), converted back to
+; native electrons/pixel/sec units; only do this for pixels that are
+; detected at >3*sigma
+       these = where(cutout gt 3.0*skysig,nthese)
+       if (nthese eq 0L) then message, 'No significant pixels!'
+       shotvar = cutout*0.0
+       shotvar[these] = cutout[these]/exptime ; [electron/pixel/sec]
+       totalvar = (shotvar + 1.0/(cutoutivar+(cutoutivar eq 0)))*(cutoutivar ne 0)
+       totalivar = 1.0/(totalvar+(totalvar eq 0))*(totalvar ne 0)
        
        out[ii].xcen = xx
        out[ii].ycen = yy
        out[ii].ra = ra
        out[ii].dec = dec
+       out[ii].sigma = skysig
        out[ii].image = cutoutsub
-       out[ii].invvar = cutoutivar
+       out[ii].invvar = totalivar ; cutoutivar
        out[ii].fracmask = total(cutoutivar le 0.0)/(1.0*npix*npix)
 ;      plotimage, im_imgscl(cutimage>1E-5,/log,min=10,top=220), /preserve
     endfor
@@ -224,9 +237,8 @@ pro build_clash_psfs, sexcatalogs=sexcatalogs, choose_stars=choose_stars, $
                   symsize=1.0, color='red'
                 djs_oplot, magaxis, poly(magaxis-magpivot,[int,slope]), line=0
                 djs_oplot, magfaint*[1,1], [poly(magfaint-magpivot,[int,slope]),!y.crange[1]]
-                legend, [ff+' (N='+strtrim(nstar,2)+')'], $
+                im_legend, [ff+' (N='+strtrim(nstar,2)+')'], $
                   /left, /top, box=0, margin=0
-;               legend, [cluster,'N='+strtrim(nstar,2)], /left, /top, box=0, margin=0
 ; flux_radius vs mag_auto
                 djs_plot, [0], [0], /nodata, /noerase, position=pos[*,1], xrange=xrange, $
                   yrange=[0,15], xtitle=ff+' total mag', ytitle='r_{h} (pixels)', $
@@ -242,9 +254,11 @@ pro build_clash_psfs, sexcatalogs=sexcatalogs, choose_stars=choose_stars, $
 ; --------------------------------------------------
 ; build the PSF; see atlas_fitpsf
        if keyword_set(build_psf) then begin
-          rejsigma = [10.0,5.0,3.0]
-          splog, 'Cut on FLAGS!'
-stop          
+          rejsigma = [5.0,3.0,2.0]
+
+          ngrid = 5
+          pos = im_getposition(nx=ngrid,ny=ngrid)
+          
           for ic = 0, ncl-1 do begin
              cluster = strtrim(clash[ic].shortname,2)
              splog, 'Working on cluster '+cluster
@@ -254,9 +268,11 @@ stop
                 catfile = path+cluster+'-'+short[ib]+'-stars.fits.gz'
                 cat = mrdfits(catfile,1,/silent)
                 nstar = n_elements(cat)
+                npage = ceil(1.0*nstar/(ngrid*ngrid))
                 
-; normalize to unity                
-                norm = total(total(cat.image,1),1)
+; normalize the peak to unity
+                norm = max(max(cat.image,dim=1),dim=1)
+;               norm = total(total(cat.image,1),1)
                 norm1 = rebin(reform(norm,1,1,nstar),npix,npix,nstar)
                 cat.image = cat.image/norm1
                 cat.invvar = cat.invvar*norm1^2
@@ -279,14 +295,20 @@ stop
 ;                     atv, cat[ii].image-scale[ii]*bpsf, /blo
                    endfor
 
-stop                   
-                   
 ; reject REJSIGMA outliers
                    dof = float(npix)^2
                    keep = where(chi2 lt dof+rejsigma[iter]*sqrt(2.0*dof),nkeep,comp=rej)
                    splog, 'REJSIGMA = ', rejsigma[iter], '; keeping ', nkeep, ' stars'
                    if (nkeep lt 3L) then message, 'Not enough good stars!'
-stop
+
+; make a QAplot
+                   for pp = 0, npage-1 do begin
+;                     plotimage, asin
+                   endfor
+                   
+                   
+stop                   
+
                    cat = cat[keep]
                 endfor
                 

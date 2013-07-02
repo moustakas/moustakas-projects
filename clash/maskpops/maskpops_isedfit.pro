@@ -1,87 +1,92 @@
-pro maskpops_write_paramfile, paramfile, prefix=prefix, zminmax=zminmax, $
-  nzz=nzz, zlog=zlog, igm=igm, super=super, filters=filters
-    
-    filters = clash_filterlist()
-
-    sfhgridstring = strtrim(super.sfhgrid,2)
-    redcurvestring = redcurve2string(super.redcurve)
-    synthmodels = strtrim(super.synthmodels,2)
-    imf = strtrim(super.imf,2)
-    h100 = clash_h100(omega0=omega0,omegal=omegal)
-    
-    splog, 'Writing '+paramfile
-    zrange = string(zminmax[0],format='(F4.2)')+','+string(zminmax[1],$
-      format='(F4.2)')+','+strtrim(nzz,2)+','+strtrim(zlog,2)+' # [minz,maxz,dz,log?]'
-    openw, lun, paramfile, /get_lun
-    printf, lun, 'h100                 '+string(h100,format='(F4.2)')
-    printf, lun, 'omega0               '+string(omega0,format='(F4.2)')
-    printf, lun, 'omegal               '+string(omegal,format='(F4.2)')
-    printf, lun, 'synthmodels          '+synthmodels
-    printf, lun, 'imf                  '+imf
-    printf, lun, 'sfhgrid              '+sfhgridstring
-    printf, lun, 'redcurve             '+redcurvestring
-    printf, lun, 'prefix               '+prefix
-    printf, lun, 'redshift             '+zrange
-    printf, lun, 'igm                  '+strtrim(igm,2)+' # [0=no, 1=yes]'
-    printf, lun, 'maxold               0 # [0=no, 1=yes]'
-    printf, lun, 'filterlist           '+strjoin(filters,',')
-    free_lun, lun 
-
-return
-end
-
-pro maskpops_isedfit, supergrid, models=models, isedfit=isedfit, $
-  qaplot=qaplot, clobber=clobber, noirac=noirac, lowz=lowz
+pro maskpops_isedfit, prelim=prelim, models=models, isedfit=isedfit, $
+  qaplot=qaplot, clobber=clobber, thissupergrid=thissupergrid
 ; jm12may08ucsd
-
-    isedpath = maskpops_path(/isedfit)
-    isedfit_sfhgrid_dir = maskpops_path(/montegrids)
-    sfhgrid_paramfile = getenv('CLASH_DIR')+'/maskpops/maskpops_sfhgrid.par'
-
-; gather the photometry
-    cat = read_maskpops()
+; jm13jul01siena - updated to latest iSEDfit
 
     prefix = 'maskpops'
-    zminmax = [fix(min(cat.z*10)),ceil(max(cat.z*10))]/10.0
+    isedfit_dir = maskpops_path(/isedfit)
+    montegrids_dir = maskpops_path(/montegrids)
+    isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
+    sfhgrid_paramfile = isedfit_dir+prefix+'_sfhgrid.par'
+    supergrid_paramfile = isedfit_dir+prefix+'_supergrid.par'
+    
+; gather the photometry
+    cat = read_maskpops()
+;   use_redshift = cat.z ; custom redshift array
+    zmin = fix(min(cat.z*10))/10.0
+    zmax = ceil(max(cat.z*10))/10.0
     nzz = 3
     zlog = 0
+
+    filterlist = clash_filterlist()
+    nfilt = n_elements(filterlist)
+    
+; supergrid priors
+    sfhgrid = 1
+    supergrid = 1
+    synthmodels = 'fsps'
+    imf = 'chab'
+    redcurve = 0 ; Calzetti
     igm = 1
     
-    super = get_maskpops_supergrid(supergrid,nsuper=nsuper)
-    struct_print, super
+; SFHgrid priors
+    nage = 50 ; 20
+    nmonte = 1000 ; 500
+    Z = [0.0002,0.03]
+    minage = 0.05
+    maxage = 6.0
+    AV = [0.0,3.0]
+    flatAV = 1
+    delay_tau = [0.01,6.0]
 
-; loop on each supergrid
-    for gg = 0, nsuper-1 do begin
-       splog, 'working on grid '+strtrim(super[gg].supergrid,2)
+; --------------------------------------------------
+; do the preliminaries: build the parameter files and the Monte Carlo
+; grids
+    if keyword_set(prelim) then begin
+       write_isedfit_paramfile, filterlist, prefix=prefix, minz=zmin, $
+         maxz=zmax, nzz=nzz, igm=igm, isedfit_dir=isedfit_dir, clobber=clobber
 
-       paramfile = isedpath+prefix+'_supergrid'+string(super[gg].supergrid,$
-         format='(i2.2)')+'_isedfit.par'
-       maskpops_write_paramfile, paramfile, prefix=prefix, zminmax=zminmax, $
-         nzz=nzz, zlog=zlog, igm=igm, super=super[gg], filters=filters
-       
+; delayed
+       write_sfhgrid_paramfile, sfhgrid_paramfile, params, clobber=clobber, $
+         sfhgrid=1, nage=nage, nmonte=nmonte, Z=Z, minage=minage, $
+         maxage=maxage, AV=AV, tau=delay_tau, flatAV=flatAV, /delayed
+
+       write_supergrid_paramfile, supergrid_paramfile, supergrid=supergrid, $
+         sfhgrid=sfhgrid, synthmodels=synthmodels, imf=imf, redcurve=redcurve, $
+         clobber=clobber
+
+       build_montegrids, sfhgrid_paramfile, supergrid_paramfile=supergrid_paramfile, $
+         isedfit_dir=isedfit_dir, clobber=clobber
+    endif
+
+; --------------------------------------------------
 ; build the models
-       if keyword_set(models) then begin
-          isedfit_models, paramfile, iopath=isedpath, clobber=clobber, $
-            isedfit_sfhgrid_dir=isedfit_sfhgrid_dir
-       endif
+    if keyword_set(models) then begin
+       isedfit_models, isedfit_paramfile, isedfit_dir=isedfit_dir, $
+         supergrid_paramfile=supergrid_paramfile, clobber=clobber, $
+         use_redshift=use_redshift, thissupergrid=thissupergrid
+    endif
 
+; --------------------------------------------------
 ; do the fitting!
-       if keyword_set(isedfit) then begin
-          maskpops_to_maggies, cat, maggies, ivarmaggies
-          isedfit, paramfile, maggies, ivarmaggies, cat.z, iopath=isedpath, $
-            clobber=clobber, sfhgrid_paramfile=sfhgrid_paramfile, $
-            isedfit_sfhgrid_dir=isedfit_sfhgrid_dir
-       endif       
+    if keyword_set(isedfit) then begin
+       maskpops_to_maggies, cat, maggies, ivarmaggies
+       isedfit, isedfit_paramfile, maggies, ivarmaggies, cat.z, $
+         result, isedfit_dir=isedfit_dir, isedfit_outfile=isedfit_outfile, $
+         supergrid_paramfile=supergrid_paramfile, clobber=clobber, $
+         sfhgrid_paramfile=sfhgrid_paramfile, outprefix=outprefix, $
+         thissupergrid=thissupergrid
+    endif 
 
-; make some QAplots
-       if keyword_set(qaplot) then begin
-          yrange = [30,19]
-;         xrange = [2000,70000] & xlog = 1
-          isedfit_qaplot, paramfile, result, iopath=isedpath, galaxy=cat.prefix, $
-            index=index, clobber=clobber, isedfit_sfhgrid_dir=isedfit_sfhgrid_dir, $
-            outprefix=outprefix, xrange=xrange, yrange=yrange, /xlog
-       endif
-    endfor
+; --------------------------------------------------
+; make a QAplot
+    if keyword_set(qaplot) then begin
+       yrange = [30,19]
+       isedfit_qaplot, isedfit_paramfile, supergrid_paramfile=supergrid_paramfile, $
+         isedfit_dir=isedfit_dir, montegrids_dir=montegrids_dir, $
+         galaxy=cat.prefix, outprefix=outprefix, clobber=clobber, $
+         yrange=yrange, /xlog, thissupergrid=thissupergrid
+    endif
     
 return
 end

@@ -2,8 +2,8 @@ pro deep2_merge_specfit, specdata, test=test, write=write
 ; jm07sep28nyu - based on AGES_MERGE_SPECFIT
 
     version = deep2_version(/ispec)
-    base_specfitpath = deep2_path(/specfit)
-    specfitpath = base_specfitpath+version+'/'
+    base_specfitpath = deep2_path(/specfit,/dr4)
+    specfitpath = base_specfitpath
 
     if keyword_set(test) then prefix = 'test_' else prefix = ''
     specdatafiles = file_basename(file_search(specfitpath+'?????_????_'+prefix+$

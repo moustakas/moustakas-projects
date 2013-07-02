@@ -4,7 +4,7 @@ function clash_path, cluster, catalogs=catalogs, redshift=redshift, mosaics=mosa
   lensedvolumes=lensedvolumes, z11=z11, bcgmodels=bcgmodels, mas30=mas30
 ; jm11apr18ucsd - 
 
-    clashpath = getenv('CLASH_DATA')+'/'
+    clashpath = getenv('CLASH_ARCHIVE')+'/'
 ;   if keyword_set(catalogs) then clashpath = clashpath+'catalogs/'
     if keyword_set(isedfit) then clashpath = clashpath+'isedfit/'
     if keyword_set(montegrids) then clashpath = clashpath+'montegrids/'
@@ -44,13 +44,14 @@ function clash_path, cluster, catalogs=catalogs, redshift=redshift, mosaics=mosa
        if keyword_set(bcgmodels) then begin
           if keyword_set(mas30) then suff = '30mas/' else suff = ''
           clashpath = archivepath+thiscluster+'/HST/galaxy_subtracted_images/marc/'+suff
+          if cluster eq 'macs0329' then clashpath = repstr(clashpath,'marc','marc_subt')
        endif
        
        if keyword_set(redshift) then clashpath = archivepath+thiscluster+'/redshifts/'
        if keyword_set(arcs) then clashpath = archivepath+thiscluster+$
          '/HST/PhotoZ/mosaicdrizzle_image_pipeline/IR_detection/html/'
           
-       if file_test(clashpath,/dir) eq 0 then message, 'Directory '+clashpath+' not found!'
+       if file_test(clashpath,/dir) eq 0 then splog, 'Directory '+clashpath+' not found!'
     endif
     
 return, clashpath

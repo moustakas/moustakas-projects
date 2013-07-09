@@ -12,3 +12,4 @@ echo "deep2_specfit_dr4, firstmask=134, lastmask=200" | /usr/bin/nohup idl > & ~
 echo "deep2_specfit_dr4, firstmask=201, lastmask=267" | /usr/bin/nohup idl > & ~/deep2/specfit_dr4/specfit.log.04 &
 echo "deep2_specfit_dr4, firstmask=268, lastmask=334" | /usr/bin/nohup idl > & ~/deep2/specfit_dr4/specfit.log.05 &
 echo "deep2_specfit_dr4, firstmask=335, lastmask=400" | /usr/bin/nohup idl > & ~/deep2/specfit_dr4/specfit.log.06 &
+

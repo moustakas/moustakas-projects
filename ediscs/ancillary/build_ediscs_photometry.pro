@@ -1,4 +1,35 @@
-pro build_ediscs_photometry, outphot, bamford=bamford, all=all, clobber=clobber
+function read_completeness
+; parse Bianca's completeness files; see the emails from Bianca
+; in PATH for details 
+
+    path = ediscs_path(/catalogs)+'completeness/'
+    mycatpath = ediscs_path(/mycatalogs)
+    alltab = file_search(path+'*.tab',count=ntab)
+
+    result_template = {galaxy: '', ra: 0.0D, dec: 0.0D, $
+      z: 0.0, zflag: 0, spec_weight: 0.0, geom_weight: 0.0}
+    for itab = 0L, ntab-1L do begin
+;      splog, 'Reading '+alltab[itab]
+       readcol, alltab[itab], idnew, wmag, wgeom, /silent, $
+         ra, dec, z, format='A,F,F,F,F,A', comment='#'
+       nobj = n_elements(idnew)
+       result1 = replicate(result_template,nobj)
+
+       result1.galaxy = idnew
+       result1.ra = 15.0D*ra
+       result1.dec = dec
+       result1.zflag = strmatch(z,'*:*') ; 1=uncertain redshift
+       result1.z = float(repstr(z,':','')) 
+       result1.spec_weight = wmag
+       result1.geom_weight = wgeom
+       if (n_elements(result) eq 0L) then result = result1 else $
+         result = [result1,result]
+    endfor
+
+return, result
+end
+
+pro build_ediscs_photometry, outphot, clobber=clobber
 ; jm09jun17ucsd - build the EDisCS photometry structure
 
     common ediscs_phot, allout, ircat
@@ -126,6 +157,36 @@ pro build_ediscs_photometry, outphot, bamford=bamford, all=all, clobber=clobber
     newtags = repstr(repstr(tags,'RA_HOURS','RA'),'DEC_DEG','DEC')
     out = im_struct_trimtags(out,select=tags,newtags=newtags)
 
+; add the spectroscopic completeness weights from Bianca; there are
+; duplicates, so to be safe, loop
+    splog, 'Adding spectroscopic completeness'
+    comp = read_completeness()
+    keep = where(comp.z gt 0.0)
+    comp = comp[keep]
+
+    out = struct_addtags(out,replicate({spec_weight: 1.0, geom_weight: 1.0},ngal))
+    for ii = 0, ngal-1 do begin
+       cg = strtrim(comp.galaxy,2)
+       m1 = where(strtrim(out[ii].ediscsid,2) eq cg or $
+         strtrim(out[ii].old_ediscsid,2) eq cg,nm1)
+; jm13jul02siena; from visual inspection, it looks like the multiple
+; matches have different redshifts but the same spectroscopic weights,
+; to just take the zeroth weights 
+;      if nm1 gt 1 then begin
+;         splog, 'Multiple matches!'
+;         struct_print, comp[m1]
+;      endif
+       if nm1 ne 0 then begin
+          out[ii].spec_weight = comp[m1[0]].spec_weight
+          out[ii].geom_weight = comp[m1[0]].geom_weight
+       endif
+    endfor
+    
+;   match, strtrim(sout.ediscsid,2), strtrim(comp.galaxy,2), m1, m2
+;   miss = lindgen(n_elements(comp))
+;   remove, m2, miss
+;   struct_print, comp[miss]
+    
 ; write out
     outfile = mycatpath+'ediscs_all_photometry.'+vv+'.fits'
     im_mwrfits, out, outfile, clobber=clobber

@@ -2,8 +2,8 @@ pro deep2_merge_specfit, specdata, test=test, write=write
 ; jm07sep28nyu - based on AGES_MERGE_SPECFIT
 
     version = deep2_version(/ispec)
-    base_specfitpath = deep2_path(/specfit,/dr4)
-    specfitpath = base_specfitpath
+    catpath = deep2_path(/catalogs)
+    specfitpath = deep2_path(/specfit,/dr4)
 
     if keyword_set(test) then prefix = 'test_' else prefix = ''
     specdatafiles = file_basename(file_search(specfitpath+'?????_????_'+prefix+$
@@ -25,7 +25,7 @@ pro deep2_merge_specfit, specdata, test=test, write=write
        specdata = [temporary(specdata),specdata1]
     endfor
 
-    outfile = base_specfitpath+'deep2_'+prefix+'specdata_'+version+'.fits'
+    outfile = catpath+'deep2_'+prefix+'specdata_'+version+'.fits'
     
     if keyword_set(write) then begin
        splog, 'Writing '+outfile+'.'

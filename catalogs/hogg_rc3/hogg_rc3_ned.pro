@@ -1,9 +1,10 @@
-pro hogg_rc3_ned, info
+pro hogg_rc3_ned, info, gal=gal
 ; jm07dec18nyu
 
-    path = '/Users/ioannis/ay/research/catalogs/hogg_rc3/'
+;   path = '/Users/ioannis/ay/research/catalogs/hogg_rc3/'
+    path = './'
     
-    allfile = file_search(path+'*.jpg',count=cc)
+    allfile = file_search(path+'*_irg.jpg',count=cc)
     file = file_basename(allfile)
 
     gal = strarr(cc)
@@ -25,11 +26,11 @@ pro hogg_rc3_ned, info
 
 ;   niceprint, gal
 
-    ned_webget_basic, gal, info
-    mwrfits, info, path+'hogg_rc3_ned.fits', /create
-    spawn, 'gzip -f '+path+'hogg_rc3_ned.fits', /sh
-
-stop    
+;   ned_webget_basic, gal, info
+    info = struct_addtags(replicate({file: ''},cc),info)
+    info.file = file
+;   mwrfits, info, path+'hogg_rc3_ned.fits', /create
+;   spawn, 'gzip -f '+path+'hogg_rc3_ned.fits', /sh
     
 return
 end

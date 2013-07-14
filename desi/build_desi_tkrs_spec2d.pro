@@ -89,13 +89,18 @@ pro build_desi_tkrs_spec2d
     for ii = 0, ngal-1 do begin
 ; rebuild the continuum model
 ;      cwave = wave*(1+cat[ii].z)
-       cflux = vmatrix#kcorr[ii].coeffs;/(1+cat[ii].z)
+       cflux = vmatrix#zcat[ii].coeffs;/(1+cat[ii].z)
        curve = read_tkrs_rotcurve(rootpath+info[ii].rotcurvefile)
-       spec2d = build_spec2d(curve,cat=cat[ii],info=info[ii],$
-         cwave=cwave,cflux=cflux,header=header)
-       outfile = rootpath+'spec2d/model_'+prefix[ii]+'.fits'
-       im_mwrfits, spec2d, outfile, header, /clobber
-stop
+;      plot, curve.row, curve.model_unblur_flux, psym=-8
+       yfit = mpfitpeak(curve.row,curve.model_unblur_flux,aa)
+       print, aa
+
+;      im = dfakegal(sersicn=1.0,r50=10.0,ba=0.5,nx=100,ny=100,phi=90.0)
+
+;      spec2d = build_spec2d(curve,cat=cat[ii],info=info[ii],$
+;        cwave=cwave,cflux=cflux,header=header)
+;      outfile = rootpath+'spec2d/model_'+prefix[ii]+'.fits'
+;      im_mwrfits, spec2d, outfile, header, /clobber
     endfor
 
     

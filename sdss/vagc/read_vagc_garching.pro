@@ -107,7 +107,8 @@ function read_vagc_garching, sample=sample, letter=letter, $
        if (size(sdss_ispecline,/type) ne 8) or (sample ne sdss_sample) or $
          (letter ne sdss_letter) or (poststr ne sdss_poststr) then begin
           if (keyword_set(silent) eq 0) then splog, 'Reading '+thisfile
-          sdss_ispecline = hogg_mrdfits(thisfile,1,silent=silent,nrow=50000L)
+          sdss_ispecline = mrdfits(thisfile,1,silent=silent)
+;         sdss_ispecline = hogg_mrdfits(thisfile,1,silent=silent,nrow=50000L)
           if (sdss_sample ne sample) then sdss_sample = sample
           if (sdss_letter ne letter) then sdss_letter = letter
           if (sdss_poststr ne poststr) then sdss_poststr = poststr

@@ -21,9 +21,11 @@
 ; MODIFICATION HISTORY:
 ;       J. Moustakas, 2008 Mar 25, NYU - stolen from AGES_KCORRECT_ALL
 ;       jm08sep04nyu - updated to use IM_KCORRECT()
+;       jm13jul13siena - updated to most recent version of
+;         IM_KCORRECT() 
 ;-
 
-pro deep2_kcorrect, zcat, result, write=write
+pro deep2_kcorrect, zcat, result, clobber=clobber
 
 ; define the cosmology and some constants
 
@@ -40,24 +42,22 @@ pro deep2_kcorrect, zcat, result, write=write
 
 ; read the merged photometric catalog; only compute k-corrections for
 ; objects with well-measured redshifts
-
-    if (n_elements(zcat) eq 0L) then zcat = read_deep2_zcat(/good)
+    if (n_elements(zcat) eq 0L) then zcat = read_deep2_zcat()
     ngalaxy = n_elements(zcat)
 
 ; convert the observed photometry to maggies
-
     splog, 'Converting observed photometry to maggies'
-    obsfilters = ['deep_'+['B','R','I']]+'.par'
+    obsfilters = deep2_filterlist()
     nobsfilter = n_elements(obsfilters)
-    deep_to_maggies, zcat, obsmaggies, obsmaggies_ivar
+    deep2_to_maggies, zcat, obsmaggies, obsmaggies_ivar
 
 ; compute k-corrections    
     
     splog, 'Computing ugriz k-corrections'
     ugriz_kcorrect = im_kcorrect(zcat.z,obsmaggies,obsmaggies_ivar,$
-      obsfilters,band_shift=ugriz_band_shift,chi2=chi2,/sdss,$ ; note /SDSS
+      obsfilters,sdss_filterlist(),band_shift=ugriz_band_shift,chi2=chi2,$
       coeffs=coeffs,rmaggies=rmaggies,vname=vname,mass=mass,$
-      absmag=ugriz_absmag,ivarabsmag=ugriz_absmag_ivar,intsfh=intsfh,$
+      absmag=ugriz_absmag,ivarabsmag=ugriz_absmag_ivar,$
       clineflux=cflux,omega0=omega0,omegal0=omegal0,/silent)
 
     splog, 'Computing UBVRI k-corrections'
@@ -92,7 +92,7 @@ pro deep2_kcorrect, zcat, result, write=write
     result.abmaggies         = obsmaggies
     result.abmaggies_ivar    = obsmaggies_ivar
     result.mass              = alog10(mass)   ; Chabrier IMF
-    result.intsfh            = alog10(intsfh) ; Chabrier IMF
+;   result.intsfh            = alog10(intsfh) ; Chabrier IMF
     result.coeffs            = coeffs
     result.chi2              = chi2
     result.ugriz_absmag      = ugriz_absmag
@@ -108,12 +108,9 @@ pro deep2_kcorrect, zcat, result, write=write
     result.cflux_5007 = reform(cflux[3,*])
     result.cflux_6563 = reform(cflux[4,*])
     
-    if keyword_set(write) then begin
-       outfile_kcorr = analysis_path+'deep2_kcorr_'+version+'.fits'
-       splog, 'Writing '+outfile_kcorr
-       mwrfits, result, outfile_kcorr, /create
-       spawn, 'gzip -f '+outfile_kcorr, /sh
-    endif
+    outfile_kcorr = analysis_path+'deep2_kcorr_'+version+'.fits'
+    splog, 'Writing '+outfile_kcorr
+    im_mwrfits, result, outfile_kcorr, clobber=clobber
        
 return
 end

@@ -6,7 +6,10 @@ function deep2_path, catalogs=catalogs, dr3=dr3, dr4=dr4, specfit=specfit, $
     paperspath = getenv('IM_PAPERS_DIR')+'/projects/deep2/'
 
     if keyword_set(papers) then return, paperspath
-    if keyword_set(catalogs) then return, datapath+'catalogs/'
+    if keyword_set(catalogs) then begin
+       return, getenv('IM_DATA_DIR')+'/deep2/catalogs/'
+;      return, datapath+'catalogs/'
+    endif
     if keyword_set(specfit) then begin
        if keyword_set(dr3) then return, datapath+'specfit_dr3/'
        if keyword_set(dr4) then return, datapath+'specfit_dr4/'

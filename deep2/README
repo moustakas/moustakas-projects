@@ -1,0 +1,59 @@
+J. Moustakas - Siena College
+2013 July
+
+First I downloaded all the DR4 catalogs and 1D and 2D spectra from
+http://deep.ps.uci.edu/dr4/home.html
+
+The full official DEEP2 redshift catalog is called
+zcat.deep2.dr4.fits.gz (N=52989) and the catalog of unique galaxies is
+zcat.deep2.dr4.uniq.fits.gz (N=50319).  Among the unique galaxy
+sample, N=35781 have Q>=3.
+
+However, I found that not all the objects in this redshift catalog
+have 1D/2D spectra, or some of the spectra that can be downloaded are
+empty.  (Similarly, not all the 1D/2D spectra that can be downloaded
+have redshifts, but that's to be expected.)
+
+The code 'deep2_check_spec1d_dr4' runs through the full catalog of
+unique objects and checks the fidelity of the 1D spectra and produces
+three files:
+    zcat.dr4.nospec1d.fits.gz (N=1272)
+    zcat.dr4.junkspec1d.fits.gz (N=186)
+    zcat.dr4.goodspec1d.fits.gz (N=48861)
+    zcat.dr4.goodspec1d.Q34.fits.gz (N=34817)
+
+The first catalog contains objects in the redshift catalog without 1D
+spectra; the second catalog has objects with 1D spectra that contain
+all zeros (or more specifically all the inverse variances are zero,
+although most have Q<3); and the third catalog is my revised
+high-fidelity redshift catalog of (unique) objects with good spectra
+(contains 97% of the original objects).  The last catalog also has the
+following cuts applied:
+    ZBEST GT 0 && ZQUALITY GE 3
+
+The 'zcat.dr4.goodspec1d.Q34.fits.gz' redshift catalog is used in all
+my subsequent analysis.  Note that these catalogs can be accessed
+using the 'read_deep2_zcat()' script.
+
+Next, create a line-matched photometric catalog by running
+'build_deep2_photo_catalog', which matches the Matthews+13 extended
+photometric catalog (BRI and ugriz) to my new redshift catalog.  Note
+that some objects in the original redshift catalog do not have entries
+in the Matthews+13 catalog, even though they should, so for these I
+use the original BRI photometry contained in the redshift catalog.
+The output files are:
+    photo.dr4.goodspec1d.fits.gz (N=48861)
+    photo.dr4.goodspec1d.Q34.fits.gz (N=34817)
+
+Next, compute K-corrections for just the Q34 sample using
+'deep2_kcorrect', which creates the line-matched file:
+    kcorr.dr4.goodspec1d.Q34.fits.gz (N=34817)
+
+Next, model the nebular emission lines in the Q34 sample using
+'deep2_specfit_dr4', which runs on each individual DEEP2 mask.  All
+the masks are merged together using 'deep2_merge_specfit', producing
+an emission-line catalog that is line-matched to the parent Q34
+redshift catalog:
+    speclinefit.dr4.fits.gz (N=34817)
+
+    

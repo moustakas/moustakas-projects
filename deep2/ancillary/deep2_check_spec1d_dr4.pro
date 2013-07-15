@@ -11,18 +11,18 @@ pro deep2_check_spec1d_dr4, debug=debug
     datapath = deep2_path(/dr4)
     catalogs_path = deep2_path(/catalogs)
 
-    zcat = read_deep2_zcat(dr=dr)
+; read the full redshift catalog    
+    zcat = mrdfits(catalogs_path+'zcat.deep2.dr4.uniq.fits.gz',1)
     ngalaxy = n_elements(zcat)
 
 ; first find all the 1D spectra on disk; replace some dumb EB, EC, and
 ; WB extensions to enable the matching
-    
     spawn, 'find '+datapath+' -name "*.fits" -print', spec1dfile_ondisk, /sh
-    spec1dfile_ondisk_trim = repstr(repstr(repstr(spec1dfile_ondisk,'WB.',''),'EB.',''),'EC.','')
+    spec1dfile_ondisk_trim = repstr(repstr(repstr(spec1dfile_ondisk,'WB.',''),$
+      'EB.',''),'EC.','')
     spec1dfile_ondisk_trim = file_basename(spec1dfile_ondisk_trim)
     
 ; now form the 1D spectrum name from the redshift catalog    
-    
     slit = string(zcat.slit,format='(I3.3)')
     mask = string(zcat.mask,format='(I4.4)')
     obj = string(zcat.objname,format='(I0)')
@@ -32,7 +32,6 @@ pro deep2_check_spec1d_dr4, debug=debug
 ; ALLGOODINDX refers to SPEC1DFILE_ZCAT *not* SPEC1DFILE; you can
 ; check this by printing minmax(allgoodindx); also, all the CMSET_OP
 ; arrays need to be sorted
-    
     notinzcatindx = cmset_op(spec1dfile_ondisk_trim,'and',/not2,spec1dfile_zcat,/index) ; spectrum exists, but not in ZCAT
     nospec1dindx = cmset_op(spec1dfile_zcat,'and',/not2,spec1dfile_ondisk_trim,/index)  ; in ZCAT, but no spectrum exists
     allgoodindx = cmset_op(spec1dfile_zcat,'and',spec1dfile_ondisk_trim,/index)         ; in ZCAT *and* spectrum exists
@@ -43,10 +42,8 @@ pro deep2_check_spec1d_dr4, debug=debug
 
 ; the only files that should fail this test is ones with EB, EC, and
 ; WB in the file name
-    
 ;   verify = where(strtrim(spec1dfile_zcat_good,2) ne file_basename(spec1dfile_ondisk_good))
 ;   niceprint, spec1dfile_zcat_good[verify], file_basename(spec1dfile_ondisk_good[verify])
-    
     help, spec1dfile_ondisk, spec1dfile_zcat, spec1dfile_zcat_good, $
       allgoodindx, allgoodindx_ondisk, nospec1dindx, notinzcatindx
 
@@ -60,7 +57,6 @@ pro deep2_check_spec1d_dr4, debug=debug
     endif
 
 ; look for duplicates - none in the 2007-Aug version of DR3!
-
 ;   for ii = 0L, ngalaxy-1L do begin
 ;      nobj = total(strmatch(spec1dfile,spec1dfile_zcat[ii]))
 ;      if (nobj gt 1.0) then splog, 'Multiple spectra for '+spec1dfile_zcat[ii]
@@ -79,7 +75,6 @@ pro deep2_check_spec1d_dr4, debug=debug
 
 ; loop through to check for empty spectra and to store the minimum and
 ; maximum wavelengths
-
 ;   for ii = 0L, 50 do begin
     for ii = 0L, ngalaxy-1L do begin
 
@@ -130,13 +125,18 @@ pro deep2_check_spec1d_dr4, debug=debug
     endfor       
     
 ; write out    
-    
     goodindx = where((zcat_out.junkspec1d eq 0) and (zcat_out.extract_flag eq 0))
     if (goodindx[0] ne -1L) then begin
        zcat_good = zcat_out[goodindx]
-       splog, 'Writing '+catalogs_path+'zcat.'+dr+'.uniq.good.fits'
-       mwrfits, zcat_good, catalogs_path+'zcat.'+dr+'.uniq.good.fits', /create
-       spawn, 'gzip -f '+catalogs_path+'zcat.'+dr+'.uniq.good.fits', /sh
+       splog, 'Writing '+catalogs_path+'zcat.'+dr+'.goodspec1d.fits'
+       mwrfits, zcat_good, catalogs_path+'zcat.'+dr+'.goodspec1d.fits', /create
+       spawn, 'gzip -f '+catalogs_path+'zcat.'+dr+'.goodspec1d.fits', /sh
+
+; also write out the sample of Q>=3 objects
+       q34 = where(zcat_good.zbest gt 0 and zcat_good.zquality ge 3)
+       splog, 'Writing '+catalogs_path+'zcat.'+dr+'.goodspec1d.Q34.fits'
+       mwrfits, zcat_good[q34], catalogs_path+'zcat.'+dr+'.goodspec1d.Q34.fits', /create
+       spawn, 'gzip -f '+catalogs_path+'zcat.'+dr+'.goodspec1d.Q34.fits', /sh
     endif
 
 ; among the junk spectra, all of them have ZQUALITY<3; among the

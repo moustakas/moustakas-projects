@@ -1,7 +1,6 @@
 pro deep2_merge_specfit, specdata, test=test, write=write
 ; jm07sep28nyu - based on AGES_MERGE_SPECFIT
 
-    version = deep2_version(/ispec)
     catpath = deep2_path(/catalogs)
     specfitpath = deep2_path(/specfit,/dr4)
 
@@ -25,8 +24,7 @@ pro deep2_merge_specfit, specdata, test=test, write=write
        specdata = [temporary(specdata),specdata1]
     endfor
 
-    outfile = catpath+'deep2_'+prefix+'specdata_'+version+'.fits'
-    
+    outfile = catpath+'speclinefit.dr4.fits'
     if keyword_set(write) then begin
        splog, 'Writing '+outfile+'.'
        mwrfits, specdata, outfile, /create

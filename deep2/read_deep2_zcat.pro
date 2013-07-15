@@ -1,34 +1,31 @@
-function read_deep2_zcat, dr=dr, all=all
+function read_deep2_zcat, dr=dr, all=all, photo=photo
 ; jm06aug28uofa
 ; jm13jun17siena - updated to DR4
-; jm13jul14siena - read all the unique good redshifts with good 1D
-;   spectra by default (as determined by DEEP2_CHECK_SPEC1D_DR4),
-;   otherwise read the unique redshift catalog packaged by Cooper on
-;   the DR4 website 
+; jm13jul14siena - by default read the sample of objects with (Q>=3)
+;   redshifts *and* with good 1D spectra (as determined by
+;   DEEP2_CHECK_SPEC1D_DR4), unless /ALL is set in which read
+;   even the low-quality redshift objects
 
-    zcatpath = deep2_path(/catalogs)
-    if (n_elements(dr) eq 0L) then dr = 'dr4'
+    catpath = deep2_path(/catalogs)
+    if (n_elements(dr) eq 0) then dr = 'dr4'
 
-    version = '' ; dr4
-;   version = 'v1_0' ; this is a DEEP2 internal version number for dr3
+    if keyword_set(all) then suffix = '' else suffix = '.Q34'
+    zcatfile = 'zcat.'+dr+'.goodspec1d'+suffix+'.fits.gz'
 
-    suffix = version+'.uniq.good' ; default
-    if keyword_set(all) then suffix = version
-
-    zcatfile = 'zcat.'+dr+suffix+'.fits.gz' ; dr3 
-;   zcatfile = 'zcat.deep2.'+dr+'.'+suffix+'.fits.gz' ; dr4
-
-    if (file_test(zcatpath+zcatfile) eq 0L) then begin
-       splog, 'Redshift catalog '+zcatpath+zcatfile+' not found.'
+    if (file_test(catpath+zcatfile) eq 0L) then begin
+       splog, 'Redshift catalog '+catpath+zcatfile+' not found.'
        return, -1
     endif
 
-    splog, 'Reading '+zcatpath+zcatfile
-    zcat = mrdfits(zcatpath+zcatfile,1,/silent)
+    splog, 'Reading '+catpath+zcatfile
+    zcat = mrdfits(catpath+zcatfile,1,/silent)
 
-; keep just the good ones    
-    if keyword_set(all) eq 0 then zcat = zcat[where((zcat.z gt 0.0) and $
-      (zcat.zquality ge 3L))]
-
+; also optionally read in the line-matched photometry file
+    if arg_present(photo) then begin
+       photofile = 'photo.'+dr+'.goodspec1d'+suffix+'.fits.gz'
+       splog, 'Reading '+catpath+photofile
+       photo = mrdfits(catpath+photofile,1,/silent)
+    endif
+    
 return, zcat
 end

@@ -12,7 +12,7 @@ pro deep2_specfit_dr4, zcat, thismask=thismask, firstmask=firstmask, $
     if keyword_set(doplot) or keyword_set(test) then $
       silent = 0 else silent = 1
     
-    if (n_elements(zcat) eq 0L) then zcat = read_deep2_zcat() ; read just the good spectra
+    if (n_elements(zcat) eq 0L) then zcat = read_deep2_zcat() ; Q34 sample
 
     version = deep2_version(/ispec)
     spec1dpath = deep2_path(/dr4)
@@ -83,7 +83,7 @@ pro deep2_specfit_dr4, zcat, thismask=thismask, firstmask=firstmask, $
        vlinemaxtweak = 500.0    ; [km/s]
        sigmax = replicate(5000.0,nobj)
 
-       specdata = ispeclinefit_unfluxed(wave,flux,invvar,zobj=zcat_mask.z,$
+       specdata = ispeclinefit_unfluxed(wave,flux,invvar,zobj=zcat_mask.zbest,$
          specres=specres,sigmax=sigmax,galaxy=zcat_mask.galaxy,outpath=specfitpath,$
          suffix=suffix,linefile=linefile,specfit=specfit,/nologfile,$
          vlinemaxtweak=vlinemaxtweak,/clobber,silent=silent,doplot=doplot,$

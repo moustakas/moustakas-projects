@@ -1,7 +1,7 @@
 function read_bcg_profiles, cluster, scale=scale, these_filters=these_filters
 ; jm13may20siena - read a M. Postman style BCG profile file 
 
-    profilepath = getenv('CLASH_DATA')+'/bcg_profiles/13may20/'
+    profilepath = getenv('CLASH_DATA')+'/bcg_profiles/13jul17/'
     if n_elements(cluster) eq 0 then begin
        splog, 'Need CLUSTER name.'
        return, -1
@@ -53,8 +53,18 @@ function read_bcg_profiles, cluster, scale=scale, these_filters=these_filters
     for ii = 0, nfilt-1 do begin
        data1 = data_template
        file1 = file_search(allfile[ii],count=nfile)
+; multiple files
+       if nfile gt 1 then begin
+          splog, 'Warning: multiple profile files!'
+          niceprint, '   '+file_basename(file1)
+          date = strmid(file1,15,8,/reverse)
+          this = max(date,indx1)
+          file1 = file1[indx1]
+          nfile = 1
+       endif
+       
        if nfile eq 0 then check[ii] = 0 else begin
-          txt = djs_readilines(allfile[ii],nhead=4,head=head)
+          txt = djs_readilines(file1,nhead=4,head=head)
           scale = double(strmid(head[2],strpos(head[2],'Scale = ')+8)) ; [arcsec/pixel]
 
           niso = n_elements(txt)
@@ -82,64 +92,52 @@ function read_bcg_profiles, cluster, scale=scale, these_filters=these_filters
        if ii eq 0 then data = data1 else data = [data,data1]
     endfor
     
-; now go back through and compute the apparent magnitude (and maggies)
-; at each position along the semimajor axis by multiplying the SB by
-; the area of each isophote; this is a hack because the position
-; angles and ellipticities of the isophotes change with semi-major
-; axis, but just assume uniform (median) ellipse parameters
-    f160w = where(short eq 'f160w')
-    good = where(data[f160w].pa gt -90 and data[f160w].ell gt -90,ngood)
-    medpa = djs_median(data[f160w].pa[good])
-    medell = djs_median(data[f160w].ell[good])
-
-    sma = data[f160w].sma[good]
-    area = fltarr(ngood)
-    for rr = 0, ngood-1 do begin
-       case rr of
-          0: begin
-             rin = 0
-             rout = data[f160w].sma[good[rr]]+(data[f160w].sma[good[rr+1]]-data[f160w].sma[good[rr]])/2
-          end
-          ngood-1: begin
-             diff = (data[f160w].sma[good[rr]]-data[f160w].sma[good[rr-1]])/2
-             rin = data[f160w].sma[good[rr]]-diff
-             rout = data[f160w].sma[good[rr]]+diff
-          end
-          else: begin
-             rin = data[f160w].sma[good[rr]]-(data[f160w].sma[good[rr]]-data[f160w].sma[good[rr-1]])/2
-             rout = data[f160w].sma[good[rr]]+(data[f160w].sma[good[rr+1]]-data[f160w].sma[good[rr]])/2
-          end
-       endcase
-;      splog, rin, data[f160w].sma[good[rr]], rout
-
-       area[rr] = !pi*medell*(rout^2-rin^2)/arcsec2kpc^2 ; [arcsec^2]
-;      area[rr] = !pi*data[f160w].ell[good[rr]]*(rout^2-rin^2)/arcsec2kpc^2 ; [arcsec^2]
-    endfor
-
-; now get ABmag and maggies in each band by scaling by the area
-    for ii = 0, nfilt-1 do begin
-       good1 = where(data[ii].mu[good] gt -90,ngood1)
-       if ngood1 ne 0 then begin
-          data[ii].abmag[good[good1]] = data[ii].mu[good[good1]] - 5*alog10(area[good1])
-          data[ii].abmag_err[good[good1]] = data[ii].mu[good[good1]]
-          data[ii].maggies[good[good1]] = mag2maggies(data[ii].abmag[good[good1]],$
-            magerr=data[ii].abmag_err[good[good1]],ivarmaggies=ivarmaggies)
-          data[ii].ivarmaggies[good[good1]] = ivarmaggies
-       endif   
-;      niceprint, area, data[ii].abmag[good] & print
-    endfor
-
-;    for rr = nrmax-1, 0, -1 do begin          
-;       good = where(data[f160w].pa[rr] gt -90 and data[f160w].ell[rr] gt -90,ngood)
-;;      good = where(data.pa[rr] gt -90 and data.ell[rr] gt -90,ngood)
-;       if (ngood gt 0) then begin
-;          medpa = data[f160w].pa[rr]
-;          medell = data[f160w].ell[rr]
-;;         medpa = median(data[good].pa[rr])
-;;         medell = median(data[good].ell[rr])
-;       endif
+;; now go back through and compute the apparent magnitude (and maggies)
+;; at each position along the semimajor axis by multiplying the SB by
+;; the area of each isophote; this is a hack because the position
+;; angles and ellipticities of the isophotes change with semi-major
+;; axis, but just assume uniform (median) ellipse parameters
+;    f160w = where(short eq 'f160w')
+;    good = where(data[f160w].pa gt -90 and data[f160w].ell gt -90,ngood)
+;    medpa = djs_median(data[f160w].pa[good])
+;    medell = djs_median(data[f160w].ell[good])
+;
+;    sma = data[f160w].sma[good]
+;    area = fltarr(ngood)
+;    for rr = 0, ngood-1 do begin
+;       case rr of
+;          0: begin
+;             rin = 0
+;             rout = data[f160w].sma[good[rr]]+(data[f160w].sma[good[rr+1]]-data[f160w].sma[good[rr]])/2
+;          end
+;          ngood-1: begin
+;             diff = (data[f160w].sma[good[rr]]-data[f160w].sma[good[rr-1]])/2
+;             rin = data[f160w].sma[good[rr]]-diff
+;             rout = data[f160w].sma[good[rr]]+diff
+;          end
+;          else: begin
+;             rin = data[f160w].sma[good[rr]]-(data[f160w].sma[good[rr]]-data[f160w].sma[good[rr-1]])/2
+;             rout = data[f160w].sma[good[rr]]+(data[f160w].sma[good[rr+1]]-data[f160w].sma[good[rr]])/2
+;          end
+;       endcase
+;;      splog, rin, data[f160w].sma[good[rr]], rout
+;
+;       area[rr] = !pi*medell*(rout^2-rin^2)/arcsec2kpc^2 ; [arcsec^2]
+;;      area[rr] = !pi*data[f160w].ell[good[rr]]*(rout^2-rin^2)/arcsec2kpc^2 ; [arcsec^2]
 ;    endfor
-          
+;
+;; now get ABmag and maggies in each band by scaling by the area
+;    for ii = 0, nfilt-1 do begin
+;       good1 = where(data[ii].mu[good] gt -90,ngood1)
+;       if ngood1 ne 0 then begin
+;          data[ii].abmag[good[good1]] = data[ii].mu[good[good1]] - 5*alog10(area[good1])
+;          data[ii].abmag_err[good[good1]] = data[ii].mu[good[good1]]
+;          data[ii].maggies[good[good1]] = mag2maggies(data[ii].abmag[good[good1]],$
+;            magerr=data[ii].abmag_err[good[good1]],ivarmaggies=ivarmaggies)
+;          data[ii].ivarmaggies[good[good1]] = ivarmaggies
+;       endif   
+;;      niceprint, area, data[ii].abmag[good] & print
+;    endfor
 
 ; was this cluster fitted?    
     if total(check) eq 0.0 then begin

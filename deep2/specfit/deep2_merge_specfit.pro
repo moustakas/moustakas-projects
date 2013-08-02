@@ -24,7 +24,7 @@ pro deep2_merge_specfit, specdata, test=test, write=write
        specdata = [temporary(specdata),specdata1]
     endfor
 
-    outfile = catpath+'speclinefit.dr4.fits'
+    outfile = catpath+'speclinefit.dr4.goodspec1d.Q34.fits'
     if keyword_set(write) then begin
        splog, 'Writing '+outfile+'.'
        mwrfits, specdata, outfile, /create

@@ -23,7 +23,8 @@ pro bcg_profiles_isedfit, prelim=prelim, models=models, isedfit=isedfit, $
     zmax = max(use_redshift)
     nzz = n_elements(use_redshift)
 
-    filterlist = bcgimf_filterlist(instr=instr)
+    filterlist = bcgimf_filterlist(instr=instr,short=short)
+    f160w = (where(short eq 'f160w'))[0]
     wfc3ir = where(instr eq 'wfc3ir')
     nfilt = n_elements(filterlist)
     
@@ -45,6 +46,24 @@ pro bcg_profiles_isedfit, prelim=prelim, models=models, isedfit=isedfit, $
     maxage = 11.0
     AV = [0.0,0.0]
     delay_tau = [0.01,3.0]
+
+; figure out the maximum reliable radius for each cluster
+    maxrad = fltarr(ncl)
+    for ic = 0, ncl-1 do begin
+       prof = read_bcg_profiles(strtrim(clash[ic].shortname,2),$
+         these_filters=filterlist[f160w])
+       if size(prof,/type) eq 8 then begin
+          ww = where(prof.sma gt -90)
+          maxrad[ic] = max(prof.sma[ww])
+       endif
+    endfor
+    fix = where(maxrad eq 0.0,nfix,comp=good)
+    if nfix ne 0 then maxrad[fix] = median(maxrad[good])
+    niceprint, clash.shortname, maxrad
+
+    
+    
+stop
     
 ; --------------------------------------------------
 ; do the preliminaries: build the parameter files and the Monte Carlo

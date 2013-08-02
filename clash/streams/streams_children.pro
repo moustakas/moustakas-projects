@@ -48,11 +48,11 @@ pro streams_children, base, sersic=sersic, noclobber=noclobber
 ; loop on each parent
     pcat=gz_mrdfits(base+'-pcat.fits',1)
 
-splog, 'HACK!!'
-    for iparent = 303, 303 do begin
-;   for iparent = 0L, n_elements(pcat)-1 do begin
+; splog, 'HACK!!'
+;    for iparent = 303, 303 do begin
+    for iparent = 0L, n_elements(pcat)-1 do begin
        splog, 'Parent ', iparent
-    
+       
 ; read in star and galaxy locations
        sgsetfile=subdir+'/'+strtrim(string(iparent),2)+'/'+base+'-'+ $
          strtrim(string(iparent),2)+'-sgset.fits'
@@ -95,22 +95,32 @@ splog, 'HACK!!'
        for k=0L, nim-1L do begin
           if(k eq 0) then first=1 else first=0
           kuse=tuse[k]
-
-          if(keyword_set(templates[kuse]) eq 0) then begin
           
+          if(keyword_set(templates[kuse]) eq 0) then begin
+             
 ; read in image to use for templates
              timage= gz_mrdfits(nimfile, kuse, thdr,/silent)
-
+             
 ; make galaxy templates
              splog, 'Making basic templates ...'
              adxy, thdr, acat.racen, acat.deccen, xgals, ygals
              dtemplates, timage, xgals, ygals, templates=curr_templates, $
-               sersic=sersic, ikept=ikept
+               parallel=0.6, sersic=sersic, ikept=ikept
 
+;            bb = 13
+;            window, 0
+;            loadct, 0 & cgimage, cimage, /keep_aspect, /save, stretch=10
+;            djs_oplot, xgals, ygals, psym=8, color='orange'
+;            plots, xgals[bb], ygals[bb], psym=7, symsize=2, color=im_color('red')                
+;
+;            window, 1
+;            loadct, 0 & cgimage, curr_templates[*,*,bb], /save, /keep_aspect, stretch=10
+;            plots, xgals[bb], ygals[bb], psym=7, symsize=2, color=im_color('red')                
+             
              acat=acat[ikept]
              xgals= xgals[ikept]
              ygals= ygals[ikept]
-
+             
              splog, 'Smoothing templates ...'
              for i=0L, n_elements(acat)-1L do begin
                 tmp_template= curr_templates[*,*,i]
@@ -130,7 +140,7 @@ splog, 'HACK!!'
                   tmp_template[ilow]=-3.*sig
                 
                 curr_templates[*,*,i]=tmp_template
-             endfor
+             endfor 
              
              templates[kuse]=ptr_new(curr_templates)
              hdrs[kuse]=ptr_new(thdr)
@@ -159,19 +169,30 @@ splog, 'HACK!!'
           endif else begin
              ctemplates=(*templates[kuse])
           endelse
+
+          if k eq 2 and iparent eq 32 then begin
+             bb = 13
+             window, 0
+             loadct, 0 & cgimage, cimage, /keep_aspect, /save, stretch=10, /axes
+             djs_oplot, xgals, ygals, psym=8, color='orange'
+             plots, xgals[bb], ygals[bb], psym=7, symsize=2, color=im_color('red')                
+
+             window, 1
+             loadct, 0 & cgimage, ctemplates[*,*,bb], /save, /keep_aspect, stretch=10, /axes
+             plots, xgals[bb], ygals[bb], psym=7, symsize=2, color=im_color('red')
+             stop
+          endif
           
           splog, 'Finding weights ...'
           dweights, cimage, civar, ctemplates, weights=weights, /nonneg
           
           splog, 'Finding fluxes ...'
           dfluxes, cimage, ctemplates, weights, xgals, ygals, children=children
-          
+
           splog, 'Outputting results ...'
           for i=0L, n_elements(acat)-1L do begin
              aid=acat[i].aid
-             if(total(children[*,*,i]) gt 0) then begin
-                acat[i].bgood[k]= 1
-             endif 
+             if(total(children[*,*,i]) gt 0) then acat[i].bgood[k]= 1
              afile= subdir+'/'+ strtrim(string(iparent),2)+ $
                '/'+base+'-'+strtrim(string(iparent),2)+ $
                '-atlas-'+strtrim(string(aid),2)+'.fits'
@@ -191,8 +212,9 @@ splog, 'HACK!!'
           oifile= subdir+'/'+ strtrim(string(iparent),2)+ $
             '/'+base+'-ivar-'+strtrim(string(iparent),2)+'.fits'
           mwrfits, civar, oifile, phdr, create=first, /silent
+if iparent eq 32 and k eq 2 then stop
        endfor
-       
+
        if(n_tags(acat) gt 0) then begin
           acat.good= total(acat.bgood, 1) gt 0
           dhdr= dimage_hdr()

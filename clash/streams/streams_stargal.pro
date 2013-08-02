@@ -76,9 +76,10 @@ pro streams_stargal, base, plot=plot, gsmooth=gsmooth, glim=glim, $
 
     subdir= 'atlases'
     spawn, 'mkdir -p '+subdir, /sh
-splog, 'HACK!'
-    for iparent = 303, 303 do begin
-;   for iparent = 0L, n_elements(pcat)-1 do begin
+
+;   splog, 'HACK!'
+;   for iparent = 303, 303 do begin
+    for iparent = 0L, n_elements(pcat)-1 do begin
        splog, 'Parent ', iparent
        sgset.iparent=iparent
 
@@ -155,7 +156,7 @@ splog, 'HACK!'
        saddle=gsaddle*ssig
        dpeaks, simage, xc=xc, yc=yc, sigma=ssig, minpeak=glim*ssig, $
          npeaks=ngals, saddle=gsaddle, /refine, /check
-       
+
 ;; if no galaxies found, let's just assume there is one at center
 ;       if(ngals eq 0) then begin
 ;          ngals=1L

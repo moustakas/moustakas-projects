@@ -41,9 +41,12 @@ photometric catalog (BRI and ugriz) to my new redshift catalog.  Note
 that some objects in the original redshift catalog do not have entries
 in the Matthews+13 catalog, even though they should, so for these I
 use the original BRI photometry contained in the redshift catalog.
-The output files are:
-    photo.dr4.goodspec1d.fits.gz (N=48861)
-    photo.dr4.goodspec1d.Q34.fits.gz (N=34817)
+Among the full sample four objects have valid photometry in just two
+bands, so those aren't very useful; the overwhelming majority (~74%)
+have 8-band photometry (BRI+ugriz), while the remainder (~25%) have
+3-band BRI photometry.  The output files produced are:
+photo.dr4.goodspec1d.fits.gz (N=48861)
+photo.dr4.goodspec1d.Q34.fits.gz (N=34817)
 
 Next, compute K-corrections for just the Q34 sample using
 'deep2_kcorrect', which creates the line-matched file:
@@ -55,5 +58,10 @@ the masks are merged together using 'deep2_merge_specfit', producing
 an emission-line catalog that is line-matched to the parent Q34
 redshift catalog:
     speclinefit.dr4.fits.gz (N=34817)
+
+Finally, to create a tarball of all the 1D spectra for this sample of
+objects run the following command from the parent DR4 directory:
+    find . -name "spec1d*.fits.gz" -type f -print | xargs tar -rvf deep2.dr4.spec1d.tar 
+
 
     

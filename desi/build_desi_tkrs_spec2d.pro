@@ -85,7 +85,7 @@ pro build_desi_tkrs_spec2d
 ; build the 2D spectrum for each galaxy
     vname = 'default.nolines'
     k_load_vmatrix, vmatrix, lambda, vname=vname
-    cwave = k_lambda_to_centers(lambda)
+    wave = k_lambda_to_centers(lambda)
     for ii = 0, ngal-1 do begin
 ; rebuild the continuum model
 ;      cwave = wave*(1+cat[ii].z)

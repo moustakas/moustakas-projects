@@ -58,8 +58,10 @@ pro streams_measure, base, psffiles=psffiles, bulgedisk=bulgedisk, $
 
 ; loop on each parent
     pcat=gz_mrdfits(base+'-pcat.fits',1)
+
+    splog, 'Hack!!'
 ;   for iparent = 200, 280 do begin
-    for iparent = 242, 242 do begin
+    for iparent = 32, 32 do begin
 ;   for iparent = 0L, n_elements(pcat)-1 do begin
        splog, 'Parent ', iparent
     
@@ -102,16 +104,17 @@ pro streams_measure, base, psffiles=psffiles, bulgedisk=bulgedisk, $
                      measure=r_measure
                    r_sersic=0
 
+; keep the "sky" as a free parameter to allow for the ICL!                    
                    if keyword_set(mgefit) then begin
-
+                      stop                      
                    endif else begin
                       if keyword_set(bulgedisk) then begin
                          dsersic2, rimage, rinvvar, xcen=r_measure.xcen, ycen=r_measure.ycen, $
-                           sersic=r_sersic, /fixcen, /fixsky, model=refmodel, psf=psf, $
-                           bulge=bulge, disk=disk
+                           sersic=r_sersic, /fixcen, model=refmodel, psf=psf, $
+                           bulge=bulge, disk=disk, fixsky=1
                       endif else begin
                          dsersic, rimage, rinvvar, xcen=r_measure.xcen, ycen=r_measure.ycen, $
-                           sersic=r_sersic, /fixcen, /fixsky, model=refmodel, psf=psf
+                           sersic=r_sersic, /fixcen, model=refmodel, psf=psf, fixsky=1
                       endelse
                    endelse
 ; this is a bug in Blanton's code, I think
@@ -157,6 +160,8 @@ pro streams_measure, base, psffiles=psffiles, bulgedisk=bulgedisk, $
                      phi50:r_measure.phi50, $
                      ba90:r_measure.ba90, $
                      phi90:r_measure.phi90, $
+                     chi2: fltarr(nbands), $
+                     sky: fltarr(nbands), $
                      sersicflux:fltarr(nbands), $
                      sersicflux_ivar:fltarr(nbands), $
                      sersic_r50:r_sersic.sersicr50, $
@@ -167,7 +172,7 @@ pro streams_measure, base, psffiles=psffiles, bulgedisk=bulgedisk, $
                      clumpy:fltarr(nbands), $
                      dflags:lonarr(nbands), $
                      aid:aid}
-                   
+
                    for iband=0L, nbands-1L do begin
                       image=gz_mrdfits(subdir+'/'+sub+'/'+pstr+'/'+base+'-'+ $
                         pstr+'-atlas-'+astr+'.fits', iband, hdr,/silent)
@@ -186,19 +191,24 @@ pro streams_measure, base, psffiles=psffiles, bulgedisk=bulgedisk, $
                       curr_sersic.ycen= ycen
                       curr_sersic.sersicr50= r_sersic.sersicr50*scales[iband]
 
+                      delvarx, thismodel
                       if keyword_set(mgefit) then begin
                          
                       endif else begin
                          if keyword_set(bulgedisk) then begin
-                            stop
+                            dsersic2, image, invvar, xcen=xcen, ycen=ycen, $
+                              sersic=curr_sersic, /fixcen, /onlyflux, model=thismodel, $
+                              psf=psf, bulge=bulge, disk=disk, fixsky=1
                          endif else begin
                             dsersic, image, invvar, xcen=xcen, ycen=ycen, $
-                              sersic=curr_sersic, /onlyflux, /fixcen, /fixsky, $
-                              psf=psf, model=model
+                              sersic=curr_sersic, /onlyflux, /fixcen, fixsky=1, $
+                              psf=psf, model=thismodel
                          endelse
                       endelse
-                      outmodel[*,*,iband] += model
+                      outmodel[*,*,iband] = outmodel[*,*,iband] + thismodel
                       
+if iband eq 2 then stop
+
                       mall.nprof[iband]= tmp_measure.nprof
                       mall.profmean[iband,*]= tmp_measure.profmean
                       mall.profmean_ivar[iband,*]= $
@@ -212,12 +222,15 @@ pro streams_measure, base, psffiles=psffiles, bulgedisk=bulgedisk, $
                         tmp_measure.petroflux_ivar
 ;                     mall.fiberflux[iband]= tmp_measure.fiberflux
 ;                     mall.fiberflux_ivar[iband]= tmp_measure.fiberflux_ivar
+                      mall.chi2[iband]= curr_sersic.chisquared/(curr_sersic.ndof+$
+                        (curr_sersic.ndof eq 0))*(curr_sersic.ndof gt 0)
+                      mall.sky[iband]= curr_sersic.sky
                       mall.sersicflux[iband]= curr_sersic.sersicflux
                       mall.sersicflux_ivar[iband]= curr_sersic.sersicflux_ivar
                       mall.asymmetry[iband]= tmp_measure.asymmetry
                       mall.clumpy[iband]= tmp_measure.clumpy
                       mall.dflags[iband]= tmp_measure.dflags
-                   endfor
+                   endfor ; close loop on each band
 ;                  dhdr= dimage_hdr()
 ;                  mwrfits, mall, mfile, dhdr, /create
 ;                  spawn, 'gzip -f '+mfile, /sh

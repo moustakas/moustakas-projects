@@ -12,10 +12,13 @@ pro maskpops_isedfit, prelim=prelim, models=models, isedfit=isedfit, $
     
 ; gather the photometry
     cat = read_maskpops()
-;   use_redshift = cat.z ; custom redshift array
-    zmin = fix(min(cat.z*10))/10.0
-    zmax = ceil(max(cat.z*10))/10.0
-    nzz = 3
+    use_redshift = cat.z ; custom redshift array
+    zmin = min(use_redshift)
+    zmax = max(use_redshift)
+    nzz = n_elements(use_redshift)
+;   zmin = fix(min(cat.z*10))/10.0
+;   zmax = ceil(max(cat.z*10))/10.0
+;   nzz = 3
     zlog = 0
 
     filterlist = clash_filterlist()
@@ -25,9 +28,10 @@ pro maskpops_isedfit, prelim=prelim, models=models, isedfit=isedfit, $
     sfhgrid = 1
     supergrid = 1
     synthmodels = 'fsps'
+    igm = 1
+
     imf = 'chab'
     redcurve = 0 ; Calzetti
-    igm = 1
     
 ; SFHgrid priors
     nage = 50 ; 20
@@ -75,7 +79,7 @@ pro maskpops_isedfit, prelim=prelim, models=models, isedfit=isedfit, $
          result, isedfit_dir=isedfit_dir, isedfit_outfile=isedfit_outfile, $
          supergrid_paramfile=supergrid_paramfile, clobber=clobber, $
          sfhgrid_paramfile=sfhgrid_paramfile, outprefix=outprefix, $
-         thissupergrid=thissupergrid
+         thissupergrid=thissupergrid, use_redshift=use_redshift
     endif 
 
 ; --------------------------------------------------

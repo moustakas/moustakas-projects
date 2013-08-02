@@ -1,0 +1,29 @@
+CLASH/CMDM project w/ D. Lemze 
+J. Moustakas
+2013 July
+
+First, read the compilation of spectroscopic redshifts for the
+MACS1206 field, 'MACSJ1206_specz_Marc_compilation.cat' (N=2535) and
+apply the following cuts in order to isolate cluster members:
+0.4<z<0.48, which leaves N=799 objects.
+
+Next, cross-match this sample with the Subaru parent photometric
+catalog 'MACSJ1206_Subaru.cat' using a 3" search radius, which leaves
+795 objects.  (I can match all but one of the "missing" objects using
+a 10" search radius but at that point we may be matching to a
+different object, so for now I'm going to throw away the missing four
+galaxies.)
+
+Next, incorporate Mauricio's sample of cluster members, which were
+identified using the red sequence from the HST imaging.  The parent
+catalog 'mem_209g_final.pelli' contains 209 objects, of which 119 have
+spectroscopic redshifts.  For the remaining 90 objects assign the
+cluster redshift, z=0.44.
+
+Matching Mauricio's catalog to the Subaru photometric catalog using a
+3" search radius gives N=201 matching objects.  It is not clear what
+the "missing" eight objects are but it's likely due to the different
+spatial resolution of the Subaru and HST imaging.
+
+Combining both subsamples and removing duplicates leaves N=878 unique
+cluster members.

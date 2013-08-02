@@ -1,82 +1,103 @@
-pro z11_isedfit, supergrid, models=models, isedfit=isedfit, $
-  qaplot=qaplot, clobber=clobber, noirac=noirac, loz=loz
-; jm12aug14siena - fit the z=11 candidate
+pro z11_isedfit, write_paramfiles=write_paramfiles, build_montegrids=build_montegrids, $
+  models=models, isedfit=isedfit, qaplot=qaplot, clobber=clobber, $
+  thissupergrid=thissupergrid
+; jm13jul30siena - fit the z=11 candidate in preparation for our
+; Spitzer proposal
 
-    isedpath = clash_path(/z11)+'isedfit/'
-    isedfit_sfhgrid_dir = clash_path(/z11)+'montegrids/'
-    sfhgrid_paramfile = getenv('CLASH_DIR')+'/z11/z11_sfhgrid.par'
-    supergrid_paramfile = getenv('CLASH_DIR')+'/z11/z11_supergrid.par'
-
-    if n_elements(supergrid) eq 0 then supergrid = 1
-
+    prefix = 'test_z11'
+    rootpath = getenv('IM_PROJECTS_DIR')+'/clash/z11/'
+    isedfit_dir = rootpath
+    montegrids_dir = rootpath+'montegrids/'
+    isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
+    sfhgrid_paramfile = isedfit_dir+prefix+'_sfhgrid.par'
+    supergrid_paramfile = isedfit_dir+prefix+'_supergrid.par'
+    
 ; gather the photometry
+    cat = read_z11()
+    zmin = 10.79
+    zmax = 10.81
+    nzz = 3
     zlog = 0
+
+    filterlist = z11_filterlist()
+    nfilt = n_elements(filterlist)
+    
+; supergrid priors
+    sfhgrid = 1
+    supergrid = 1
+    synthmodels = 'fsps_v2.4_miles'
     igm = 1
-    if keyword_set(loz) then begin
-       prefix = 'z11_loz'
-       zminmax = [2.0,3.0]
-       nzz = 10
-    endif else begin
-       prefix = 'z11_hiz'       
-       zminmax = [10.0,12.0]
-       nzz = 20
-    endelse
+
+    imf = 'chab'
+    redcurve = -1 ; 0 ; Calzetti
     
-; do some trickery!    
-    cat = rsex(clash_path(/z11)+'M0647JD_final2sum.cat')
-    nzz = 100
-    cat = replicate(struct_addtags(cat[4],{z: 0.0}),nzz)
-    cat.z = randomu(seed,nzz)*(zminmax[1]-zminmax[0])+zminmax[0]
+; SFHgrid priors
+    nage = 40
+    nmonte = 1250
+;   Z = [0.004,0.004]
+    Z = [0.0002,0.02]
+    oiiihb = [-0.2,0.8]
+    minage = 0.005
+    maxage = 0.45
+    AV = [0.0,0.0]
+    flatAV = 1
+    delay_tau = [0.01,1.0]
 
-    super = yanny_readone(supergrid_paramfile)
-    nsuper = n_elements(super)
-    struct_print, super
+; --------------------------------------------------
+; build the parameter files
+    if keyword_set(write_paramfiles) then begin
+       write_isedfit_paramfile, filterlist, prefix=prefix, minz=zmin, $
+         maxz=zmax, nzz=nzz, igm=igm, isedfit_dir=isedfit_dir, clobber=clobber
 
-; while the computer is churning i have to (apologetically because i
-; don't typically make this an issue, but i've gotten burned in the
-; past) bring up the author order again; i only ask that i be placed
-; in proportion to the amount of work i've done and/or its
-; significance/importance for the paper; if that's N=15 so be it and
-; i'm perfectly happy.  the reason i mention this is because i did
-; *all* the metallicity work on what is now a highly-cited
-; "metallicities of starburst galaxies" paper and i didn't speak up
-; and stayed Nth author, so it's important that it
+       write_sfhgrid_paramfile, sfhgrid_paramfile, params, clobber=clobber, $
+         sfhgrid=1, nage=nage, nmonte=nmonte, Z=Z, minage=minage, $
+         maxage=maxage, AV=AV, tau=delay_tau, flatAV=flatAV, /delayed
+       write_sfhgrid_paramfile, sfhgrid_paramfile, params, clobber=clobber, $
+         sfhgrid=2, nage=nage, nmonte=nmonte, Z=Z, minage=minage, $
+         maxage=maxage, AV=AV, tau=delay_tau, flatAV=flatAV, /delayed, $
+         oiiihb=oiiihb, /nebular, /append
+
+       write_supergrid_paramfile, supergrid_paramfile, supergrid=[1,2], $
+         sfhgrid=[1,2], synthmodels=synthmodels, imf=imf, redcurve=redcurve, $
+         clobber=clobber
+    endif
+
+; build the Monte Carlo grids
+    if keyword_set(build_montegrids) then begin
+       build_montegrids, sfhgrid_paramfile, supergrid_paramfile=supergrid_paramfile, $
+         isedfit_dir=isedfit_dir, clobber=clobber, thissupergrid=thissupergrid
+    endif
     
-; loop on each supergrid
-    for gg = 0, nsuper-1 do begin
-       splog, 'working on grid '+strtrim(super[gg].supergrid,2)
-
-       paramfile = isedpath+prefix+'_supergrid'+string(super[gg].supergrid,$
-         format='(i2.2)')+'_isedfit.par'
-       z11_write_paramfile, paramfile, prefix=prefix, zminmax=zminmax, $
-         nzz=nzz, zlog=zlog, igm=igm, super=super[gg], filters=filters
-       
+; --------------------------------------------------
 ; build the models
-       if keyword_set(models) then begin
-          isedfit_models, paramfile, iopath=isedpath, clobber=clobber, $
-            isedfit_sfhgrid_dir=isedfit_sfhgrid_dir
-       endif
+    if keyword_set(models) then begin
+       isedfit_models, isedfit_paramfile, isedfit_dir=isedfit_dir, $
+         supergrid_paramfile=supergrid_paramfile, clobber=clobber, $
+         use_redshift=use_redshift, thissupergrid=thissupergrid
+    endif
 
+; --------------------------------------------------
 ; do the fitting!
-       if keyword_set(isedfit) then begin
-          z11_to_maggies, cat, maggies, ivarmaggies
-          
-          isedfit, paramfile, maggies, ivarmaggies, cat.z, iopath=isedpath, $
-            clobber=clobber, sfhgrid_paramfile=sfhgrid_paramfile, $
-            isedfit_sfhgrid_dir=isedfit_sfhgrid_dir, outprefix=outprefix
-       endif       
+    if keyword_set(isedfit) then begin
+       z11_to_maggies, cat, maggies, ivarmaggies
+       isedfit, isedfit_paramfile, maggies, ivarmaggies, cat.z, $
+         result, isedfit_dir=isedfit_dir, isedfit_outfile=isedfit_outfile, $
+         supergrid_paramfile=supergrid_paramfile, clobber=clobber, $
+         sfhgrid_paramfile=sfhgrid_paramfile, outprefix=outprefix, $
+         thissupergrid=thissupergrid, use_redshift=use_redshift
+    endif 
 
-; make some QAplots
-       if keyword_set(qaplot) then begin
-;         index = [76,404]
-          yrange = [31,21.5]
-          xrange = [2000,70000] & 
-          xlog = 1
-          isedfit_qaplot, paramfile, result, iopath=isedpath, $ ; galaxy='JD1+JD2+JD3', $
-            index=index, clobber=clobber, isedfit_sfhgrid_dir=isedfit_sfhgrid_dir, $
-            outprefix=outprefix, xrange=xrange, yrange=yrange, xlog=xlog
-       endif
-    endfor
+; --------------------------------------------------
+; make a QAplot
+    if keyword_set(qaplot) then begin
+       yrange = [31,21.5]
+       xrange = [2000,70000]
+       xlog = 1
+       isedfit_qaplot, isedfit_paramfile, supergrid_paramfile=supergrid_paramfile, $
+         isedfit_dir=isedfit_dir, montegrids_dir=montegrids_dir, $
+         outprefix=outprefix, clobber=clobber, nsigma=1.1, $
+         yrange=yrange, /xlog, thissupergrid=thissupergrid
+    endif
     
 return
 end

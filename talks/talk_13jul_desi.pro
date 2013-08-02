@@ -1,3 +1,48 @@
+function get_emlines, ewoii, cflux=cflux, cwave=cwave, z=z, $
+  newratio=newratio
+    light = im_light(/kms)
+
+    coeff0 = alog10(3600D)       ; starting rest wavelength [log-10 Angstrom]
+    coeff1 = 1D-4                ; [dispersion in log-10 Angstroms]
+    velsz = (10D^coeff1-1)*light ; [km/s]
+
+    maxwave = 6700D
+    nwavepix = long((alog10(maxwave)-coeff0)/coeff1+1)
+    logwave = coeff0 + dindgen(nwavepix)*coeff1
+
+; specify the lines we care about; for [OII] use a 1:0.71 flux ratio
+; (f_3726 = 0.71 f_3728.8) following Weiner, and for the other lines
+; adopt Mostek's values
+    restwave = [3726.032D,3728.815D,4861.33D,4958.91D,5006.84D,6562.8D]
+    lineratio = [0.415,0.585,0.4577,0.094,0.2821,2.002]
+    if keyword_set(newratio) then lineratio = [0.415,0.585,0.9,0.04,0.12,1.75]
+    linewave = alog10(restwave)
+    nline = n_elements(linewave)
+
+; specify the rest-frame emission-line EW (this will eventually come
+; from a Monte Carlo simulation); then compute the total (rest-frame)
+; [OII] flux
+    oiiwave = djs_mean([3726.032,3728.815])
+    oiiflux = ewoii*cflux ; [erg/s/cm2] 
+
+; add the emission lines (see Schlegel's linebackfit for the
+; conversions to and from log-10 A)
+    zshift = 0.0
+    sigma = 100.0/light/alog(10) ; line-width [log-10 Angstrom]
+    oiiamplitude = oiiflux/alog(10)/oiiwave/(sqrt(2.0*!pi)*sigma)
+    lineflux = logwave*0
+    for jj = 0, nline-1 do begin
+; emission-line amplitude          
+       amplitude = lineratio[jj]*oiiamplitude
+       linewave1 = linewave[jj]+alog10(1+zshift)
+       lineflux += amplitude*exp(-0.5*(logwave-linewave1)^2/sigma^2)
+    endfor
+
+    lineflux = interpolate(lineflux/(1.0+z),findex((10^logwave)*(1+z),cwave),missing=0.0)
+    
+return, lineflux
+end
+
 pro talk_13jul_desi
 ; jm13jul14siena - make some plots for the talk
 
@@ -6,9 +51,9 @@ pro talk_13jul_desi
 ; ---------------------------------------------------------------------------
 ; plot the EW([OII]) distribution from DEEP2
 
-    zz = read_deep2_zcat()
+    zz = read_deep2(/kcorr)
     ss = read_deep2(/ispec)
-    ww = where(zz.z gt 0.7 and zz.z lt 1.4 and $
+    ww = where(zz.zbest gt 0.7 and zz.zbest lt 1.4 and $
       ss.oii_3727_1[0]/ss.oii_3727_1[1] gt 5.0 and $
       ss.oii_3727_2[0]/ss.oii_3727_2[1] gt 5.0 and $
       ss.oii_3727_1_ew[0] gt 0.0 and $
@@ -16,14 +61,77 @@ pro talk_13jul_desi
     zz = zz[ww]
     ss = ss[ww]
 
+    umg = zz.ugriz_absmag_01[0]-zz.ugriz_absmag_01[1]
+    ewoii = alog10(ss.oii_3727_1_ew[0] + ss.oii_3727_2_ew[0])
+
     psfile = path+'ewoii_hist.ps'
-    im_plotconfig, 0, pos, psfile=psfile
-
-    
-    
-
+    im_plotconfig, 0, pos, psfile=psfile, height=5.0, charthick=4, $
+      width=5.5, margin=[1.6,0.2], charsize=2.0, xpage=7.3
+    djs_plot, [0], [0], /nodata, position=pos, xsty=5, ysty=5, $
+      xrange=[0.5,3.0], yrange=[0,700]
+    im_plothist, ewoii, /fill, bin=0.03, fcolor=im_color('tan'), /overplot
+    djs_plot, [0], [0], /nodata, /noerase, position=pos, xsty=1, ysty=1, $
+      xrange=[0.5,3.0], yrange=[0,700], xtitle='log EW([O II]) (\AA)', $
+      ytitle='Number of Galaxies'
+;   im_legend, 'DEEP2 at z~1', /left, /top, margin=0
+;   im_legend, 'DEEP2 at z~1', /left, /top, margin=0
     im_plotconfig, psfile=psfile, /psclose, /pdf
 
+; now show a couple example model fits
+    light = 2.99792458D18       ; speed of light [A/s]
+    filt = deep2_filterlist()
+    weff = k_lambda_eff(filterlist=filt)
+
+    get_element, 10^ewoii, [30.0,220.0], ww
+;   ww = (where(ewoii gt 1.8))[0:1]
+;   ww = [500,850]
+    splog, 10^ewoii[ww], zz[ww].zbest
+    mag = maggies2mag(zz[ww].maggies,ivarmaggies=zz[ww].ivarmaggies,magerr=magerr)
+
+    vname = 'default.nolines'
+    k_load_vmatrix, vmatrix, lambda, vname=vname
+    wave = k_lambda_to_centers(lambda)
+
+    psfile = path+'example_sedfits.ps'
+    im_plotconfig, 6, pos, psfile=psfile, ymargin=[1.1,1.1], charsize=2.0
+
+; first object    
+    cwave = wave*(1+zz[ww[0]].zbest)
+    cflux = vmatrix#zz[ww[0]].coeffs/(1+zz[ww[0]].zbest)
+    lineflux = get_emlines(10^ewoii[ww[0]],cflux=zz[ww[0]].cflux_3727,$
+      cwave=cwave,z=zz[ww[0]].zbest)
+    cflux = cflux + lineflux
+    cflux = cflux*cwave^2/light           ; observed frame
+    cflux = -2.5*alog10(cflux>1D-50)-48.6 ; [AB mag]
+
+    djs_plot, [0], [0], /nodata, position=pos[*,0], $
+      xsty=1, ysty=1, xrange=[0.15,1.25], yrange=[25.5,20], $
+      ytitle='AB mag', xtickname=replicate(' ',10)
+    djs_oplot, cwave/1D4, cflux, line=0, color='grey'
+    oploterror, weff/1D4, mag[*,0], magerr[*,0], psym=symcat(15), $
+      symsize=2.0, color=im_color('firebrick')
+    im_legend, ['EW([O II]) = 30 \AA'], /left, /top, box=0, margin=0, charsize=1.8
+    
+; second object
+    cwave = wave*(1+zz[ww[1]].zbest)
+    cflux = vmatrix#zz[ww[1]].coeffs/(1+zz[ww[1]].zbest)
+    lineflux = get_emlines(10^ewoii[ww[1]],cflux=zz[ww[1]].cflux_3727,$
+      cwave=cwave,z=zz[ww[1]].zbest,/newratio)
+    cflux = cflux + lineflux
+    cflux = cflux*cwave^2/light           ; observed frame
+    cflux = -2.5*alog10(cflux>1D-50)-48.6 ; [AB mag]
+
+    djs_plot, [0], [0], /nodata, /noerase, position=pos[*,1], $
+      xsty=1, ysty=1, xrange=[0.15,1.25], yrange=[25,18], $
+      ytitle='AB mag', xtitle='Observed-Frame Wavelength (\mu'+'m)'
+    djs_oplot, cwave/1D4, cflux, line=0, color='grey'
+    oploterror, weff/1D4, mag[*,1], magerr[*,1], psym=symcat(15), $
+      symsize=2.0, color=im_color('firebrick')
+    im_legend, ['EW([O II]) = 220 \AA'], /left, /top, box=0, margin=0, charsize=1.8
+    
+    im_plotconfig, psfile=psfile, /psclose, /pdf
+    
+    
 stop    
     
 ; ---------------------------------------------------------------------------

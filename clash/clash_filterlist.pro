@@ -10,6 +10,7 @@ function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
       'clash_wfc3_f390w.par',$
       'clash_acs_f435w.par',$
       'clash_acs_f475w.par',$
+      'clash_acs_f555w.par',$ ; archival band!
       'clash_acs_f606w.par',$
       'clash_acs_f625w.par',$
       'clash_acs_f775w.par',$
@@ -27,6 +28,7 @@ function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
       'WFC3/UVIS-F390W',$
       'ACS-F435w',$
       'ACS-F475w',$
+      'ACS-F555W',$ ; archival!
       'ACS-F606w',$
       'ACS-F625w',$
       'ACS-F775w',$
@@ -44,6 +46,7 @@ function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
       'f390w',$
       'f435w',$
       'f475w',$
+      'f555w',$ ; archival!
       'f606w',$
       'f625w',$
       'f775w',$
@@ -62,6 +65,7 @@ function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
       'wfc3uvis',$
       'acs',$
       'acs',$
+      'acs',$ ; archival!
       'acs',$
       'acs',$
       'acs',$
@@ -79,17 +83,21 @@ function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
 ;   photplam = sxpar(hdr,'PHOTPLAM')
 ;   zpt = photzpt - 2.5*alog10(photflam) - 5.0*alog10(photplam/5475.4)
     zpt = [$
+; WFC3/UVIS
       24.09656D,$
       24.17417,$
       24.64529,$
       25.37141,$
+; ACS
       25.65779,$
       26.05926,$
+      25.73468,$ ; archival!
       26.49116,$
       25.90669,$
       25.66506,$
       25.94335,$
       24.84247,$
+; WFC3/IR
       26.27068,$
       26.82514,$
       26.24736,$
@@ -110,6 +118,7 @@ function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
 ; ACS/WFC
       431.70,$
       474.44,$
+      535.964,$ ; f555w
       591.77,$
       631.05,$
       769.30,$
@@ -128,9 +137,10 @@ function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
       39.8,$
       51.1,$
       89.6,$
-; ACS/WFC ; FWHM from 
+; ACS/WFC
       69.108,$
       98.927,$
+      84.779,$ ; f555w
       158.32,$
       97.832,$
       102.34,$

@@ -23,6 +23,8 @@ pro bcg_profiles_apphot, getinfo=getinfo, photometry=photometry, $
        info.arcsec2kpc = dangular(clash.z,/kpc)/206265D ; [kpc/arcsec]
        reffilt = (where(short eq 'f160w'))[0]
 
+;      for ic = 20, 20 do begin
+       t0 = systime(1)
        for ic = 0, ncl-1 do begin
           cluster = strtrim(info[ic].shortname,2)
           if cluster eq 'a2261' then begin
@@ -54,14 +56,14 @@ pro bcg_profiles_apphot, getinfo=getinfo, photometry=photometry, $
                 
 ; find the BCG and measure its basic properties
                 splog, 'Searching for the BCG...'
-                wid = floor(150.0*0.5/pixscale/info[ic].arcsec2kpc) ; [+/-150 kpc in pixels]
-                x0 = sz[0]/2-wid/2 & x1 = sz[0]/2+wid/2
-                y0 = sz[1]/2-wid/2 & y1 = sz[1]/2+wid/2
-                model1 = model[x0:x1,y0:y1]
-                find_galaxy, model1, size, ellipticity, posangle, xcen, ycen, $
+;               wid = floor(150.0*0.5/pixscale/info[ic].arcsec2kpc) ; [+/-150 kpc in pixels]
+;               x0 = sz[0]/2-wid/2 & x1 = sz[0]/2+wid/2
+;               y0 = sz[1]/2-wid/2 & y1 = sz[1]/2+wid/2
+;               model1 = model[x0:x1,y0:y1]
+                find_galaxy, model, size, ellipticity, posangle, xcen, ycen, $
                   xcen_lum, ycen_lum, fraction=fraction, index=index, level=level
-                xcen += x0 & xcen_lum += x0
-                ycen += y0 & ycen_lum += y0
+;               xcen += x0 & xcen_lum += x0
+;               ycen += y0 & ycen_lum += y0
                 xy2ad, xcen_lum, ycen_lum, astr, ra_bcg, dec_bcg
                 info[ic].ra_bcg = ra_bcg ; update the coordinates here!
                 info[ic].dec_bcg = dec_bcg
@@ -74,6 +76,7 @@ pro bcg_profiles_apphot, getinfo=getinfo, photometry=photometry, $
        endfor
        keep = where(info.posangle gt -99)
        im_mwrfits, info[keep], infofile, clobber=clobber
+       splog, 'Total time to get info = ', (systime(1)-t0)/60.
     endif 
 
 ; ---------------------------------------------------------------------------
@@ -97,7 +100,10 @@ pro bcg_profiles_apphot, getinfo=getinfo, photometry=photometry, $
        outrad[nring-1] = radius[nring-1]+(radius[nring-1]-radius[nring-2])/2.0
 
 ; loop on each cluster    
+       t1 = systime(1)
+;      for ic = 15, 15 do begin
        for ic = 0, ncl-1 do begin
+          t0 = systime(1)
           cluster = strtrim(info[ic].shortname,2)
           splog, 'Working on cluster '+cluster
           arcsec2kpc = info[ic].arcsec2kpc ; [kpc/arcsec]
@@ -123,6 +129,7 @@ pro bcg_profiles_apphot, getinfo=getinfo, photometry=photometry, $
 ; for GAIN see notes at
 ; http://www.ifa.hawaii.edu/~rgal/science/sextractor_notes.html
           delvarx, xcen_lum, ycen_lum
+;         for ib = 12, nfilt-1 do begin
           for ib = 0, nfilt-1 do begin
              splog, 'Working on band '+short[ib]
              modelfile = file_search(modelpath+cluster+'_mosaic_'+scale+'_'+strtrim(instr[ib],2)+$
@@ -157,7 +164,8 @@ pro bcg_profiles_apphot, getinfo=getinfo, photometry=photometry, $
                   astr, xcen_lum, ycen_lum
                 xcen_lum1 = xcen_lum
                 ycen_lum1 = ycen_lum
-                sectors_photometry, model, info[ic].ellipticity, info[ic].posangle, $
+                model1 = model
+                sectors_photometry, model1, info[ic].ellipticity, info[ic].posangle, $
                   xcen_lum1, ycen_lum1, ellradius, phi, ellcounts, ellsigmacounts, $
                   n_sectors=1, sector_width=90.0, badpixels=where(totalivar eq 0)
                 
@@ -193,12 +201,13 @@ pro bcg_profiles_apphot, getinfo=getinfo, photometry=photometry, $
                   1.0-info[ic].ellipticity, info[ic].posangle
                 for ir = 0, nring-1 do begin
                    if keyword_set(debug) then begin
-                      if (ir mod 5) eq 0 then begin
+                      if (ir mod 4) eq 0 then begin
                          tvellipse, rout[ir], rout[ir]*(1-info[ic].ellipticity), sz2[0]/2, $
                            sz2[1]/2, info[ic].posangle+90, color=im_color('orange'), /data
                          tvellipse, rin[ir], rin[ir]*(1-info[ic].ellipticity), sz2[0]/2, $
                            sz2[1]/2, info[ic].posangle+90, color=im_color('orange'), /data
                       endif
+                      if ir eq nring-1 then cc = get_kbrd(1)
                    endif
                    
                    pix = where(ellrad ge rin[ir] and ellrad lt rout[ir],npix)
@@ -226,19 +235,21 @@ pro bcg_profiles_apphot, getinfo=getinfo, photometry=photometry, $
 ;                    alog10(pixscale)+zpt1 
                 endfor 
 
-                if keyword_set(debug) then begin
-                   if !d.window ne 0 then window, 2
-                   mag = maggies2mag(phot.maggies[ib,*],magerr=magerr,$
-                     ivarmaggies=phot.ivarmaggies[ib,*])
-                   ploterror, phot.radius, mag, magerr, xsty=3, ysty=3, $
-                     /xlog, psym=8, /trad
-                endif
+;               if keyword_set(debug) then begin
+;                  if !d.window ne 0 then window, 2
+;                  mag = maggies2mag(phot.maggies[ib,*],magerr=magerr,$
+;                    ivarmaggies=phot.ivarmaggies[ib,*])
+;                  ploterror, phot.radius, mag, magerr, xsty=3, ysty=3, $
+;                    /xlog, psym=8, /trad
+;               endif
              endif else splog, '  No photometry in band '+short[ib]
           endfor
 ; write out
           outfile = outpath+cluster+'_bcg_apphot.fits'
           im_mwrfits, phot, outfile, clobber=clobber
+          splog, 'Total time for this cluster = ', (systime(1)-t0)/60.
        endfor 
+       splog, 'Total time for all clusters = ', (systime(1)-t1)/60.
     endif 
 
 ; write out txt files for Jack

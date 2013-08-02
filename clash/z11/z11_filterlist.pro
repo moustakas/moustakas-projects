@@ -1,4 +1,5 @@
-function z11_filterlist, short_filter=short_filter, nice_filter=nice_filter, weff=weff, fwhm=fwhm
+function z11_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
+  weff=weff, fwhm=fwhm, pivotwave=pivotwave, width=width
 ; jm12aug14siena
 
     filterlist = [$
@@ -56,11 +57,60 @@ function z11_filterlist, short_filter=short_filter, nice_filter=nice_filter, wef
       'f140w',$
       'f160w']
 
+    pivotwave = [$
+; WFC3/UVIS
+      235.9,$
+      270.4,$
+      335.5,$
+      392.1,$
+; ACS/WFC
+      431.70,$ ; f435w
+      474.44,$
+      535.964,$ ; f555w
+      591.77,$
+      631.05,$
+      769.30,$
+      805.98,$
+      905.48,$
+; WFC3/IR
+      1055.2,$
+      1153.4,$
+      1248.6,$
+      1392.3,$
+      1536.9]*10 ; Angstrom
+
+    width = [$
+; WFC3/UVIS
+      46.7,$
+      39.8,$
+      51.1,$
+      89.6,$
+; ACS/WFC ; FWHM from 
+      69.108,$
+      98.927,$
+      84.779,$ ; f555w
+      158.32,$
+      97.832,$
+      102.34,$
+      154.16,$
+      127.03,$
+; WFC3/IR
+      265.0,$
+      443.0,$
+      284.5,$
+      384.0,$
+      268.3]*10                 ; Angstrom
+    
 ; add IRAC    
     filterlist = [filterlist,(irac_filterlist())[0:1]]
     nice_filter = [nice_filter,'IRAC-[ch1]','IRAC-[ch2]']
     short_filter = [short_filter,'ch1','ch2']
 
+    pivotwave = [pivotwave,1D4*[3.551,4.496]];,5.724,7.884]]
+;   width = [width,[0.7,1.0,1.5,3.0]*1D4] ; approximate for IRAC!
+    width = [width,[4313.0,5712]*2] ; approximate for IRAC!
+    
+    
     if arg_present(weff) then weff = k_lambda_eff(filterlist=filterlist)
 
 return, filterlist

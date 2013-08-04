@@ -249,6 +249,8 @@ pro z11_plots
 ;   qquant = [0.5,0.25,0.75]
     qquant = [0.5,0.05,0.95]
 ;   qquant = [0.5,0.5-errorf(1.0/sqrt(2))/2, 0.5+errorf(1.0/sqrt(2))/2]
+
+    version1 = 0
     
     psfile = rootpath+'z11_posteriors.ps'
     im_plotconfig, 5, pos, psfile=psfile, xspace=0.2, yspace=1.0, $
@@ -265,14 +267,18 @@ pro z11_plots
     splog, 'Stellar mass (5 hours) ', alog10(quant0[0]), alog10(quant0[1:2]/quant0[0])
     splog, 'Stellar mass (50 hours) ', alog10(quant1[0]), alog10(quant1[1:2]/quant1[0])
     
+    if keyword_set(version1) then xr = [1D7,1D10] else xr = [4D8,1D10]
     bin = 0.05
-    render_postplot, 10^(allpost_super2[1].mstar[these1]-logmu), pos[*,0], xrange=[1D7,1D10], $
+    render_postplot, 10^(allpost_super2[1].mstar[these1]-logmu), pos[*,0], xrange=xr, $
       ytitle='', /logbins, binsize=bin, /xlog, $
       xtitle='Stellar Mass [(\mu/7)^{-1} M'+sunsymbol()+']', line=0, color_outline='black'
 ;   render_postplot, 10^(allpost_super2[1].mstar[these1[best1]]-logmu), pos[*,0], /overplot, $
 ;     /logbins, binsize=bin, color_fill='navy'
-    render_postplot, 10^(allpost_super2[0].mstar[these0]-logmu), pos[*,0], /overplot, $
-      binsize=bin, color_outline='black', /nofill, /logbins, line=1, thick=6
+
+    if keyword_set(version1) then begin
+       render_postplot, 10^(allpost_super2[0].mstar[these0]-logmu), pos[*,0], /overplot, $
+         binsize=bin, color_outline='black', /nofill, /logbins, line=1, thick=6
+    endif
 
 ;   im_legend, 
     
@@ -289,11 +295,16 @@ pro z11_plots
     splog, 'sSFR (5 hours) ', 10^quant0[0], -(10^quant0[0]-10^quant0[1]), 10^quant0[2]-10^quant0[0]
     splog, 'sSFR (50 hours) ', 10^quant1[0], -(10^quant1[0]-10^quant1[1]), 10^quant1[2]-10^quant1[0]
 
-    bin = 0.06
-    render_postplot, allpost_super2[1].sfrm[these1], pos[*,1], /noerase, xrange=[-1.5,2.5], $
-      xtitle='log_{10} sSFR [Gyr^{-1}]', bin=bin, line=0, color_outline='black'
-    render_postplot, allpost_super2[0].sfrm[these0], pos[*,1], /overplot, bin=bin, $
-      /nofill, color_outline='black', line=1, thick=6, /logbins, /xlog
+    if keyword_set(version1) then xr = [-1.5,2.5] else xr = [-1.4,0.5]
+    bin = 0.1
+    render_postplot, allpost_super2[1].sfrm[these1], pos[*,1], /noerase, xrange=xr, $
+      xtitle='log_{10} sSFR [Gyr^{-1}]', bin=bin, line=0, color_outline='black', $
+      xtickinterval=0.5
+
+    if keyword_set(version1) then begin
+       render_postplot, allpost_super2[0].sfrm[these0], pos[*,1], /overplot, bin=bin, $
+         /nofill, color_outline='black', line=1, thick=6, /logbins, /xlog
+    endif
 
 ;   bin = 0.05
 ;   render_postplot, 10^(allpost_super2[1].sfrm[these1]), pos[*,1], /noerase, xrange=[0.1,100], $
@@ -314,11 +325,16 @@ pro z11_plots
     splog, 'Age (5 hours) ', quant0[0], -(quant0[0]-quant0[1]), quant0[2]-quant0[0]
     splog, 'Age (50 hours) ', quant1[0], -(quant1[0]-quant1[1]), quant1[2]-quant1[0]
     
+    if keyword_set(version1) then xr = [-20,450] else xr = [0,350]
     bin = 15.0
-    render_postplot, allpost_super2[1].sfrage[these1]*1E3, pos[*,2], xrange=[-20,450], /noerase, $
-      xtitle='Age [SFR-weighted, Myr]', xtickinterval=100, bin=bin, /nonorm, line=0, color_outline='black'
-    render_postplot, allpost_super2[0].sfrage[these0]*1E3, pos[*,2], bin=bin, /overplot, /nonorm, $
-      /nofill, color_outline='black', line=1, thick=6
+    render_postplot, allpost_super2[1].sfrage[these1]*1E3, pos[*,2], xrange=xr, /noerase, $
+      xtitle='Age [SFR-weighted, Myr]', xtickinterval=100, bin=bin, /nonorm, line=0, $
+      color_outline='black'
+
+    if keyword_set(version1) then begin
+       render_postplot, allpost_super2[0].sfrage[these0]*1E3, pos[*,2], bin=bin, /overplot, /nonorm, $
+         /nofill, color_outline='black', line=1, thick=6
+    endif
 
 ; beta
     quant0 = weighted_quantile(allpost_super2[0].beta[these0],prob0[these0],quant=qquant)
@@ -333,11 +349,15 @@ pro z11_plots
     splog, 'beta (5 hours) ', quant0[0], -(quant0[0]-quant0[1]), quant0[2]-quant0[0]
     splog, 'beta (50 hours) ', quant1[0], -(quant1[0]-quant1[1]), quant1[2]-quant1[0]
 
+    if keyword_set(version1) then xr = [-3.0,-0.5] else xr = [-2.0,-1]
     bin = 0.04
-    render_postplot, allpost_super2[1].beta[these1], pos[*,3], xrange=[-3.0,-0.5], /noerase, $
+    render_postplot, allpost_super2[1].beta[these1], pos[*,3], xrange=xr, /noerase, $
       xtitle='UV Slope \beta', xtickinterval=0.5, bin=bin, /nonorm, line=0, color_outline='black'
-    render_postplot, allpost_super2[0].beta[these0], pos[*,3], bin=bin, /overplot, /nonorm, $
-      /nofill, color_outline='black', line=1, thick=6
+
+    if keyword_set(version1) then begin
+       render_postplot, allpost_super2[0].beta[these0], pos[*,3], bin=bin, /overplot, /nonorm, $
+         /nofill, color_outline='black', line=1, thick=6
+    endif
     
 ; titles    
     xyouts, pos[0,0]-0.06, (pos[3,0]-pos[1,2])/2.0+pos[1,2], 'Marginalized Posterior Probability', $

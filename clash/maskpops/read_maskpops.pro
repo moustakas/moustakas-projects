@@ -16,7 +16,8 @@ function read_maskpops1, file
        if file_test(file) eq 0 then message, 'No file found!'
        phot = rsex(file)
 ;      niceprint, phot.abmag_zpt & print
-       filt = clash_filterlist(short=short)
+       filt = maskpops_filterlist(short=short)
+;      filt = clash_filterlist(short=short)
        nfilt = n_elements(filt)
 
        cat = {prefix: '', z: 0.0}
@@ -33,13 +34,13 @@ function read_maskpops
 ; it into the standard iSEDfit catalog format
 
     path = maskpops_path()
-    metafile = path+'roiphot_arcs.dat'
-;   metafile = path+'roiphot_startup.dat'
+;   metafile = path+'roiphot_arcs.dat'
+    metafile = path+'roiphot_startup.dat'
     meta = rsex(metafile)
 
-    file = strtrim(meta.rootname,2)+'_'+strtrim(meta.scaledir,2)+'_phot.cat'
-;   file = strtrim(meta.cluster,2)+'_'+strtrim(meta.rootname,2)+'_'+$
-;     strtrim(meta.scaledir,2)+'_'+strtrim(meta.datestamp,2)+'_phot.cat'
+;   file = strtrim(meta.rootname,2)+'_'+strtrim(meta.scaledir,2)+'_phot.cat'
+    file = strtrim(meta.cluster,2)+'_'+strtrim(meta.rootname,2)+'_'+$
+      strtrim(meta.scaledir,2)+'_'+strtrim(meta.datestamp,2)+'_phot.cat'
     cat = read_maskpops1(path+file)
 
     cat.z = meta.redshift

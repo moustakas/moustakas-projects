@@ -33,7 +33,7 @@ pro maskpops_to_maggies, clash, maggies, ivar, filterlist=filterlist, zpt=zpt
        return
     endif
 
-    filterlist = clash_filterlist(short_filter=filt)
+    filterlist = maskpops_filterlist(short_filter=filt)
     nbands = n_elements(filterlist)
 
     tags = filt+'_flux'

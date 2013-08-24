@@ -8,10 +8,13 @@ pro build_mgfe_sample
 
     phot = phot[ppxf.ages_id]
     kcorr = kcorr[ppxf.ages_id]
-    
-    indx = where(ppxf.oii_3727_ew[0] lt 1.0 and ppxf.d4000_narrow[0] gt 1.5 and $
-      ppxf.vdisp ne 165.0 and ppxf.z gt 0.05 and ppxf.z lt 0.7)
+
+    indx = lindgen(n_elements(phot))
+;   indx = where(ppxf.vdisp ne 165.0 and ppxf.z gt 0.05 and ppxf.z lt 0.75)
+;   indx = where(ppxf.oii_3727_ew[0] lt 1.0 and ppxf.d4000_narrow[0] gt 1.5 and $
+;     ppxf.vdisp ne 165.0 and ppxf.z gt 0.05 and ppxf.z lt 0.7)
 ;   qaplot_ages_gandalf_specfit, ppxf[indx[0:10]], ss, psfile='~/junk.ps'
+
     specfit = read_ages_gandalf_specfit(ppxf[indx])
 
 ; write out

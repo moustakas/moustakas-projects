@@ -22,7 +22,7 @@ pro write_sdss_wise_input, write=write, parse=parse
     dr = 'dr9'
     outpath = sdss_path()+dr+'/'
     wisepath = outpath+'wise/'
-    photofile = outpath+'photoPosPlate-dr9.fits'
+o    photofile = outpath+'photoPosPlate-dr9.fits'
     
     if keyword_set(write) then begin
        cat = hogg_mrdfits(photofile,1,columns=['ra','dec'],nrow=50000L)  ;,range=[0,10000])

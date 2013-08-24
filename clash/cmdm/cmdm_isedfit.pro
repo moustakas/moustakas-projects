@@ -15,14 +15,15 @@ pro cmdm_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
     filterlist = clash_subaru_filterlist()
     nfilt = n_elements(filterlist)
     
+    nmodel = 500L ; 30000L
+
 ; --------------------------------------------------
 ; do the preliminaries: build the parameter files and the Monte Carlo
 ; grids
     if keyword_set(write_paramfile) then begin
-       nmodel = 30000L
        write_isedfit_paramfile, params=params, isedfit_dir=isedfit_dir, $
          prefix=prefix, filterlist=filterlist, zminmax=[0.40,0.48], nzz=10, $
-         synthmodels='fsps_v2.4_miles', imf='salp', redcurve='calzetti', /igm, $
+         spsmodels='fsps_v2.4_miles', imf='salp', redcurve='calzetti', /igm, $
          sfhgrid=1, nmodel=nmodel, age=[0.1,9.2], tau=[0.01,5.0], $
          Zmetal=[0.003,0.03], pburst=0.1, interval_pburst=1.5, $
          oiiihb=[-1.0,1.0], /nebular, /delayed, clobber=clobber
@@ -30,7 +31,7 @@ pro cmdm_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
 
     if keyword_set(build_grids) then begin
        isedfit_montegrids, isedfit_paramfile, isedfit_dir=isedfit_dir, $
-         montegrids_dir=montegrids_dir, clobber=clobber, thissfhgrid=thissfhgrid
+         montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, clobber=clobber
     endif
 
 ; --------------------------------------------------
@@ -45,14 +46,14 @@ pro cmdm_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
     if keyword_set(isedfit) then begin
        clash_subaru_to_maggies, cat, maggies, ivarmaggies
        isedfit, isedfit_paramfile, maggies, ivarmaggies, cat.zobj, ised, $
-         isedfit_dir=isedfit_dir, outprefix=outprefix, thissfhgrid=thissfhgrid, $
-         clobber=clobber
+         isedfit_dir=isedfit_dir, $
+         outprefix=outprefix, thissfhgrid=thissfhgrid, clobber=clobber
     endif 
 
 ; --------------------------------------------------
 ; make a QAplot
     if keyword_set(qaplot) then begin
-       indx = shuffle_indx(ngal,num=50)
+       indx = shuffle_indx(ngal,num=20)
        isedfit_qaplot, isedfit_paramfile, isedfit_dir=isedfit_dir, $
          montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
          outprefix=outprefix, clobber=clobber, $
@@ -62,7 +63,6 @@ pro cmdm_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
 ; --------------------------------------------------
 ; package the results for Doron
     if keyword_set(fordoron) then begin
-
 stop       
 
 ;       ised = read_isedfit(isedfit_paramfile,isedfit_dir=isedfit_dir,$

@@ -40,9 +40,15 @@ pro clash_to_maggies, clash, maggies, ivar, filterlist=filterlist, $
     if keyword_set(usemag) then begin
        tags = filt+'_mag'
        errtags = filt+'_magerr'
+       if keyword_set(useirac) then message, 'Code me'
     endif else begin
        tags = filt+'_flux'
        errtags = filt+'_fluxerr'
+       if keyword_set(useirac) then begin
+          isirac = where(strmatch(filterlist,'*irac*',/fold))
+          tags[isirac] = 
+
+       endif
     endelse
 
 ; construct maggies and ivarmaggies in each band       
@@ -57,7 +63,6 @@ pro clash_to_maggies, clash, maggies, ivar, filterlist=filterlist, $
 ; ##  - finite apertures (from encircled energy tables)
 ; ## mag, magerr =  99, 1-sigma limit: non-detection (flux < 0)
 ; ## mag, magerr = -99, 0: unobserved (outside FOV, in chip gap, etc.)
-
        if keyword_set(usemag) then begin
           limit = where((clash.(ftag) gt 90.0) and $
             (clash.(utag) gt 0.0) and (clash.(utag) lt 90.0),nlimit)
@@ -79,7 +84,8 @@ pro clash_to_maggies, clash, maggies, ivar, filterlist=filterlist, $
           if check[0] ne -1 then stop
 
 ; jm11nov13ucsd - replace <5-sigma photometry with 2-sigma limits 
-;         lim = where((clash.(ftag) lt 90.0) and (maggies[ib,*] gt 0.0) and (maggies[ib,*]*sqrt(ivar[ib,*]) lt 5.0),nlim)
+;         lim = where((clash.(ftag) lt 90.0) and (maggies[ib,*] gt 0.0) and $
+;           (maggies[ib,*]*sqrt(ivar[ib,*]) lt 5.0),nlim)
 ;         lim = where((maggies[ib,*] gt 0.0) and (maggies[ib,*]*sqrt(ivar[ib,*]) lt 2.0) and $
 ;           strmatch(filterlist[ib],'*irac*') eq 0,nlim)
           nlim = 0
@@ -88,31 +94,48 @@ pro clash_to_maggies, clash, maggies, ivar, filterlist=filterlist, $
              maggies[ib,lim] = 0.0
           endif
        endif else begin
-          if strmatch(filterlist[ib],'*irac*',/fold) then fact = 1D else fact = 10D^(-0.4D*zpt[ib])
+          if strmatch(filterlist[ib],'*irac*',/fold) then begin
+; aperture fluxes are at the following diameters:
+;   print, [2.0,5.0,10.0,16.67,20,40]*0.6 ; [pixels]
+;     =[1.23.0,6.0,10.0,12.0,24.0]        ; [arcsec]
 
-          good = where(clash.(utag) gt 0.0,ngood)
-          if (ngood ne 0L) then begin
-             maggies[ib,good] = clash[good].(ftag)*fact
-             ivar[ib,good] = 1D/(clash[good].(utag)*fact)^2.0
-          endif
+             apercor =  [0.736, 0.716, 0.606, 0.543]  ;; from SWIRE DOCS
+             apercor *=  [1.021, 1.012, 1.022, 1.014] ;; from SPITZER IRAC handbook
+ 
+             fact = 1D
+             2.,5.,10.0,16.67,20,40        # diameter in pixels
 
-          lim = where((maggies[ib,*] gt 0.0) and (maggies[ib,*]*sqrt(ivar[ib,*]) lt 5.0),nlim)
-;         lim = where((maggies[ib,*] gt 0.0) and (maggies[ib,*]*sqrt(ivar[ib,*]) lt 2.0) and $
-;           strmatch(filterlist[ib],'*irac*') eq 0,nlim)
-          if (nlim ne 0L) then begin
-             ivar[ib,lim] = 1.0/(2.0*maggies[ib,lim])^2.0
-             maggies[ib,lim] = 0.0
-          endif 
+; apply an aperture correction              
+             
+             
+             
+stop             
+          endif else begin
+             fact = 10D^(-0.4D*zpt[ib])
+             good = where(clash.(utag) gt 0.0,ngood)
+             if (ngood ne 0L) then begin
+                maggies[ib,good] = clash[good].(ftag)*fact
+                ivar[ib,good] = 1D/(clash[good].(utag)*fact)^2.0
+             endif
+
+;             lim = where((maggies[ib,*] gt 0.0) and (maggies[ib,*]*sqrt(ivar[ib,*]) lt 5.0),nlim)
+;;            lim = where((maggies[ib,*] gt 0.0) and (maggies[ib,*]*sqrt(ivar[ib,*]) lt 2.0) and $
+;;              strmatch(filterlist[ib],'*irac*') eq 0,nlim)
+;             if (nlim ne 0L) then begin
+;                ivar[ib,lim] = 1.0/(2.0*maggies[ib,lim])^2.0
+;                maggies[ib,lim] = 0.0
+;             endif 
+          endelse
        endelse
     endfor 
     
-; apply a minimum photometric error
-    if (keyword_set(nominerror) eq 0) then begin
-       minerr = replicate(0.02,nbands)
-       isirac = where(strmatch(filterlist,'*irac*',/fold))
-;      if isirac[0] ne -1 then minerr[isirac] = 0.1 ; note!
-       k_minerror, maggies, ivar, minerr
-    endif
+;; apply a minimum photometric error
+;    if (keyword_set(nominerror) eq 0) then begin
+;       minerr = replicate(0.02,nbands)
+;       isirac = where(strmatch(filterlist,'*irac*',/fold))
+;;      if isirac[0] ne -1 then minerr[isirac] = 0.1 ; note!
+;       k_minerror, maggies, ivar, minerr
+;    endif
 
 return   
 end

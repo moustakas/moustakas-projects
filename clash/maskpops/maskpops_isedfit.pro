@@ -30,25 +30,30 @@ pro maskpops_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, 
 ; do the preliminaries: build the parameter files and the Monte Carlo
 ; grids
     if keyword_set(write_paramfile) then begin
-       nmodel = 30000L
+       synthmodels = 'pegase'
+       imf = 'salp'
+;      synthmodels = 'fsps_v2.4_miles'
+;      imf = 'chab'
+       redcurve = 'calzetti'
+       nmodel = 500             ; 30000L
        write_isedfit_paramfile, params=params, isedfit_dir=isedfit_dir, $
          prefix=prefix, filterlist=filterlist, use_redshift=use_redshift, $
-         synthmodels='fsps_v2.4_miles', imf='chab', redcurve='calzetti', /igm, $
+         synthmodels=synthmodels, imf=imf, redcurve=redcurve, /igm, $
          sfhgrid=1, nmodel=nmodel, age=[0.05,6.0], tau=[0.01,6.0], $
          Zmetal=[0.0008,0.03], AV=[0.0,3.0], pburst=0.1, interval_pburst=1.0, $
          oiiihb=[-1.0,1.0], /nebular, /flatAV, /delayed, clobber=clobber
 
        write_isedfit_paramfile, params=params, isedfit_dir=isedfit_dir, $
          prefix=prefix, filterlist=filterlist, use_redshift=use_redshift, $
-         synthmodels='fsps_v2.4_miles', imf='chab', redcurve='calzetti', /igm, $
+         synthmodels=synthmodels, imf=imf, redcurve=redcurve, /igm, $
          sfhgrid=2, nmodel=nmodel, age=[0.05,6.0], tau=[0.01,6.0], $
          Zmetal=[0.0008,0.03], AV=[0.0,3.0], pburst=0.1, interval_pburst=1.0, $
          nebular=0, /flatAV, /delayed, /append, clobber=clobber
     endif
 
     if keyword_set(build_grids) then begin
-       isedfit_montegrids, isedfit_paramfile, isedfit_dir=isedfit_dir, $
-         montegrids_dir=montegrids_dir, clobber=clobber, thissfhgrid=thissfhgrid
+       isedfit_montegrids, isedfit_paramfile, montegrids_dir=montegrids_dir, $
+         thissfhgrid=thissfhgrid, clobber=clobber
     endif
 
 ; --------------------------------------------------
@@ -62,9 +67,9 @@ pro maskpops_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, 
 ; do the fitting!
     if keyword_set(isedfit) then begin
        maskpops_to_maggies, cat, maggies, ivarmaggies
-       isedfit, isedfit_paramfile, maggies, ivarmaggies, cat.z, ised, $
-         isedfit_post=isedpost, isedfit_dir=isedfit_dir, outprefix=outprefix, $
-         thissfhgrid=thissfhgrid, clobber=clobber
+       isedfit, isedfit_paramfile, maggies, ivarmaggies, cat.z, thissfhgrid=thissfhgrid, $
+         isedfit_dir=isedfit_dir, outprefix=outprefix, isedfit_results=ised, $
+         isedfit_post=isedpost, clobber=clobber
     endif 
 
 ; --------------------------------------------------
@@ -74,7 +79,7 @@ pro maskpops_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, 
        isedfit_qaplot, isedfit_paramfile, isedfit_dir=isedfit_dir, $
          montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
          galaxy=cat.prefix, outprefix=outprefix, clobber=clobber, $
-         yrange=yrange, /xlog, result=result
+         yrange=yrange, /xlog
     endif
     
 return

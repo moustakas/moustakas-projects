@@ -1,7 +1,7 @@
 pro isedfitvsalim, build_parent=build_parent, write_paramfile=write_paramfile, $
   build_grids=build_grids, model_photometry=model_photometry, qaplot_models=qaplot_models, $
   isedfit=isedfit, kcorrect=kcorrect, qaplot_sed=qaplot_sed, thissfhgrid=thissfhgrid, $
-  salim_compare=salim_compare, clobber=clobber
+  compare=compare, clobber=clobber
 ; jm13aug23siena - compare iSEDfit to Salim+07
     
     prefix = 'isedfitvsalim'
@@ -115,10 +115,10 @@ pro isedfitvsalim, build_parent=build_parent, write_paramfile=write_paramfile, $
 ; fit!
     if keyword_set(isedfit) then begin
        cat = mrdfits(isedfit_dir+'isedfitvsalim.fits.gz',1)
-; use samir's photometry!
-;      salim = mrdfits(isedfit_dir+'salim07.fits.gz',1)
-;      cat.maggies = mag2maggies(salim.mab,magerr=salim.mab_err,ivarmaggies=iv)
-;      cat.ivarmaggies = iv
+; use samir's photometry & redshifts!
+       salim = mrdfits(isedfit_dir+'salim07.fits.gz',1)
+       cat.maggies = mag2maggies(salim.mab,magerr=salim.mab_err,ivarmaggies=iv)
+       cat.ivarmaggies = iv
 ;      cat.z = salim.z
        isedfit, isedfit_paramfile, cat.maggies, cat.ivarmaggies, $
          cat.z, ra=cat.ra, dec=cat.dec, isedfit_dir=isedfit_dir, $
@@ -144,41 +144,93 @@ pro isedfitvsalim, build_parent=build_parent, write_paramfile=write_paramfile, $
     splog, 'Compare with Kauffman and Brinchmann!!'
     
 ; ---------------------------------------------------------------------------
-; compare with Salim
-    if keyword_set(salim_compare) then begin
+; compare with Salim+07 and MPA+JHU
+    if keyword_set(compare) then begin
        ss = mrdfits(isedfit_dir+'salim07.fits.gz',1)
        rr = read_isedfit(isedfit_paramfile,isedfit_dir=isedfit_dir)
+       kk = mrdfits(isedfit_dir+'kauffmann.fits.gz',1) ; Kauffmann+03
 
        psfile = isedfit_dir+'qa_isedfit_vs_salim.ps'
-       im_plotconfig, 4, pos, psfile=psfile, yspace=0.0, width=6.0, $
-         height=2.5*[1,1,1], charsize=1.6
+       im_plotconfig, 4, pos, psfile=psfile, yspace=0.0, width=5.0, $
+         height=2.5*[1,1,1], charsize=1.5
 
-       im_hogg_scatterplot, rr.mstar_50, rr.sfr100_50-ss.sfr_avg, yminor=3, $
+       im_hogg_scatterplot, rr.mstar_avg, rr.sfr100_avg-ss.sfr_avg, yminor=2, $
          xsty=1, ysty=1, position=pos[*,0], xrange=[9,12], yrange=2.5*[-1,1], $
          /internal, /outlier, /nogrey, outcolor=im_color('dodger blue'), $
-         xtickname=replicate(' ',10), ytitle=textoidl('\Delta'+'log (SFR) (M'+sunsymbol()+' yr^{-1})')
-       mm = im_medxbin(rr.mstar_50,rr.sfr100_50-ss.sfr_avg,0.25,/ver)
+         xtickname=replicate(' ',10), $
+         ytitle=textoidl('\Delta'+'log (SFR) (M'+sunsymbol()+' yr^{-1})'), $
+         title='iSEDfit vs Salim+07'
+       im_legend, im_string_stats(rr.sfr100_avg-ss.sfr_avg,type=3,sigrej=3.0), /left, /top, $
+         box=0, charsize=1.4, margin=0
+       mm = im_medxbin(rr.mstar_avg,rr.sfr100_avg-ss.sfr_avg,0.25,/ver,minpts=50)
        djs_oplot, !x.crange, [0,0], line=0
        djs_oplot, mm.medx, mm.medy, line=0, thick=8
        djs_oplot, mm.medx, mm.quant75, line=5, thick=8
        djs_oplot, mm.medx, mm.quant25, line=5, thick=8
 
-       im_hogg_scatterplot, rr.mstar_50, rr.mstar_50-ss.mass_avg, /noerase, yminor=3, $
-         xsty=1, ysty=1, position=pos[*,1], xrange=[9,12], yrange=1.0*[-1,1], $
+       im_hogg_scatterplot, rr.mstar_avg, rr.mstar_avg-ss.mass_avg, /noerase, yminor=2, $
+         xsty=1, ysty=1, position=pos[*,1], xrange=[9,12], yrange=0.5*[-1,1], $
          /internal, /outlier, /nogrey, outcolor=im_color('dodger blue'), $
-         xtickname=replicate(' ',10), ytitle=textoidl('\Delta'+'log (M_{*}) (M'+sunsymbol()+')')
-       mm = im_medxbin(rr.mstar_50,rr.mstar_50-ss.mass_avg,0.25,/ver)
+         xtickname=replicate(' ',10), ytitle=textoidl('\Delta'+'log (M_{*}/M'+sunsymbol()+')')
+       im_legend, im_string_stats(rr.mstar_avg-ss.mass_avg,type=3,sigrej=3.0), /left, /top, $
+         box=0, charsize=1.4, margin=0
+       mm = im_medxbin(rr.mstar_avg,rr.mstar_avg-ss.mass_avg,0.25,/ver,minpts=50)
        djs_oplot, !x.crange, [0,0], line=0
        djs_oplot, mm.medx, mm.medy, line=0, thick=8
        djs_oplot, mm.medx, mm.quant75, line=5, thick=8
        djs_oplot, mm.medx, mm.quant25, line=5, thick=8
 
-       im_hogg_scatterplot, rr.mstar_50, (rr.sfr100_50-rr.mstar_50)-ss.sfrm_avg, /noerase, yminor=3, $
-         xsty=1, ysty=1, position=pos[*,2], xrange=[9,12], yrange=2.5*[-1,1], $
+       im_hogg_scatterplot, rr.mstar_avg, (rr.sfr100_avg-rr.mstar_avg)-ss.sfrm_avg, /noerase, yminor=2, $
+         xsty=1, ysty=1, position=pos[*,2], xrange=[9,12], yrange=3.0*[-1,1], $
          /internal, /outlier, /nogrey, outcolor=im_color('dodger blue'), $
          xtitle=textoidl('log (M_{*}/M'+sunsymbol()+')'), $
          ytitle=textoidl('\Delta'+'log (SFR/M_{*}) (yr^{-1})')
-       mm = im_medxbin(rr.mstar_50,(rr.sfr100_50-rr.mstar_50)-ss.sfrm_avg,0.25,/ver)
+       im_legend, im_string_stats((rr.sfr100_avg-rr.mstar_avg)-ss.sfrm_avg,type=3,sigrej=3.0), /left, /top, $
+         box=0, charsize=1.4, margin=0
+       mm = im_medxbin(rr.mstar_avg,(rr.sfr100_avg-rr.mstar_avg)-ss.sfrm_avg,0.25,/ver,minpts=50)
+       djs_oplot, !x.crange, [0,0], line=0
+       djs_oplot, mm.medx, mm.medy, line=0, thick=8
+       djs_oplot, mm.medx, mm.quant75, line=5, thick=8
+       djs_oplot, mm.medx, mm.quant25, line=5, thick=8
+
+; compare with Brinchmann & Kauffmann
+       imfcor = alog10(1.06)
+       im_hogg_scatterplot, rr.mstar_avg, rr.sfr100_avg-(kk.sfr_avg-imfcor), yminor=2, $
+         xsty=1, ysty=1, position=pos[*,0], xrange=[9,12], yrange=2.5*[-1,1], $
+         /internal, /outlier, /nogrey, outcolor=im_color('dodger blue'), $
+         xtickname=replicate(' ',10), $
+         ytitle=textoidl('\Delta'+'log (SFR) (M'+sunsymbol()+' yr^{-1})'), $
+         title='iSEDfit vs MPA/JHU (DR7)'
+       im_legend, im_string_stats(rr.sfr100_avg-(kk.sfr_avg-imfcor),type=3,sigrej=3.0), /left, /top, $
+         box=0, charsize=1.4, margin=0
+       mm = im_medxbin(rr.mstar_avg,rr.sfr100_avg-(kk.sfr_avg-imfcor),0.25,/ver,minpts=50)
+       djs_oplot, !x.crange, [0,0], line=0
+       djs_oplot, mm.medx, mm.medy, line=0, thick=8
+       djs_oplot, mm.medx, mm.quant75, line=5, thick=8
+       djs_oplot, mm.medx, mm.quant25, line=5, thick=8
+       
+       im_hogg_scatterplot, rr.mstar_avg, rr.mstar_avg-(kk.mass_avg-imfcor), /noerase, yminor=2, $
+         xsty=1, ysty=1, position=pos[*,1], xrange=[9,12], yrange=0.5*[-1,1], $
+         /internal, /outlier, /nogrey, outcolor=im_color('dodger blue'), $
+         xtickname=replicate(' ',10), ytitle=textoidl('\Delta'+'log (M_{*}/M'+sunsymbol()+')')
+       im_legend, im_string_stats(rr.mstar_avg-(kk.mass_avg-imfcor),type=3,sigrej=3.0), /left, /top, $
+         box=0, charsize=1.4, margin=0
+       mm = im_medxbin(rr.mstar_avg,rr.mstar_avg-(kk.mass_avg-imfcor),0.25,/ver,minpts=50)
+       djs_oplot, !x.crange, [0,0], line=0
+       djs_oplot, mm.medx, mm.medy, line=0, thick=8
+       djs_oplot, mm.medx, mm.quant75, line=5, thick=8
+       djs_oplot, mm.medx, mm.quant25, line=5, thick=8
+
+       im_hogg_scatterplot, rr.mstar_avg, (rr.sfr100_avg-rr.mstar_avg)-(kk.sfr_avg-kk.mass_avg), $
+         /noerase, yminor=2, $
+         xsty=1, ysty=1, position=pos[*,2], xrange=[9,12], yrange=3.0*[-1,1], $
+         /internal, /outlier, /nogrey, outcolor=im_color('dodger blue'), $
+         xtitle=textoidl('log (M_{*}/M'+sunsymbol()+')'), $
+         ytitle=textoidl('\Delta'+'log (SFR/M_{*}) (yr^{-1})')
+       im_legend, im_string_stats((rr.sfr100_avg-rr.mstar_avg)-(kk.sfr_avg-kk.mass_avg),$
+         type=3,sigrej=3.0), /left, /top, box=0, charsize=1.4, margin=0
+       mm = im_medxbin(rr.mstar_avg,(rr.sfr100_avg-rr.mstar_avg)-(kk.sfr_avg-kk.mass_avg),$
+         0.25,/ver,minpts=50)
        djs_oplot, !x.crange, [0,0], line=0
        djs_oplot, mm.medx, mm.medy, line=0, thick=8
        djs_oplot, mm.medx, mm.quant75, line=5, thick=8

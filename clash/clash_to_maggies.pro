@@ -95,10 +95,19 @@ pro clash_to_maggies, clash, maggies, ivar, filterlist=filterlist, $
           endif
        endif else begin
           if strmatch(filterlist[ib],'*irac*',/fold) then begin
-; aperture fluxes are at the following diameters:
+; aperture fluxes are at the following *diameters*:
 ;   print, [2.0,5.0,10.0,16.67,20,40]*0.6 ; [pixels]
-;     =[1.23.0,6.0,10.0,12.0,24.0]        ; [arcsec]
+;     =[1.2,3.0,6.0,10.0,12.0,24.0]        ; [arcsec]
 
+; we want to use the 3.0" diameter (=1.5 arcsec radius)
+; aperture fluxes; for comparison SWIRE and SCOSMOS recommended the
+; 1.9 arcsec radius fluxes, but our CLASH fields are typically more
+; crowded; interpolate the aperture corrections published here:
+; http://irsa.ipac.caltech.edu/data/COSMOS/tables/scosmos/scosmos_irac_200706_colDescriptions.html
+; to the correct aperture
+             print, interpol([0.610,0.765,0.900,0.950],[1.4,1.9,2.9,4.1],1.5) ; ch1
+             print, interpol([0.590,0.740,0.900,0.940],[1.4,1.9,2.9,4.1],1.5) ; ch2
+             
              apercor =  [0.736, 0.716, 0.606, 0.543]  ;; from SWIRE DOCS
              apercor *=  [1.021, 1.012, 1.022, 1.014] ;; from SPITZER IRAC handbook
  
@@ -106,6 +115,8 @@ pro clash_to_maggies, clash, maggies, ivar, filterlist=filterlist, $
              2.,5.,10.0,16.67,20,40        # diameter in pixels
 
 ; apply an aperture correction              
+             
+             
              
              
              

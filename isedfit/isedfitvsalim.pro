@@ -117,7 +117,8 @@ pro isedfitvsalim, build_parent=build_parent, write_paramfile=write_paramfile, $
        cat = mrdfits(isedfit_dir+'isedfitvsalim.fits.gz',1)
 ; use samir's photometry & redshifts!
        salim = mrdfits(isedfit_dir+'salim07.fits.gz',1)
-       cat.maggies = mag2maggies(salim.mab,magerr=salim.mab_err,ivarmaggies=iv)
+       mm = mag2maggies(salim.mab,magerr=salim.mab_err,ivarmaggies=iv)
+       cat.maggies = mm
        cat.ivarmaggies = iv
 ;      cat.z = salim.z
        isedfit, isedfit_paramfile, cat.maggies, cat.ivarmaggies, $

@@ -10,7 +10,7 @@ function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
       'clash_wfc3_f390w.par',$
       'clash_acs_f435w.par',$
       'clash_acs_f475w.par',$
-      'clash_acs_f555w.par',$ ; archival band!
+      'clash_acs_F555w.par',$ ; archival band!
       'clash_acs_f606w.par',$
       'clash_acs_f625w.par',$
       'clash_acs_f775w.par',$
@@ -46,7 +46,7 @@ function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
       'f390w',$
       'f435w',$
       'f475w',$
-      'f555w',$ ; archival!
+      'F555W',$ ; archival!
       'f606w',$
       'f625w',$
       'f775w',$
@@ -91,7 +91,7 @@ function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
 ; ACS
       25.65779,$
       26.05926,$
-      25.73468,$ ; archival!
+      25.73468,$ ; F555W
       26.49116,$
       25.90669,$
       25.66506,$
@@ -118,7 +118,7 @@ function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
 ; ACS/WFC
       431.70,$
       474.44,$
-      535.964,$ ; f555w
+      535.964,$ ; F555W
       591.77,$
       631.05,$
       769.30,$
@@ -140,7 +140,7 @@ function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
 ; ACS/WFC
       69.108,$
       98.927,$
-      84.779,$ ; f555w
+      84.779,$ ; F555W
       158.32,$
       97.832,$
       102.34,$
@@ -155,10 +155,10 @@ function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
     
 ; add IRAC    
     if keyword_set(useirac) then begin
-       filterlist = [filterlist,(irac_filterlist())[0:1]]
+       filterlist = [filterlist,irac_filterlist(/warm)]
        nice_filter = [nice_filter,'IRAC-[ch1]','IRAC-[ch2]']
        short_filter = [short_filter,'ch1','ch2']
-       zpt = [zpt,0.0,0.0]
+       zpt = [zpt,18.803,18.318]
        pivotwave = [pivotwave,1D4*[3.551,4.496]]
 ;      width = [width,[0.7,1.0,1.5,3.0]*1D4] ; approximate for IRAC!
        width = [width,[4313.0,5712]*2] ; approximate for IRAC!

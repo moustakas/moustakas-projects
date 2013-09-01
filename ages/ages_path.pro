@@ -15,7 +15,7 @@ function ages_path, papers=papers, specfit=specfit, spec1d=spec1d, analysis=anal
     if keyword_set(thumbs) then return, agespath+'thumbs/'
     if keyword_set(projects) then return, agespath+'projects/'
     if keyword_set(isedfit) then return, agespath+'isedfit/'
-    if keyword_set(catalogs) then return, agespath+'catalogs/'
+    if keyword_set(catalogs) then return, archivepath+'catalogs/'
     if keyword_set(mycatalogs) then return, agespath+'mycatalogs/'
     if keyword_set(window) then return, agespath+'window/'
     if keyword_set(qaplots) then return, agespath+'qaplots/'

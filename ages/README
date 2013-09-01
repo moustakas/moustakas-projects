@@ -19,18 +19,17 @@ the broadband and spectral data into a single ancillary data structure
 * ancillary/unpack_ages_catalogs - for convenience, convert all the
   AGES (v2.0) catalogs to FITS format
 
-* ancillary/build_ages_photometry - merge all the photometric
-  catalogs: ages_photometry.fits
+* prepare the individual catalogs and then merge everything to make
+  the mycatalogs/ages_photometry.fits file
+  > ages_match_bootes (this first requires unpack_bootes be run)
+  > ages_match_sdss
+  > ages_match_twomass
+  > build_ages_galex
+  > build_ages_photometry - 
 
+* ages_zptoffset  
   
-  
-  
-* ancillary/ages_merge_catalogs - merge everything into one big
-  *merged* structure: ages_merged_catalogs.fits
-
-* ancillary/ages_kcorrect: ages_photo_kcorr_v?.?.fits
-
-* ancillary/ages_write_ancillary
+* build_ages_kcorrect: ages_photo_kcorr_v?.?.fits
 
 ---------------------------------------------------------------------------
 fit the spectra

@@ -1,10 +1,26 @@
 pro build_redmapper_photometry, out
 ; jm13mar28siena - merge the GALEX, SDSS, and WISE photometry 
 
+; MEM_MATCH_ID: unique id
+; RA, DEC: most likely central galaxy position
+; LAMBDA_CHISQ(_E): richness (& error)
+; Z_LAMBDA(_E): redmapper photo-z (& Gaussian error)
+; BCG_SPEC_Z: spectroscopic redshift of the central galaxy if available
+; PZBINS, PZ: P(z) for the cluster, at 21 points.  (peak is at Z_LAMBDA).
+; 
+; In the members list, they are:
+; MEM_MATCH_ID: id keyed to cluster list
+; RA, DEC: position
+; P: probability of membership (P_mem in the paper)
+; R: radius (h^-1 Mpc from center)
+
+; In the members list, there is a ".Z" tag that is the same as the
+; .Z_LAMBDA tag for the cluster.
+    
     filt = redmapper_filterlist()
     nfilt = n_elements(filt)
     
-    path = redmapper_path(/catalogs,version=ver)
+    path = redmapper_path(version=ver)
 ;   bcgs = mrdfits(path+'dr8_run_redmapper_'+ver+$
 ;     '_lgt20_catalog.fits.gz',1)
     cat = mrdfits(path+'dr8_run_redmapper_'+ver+$
@@ -19,8 +35,9 @@ pro build_redmapper_photometry, out
     im_galex_to_maggies, galex, gmaggies, givarmaggies
     sdss_to_maggies, smaggies, sivarmaggies, cas=sdss, flux='cmodel'
 
-    out = struct_trimtags(cat,select=['mem_match_id','ra','dec','z',$
-      'r','p','photoid','isbcg'])
+    out = struct_trimtags(cat)
+;   out = struct_trimtags(cat,select=['mem_match_id','ra','dec','z',$
+;     'r','p','photoid'])
     out = struct_addtags(out,replicate({isbcg: 0, maggies: fltarr(nfilt), $
       ivarmaggies: fltarr(nfilt), irmaggies: fltarr(2), $
       irivarmaggies: fltarr(2)},ngal))

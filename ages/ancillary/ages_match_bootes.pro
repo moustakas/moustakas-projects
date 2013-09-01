@@ -4,11 +4,11 @@ pro ages_match_bootes
 
     common match_bootes, ages, alliband
 
-    suffix = '2010b' ; '2009b'
+    suffix = '2011a' ; '2010b' ; '2009b'
     
     agespath = ages_path(/catalogs)
     catpath = ages_path(/mycatalogs)
-    bootespath = getenv('DATA_DIR')+'/data/bootes/'+suffix+'/'
+    bootespath = getenv('IM_ARCHIVE_DIR')+'/data/bootes/'+suffix+'/'
 
     if (n_elements(ages) eq 0) or (n_elements(alliband) eq 0) then begin
        agesfile = agespath+'catalog.cat.noguidestars.fits.gz'
@@ -44,10 +44,13 @@ pro ages_match_bootes
 
 ;   tosstags1 = ['*aper_05','*aper_06','*aper_07','*aper_08',$
 ;     '*aper_09','*aper_10','*aper_15','*aper_20']
-    tosstags2 = ['*aper_01','*aper_02','*aper_03','*aper_05',$
-      '*aper_07','*aper_08','*aper_09','*aper_10',$
-      '*aper_15','*aper_20','field','*object_position*',$
-      'alpha_j2000','delta_j2000','flag_*']
+    tosstags2 = ['*object_position*','*field*','alpha_j2000',$
+      'delta_j2000','flag_duplicate','flux_*','fluxerr_*',$
+      'imaflags_*','segflags_*']
+;   tosstags2 = ['*aper_01','*aper_02','*aper_03','*aper_05',$
+;     '*aper_07','*aper_08','*aper_09','*aper_10',$
+;     '*aper_15','*aper_20','field','*object_position*',$
+;     'alpha_j2000','delta_j2000','flag_*']
     bootes = struct_trimtags(temporary(bootes),except=tosstags1)
     bootes = im_struct_trimtags(bootes,select=tag_names(bootes),$
       newtags='I_'+tag_names(bootes))
@@ -68,7 +71,7 @@ pro ages_match_bootes
 
 ; now read the rest of the catalogs, but just the objects we care
 ; about 
-    bands = ['u','Bw','R','z','J','H',$
+    bands = ['u','Bw','R','z','y','J','H',$
       'Ks','ch1','ch2','ch3','ch4']
 ;   bands = ['FUV','NUV','Bw','R','J','H',$
 ;     'Ks','ch1','ch2','ch3','ch4']
@@ -81,7 +84,8 @@ pro ages_match_bootes
          empty_value=-999.0,ncopies=ngal)
        cat[m2] = temporary(allcat)
 
-       cat = struct_trimtags(temporary(cat));,except=tosstags2)
+       cat = struct_trimtags(temporary(cat),except=tosstags2)
+;      cat = struct_trimtags(temporary(cat));,except=tosstags2)
        cat = im_struct_trimtags(cat,select=tag_names(cat),$
          newtags=bands[ii]+'_'+tag_names(cat))
        

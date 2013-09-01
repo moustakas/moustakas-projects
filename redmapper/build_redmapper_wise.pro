@@ -19,7 +19,7 @@ pro build_redmapper_wise, query=query, parse=parse
 ; http://irsa.ipac.caltech.edu/applications/TblCheck/
 
 ; search radius: 2"
-    path = redmapper_path(/catalogs,version=ver)
+    path = redmapper_path(version=ver)
     cat = mrdfits(path+'dr8_run_redmapper_'+ver+$
       '_lgt20_catalog_members.fits.gz',1)
     ngal = n_elements(cat)

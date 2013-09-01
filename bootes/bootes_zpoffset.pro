@@ -1,25 +1,30 @@
-function bootes_zpoffset, nozpoffset=nozpoffset, absolute=absolute
+function bootes_zpoffset, dozpoffset=dozpoffset, absolute=absolute
 ; jm10jan05ucsd - zeropoint offsets for BwRI were derived in
-; BOOTES_ZEROPOINTS; assume the JHKs zeropoint corrections are
-; negligible
+;   BOOTES_ZEROPOINTS; assume the JHKs zeropoint corrections are
+;   negligible
+; jm13aug27siena - by default do *not* apply the zeropoint corrections
+;   nor the IRAC aperture corrections 
 
-    if keyword_set(nozpoffset) then return, $
-      fltarr(n_elements(bootes_filterlist()))
+;   if keyword_set(nozpoffset) then return, $
+;     fltarr(n_elements(bootes_filterlist()))
 
 ; deal with UBwRIzJHKs
-    filt = bootes_filterlist(/noirac)
+;   filt = bootes_filterlist(/noirac)
+    filt = bootes_filterlist()
     nfilt = n_elements(filt)
     zpoffset = fltarr(nfilt)
 
-    zfile = ages_path(/mycatalogs)+'zptoffsets/ages_zptoffsets.fits.gz'
-    if file_test(zfile) then begin
-       splog, 'Reading '+zfile
-       zpt = mrdfits(zfile,1)
-       match, strtrim(filt,2), strtrim(zpt[0].filterlist,2), m1, m2
-       if keyword_set(absolute) then $
-         zpoffset[m1] = total(zpt.zptoffset[m2],2) else $
-           zpoffset[m1] = total(zpt.relative_zptoffset[m2],2)
-    endif else splog, 'Zeropoint corrections file '+zfile+' not found!'
+    if keyword_set(dozpoffset) then begin
+       zfile = ages_path(/mycatalogs)+'zptoffsets/ages_zptoffsets.fits.gz'
+       if file_test(zfile) then begin
+          splog, 'Reading '+zfile
+          zpt = mrdfits(zfile,1)
+          match, strtrim(filt,2), strtrim(zpt[0].filterlist,2), m1, m2
+          if keyword_set(absolute) then $
+            zpoffset[m1] = total(zpt.zptoffset[m2],2) else $
+              zpoffset[m1] = total(zpt.relative_zptoffset[m2],2)
+       endif else splog, 'Zeropoint corrections file '+zfile+' not found!'
+    endif
 
 ;; old!!
 ;    ubriz_zpoffset = [0.0,-0.129,-0.066,-0.029,0.0] 
@@ -56,11 +61,14 @@ function bootes_zpoffset, nozpoffset=nozpoffset, absolute=absolute
 ; IRAC images) in a 4" diameter aperture, but we're going to ignore
 ; the potential difference between the 4" and 3.8" aperture magnitudes 
 
-    irac_apercor = +2.5*alog10([0.765,0.740,0.625,0.580])
-;   irac_apercor = +2.5*alog10([0.736,0.716,0.606,0.543]) ; SWIRE/DR2 document
-;   irac_apercor = -alog10([1.205,1.221,1.363,1.571])     ; IRAC website
+    if keyword_set(dozpoffset) then begin
+       irac_apercor = +2.5*alog10([0.765,0.740,0.625,0.580])
+;      irac_apercor = +2.5*alog10([0.736,0.716,0.606,0.543]) ; SWIRE/DR2 document
+;      irac_apercor = -alog10([1.205,1.221,1.363,1.571])     ; IRAC website
 
-    zpoffset = [zpoffset,irac_apercor]
+       isirac = where(strmatch(filt,'*irac*'))
+       zpoffset[isirac] = irac_apercor
+    endif
     
 return, zpoffset
 end

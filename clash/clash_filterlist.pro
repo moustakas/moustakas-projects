@@ -10,7 +10,7 @@ function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
       'clash_wfc3_f390w.par',$
       'clash_acs_f435w.par',$
       'clash_acs_f475w.par',$
-      'clash_acs_F555w.par',$ ; archival band!
+      'clash_acs_f555w.par',$ ; archival band!
       'clash_acs_f606w.par',$
       'clash_acs_f625w.par',$
       'clash_acs_f775w.par',$

@@ -48,6 +48,7 @@
 ;     v3.1 - use the v2.1 photometry
 ;     v3.2 - use the v2.2 photometry
 ;     v4.0 - use the v3.0 photometry
+;     v5.0 - use the v4.0 photometry
 ; 
 ;   photometry 
 ;     v1.0 - new NDWFS zeropoints
@@ -59,6 +60,7 @@
 ;       magnitudes, background subtraction, and zeropoints
 ;     v3.1 - removed IMAFLAGS and SEGFLAGS tags and some of the
 ;       unnecessary aperture magnitudes
+;     v4.0 - updated to 2011a Bootes photometry
 ;
 ;   ispec_specfit
 ;     v1.0 - earlier effort
@@ -115,8 +117,8 @@ function ages_version, ancillary=ancillary, photometry=photometry, $
 
     version = -1.0
 
-    if keyword_set(photometry) then version = 'v3.1'
-    if keyword_set(kcorrect) then version = 'v4.0'
+    if keyword_set(photometry) then version = 'v4.0'
+    if keyword_set(kcorrect) then version = 'v5.0'
 
     if keyword_set(ispec_specfit) then version = 'v2.1'
     if keyword_set(templates) then version = 'v1.2'

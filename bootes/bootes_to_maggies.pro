@@ -13,8 +13,8 @@
 ; KEYWORD PARAMETERS: 
 ;   psf - use the PSF magnitudes (default is to use the aperture
 ;     magnitudes) 
-;   nozpoffset - do not apply the derived zeropoint offsets or IRAC
-;     aperture corrections
+;   dozpoffset - apply the derived zeropoint offsets (always apply the
+;     IRAC aperture corrections) 
 ;   itot - use I_tot rather than I_auto (see BUILD_AGES_PHOTOMETRY) 
 ;
 ; OUTPUTS: 
@@ -44,7 +44,7 @@
 
 pro bootes_to_maggies, bootes, maggies, ivar, psf=psf, use_aper=use_aper, $
   totalmag=totalmag, itot=itot, filterlist=filterlist, nominerror=nominerror, $
-  nozpoffset=nozpoffset
+  dozpoffset=dozpoffset, bands=bands
 
     ngal = n_elements(bootes)    
     if (ngal le 0L) then begin
@@ -52,9 +52,9 @@ pro bootes_to_maggies, bootes, maggies, ivar, psf=psf, use_aper=use_aper, $
        return
     endif
 
-    filterlist = bootes_filterlist()
+    filterlist = bootes_filterlist(bands=bands)
     vega2ab = bootes_vega2ab()
-    zpoffset = bootes_zpoffset(nozpoffset=nozpoffset)
+    zpoffset = bootes_zpoffset(dozpoffset=dozpoffset)
     nbands = n_elements(filterlist)
 
 ; correct for Galactic extinction    
@@ -70,7 +70,7 @@ pro bootes_to_maggies, bootes, maggies, ivar, psf=psf, use_aper=use_aper, $
 ; BUILD_AGES_PHOTOMETRY); if TOTALMAG is *not* set, then check for the
 ; PSF keyword, otherwise use the aperture magnitudes (default: 4"
 ; diameter aperture magnitude)
-    bands = ['U','Bw','R','I','z','J','H','Ks','ch1','ch2','ch3','ch4']
+    bands = ['U','Bw','R','I','z','y','J','H','Ks','ch1','ch2','ch3','ch4']
     if (n_elements(use_aper) eq 0) then use_aper = '04'
     if keyword_set(totalmag) then begin
        splog, 'Computing total magnitudes via '+use_aper+$

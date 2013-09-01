@@ -3,7 +3,7 @@ pro build_redmapper_sdss
 ; CasJobs; be sure to write the output file from CasJobs as
 ; 'redmapper_'+ver+'_sdss.fits' 
 
-    path = redmapper_path(/catalogs,version=ver)
+    path = redmapper_path(version=ver)
     cat = mrdfits(path+'dr8_run_redmapper_'+ver+$
       '_lgt20_catalog_members.fits.gz',1)
     ngal = n_elements(cat)

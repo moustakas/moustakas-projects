@@ -158,7 +158,8 @@ pro clash_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, $
           endif
        endif else begin
           fact = 10D^(-0.4D*(zpt[ib]-kl[ib]*ebv+vega2ab[ib]))/apcor[ib]
-          good = where(cat.(utag) gt 0.0 and finite(cat.(utag)),ngood)
+          good = where(cat.(ftag) lt 90.0 and cat.(utag) gt 0.0 and $
+            finite(cat.(utag)),ngood)
           if (ngood ne 0L) then begin
              maggies[ib,good] = cat[good].(ftag)*fact
              ivarmaggies[ib,good] = 1D/(cat[good].(utag)*fact)^2.0

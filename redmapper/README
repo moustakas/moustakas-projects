@@ -10,5 +10,5 @@ Then merge everything together and compute K-corrections
  redmapper_kcorrect
 
 Run iSEDfit:
- redmapper_isedfit, /prelim,  
+ redmapper_isedfit
  

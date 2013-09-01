@@ -21,7 +21,7 @@ pro redmapper_kcorrect, clobber=clobber
     ngal = n_elements(cat)
 
     kcorr = {$
-      zobj:                          -999.0,$
+      z:                             -999.0,$
       maggies:                fltarr(nfilt),$
       ivarmaggies:            fltarr(nfilt),$
       bestmaggies:            fltarr(nfilt),$
@@ -36,7 +36,7 @@ pro redmapper_kcorrect, clobber=clobber
       fnuvugrizjhk_kcorrect_00:       fltarr(10)-999.0}
     kcorr = replicate(kcorr,ngal)
 
-    kcorr.zobj = cat.z
+    kcorr.z = cat.z
     kcorr.maggies = cat.maggies
     kcorr.ivarmaggies = cat.ivarmaggies
     

@@ -3,12 +3,13 @@ pro unpack_bootes, parse_refband=parse_refband
 ;   merged, trimmed-down set of catalogs that are easier to manage; do
 ;   not bother parsing the NDWFS/K-band data
 
-    year = '2010b' ; '2009b'
-    iopath = getenv('DATA_DIR')+'/data/bootes/'+year+'/'
+    year = '2011a' ; '2010b' ; '2009b'
+    iopath = getenv('IM_ARCHIVE_DIR')+'/data/bootes/'+year+'/'
 
     refband = 'I'
-    bands = ['J','H','Ks']
-;   bands = ['u','Bw','R','z','J','H','Ks','ch1','ch2','ch3','ch4']
+    bands = ['24']
+;   bands = ['J','H','Ks']
+;   bands = ['u','Bw','R','z','J','H','Ks','y','ch1','ch2','ch3','ch4']
 ;   bands = ['Bw','R','K','J','H','Ks','ch1','ch2','ch3','ch4']
     field1 = ['32','33','34','35']
     field2 = ['33','34','35','36']

@@ -5,3 +5,5 @@ echo "redmapper_isedfit, first=2, last=2, /ised, /cl" | /usr/bin/nohup idl > & ~
 
 echo "redmapper_isedfit, first=3, last=5, /ised, /cl" | /usr/bin/nohup idl > & ~/archive/projects/redmapper/logs/chunk3-5.log &
 echo "redmapper_isedfit, first=6, last=7, /ised, /cl" | /usr/bin/nohup idl > & ~/archive/projects/redmapper/logs/chunk6-7.log &
+
+echo "redmapper_isedfit, first=1, last=7, /ised, /cl" | /usr/bin/nohup idl > & ~/archive/projects/redmapper/logs/chunk1-7.log &

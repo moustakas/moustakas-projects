@@ -26,11 +26,11 @@ end
 pro build_redmapper_galex, out_galex, query=query, gr=gr, ver=ver, clobber=clobber
 ; jm13mar28siena - build a line-matched GALEX catalog for the REDMAPPER/v5.2
 ; sample using the CasJobs output (see the README in the
-; REDMAPPER/catalogs directory)
+; REDMAPPER directory)
 
     if (n_elements(gr) eq 0) then gr = 'gr6'
 
-    path = redmapper_path(/catalogs,version=ver)
+    path = redmapper_path(version=ver)
     cat = mrdfits(path+'dr8_run_redmapper_'+ver+$
       '_lgt20_catalog_members.fits.gz',1)
     ngal = n_elements(cat)

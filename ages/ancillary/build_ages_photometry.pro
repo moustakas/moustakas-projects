@@ -93,7 +93,7 @@ pro build_ages_photometry, phot, clobber=clobber
 
 ; BOOTES - see AGES_MATCH_BOOTES
     if (n_elements(bootes1) eq 0L) then begin
-       suffix = '2010b' ; '2009b'
+       suffix = '2011a' ; '2010b' ; '2009b'
        splog, 'Reading '+mycatpath+'ages_bootes_'+suffix+'.fits.gz'
        bootes1 = mrdfits(mycatpath+'ages_bootes_'+suffix+'.fits.gz',1,silent=0)
     endif    
@@ -110,11 +110,11 @@ pro build_ages_photometry, phot, clobber=clobber
 ;       uband1 = mrdfits(mycatpath+'ages_ubootes.fits.gz',1,silent=0)
 ;    endif
 
-; Spitzer/MIPS
-    if (n_elements(mips1) eq 0L) then begin
-       splog, 'Reading '+catpath+'catalog.mips.fits.gz'
-       mips1 = mrdfits(catpath+'catalog.mips.fits.gz',1,silent=0)
-    endif
+;; Spitzer/MIPS - obsolete because of M. Brown's photometry
+;    if (n_elements(mips1) eq 0L) then begin
+;       splog, 'Reading '+catpath+'catalog.mips.fits.gz'
+;       mips1 = mrdfits(catpath+'catalog.mips.fits.gz',1,silent=0)
+;    endif
 
 ; SDSS galaxies - see AGES_MATCH_SDSS
     if (n_elements(sdss1) eq 0L) then begin
@@ -134,10 +134,10 @@ pro build_ages_photometry, phot, clobber=clobber
        tmass1 = mrdfits(mycatpath+'ages.twomass.phot.fits.gz',1,silent=0)
     endif    
 
-; GALEX
+; GALEX - see BUILD_AGES_GALEX
     if (n_elements(galex1) eq 0L) then begin
-       splog, 'Reading '+mycatpath+'ages_galex_gr6.fits.gz'
-       galex1 = mrdfits(mycatpath+'ages_galex_gr6.fits.gz',1,silent=0)
+       splog, 'Reading '+mycatpath+'ages_galex_gr67.fits.gz'
+       galex1 = mrdfits(mycatpath+'ages_galex_gr67.fits.gz',1,silent=0)
     endif
 
 ; WSRT
@@ -221,11 +221,11 @@ pro build_ages_photometry, phot, clobber=clobber
 
 ; add the BOOTES photometry; do not use M. Brown's FUV/NUV
 ; photometry  
-    splog, 'Adding BOOTES UBwRIzJHKs[ch1-4]'
+    splog, 'Adding BOOTES uBwRIzyJHKs[ch1-4]'
 ;   phot = struct_addtags(temporary(phot),bootes1)
     phot = struct_addtags(temporary(phot),struct_trimtags(bootes1,$
       except=['*segflags*','*imaflags*','*_aper_05','*_aper_07','*_aper_08',$
-      '*_aper_09','*_aper_10','*_aper_15','*_aper_20']))
+      '*_aper_09','*_aper_10','*_aper_15','*_aper_20','i_flux*']))
 
 ; store the old observed photometry; also, until M. Brown fixes a
 ; problem with the *new* mag_auto values, use the old ones
@@ -335,16 +335,16 @@ pro build_ages_photometry, phot, clobber=clobber
 ;    phot = struct_addtags(temporary(phot),im_struct_trimtags(uband1,$
 ;      select=select,newtags='u_'+select))
     
-; MIPS
-    splog, 'Adding MIPS'
-    moretags = replicate({$
-      phot_mips24:     -999.0, $
-      phot_mips24_err: -999.0},ngal)
-    phot = struct_addtags(temporary(phot),moretags)
-      
-    good = where((mips1.f24 gt 0.0) and (mips1.f24_err gt 0.0),ngood)
-    phot[good].phot_mips24     = mips1[good].f24 ; mJy
-    phot[good].phot_mips24_err = mips1[good].f24_err
+;; MIPS - obsolete (see above)
+;    splog, 'Adding MIPS'
+;    moretags = replicate({$
+;      phot_mips24:     -999.0, $
+;      phot_mips24_err: -999.0},ngal)
+;    phot = struct_addtags(temporary(phot),moretags)
+;      
+;    good = where((mips1.f24 gt 0.0) and (mips1.f24_err gt 0.0),ngood)
+;    phot[good].phot_mips24     = mips1[good].f24 ; mJy
+;    phot[good].phot_mips24_err = mips1[good].f24_err
 
 ; SDSS...
     splog, 'Adding SDSS'
@@ -419,7 +419,7 @@ pro build_ages_photometry, phot, clobber=clobber
       struct_trimtags(galex1,select=['nuv_*','fuv_*']))
 
 ; define the MAIN sample, minus the magnitude cut, which should be
-; project specific
+; project-specific
     windowfile = ages_path(/window)+'ages_fields.ply'
     win = im_is_in_window(windowfile,ra=phot.ra,dec=phot.dec)
     istar = (phot.psfflux[2]*1E-9 ge 10^(-0.4*19.0)) and (phot.sdss_star eq 1)
@@ -428,7 +428,7 @@ pro build_ages_photometry, phot, clobber=clobber
       (phot.field ge 1) and (phot.field le 15) and (istar eq 0)
     
 ; write out    
-    im_mwrfits, phot, outfile, clobber=clobber
+    im_mwrfits, phot, outfile, /clobber
 
 return
 end    

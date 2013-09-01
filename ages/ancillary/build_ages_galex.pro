@@ -23,21 +23,40 @@ function casjobs_remove_double, cat
 return, outcat
 end
 
-pro build_ages_galex_catalog, out_galex, clobber=clobber
+pro build_ages_galex, out_galex, query=query, gr=gr, clobber=clobber
 ; jm10apr30ucsd - build a line-matched GALEX catalog for the AGES
 ;   sample using the CasJobs output (see the README in the
 ;   mycatalogs/galex directory) 
 ; jm10jul23ucsd - updated to GR6
+; jm13aug28siena - updated to GR6/7 + get more tags; what used to be
+;   WRITE_AGES_GALEX_CASJOBS_INPUT is also part of this routine now;
+;   see the README in the REDMAPPER directory for details
 
-; see WRITE_AGES_GALEX_CASJOBS_INPUT for how the input catalog was
-; written 
-    ages = mrdfits(ages_path(/catalogs)+'catalog.cat.noguidestars.fits.gz',1)
+    if (n_elements(gr) eq 0) then gr = 'gr67'
+
+    catpath = ages_path(/catalogs)
+    path = ages_path(/mycatalogs)
+    ages = mrdfits(catpath+'catalog.cat.noguidestars.fits.gz',1)
     ages.ra = ages.ra*15.0D
     ngal = n_elements(ages)
     ages_id = lindgen(ngal)
 
+; build the input catalog
+    if keyword_set(query) then begin
+       out = struct_addtags(replicate({ages_id: 0L},ngal),$
+         struct_trimtags(ages,select=['ra','dec']))
+       out.ages_id = ages_id
+       
+       outfile = '~/tmp/ages_galex_'+gr+'_casjobs.dat'
+       openw, lun, outfile, /get_lun
+       printf, lun, '# ages_id ra dec'
+       struct_print, out, lun=lun, ddigit=12, /no_head
+       free_lun, lun
+       return
+    endif 
+    
 ; output filename    
-    outfile = ages_path(/mycatalogs)+'ages_galex_gr6.fits'
+    outfile = path+'ages_galex_'+gr+'.fits'
     if file_test(outfile+'.gz') and (keyword_set(clobber) eq 0) then begin
        splog, 'Output file '+outfile+' exists; use /CLOBBER'
        return
@@ -45,7 +64,12 @@ pro build_ages_galex_catalog, out_galex, clobber=clobber
     
 ; read the casjobs output; for some reason some input/output objects
 ; are repeated (not sure why), so remove them here
-    incat = mrdfits(ages_path(/mycatalogs)+'galex/ages_galex_gr6_casjobs.fits.gz',1)
+    infile = '~/tmp/ages_galex_'+gr+'_casjobs.fits'
+    if file_test(infile) eq 0 then begin
+       splog, 'Input file '+infile+' not found!'
+       return
+    endif
+    incat = mrdfits(infile,1)
     incat = casjobs_remove_double(incat)
     incat = struct_addtags(replicate({galex_object_position: -999L},$
       n_elements(incat)),temporary(incat))

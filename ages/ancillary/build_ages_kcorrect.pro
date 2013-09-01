@@ -78,11 +78,11 @@ pro build_ages_kcorrect, result, nowrite=nowrite, clobber=clobber
     phot = read_ages(/phot)
     ages_to_maggies, phot, maggies, ivarmaggies, /itot, $
       filterlist=filterlist, use_aper='04', /totalmag
-
+    
     bwindx = where(strmatch(filterlist,'*_Bw*'))
     rindx = where(strmatch(filterlist,'*_R*'))
     iindx = where(strmatch(filterlist,'*_I*'))
-    index = where((phot.gshort gt 0) and (phot.z gt 0.001) and (phot.z lt 1.0) and $
+    index = where((phot.gshort gt 0) and (phot.z gt 0.001) and $ ; (phot.z lt 1.0) and $
       (ivarmaggies[rindx,*] gt 0.0) and (ivarmaggies[iindx,*] gt 0.0),ngal)
 ;   index = where((phot.gshort gt 0) and (phot.z gt 0.001) and $
 ;     (phot.z lt 1.0) and (ivarmaggies[bwindx,*] gt 0.0) and $

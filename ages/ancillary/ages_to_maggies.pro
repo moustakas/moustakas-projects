@@ -38,7 +38,7 @@
 
 pro ages_to_maggies, cat, maggies, ivarmaggies, sdss=sdss, $
   filterlist=filterlist, psf=psf, use_aper=use_aper, $
-  totalmag=totalmag, itot=itot
+  totalmag=totalmag, itot=itot, bands=bands
 
     nobj = n_elements(cat)
     if (nobj eq 0) then begin
@@ -70,11 +70,13 @@ pro ages_to_maggies, cat, maggies, ivarmaggies, sdss=sdss, $
 
 ; GALEX
     im_galex_to_maggies, cat, galex_maggies, galex_ivarmaggies
+    bands = ['FUV','NUV']
 
 ; BOOTES
     bootes_to_maggies, cat, bootes_maggies, bootes_ivarmaggies, $
       filterlist=bootes_filterlist, psf=psf, use_aper=use_aper, $
-      totalmag=totalmag, itot=itot
+      totalmag=totalmag, itot=itot, bands=bootes_bands
+    bands = [bands,bootes_bands]
 
 ; final photometry     
     maggies = [galex_maggies,bootes_maggies]

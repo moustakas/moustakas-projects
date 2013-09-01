@@ -1,11 +1,25 @@
-function redmapper_path, isedfit=isedfit, catalogs=catalogs, version=version
+function redmapper_path, isedfit=isedfit, version=version, $
+  paper=paper, redbaryons=redbaryons, icl=icl, qaplots=qaplots
 ; jm13apr08siena
-    redmapper_path = getenv('REDMAPPER_DATA')
-    if keyword_set(catalogs) then begin
-       version = 'v5.2'
-       return, redmapper_path+'/catalogs/'
-    endif
+    version = 'v5.2'
+    redmapper_path = getenv('REDMAPPER_DATA')+'/'
+    paperpath = getenv('IM_PAPERS_DIR')+'/projects/redmapper/'
+
     if keyword_set(isedfit) then return, getenv('IM_ARCHIVE_DIR')+'/projects/redmapper/'
 ;   if keyword_set(isedfit) then return, getenv('REDMAPPER_DATA')+'/'
+
+    if keyword_set(paper) then begin
+       if keyword_set(icl) then return, paperpath+'icl/'
+       if keyword_set(redbaryons) then return, paperpath+'redbaryons/'
+    endif
+
+    if keyword_set(qaplots) then begin
+       if keyword_set(icl) then return, redmapper_path+'icl/qaplots/'
+       if keyword_set(redbaryons) then return, redmapper_path+'redbaryons/qaplots/'
+    endif
+
+    if keyword_set(icl) then return, redmapper_path+'icl/'
+    if keyword_set(redbaryons) then return, redmapper_path+'redbaryons/'
+
 return, redmapper_path
 end

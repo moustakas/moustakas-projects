@@ -20,6 +20,8 @@ pro ages_mgfe_isedfit, sdss=sdss, write_paramfile=write_paramfile, build_grids=b
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
 
     nchunk = 8
+    band_shift = 0.1
+    absmag_filterlist = sdss_filterlist()
     
 ; --------------------------------------------------
 ; write the iSEDfit parameter file 
@@ -102,29 +104,50 @@ pro ages_mgfe_isedfit, sdss=sdss, write_paramfile=write_paramfile, build_grids=b
           isedfit, isedfit_paramfile, cat.maggies, cat.ivarmaggies, $
             cat.z, ra=cat.ra, dec=cat.dec, isedfit_dir=isedfit_dir, $
             thissfhgrid=thissfhgrid, clobber=clobber
+; *copy* the output to MGFEPATH so that we can still make QAplots here 
+          params = read_isedfit_paramfile(isedfit_paramfile,thissfhgrid=thissfhgrid)
+          fp = isedfit_filepaths(params,isedfit_dir=isedfit_dir)
+          if im_file_test(isedfit_dir+fp.isedfit_outfile+'*',clobber=clobber) eq 0 then begin
+             file_copy, isedfit_dir+fp.isedfit_outfile+'.gz', $
+               mgfepath+fp.isedfit_outfile, /overwrite
+             file_copy, isedfit_dir+fp.post_outfile+'.gz', $
+               mgfepath+fp.isedfit_outfile, /overwrite
+          endif
        endelse
     endif 
 
 ; --------------------------------------------------
-; merge the SDSS iSEDfit results
+; merge the SDSS iSEDfit results but not the posteriors (too large)
+; and then make a copy for MGFEPATH
     if keyword_set(sdss) and keyword_set(merge_isedfit) then begin
        params = read_isedfit_paramfile(isedfit_paramfile,thissfhgrid=thissfhgrid)
        fp = isedfit_filepaths(params,isedfit_dir=isedfit_dir)
-       for ii = 0, nchunk-1 do begin
-          outprefix = prefix+'_chunk'+string(ii,format='(I0)')
-          ised1 = read_isedfit(isedfit_paramfile,isedfit_dir=isedfit_dir,$
-            outprefix=outprefix)
-          if ii eq 0 then ised = temporary(ised1) else ised = [temporary(ised),temporary(ised1)]
-       endfor
-       im_mwrfits, ised, isedfit_dir+fp.isedfit_outfile, clobber=clobber
+       if im_file_test(isedfit_dir+fp.isedfit_outfile+'*',clobber=clobber) eq 0 then begin
+          for ii = 0, nchunk-1 do begin
+             outprefix = prefix+'_chunk'+string(ii,format='(I0)')
+             ised1 = read_isedfit(isedfit_paramfile,isedfit_dir=isedfit_dir,$
+               outprefix=outprefix)
+             if ii eq 0 then ised = temporary(ised1) else $
+               ised = [temporary(ised),temporary(ised1)]
+          endfor
+          im_mwrfits, ised, isedfit_dir+fp.isedfit_outfile, /clobber
+          file_copy, isedfit_dir+fp.isedfit_outfile+'.gz', mgfepath, /overwrite
+       endif
     endif
 
 ; --------------------------------------------------
 ;  compute K-corrections
     if keyword_set(kcorrect) then begin
-       isedfit_kcorrect, isedfit_paramfile, isedfit_dir=isedfit_dir, $
-         montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
-         clobber=clobber
+       params = read_isedfit_paramfile(isedfit_paramfile,thissfhgrid=thissfhgrid)
+       fp = isedfit_filepaths(params,isedfit_dir=isedfit_dir,band_shift=band_shift)
+       if im_file_test(mgfepath+fp.kcorr_outfile+'*',clobber=clobber) eq 0 then begin
+          isedfit_kcorrect, isedfit_paramfile, isedfit_dir=isedfit_dir, $
+            montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
+            absmag_filterlist=absmag_filterlist, band_shift=band_shift, $
+            clobber=clobber
+; copy the output to MGFEPATH
+          file_copy, isedfit_dir+fp.kcorr_outfile+'.gz', mgfepath, /overwrite
+       endif
     endif 
 
 ; --------------------------------------------------

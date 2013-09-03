@@ -55,7 +55,7 @@ function read_vagc_garching, sample=sample, letter=letter, $
        if (size(sdss_postlss,/type) ne 8) or (sample ne sdss_sample) or $
          (letter ne sdss_letter) or (poststr ne sdss_poststr) then begin
           if (keyword_set(silent) eq 0) then splog, 'Reading '+thisfile
-          sdss_postlss = hogg_mrdfits(thisfile,1,silent=silent,nrow=50000L)
+          sdss_postlss = mrdfits(thisfile,1,silent=silent);,nrow=50000L)
           if (sdss_sample ne sample) then sdss_sample = sample
           if (sdss_letter ne letter) then sdss_letter = letter
           if (sdss_poststr ne poststr) then sdss_poststr = poststr
@@ -68,7 +68,7 @@ function read_vagc_garching, sample=sample, letter=letter, $
        if (size(sdss_mpacat,/type) ne 8) or (sample ne sdss_sample) or $
          (letter ne sdss_letter) or (poststr ne sdss_poststr) then begin
           if (keyword_set(silent) eq 0) then splog, 'Reading '+thisfile
-          sdss_mpacat = hogg_mrdfits(thisfile,1,silent=silent,nrow=50000L)
+          sdss_mpacat = mrdfits(thisfile,1,silent=silent);,nrow=50000L)
           if (sdss_sample ne sample) then sdss_sample = sample
           if (sdss_letter ne letter) then sdss_letter = letter
           if (sdss_poststr ne poststr) then sdss_poststr = poststr
@@ -81,7 +81,7 @@ function read_vagc_garching, sample=sample, letter=letter, $
        if (size(sdss_totsfr,/type) ne 8) or (sample ne sdss_sample) or $
          (letter ne sdss_letter) or (poststr ne sdss_poststr) then begin
           if (keyword_set(silent) eq 0) then splog, 'Reading '+thisfile
-          sdss_totsfr = hogg_mrdfits(thisfile,1,silent=silent,nrow=50000L)
+          sdss_totsfr = mrdfits(thisfile,1,silent=silent);,nrow=50000L)
           if (sdss_sample ne sample) then sdss_sample = sample
           if (sdss_letter ne letter) then sdss_letter = letter
           if (sdss_poststr ne poststr) then sdss_poststr = poststr
@@ -94,7 +94,7 @@ function read_vagc_garching, sample=sample, letter=letter, $
        if (size(sdss_mpamassoh,/type) ne 8) or (sample ne sdss_sample) or $
          (letter ne sdss_letter) or (poststr ne sdss_poststr) then begin
           if (keyword_set(silent) eq 0) then splog, 'Reading '+thisfile
-          sdss_mpamassoh = hogg_mrdfits(thisfile,1,silent=silent,nrow=50000L)
+          sdss_mpamassoh = mrdfits(thisfile,1,silent=silent);,nrow=50000L)
           if (sdss_sample ne sample) then sdss_sample = sample
           if (sdss_letter ne letter) then sdss_letter = letter
           if (sdss_poststr ne poststr) then sdss_poststr = poststr
@@ -121,7 +121,7 @@ function read_vagc_garching, sample=sample, letter=letter, $
        if (size(sdss_vmax_noevol,/type) ne 8) or (sample ne sdss_sample) or $
          (letter ne sdss_letter) or (poststr ne sdss_poststr) then begin
           if (keyword_set(silent) eq 0) then splog, 'Reading '+thisfile
-          sdss_vmax_noevol = hogg_mrdfits(thisfile,1,silent=silent,nrow=50000L)
+          sdss_vmax_noevol = mrdfits(thisfile,1,silent=silent);,nrow=50000L)
           if (sdss_sample ne sample) then sdss_sample = sample
           if (sdss_letter ne letter) then sdss_letter = letter
           if (sdss_poststr ne poststr) then sdss_poststr = poststr
@@ -135,7 +135,7 @@ function read_vagc_garching, sample=sample, letter=letter, $
        if (size(sdss_vmax_evol,/type) ne 8) or (sample ne sdss_sample) or $
          (letter ne sdss_letter) or (poststr ne sdss_poststr) then begin
           if (keyword_set(silent) eq 0) then splog, 'Reading '+thisfile
-          sdss_vmax_evol = hogg_mrdfits(thisfile,1,silent=silent,nrow=50000L)
+          sdss_vmax_evol = mrdfits(thisfile,1,silent=silent);,nrow=50000L)
           if (sdss_sample ne sample) then sdss_sample = sample
           if (sdss_letter ne letter) then sdss_letter = letter
           if (sdss_poststr ne poststr) then sdss_poststr = poststr

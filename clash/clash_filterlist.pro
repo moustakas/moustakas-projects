@@ -1,6 +1,6 @@
 function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
   zpt=zpt, alam=alam, useirac=useirac, weff=weff, fwhm=fwhm, pivotwave=pivotwave, $
-  width=width, instr=instr
+  width=width, instr=instr, dropbluest=dropbluest
 ; jm11apr24ucsd 
 
     filterlist = [$
@@ -46,7 +46,7 @@ function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
       'f390w',$
       'f435w',$
       'f475w',$
-      'F555W',$ ; archival!
+      'f555w',$ ; archival!
       'f606w',$
       'f625w',$
       'f775w',$
@@ -164,6 +164,22 @@ function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
        width = [width,[4313.0,5712]*2] ; approximate for IRAC!
     endif
 
+; drop the bluest UVIS filters (used in a number of different
+; projects)
+    if keyword_set(dropbluest) then begin
+       keep = where(short_filter ne 'f225w' and $
+         short_filter ne 'f275w' and $
+         short_filter ne 'f336w')
+       filterlist = filterlist[keep]
+       nice_filter = nice_filter[keep]
+       short_filter = short_filter[keep]
+       instr = instr[keep]
+       zpt = zpt[keep]
+       pivotwave = pivotwave[keep]
+       width = width[keep]
+    endif
+    
+; get the effective wavelength    
     if arg_present(weff) then weff = k_lambda_eff(filterlist=filterlist)
 
 return, filterlist

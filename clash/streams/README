@@ -1,0 +1,12 @@
+Define the sample: streams_sample.sex
+
+Sky-subtract:
+  streams_skysubtract
+
+Build/gather the PSFs
+  streams_psfs
+  
+Do a preliminary subtraction of the BCG.
+  streams_bcg
+
+  

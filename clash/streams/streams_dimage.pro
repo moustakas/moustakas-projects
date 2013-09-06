@@ -1,6 +1,6 @@
-pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, bcg_prelim=bcg_prelim, $
-  parents=parents, stargal=stargal, children=children, measure=measure, $
-  rebuild_mosaic=rebuild_mosaic
+pro streams_dimage, skysubtract=skysubtract, build_psf=build_psf, $
+  bcg_prelim=bcg_prelim, parents=parents, stargal=stargal, children=children, $
+  measure=measure, rebuild_mosaic=rebuild_mosaic
 ; jm13may26siena - sky-subtract the CLASH clusters containing tidal
 ; streams 
 

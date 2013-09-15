@@ -60,8 +60,8 @@ pro streams_measure, base, psffiles=psffiles, bulgedisk=bulgedisk, $
     pcat=gz_mrdfits(base+'-pcat.fits',1)
 
     splog, 'Hack!!'
-;   for iparent = 200, 280 do begin
-    for iparent = 32, 32 do begin
+    for iparent = 370, 380 do begin
+;   for iparent = 13, 20 do begin
 ;   for iparent = 0L, n_elements(pcat)-1 do begin
        splog, 'Parent ', iparent
     
@@ -114,7 +114,7 @@ pro streams_measure, base, psffiles=psffiles, bulgedisk=bulgedisk, $
                            bulge=bulge, disk=disk, fixsky=1
                       endif else begin
                          dsersic, rimage, rinvvar, xcen=r_measure.xcen, ycen=r_measure.ycen, $
-                           sersic=r_sersic, /fixcen, model=refmodel, psf=psf, fixsky=1
+                           sersic=r_sersic, /fixcen, model=refmodel, psf=psf, fixsky=0
                       endelse
                    endelse
 ; this is a bug in Blanton's code, I think
@@ -201,13 +201,13 @@ pro streams_measure, base, psffiles=psffiles, bulgedisk=bulgedisk, $
                               psf=psf, bulge=bulge, disk=disk, fixsky=1
                          endif else begin
                             dsersic, image, invvar, xcen=xcen, ycen=ycen, $
-                              sersic=curr_sersic, /onlyflux, /fixcen, fixsky=1, $
+                              sersic=curr_sersic, /onlyflux, /fixcen, fixsky=0, $
                               psf=psf, model=thismodel
                          endelse
                       endelse
                       outmodel[*,*,iband] = outmodel[*,*,iband] + thismodel
                       
-if iband eq 2 then stop
+;if iband eq 2 then stop
 
                       mall.nprof[iband]= tmp_measure.nprof
                       mall.profmean[iband,*]= tmp_measure.profmean

@@ -3,8 +3,12 @@ pro streams_skysubtract
 ; streams 
 
 ; note! images are converted to [10^-12 erg/s/cm^2/Hz] (pico-maggies)
-    
+
+; for no particular reason, sky-subtract the full sample of CLASH
+; clusters, not just the STREAMS project ones    
+;   sample = rsex(getenv('CLASH_DIR')+'/clash_sample.sex')
     sample = rsex(streams_path(/propath)+'streams_sample.sex')
+
     struct_print, sample
     ncl = n_elements(sample) 
 
@@ -137,6 +141,21 @@ pro streams_skysubtract
           hextract, ivarcube[*,*,ib], ivarhdrcube[ihcrop,ib], $
             newivar, newivarhdr, xcrop[0], xcrop[1], ycrop[0], ycrop[1], /silent
 
+;; --------------------------------------------------
+;; temporarily cut out a small piece of the MACS1206 mosaic until we
+;; can get the code working well
+;          if cluster eq 'macs1206' then begin
+;             splog, 'Hack!!'
+;             newim1 = newim
+;             newivar1 = newivar
+;             newhdr1 = newhdr
+;             newivarhdr1 = newivarhdr
+;             x0 = 450 & x1 = 1600 & y0 = 900 & y1 = 1600
+;             hextract, newim1, newhdr1, newim, newhdr, x0, x1, y0, y1, /silent
+;             hextract, newivar1, newivarhdr1, newivar, newivarhdr, x0, x1, y0, y1, /silent
+;          endif
+;; --------------------------------------------------
+          
           mwrfits, newim, outfile, newhdr, /create
           mwrfits, newivar, outfile, newivarhdr, /silent
           spawn, 'gzip -f '+outfile

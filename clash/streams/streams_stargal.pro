@@ -17,7 +17,7 @@
 ;------------------------------------------------------------------------------
 pro streams_stargal, base, plot=plot, gsmooth=gsmooth, glim=glim, $
   gsaddle=gsaddle, nsigma=nsigma, noclobber=noclobber, $
-  psffiles=psffiles
+  psffiles=psffiles, maxnstar=maxnstar
     
     if(NOT keyword_set(gsmooth)) then gsmooth=10.
     if(NOT keyword_set(glim)) then glim=3.0 ; 25.
@@ -48,7 +48,7 @@ pro streams_stargal, base, plot=plot, gsmooth=gsmooth, glim=glim, $
     ref = pset.ref
 
 ; set up star and galaxy locations
-    sgset={base: base, $
+    sgset1={base: base, $
       ref: pset.ref, $
       iparent: -1L, $
       nstars: 0L, $
@@ -77,17 +77,21 @@ pro streams_stargal, base, plot=plot, gsmooth=gsmooth, glim=glim, $
     subdir= 'atlases'
     spawn, 'mkdir -p '+subdir, /sh
 
+    dhdr= dimage_hdr()
+    
 ;   splog, 'HACK!'
-;   for iparent = 303, 303 do begin
+;   for iparent = 50, 50 do begin
     for iparent = 0L, n_elements(pcat)-1 do begin
        splog, 'Parent ', iparent
+       sgsetfile=subdir+'/'+strtrim(string(iparent),2)+'/'+base+'-'+ $
+         strtrim(string(iparent),2)+'-sgset.fits'
+
+       sgset = sgset1
        sgset.iparent=iparent
 
 ; setup output directory
        spawn, 'mkdir -p '+subdir+'/'+strtrim(string(iparent),2), /sh
 
-       sgsetfile=subdir+'/'+strtrim(string(iparent),2)+'/'+base+'-'+ $
-         strtrim(string(iparent),2)+'-sgset.fits'
        if(gz_file_test(sgsetfile) ne 0 AND $
          keyword_set(noclobber) ne 0) then begin
           nimfile=subdir+'/'+strtrim(string(iparent),2)+'/'+base+ $
@@ -98,6 +102,17 @@ pro streams_stargal, base, plot=plot, gsmooth=gsmooth, glim=glim, $
           return
        endif
     
+; check if this parent is junk by computing the fraction of masked
+; pixels; if greater than zero then skip it (usually because
+; it's on the edge) and move on!       
+       ivarref = gz_mrdfits('parents/'+base+'-parent-'+ $
+         strtrim(string(iparent),2)+'.fits',1+ref*2L,hdr,/silent)
+       fracmask = total(ivarref eq 0)/cmproduct(size(ivarref,/dim))
+       if fracmask gt 0.01 then begin
+          im_mwrfits, sgset, sgsetfile, dhdr, /clobber
+          continue
+       endif
+
 ; read in the images
        for k=0L, nim-1L do begin
           images[k]=ptr_new(gz_mrdfits('parents/'+base+'-parent-'+ $
@@ -205,9 +220,6 @@ pro streams_stargal, base, plot=plot, gsmooth=gsmooth, glim=glim, $
        endif
        
 ; output star and galaxy info
-       sgsetfile=subdir+'/'+strtrim(string(iparent),2)+'/'+base+'-'+ $
-         strtrim(string(iparent),2)+'-sgset.fits'
-       dhdr= dimage_hdr()
        if(keyword_set(limitedmem)) then $
          sxaddpar, dhdr, 'LIMMEM', 1, '1 if limited NGALS due to memory'
        im_mwrfits, sgset, sgsetfile, dhdr, /clobber

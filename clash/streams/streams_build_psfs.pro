@@ -20,17 +20,26 @@ pro streams_build_psfs
           spawn, 'ln -sf '+short[this]+'-bpsf.fits '+outpath+short[ib]+'-bpsf.fits', /sh
        endif else begin
           bpsf1 = mrdfits(psffile,0,hdr,/silent)
+          npix1 = (size(bpsf1,/dim))[0]
           sd = dsigma(bpsf1)
 
+; grab pixels from the very edges
+          ran = [reform(bpsf1[0:2,*],3*npix1),$
+            reform(bpsf1[*,0:2],3*npix1),$
+            reform(bpsf1[*,npix1-3:npix1-1],3*npix1),$
+            reform(bpsf1[npix1-3:npix1-1,*],3*npix1)]
+          nran = n_elements(ran)
+          
 ; embed into a larger postage stamp
-          npix1 = (size(bpsf1,/dim))[0]
           bpsf = fltarr(npix,npix)
-          bpsf = randomn(seed,npix,npix)*0.5*sd
+;         bpsf = randomn(seed,npix,npix)*0.5*sd
           
           embed_stamp, bpsf, bpsf1, npix/2L-npix1/2, npix/2L-npix1/2
           bpsf = bpsf/total(bpsf) ; normalize
 
-;         ww = where(bpsf eq 0.0,nww)
+          ww = where(bpsf eq 0.0,nww)
+          bpsf[ww] = ran[long(randomu(seed,nww)*nran)]
+
 ;         med = im_median(bpsf1,sigrej=2.0)
 ;         bpsf[ww] = med+randomn(seed,nww)*0.5*sd
 ;         djs_plot, bpsf[*,30], /ylog

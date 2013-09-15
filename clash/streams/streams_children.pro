@@ -24,7 +24,7 @@
 ;   11-Jan-2006  Written by Blanton, NYU
 ;-
 ;------------------------------------------------------------------------------
-pro streams_children, base, sersic=sersic, noclobber=noclobber
+pro streams_children, base, sersic=sersic, noclobber=noclobber, debug=debug
 
     subdir='atlases'
 
@@ -48,8 +48,8 @@ pro streams_children, base, sersic=sersic, noclobber=noclobber
 ; loop on each parent
     pcat=gz_mrdfits(base+'-pcat.fits',1)
 
-; splog, 'HACK!!'
-;    for iparent = 303, 303 do begin
+    splog, 'HACK!!'
+;   for iparent = 55, 55 do begin
     for iparent = 0L, n_elements(pcat)-1 do begin
        splog, 'Parent ', iparent
        
@@ -87,6 +87,11 @@ pro streams_children, base, sersic=sersic, noclobber=noclobber
        acat.racen=sgset.ra_gals[0:sgset.ngals-1]
        acat.deccen=sgset.dec_gals[0:sgset.ngals-1]
 
+       if keyword_set(debug) then begin
+          window, 0
+          window, 1
+       endif
+       
 ; loop over filters
        templates= ptrarr(nim)
        hdrs= ptrarr(nim)
@@ -99,29 +104,34 @@ pro streams_children, base, sersic=sersic, noclobber=noclobber
           if(keyword_set(templates[kuse]) eq 0) then begin
              
 ; read in image to use for templates
+             if file_test(nimfile+'*') eq 0 then stop
              timage= gz_mrdfits(nimfile, kuse, thdr,/silent)
-             
+             adxy, thdr, acat.racen, acat.deccen, xgals, ygals
+
+;            dobjects, timage, obj=tobj, plim=10.0, nlevel=1.0
+;            cgimage, tobj, /keep;, stretch=2
+
 ; make galaxy templates
              splog, 'Making basic templates ...'
-             adxy, thdr, acat.racen, acat.deccen, xgals, ygals
              dtemplates, timage, xgals, ygals, templates=curr_templates, $
-               parallel=0.6, sersic=sersic, ikept=ikept
+               parallel=parallel, sersic=sersic, ikept=ikept
+;              parallel=0.6, sersic=sersic, ikept=ikept
 
-;            bb = 13
-;            window, 0
-;            loadct, 0 & cgimage, cimage, /keep_aspect, /save, stretch=10
-;            djs_oplot, xgals, ygals, psym=8, color='orange'
-;            plots, xgals[bb], ygals[bb], psym=7, symsize=2, color=im_color('red')                
-;
-;            window, 1
-;            loadct, 0 & cgimage, curr_templates[*,*,bb], /save, /keep_aspect, stretch=10
-;            plots, xgals[bb], ygals[bb], psym=7, symsize=2, color=im_color('red')                
-             
+; debugging plot
+             if keyword_set(debug) then begin
+                wset, 0
+                cgimage, timage, /keep_aspect, /save, stretch=2, /negative
+                djs_oplot, xgals, ygals, psym=8, color=cgcolor('orange')
+                djs_oplot, xgals[ikept], ygals[ikept], psym=symcat(9,thick=1), $
+                  symsize=1.5, color=cgcolor('red')
+                cc = get_kbrd(1)
+             endif
+
              acat=acat[ikept]
              xgals= xgals[ikept]
              ygals= ygals[ikept]
              
-             splog, 'Smoothing templates ...'
+;            splog, 'Smoothing templates ...'
              for i=0L, n_elements(acat)-1L do begin
                 tmp_template= curr_templates[*,*,i]
                 sig= dsigma(tmp_template, sp=10)
@@ -147,6 +157,20 @@ pro streams_children, base, sersic=sersic, noclobber=noclobber
              tnx[kuse]= (size(curr_templates, /dim))[0]
              tny[kuse]= (size(curr_templates, /dim))[1]
           endif
+
+          if keyword_set(debug) then begin
+             for bb = 0, n_elements(ikept)-1 do begin
+                wset, 0
+                plots, xgals[bb], ygals[bb], psym=symcat(9,thick=1), $
+                  symsize=4.0, color=cgcolor('green')
+                
+                wset, 1
+                cgimage, curr_templates[*,*,bb], /save, /keep_aspect, stretch=2, /negative
+                plots, xgals[bb], ygals[bb], psym=7, $
+                  symsize=2, color=cgcolor('red')
+                cc = get_kbrd(1)
+             endfor
+          endif
           
  ; read in current image for galaxies
           cimage= gz_mrdfits(nimfile, k, hdr,/silent)
@@ -170,26 +194,13 @@ pro streams_children, base, sersic=sersic, noclobber=noclobber
              ctemplates=(*templates[kuse])
           endelse
 
-          if k eq 2 and iparent eq 32 then begin
-             bb = 13
-             window, 0
-             loadct, 0 & cgimage, cimage, /keep_aspect, /save, stretch=10, /axes
-             djs_oplot, xgals, ygals, psym=8, color='orange'
-             plots, xgals[bb], ygals[bb], psym=7, symsize=2, color=im_color('red')                
-
-             window, 1
-             loadct, 0 & cgimage, ctemplates[*,*,bb], /save, /keep_aspect, stretch=10, /axes
-             plots, xgals[bb], ygals[bb], psym=7, symsize=2, color=im_color('red')
-             stop
-          endif
-          
-          splog, 'Finding weights ...'
+;         splog, 'Finding weights ...'
           dweights, cimage, civar, ctemplates, weights=weights, /nonneg
           
-          splog, 'Finding fluxes ...'
+;         splog, 'Finding fluxes ...'
           dfluxes, cimage, ctemplates, weights, xgals, ygals, children=children
 
-          splog, 'Outputting results ...'
+;         splog, 'Outputting results ...'
           for i=0L, n_elements(acat)-1L do begin
              aid=acat[i].aid
              if(total(children[*,*,i]) gt 0) then acat[i].bgood[k]= 1
@@ -207,12 +218,11 @@ pro streams_children, base, sersic=sersic, noclobber=noclobber
           pfile= 'parents/'+pbase
           opfile= subdir+'/'+ strtrim(string(iparent),2)+ $
             '/'+pbase
-          pim= gz_mrdfits(pfile, 2*k, phdr)
+          pim= gz_mrdfits(pfile, 2*k, phdr,/silent)
           mwrfits, pim, opfile, phdr, create=first, /silent
           oifile= subdir+'/'+ strtrim(string(iparent),2)+ $
             '/'+base+'-ivar-'+strtrim(string(iparent),2)+'.fits'
           mwrfits, civar, oifile, phdr, create=first, /silent
-if iparent eq 32 and k eq 2 then stop
        endfor
 
        if(n_tags(acat) gt 0) then begin

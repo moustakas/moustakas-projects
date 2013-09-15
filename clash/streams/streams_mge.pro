@@ -3,7 +3,7 @@ function streams_mge, image, badpixels=badpixels, pixscale=pixscale, $
   bulge_disk=bulge_disk, sector_width=sector_width
 ; fit the BCG using MGE; ToDo: fit the PSF using an MGE
 
-    if n_elements(pixscale) eq 0 then pixscale = 1.0
+    if n_elements(pixscale) eq 0 then pixscale = 0.065D
     if n_elements(minlevel) eq 0 then minlevel = 0.0
     
     forward_function multi_gauss, multi_gauss_twist
@@ -15,15 +15,13 @@ function streams_mge, image, badpixels=badpixels, pixscale=pixscale, $
       xcen_lum, ycen_lum, fraction=fraction, index=index, level=level, $
       nblob=nblob, plot=plot;, /quiet
 
-stop    
-    
 ; get the photometry
     if keyword_set(twist) then begin
        sectors_photometry_twist, image, ellipticity, xcen, ycen, radius, $
          phi, counts, n_sectors=n_sectors, sector_width=sector_width, $
          badpixels=badpixels, minlevel=minlevel
     endif else begin
-       sectors_photometry, image, ellipticity, posangle, xcen_lum, ycen_lum, $
+       sectors_photometry, image, ellipticity, posangle, xcen, ycen, $
          radius, phi, counts, n_sectors=n_sectors, sector_width=sector_width, $
          badpixels=badpixels, minlevel=minlevel
     endelse

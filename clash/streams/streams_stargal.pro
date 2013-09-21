@@ -103,8 +103,8 @@ pro streams_stargal, base, plot=plot, gsmooth=gsmooth, glim=glim, $
        endif
     
 ; check if this parent is junk by computing the fraction of masked
-; pixels; if greater than zero then skip it (usually because
-; it's on the edge) and move on!       
+; pixels; if greater than zero then skip it (usually because it's on
+; the edge) and move on!
        ivarref = gz_mrdfits('parents/'+base+'-parent-'+ $
          strtrim(string(iparent),2)+'.fits',1+ref*2L,hdr,/silent)
        fracmask = total(ivarref eq 0)/cmproduct(size(ivarref,/dim))
@@ -209,7 +209,7 @@ pro streams_stargal, base, plot=plot, gsmooth=gsmooth, glim=glim, $
           sgset.ra_gals[0:ngals-1]= ra_gals
           sgset.dec_gals[0:ngals-1]= dec_gals
        endif 
-       
+;if iparent eq 54 then stop       
 ; get memory use
        maxpix= float(max(nx*ny))
        memuse= 4.*maxpix*float(ngals)

@@ -6,8 +6,9 @@ function mge_bcg_fit, image, invvar=invvar, minlevel=minlevel, $
     resolve_routine, 'mge_print_contours', /compile_full_file, /no_recompile
     resolve_routine, 'mge_print_contours_twist', /compile_full_file, /no_recompile
 
+    n_sectors = 25
 ;   sector_width = 10.0
-    sigmapsf = 1.0
+    sigmapsf = 0.0
     
     if n_elements(nprint) eq 0 then npring = 100
     
@@ -16,7 +17,6 @@ function mge_bcg_fit, image, invvar=invvar, minlevel=minlevel, $
        stop       
     endif else begin
 ; (re)find the galaxy
-
        find_galaxy, image, size, ellipticity, posangle, xcen, ycen, $
          xcen_lum, ycen_lum, fraction=0.1, index=index, level=level, $
          nblob=nblob, plot=plot;, /quiet
@@ -66,16 +66,21 @@ function mge_bcg_fit, image, invvar=invvar, minlevel=minlevel, $
 return, model
 end
 
-pro streams_bcg, debug=debug
+pro streams_bcg, debug=debug, use_marc=use_marc
 ; jm13sep04siena - do the preliminary BCG subtraction
 
 ; note! images in units of [10^-12 erg/s/cm^2/Hz] (pico-maggies)
+
+    qapath = streams_path(/bcg)+'qaplots/'
     
 ; read the sample and then match against the info structure written by
 ; streams_find_bcg 
     sample = rsex(streams_path(/propath)+'streams_sample.sex')
+    splog, 'IGNORING A2261!!!'
+    keep = where(strtrim(sample.shortname,2) ne 'a2261')
+    sample = sample[keep]
 ;   sample = sample[5] ; =MACS1206
-;   struct_print, sample
+    struct_print, sample
 
     allinfo = mrdfits(streams_path()+'bcg_info.fits.gz',1)
     match, strtrim(sample.shortname,2), strtrim(allinfo.cluster,2), m1, m2
@@ -85,10 +90,28 @@ pro streams_bcg, debug=debug
     struct_print, info
 
     ncl = n_elements(sample)
+
+    splog, 'Using /USE_MARC!!!'
+    use_marc = 1
+    
+; ---------------------------------------------------------------------------
+; need this just when /use_marc
+    filt1 = clash_filterlist(short=short1,instr=instr1,$
+      weff=weff1,zpt=zpt1,/dropbluest)
+    filtinfo = replicate({filt: '', short: '', instr: '', $
+      weff: 0.0, zpt: 0.0},n_elements(filt1))
+    filtinfo.filt = filt1
+    filtinfo.short = short1
+    filtinfo.instr = instr1
+    filtinfo.weff = weff1
+    filtinfo.zpt = zpt1
+; ---------------------------------------------------------------------------
     
     pixscale = 0.065D ; [arcsec/pixel]
     rmaxkpc = 30D     ; [kpc]
 
+    marcpath = '/Users/ioannis/archive/bcg_models/'
+    
 ; wrap on each cluster    
     for ic = 0, ncl-1 do begin
 ;   for ic = 5, 5 do begin
@@ -98,7 +121,8 @@ pro streams_bcg, debug=debug
        outpath = streams_path(/bcg)+cluster+'/'
        if file_test(outpath,/dir) eq 0 then file_mkdir, outpath
 
-       qafile = streams_path(/bcg)+'qaplots/'+cluster+'_bcg.ps'
+       bcgqafile = qapath+cluster+'_bcg.ps'
+       qafile = qapath+cluster+'_all.ps'
 
 ; get a cutout that scales with the size of the galaxy       
        arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]
@@ -157,58 +181,91 @@ pro streams_bcg, debug=debug
 ;      cgimage, cutrimage, /keep, stretch=2, /save, /neg
 ;      djs_oplot, xc, yc, psym=symcat(9), color=cgcolor('red'), symsize=1.5
 
+; temporary hack!  use Marc's models here       
+       if keyword_set(use_marc) then begin
+          marcfile = marcpath+cluster+'_mosaic_065mas_*_'+short[reffilt]+'_drz_*_BCG.fits.gz'
+          if file_test(marcfile) then begin
+             marcmodel = mrdfits(marcfile,0,marchdr,/silent)
+
+             fthis = where(short[reffilt] eq strtrim(filtinfo.short,2))
+             factor = 1D12*10D^(-0.4*(filtinfo[fthis].zpt-$
+               k_lambda(filtinfo[fthis].weff,/odon)*sample[ic].ebv))
+             marcmodel = marcmodel*factor-skyinfo[reffilt].mode
+
+             hline = rhdr[where(strmatch(rhdr,'*Extracted Image*'))]
+             hline = strmid(hline,strpos(hline,'['),strpos(hline,']'))
+             xxyy = long((strsplit(hline,'[]:,',/extract))[0:3])
+             hextract, marcmodel, marchdr, refmodel1, modelhdr1, $
+               xxyy[0], xxyy[1], xxyy[2], xxyy[3], /silent
+             
+             hextract, refmodel1, modelhdr1, refmodel, modelhdr, $
+               xcen-rmax, xcen+rmax, ycen-rmax, ycen+rmax, /silent
+
+             cutrimage_mge = cutrimage ; for the QAplot
+
+          endif else begin
+             splog, 'No file found '+marcfile
+             continue
+          endelse
+       endif else begin
 ; do the free-parameter modeling in the reference band; iterate the
 ; fit twice, each time improving the masking of nearby objects
-       dobjects, cutrimage, objects=obj, dpsf=dpsf, plim=25.0, nlevel=1L
-       ignore = where((obj ne -1 and obj ne obj[cutsz[0]/2,cutsz[1]/2]) or $
-         (cutrinvvar eq 0),nignore)
-       if nignore eq 0L then delvarx, ignore
+          dobjects, cutrimage, objects=obj, dpsf=dpsf, plim=25.0, nlevel=1L
+          ignore = where((obj ne -1 and obj ne obj[cutsz[0]/2,cutsz[1]/2]) or $
+            (cutrinvvar eq 0),nignore)
+          if nignore eq 0L then delvarx, ignore
 
 ; initial fit       
-       cutrimage_mge = cutrimage ; copy because MGE messes with the image
-       cutrimage_mge[ignore] = 0.0
-       refmodel = mge_bcg_fit(cutrimage_mge,invvar=cutrinvvar,$
-         badpixels=ignore,minlevel=refsig,pixscale=pixscale,$
-         nprint=100,nofit=nofit,mgeinfo=mgeinfo)
+          cutrimage_mge = cutrimage ; copy because MGE messes with the image
+          cutrimage_mge[ignore] = 0.0
+          refmodel = mge_bcg_fit(cutrimage_mge,invvar=cutrinvvar,$
+            badpixels=ignore,minlevel=refsig,pixscale=pixscale,$
+            nprint=100,nofit=nofit,mgeinfo=mgeinfo)
 
 ; now detect objects in the (smoothed) residual image but "put back"
 ; masked pixels located in regions where the BCG *model* is bright
-       dobjects, dsmooth(cutrimage-refmodel,5L), objects=obj, plim=25, nlevel=1L
-       restore = where(refmodel gt 50.0*refsig,nrestore)
-       obj[restore] = -1
+;         dobjects, dsmooth(cutrimage-refmodel,5L), objects=obj, plim=25, nlevel=1L
+;         restore = where(refmodel gt 50.0*refsig,nrestore)
+;         obj[restore] = -1
 
 ; now refit       
-       ignore = where((obj ne -1 and obj ne obj[cutsz[0]/2,cutsz[1]/2]) or $
-         (cutrinvvar eq 0),nignore)
-       if nignore eq 0L then delvarx, ignore
+          ignore = where((obj ne -1 and obj ne obj[cutsz[0]/2,cutsz[1]/2]) or $
+            (cutrinvvar eq 0),nignore)
+          if nignore eq 0L then delvarx, ignore
 
-       cutrimage_mge = cutrimage ; copy because MGE messes with the image
-       cutrimage_mge[ignore] = 0.0
-       refmodel = mge_bcg_fit(cutrimage_mge,invvar=cutrinvvar,$
-         badpixels=ignore,minlevel=refsig,pixscale=pixscale,$
-         nprint=100,nofit=nofit,mgeinfo=mgeinfo);,/twist)
-       mgeinfo = struct_addtags({cluster: cluster, z: info[ic].z, $
-         ra: info[ic].ra, dec: info[ic].dec},mgeinfo)
-       
-;      simage = dsmooth(cutrimage-refmodel,5L)
-;      dpeaks, simage, xc=xc, yc=yc, sigma=refsig, saddle=10.0, $
-;        minpeak=10.0*refsig, /refine, /check
-;      djs_oplot, xc, yc, psym=symcat(9), color=cgcolor('red'), symsize=1.5
+          cutrimage_mge = cutrimage ; copy because MGE messes with the image
+          cutrimage_mge[ignore] = 0.0
+          refmodel = mge_bcg_fit(cutrimage_mge,invvar=cutrinvvar,$
+            badpixels=ignore,minlevel=refsig,pixscale=pixscale,$
+            nprint=100,nofit=nofit,mgeinfo=mgeinfo) ;,/twist)
 
-;      cgimage, cutrimage-refmodel, /keep, stretch=2, /save, /neg
+          mgeinfo = struct_addtags({cluster: cluster, z: info[ic].z, $
+            ra: info[ic].ra, dec: info[ic].dec},mgeinfo)
        
-;       r_sersic = 0
-;       dmeasure, cutrimage, cutrinvvar, xcen=xcen, ycen=ycen, measure=r_measure
-;       dsersic, cutrimage, cutrinvvar, xcen=r_measure.xcen, ycen=r_measure.ycen, $
-;         sersic=r_sersic, /fixcen, model=refmodel, psf=psf, /fixsky
-;;      dsersic2, rimage, rinvvar, xcen=r_measure.xcen, ycen=r_measure.ycen, $
-;;        sersic=r_sersic, /fixcen, model=refmodel, psf=psf, bulge=bulge, $
-;;        disk=disk, /fixsky
+          outfile = outpath+cluster+'-refmodel-mgeinfo.fits'
+          im_mwrfits, mgeinfo, outfile, /clobber
+
+          cutrimage_mge[ignore] = randomn(seed,nignore)*refsig
+       endelse
+
+; build a 4-panel QAplot
+       im_plotconfig, 5, pos, psfile=bcgqafile, xspace=0.02, yspace=0.02, xmargin=[0.4,0.4]
+       cgloadct, 0, /silent
+       cgimage, cutrimage, clip=3, /negative, stretch=2, $
+         margin=0, /keep_aspect, position=pos[*,0], /save
+;      cgplots, mgeinfo.xcen_lum, mgeinfo.ycen_lum, psym=symcat(7,thick=2), color='red'
+       xyouts, pos[0,0]+0.02, pos[3,0]-0.05, strupcase(cluster), /norm
+       cgimage, cutrinvvar, clip=3, /negative, /noerase, $
+         stretch=2, margin=0, /keep_aspect, position=pos[*,1]
+;      cgimage, cutrimage_mge, clip=3, /negative, /noerase, $
+;        stretch=2, margin=0, /keep_aspect, position=pos[*,1]
+       cgimage, refmodel, clip=3, /negative, /noerase, $
+         stretch=2, margin=0, /keep_aspect, position=pos[*,2]
+       cgimage, cutrimage-refmodel, clip=3, /negative, /noerase, $
+         stretch=2, margin=0, /keep_aspect, position=pos[*,3]
+       im_plotconfig, /psclose, psfile=bcgqafile, /pdf
 
 ; write out
-       outfile = outpath+cluster+'-refmodel-mgeinfo.fits'
-       im_mwrfits, mgeinfo, outfile, /clobber
-
        outfile = outpath+cluster+'-refmodel.fits'
        splog, 'Writing '+file_basename(outfile)
 
@@ -217,50 +274,79 @@ pro streams_bcg, debug=debug
        mwrfits, cutrinvvar, outfile, cutivarrhdr, /silent
        spawn, 'gzip -f '+outfile
        
-; build a 4-panel QAplot
-       cutrimage_mge[ignore] = randomn(seed,nignore)*refsig
+;      im_plotconfig, 0, pos, psfile=qafile
+;      pos = reform(im_getposition(nx=2,ny=nfilt,xspace=0.0,$
+;        yspace=0.0,xmargin=[0.2,0.2],ymargin=[0.2,0.2],$
+;        height=replicate(2.0,nfilt),width=2*[1,1]),4,2,nfilt)
+       
+; now loop through each band and scale the fit
+;      for ib = nfilt-1, 0, -1 do begin
+;      for ib = 9, nfilt-1 do begin
+       for ib = 0, nfilt-1 do begin
+          imfile = skypath+cluster+'-'+short[ib]+'.fits.gz'
+          splog, 'Reading '+imfile
+          image = gz_mrdfits(imfile,0,hdr,/silent)
+          invvar = gz_mrdfits(imfile,1,ivarhdr,/silent)
 
-       im_plotconfig, 5, pos, psfile=qafile, xspace=0.02, yspace=0.02, xmargin=[0.4,0.4]
-       cgloadct, 0, /silent
-       cgimage, cutrimage, clip=3, /negative, stretch=2, $
-         margin=0, /keep_aspect, position=pos[*,0], /save
-       cgplots, mgeinfo.xcen_lum, mgeinfo.ycen_lum, psym=symcat(7,thick=2), color='red'
-       xyouts, pos[0,0]+0.02, pos[3,0]-0.05, strupcase(cluster), /norm
-       cgimage, cutrimage_mge, clip=3, /negative, /noerase, $
-         stretch=2, margin=0, /keep_aspect, position=pos[*,1]
-       cgimage, refmodel, clip=3, /negative, /noerase, $
-         stretch=2, margin=0, /keep_aspect, position=pos[*,2]
-       cgimage, cutrimage-refmodel, clip=3, /negative, /noerase, $
-         stretch=2, margin=0, /keep_aspect, position=pos[*,3]
-       im_plotconfig, /psclose, psfile=qafile, /pdf
+          hextract, image, hdr, cutimage, cuthdr, xcen-rmax, $
+            xcen+rmax, ycen-rmax, ycen+rmax, /silent
+          hextract, invvar, ivarhdr, cutinvvar, cutivarhdr, $
+            xcen-rmax, xcen+rmax, ycen-rmax, ycen+rmax, /silent
 
-;; now loop through each band and scale the fit
-;       for ib = nfilt-1, 0, -1 do begin
-;;      for ib = 9, nfilt-1 do begin
-;;      for ib = 0, nfilt-1 do begin
-;          imfile = skypath+cluster+'-'+short[ib]+'.fits.gz'
-;          splog, 'Reading '+imfile
-;          image = gz_mrdfits(imfile,0,hdr,/silent)
-;          invvar = gz_mrdfits(imfile,1,ivarhdr,/silent)
-;
-;          hextract, image, hdr, cutimage, cuthdr, xcen-rmax, $
-;            xcen+rmax, ycen-rmax, ycen+rmax, /silent
-;          hextract, invvar, ivarhdr, cutinvvar, cutivarhdr, $
-;            xcen-rmax, xcen+rmax, ycen-rmax, ycen+rmax, /silent
-;
-;          scale = total(cutinvvar*cutimage*refmodel)/total(refmodel^2*cutinvvar)
-;          cutmodel = scale*refmodel
-;          cgimage, cutimage-cutmodel, /keep, stretch=2
-;
-;stop          
-;
-;;          dsersic, image, invvar, xcen=xcen, ycen=ycen, sersic=curr_sersic, $
-;;            /onlyflux, /fixcen, /fixsky, psf=psf, model=model
-;;;         dsersic2, image, invvar, xcen=xcen, ycen=ycen, sersic=curr_sersic, $
-;;;           /nofit, /fixcen, /fixsky, psf=psf, model=model, bulge=bulge, disk=disk
-;;             
-;;          mge1 = streams_mge(cutimage,badpixels=badpixels,$
-;;            pixscale=pixscale,model=cutmodel,twist=twist)
+          scale = total(cutinvvar*cutimage*refmodel)/total(refmodel^2*cutinvvar)
+          model = scale*refmodel
+
+; the code below is a hack; instead of using the scaled model (which
+; by construction doesn't give us color gradients!!! argh!! just grab
+; Marc's models in every other band)          
+          marcfile = marcpath+cluster+'_mosaic_065mas_*_'+short[ib]+'_drz_*_BCG.fits.gz'
+          if file_test(marcfile) then begin
+             marcmodel = mrdfits(marcfile,0,marchdr,/silent)
+             
+             fthis = where(short[ib] eq strtrim(filtinfo.short,2))
+             factor = 1D12*10D^(-0.4*(filtinfo[fthis].zpt-$
+               k_lambda(filtinfo[fthis].weff,/odon)*sample[ic].ebv))
+             marcmodel = marcmodel*factor-skyinfo[ib].mode
+             
+             hline = hdr[where(strmatch(hdr,'*Extracted Image*'))]
+             hline = strmid(hline,strpos(hline,'['),strpos(hline,']'))
+             xxyy = long((strsplit(hline,'[]:,',/extract))[0:3])
+             hextract, marcmodel, marchdr, model1, modelhdr1, $
+               xxyy[0], xxyy[1], xxyy[2], xxyy[3], /silent
+             
+             hextract, model1, modelhdr1, model, modelhdr, $
+               xcen-rmax, xcen+rmax, ycen-rmax, ycen+rmax, /silent
+          endif else splog, 'No model! '+marcfile
+          
+;          cgimage, cutimage, clip=3, /negative, noerase=ib gt 0, $
+;            stretch=2, margin=0, keep_aspect=1, position=pos[*,0,ib]
+;;         cgimage, model, clip=3, /negative, /noerase, $
+;;           stretch=2, margin=0, /keep_aspect, position=pos[*,ib,1]
+;          cgimage, cutimage-model, clip=3, /negative, /noerase, $
+;            stretch=2, margin=0, keep_aspect=1, position=pos[*,1,ib]
+;          xyouts, pos[0,0,ib]-0.02, (pos[3,0,ib]-pos[1,0,ib])/2.0+pos[1,0,ib], $
+;            strupcase(short[ib]), align=0.5, orientation=90, /norm, charsize=1.0
+
+;         cgimage, cutimage-model, clip=3, /negative, stretch=2, $
+;           margin=0, keep_aspect=1
+;         cc = get_kbrd(1)
+          
+; write out
+          outfile = outpath+cluster+'-'+short[ib]+'.fits'
+          splog, 'Writing '+file_basename(outfile)
+
+          mwrfits, cutimage, outfile, cuthdr, /create, /silent
+          mwrfits, model, outfile, cuthdr, /silent
+          mwrfits, cutinvvar, outfile, cutivahdr, /silent
+          spawn, 'gzip -f '+outfile
+       
+;          dsersic, image, invvar, xcen=xcen, ycen=ycen, sersic=curr_sersic, $
+;            /onlyflux, /fixcen, /fixsky, psf=psf, model=model
+;;         dsersic2, image, invvar, xcen=xcen, ycen=ycen, sersic=curr_sersic, $
+;;           /nofit, /fixcen, /fixsky, psf=psf, model=model, bulge=bulge, disk=disk
+;             
+;          mge1 = streams_mge(cutimage,badpixels=badpixels,$
+;            pixscale=pixscale,model=cutmodel,twist=twist)
 ;;          help, mge1, /str
 ;
 ;; rebuild the original image with the BCG subtracted and write out 
@@ -274,7 +360,9 @@ pro streams_bcg, debug=debug
 ;          mwrfits, image-model, outfile, hdr, /create
 ;          mwrfits, invvar, outfile, ivarhdr, /silent
 ;          spawn, 'gzip -f '+outfile
-;       endfor                   ; close filter loop
+       endfor                   ; close filter loop
+
+;      im_plotconfig, psfile=qafile, /psclose, /pdf
     endfor                      ; close cluster loop
 
 return

@@ -7,11 +7,22 @@ Define the sample: streams_sample.sex
   streams_build_psfs
 
 * Find the BCGs and get some basic size & orientation measurements;
-  writes out bcg_info.fits.gz file
+  writes out bcg_info.fits.gz file.  (This code is largely obsolete
+  now since the info is gathered in other pieces of code.)
+
    streams_find_bcg, debug=debug  
   
+* Process Marc's BCG models and then do elliptical aperture photometry
+  (see also STREAMS_BCG_MGE)
+  streams_bcg_postman
+
+* Process Marc's BCG models and then do elliptical aperture photometry
+  (see also STREAMS_BCG_MGE)
+  
+  
+
 * Do a preliminary subtraction of the BCG (optional)
-  streams_bcg
+  streams_bcg_mge
 
 * Process everything through dimage
   * streams_dimage, /parents, /stargal  

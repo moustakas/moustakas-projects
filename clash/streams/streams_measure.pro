@@ -60,9 +60,10 @@ pro streams_measure, base, psffiles=psffiles, bulgedisk=bulgedisk, $
     pcat=gz_mrdfits(base+'-pcat.fits',1)
 
     splog, 'Hack!!'
-    for iparent = 370, 380 do begin
+;   for iparent = 266, 275 do begin
 ;   for iparent = 13, 20 do begin
-;   for iparent = 0L, n_elements(pcat)-1 do begin
+;   for iparent = 54L, n_elements(pcat)-1 do begin
+    for iparent = 0L, n_elements(pcat)-1 do begin
        splog, 'Parent ', iparent
     
        pstr = strtrim(string(iparent),2)
@@ -113,6 +114,7 @@ pro streams_measure, base, psffiles=psffiles, bulgedisk=bulgedisk, $
                            sersic=r_sersic, /fixcen, model=refmodel, psf=psf, $
                            bulge=bulge, disk=disk, fixsky=1
                       endif else begin
+;if ik eq 1 then stop
                          dsersic, rimage, rinvvar, xcen=r_measure.xcen, ycen=r_measure.ycen, $
                            sersic=r_sersic, /fixcen, model=refmodel, psf=psf, fixsky=0
                       endelse
@@ -205,10 +207,9 @@ pro streams_measure, base, psffiles=psffiles, bulgedisk=bulgedisk, $
                               psf=psf, model=thismodel
                          endelse
                       endelse
+                      thismodel = thismodel - curr_sersic.sky ; subtract the sky!
                       outmodel[*,*,iband] = outmodel[*,*,iband] + thismodel
                       
-;if iband eq 2 then stop
-
                       mall.nprof[iband]= tmp_measure.nprof
                       mall.profmean[iband,*]= tmp_measure.profmean
                       mall.profmean_ivar[iband,*]= $

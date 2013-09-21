@@ -1,33 +1,3 @@
-;function fci_key
-;; correct answers
-;    key = [$
-;1 B 
-;2 D 
-;3 E 
-;4 C 
-;5 A 
-;6 C 
-;7 C 
-;8 D 
-;9 A 
-;10 E 
-;11 E 
-;12 C 
-;13 B 
-;14 B 
-;15 E 
-;16 A 
-;17 D 
-;18 B 
-;19 C 
-;20 C 
-;21 A 
-;22 B 
-;23 D 
-;24 A 
-;25 A 
-;26 E
-
 function get_title, qq
     words = strsplit(qq,' ',/extract)
     nw = n_elements(words)
@@ -50,16 +20,34 @@ pro mechanics_assessment
 ; jm13sep04siena
 
     year = ['2013']
-    path = getenv('TEACHING_DIR')+'/assessment/'+year+'-mechanics/'
-    testfile = file_search(path+'*.csv',count=ntest)
+    rootpath = getenv('TEACHING_DIR')+'/assessment/mechanics/'
+    filepath = rootpath+year+'/'
+    
+; read the answer key and then all the data
+    readcol, rootpath+'mechanics-key.txt', key, format='A', /silent
+    nkey = n_elements(key) ; =30 questions
+    
+    testfile = file_search(filepath+'*.csv',count=ntest)
+
+; read all the data
+    for ii = 0, ntest-1 do begin
+       data1 = read_assessment(testfile[ii],key=key,questions=qq)
+       if ii eq 0 then data = data1 else data = [data,data1]
+    endfor
+    nall = n_elements(data)
+    
+    
+
+stop
 
     bin = 0.5
-    
     for ii = 0, ntest-1 do begin
-       data = read_assessment(testfile[ii],questions=qq) ; read it
+       data = read_assessment(testfile[ii],key=key,$ ; read it
+         questions=qq,rightwrong=rightwrong) 
+       
        nqq = n_elements(qq)
 
-       for jj = 2, nqq-1 do begin
+       for jj = 2, 2+nkey-1 do begin
           im_plothist, remap_abcde(data.(jj))-bin, bin=bin, edge=1.0, $
             xrange=[0.5,5.5], xsty=1, /fill, xtickname=['A','B','C','D','E'], $
             ytitle='Number of Students'
@@ -68,9 +56,7 @@ pro mechanics_assessment
        endfor
           
     endfor
-       
 
-stop
-    
+
 return
 end

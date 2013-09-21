@@ -29,10 +29,11 @@ pro streams_skysubtract
     struct_print, allfiltinfo
 
 ; initialize the sky structure    
-    skyinfo1 = {file: '', band: '', sblimit: 0.0, $
-      mode: 0.0, sigma: 0.0, skew: 0.0, nsky: 0L}
+    skyinfo1 = {file: '', band: '', weff: 0.0, factor: 0.0, $
+      sblimit: 0.0, mode: 0.0, sigma: 0.0, skew: 0.0, nsky: 0L}
 
 ; wrap on each cluster    
+;   for ic = ncl-1, ncl-1 do begin
     for ic = 0, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        splog, 'Working on cluster '+cluster
@@ -50,6 +51,7 @@ pro streams_skysubtract
 
        skyinfo = replicate(skyinfo1,nfilt)
        skyinfo.band = filtinfo.short
+       skyinfo.weff = filtinfo.weff
        
 ; read the original mosaics and inverse variance maps
        splog, 'Reading the data...'
@@ -74,12 +76,16 @@ pro streams_skysubtract
           ivarhdrcube[0:nihdr-1,ib] = ivarhdr[ihcrop]
        endfor
        
-; crop the mosaics to the reference band, rounding to the nearest
-; hundred pixels
-       xcrop = ceil(minmax(where(total(imagecube[*,*,reffilt],1) gt 0))/100.0)*100
-       ycrop = ceil(minmax(where(total(imagecube[*,*,reffilt],2) gt 0))/100.0)*100
+; crop the mosaics to the reference band
+       xcrop = minmax(where(total(imagecube[*,*,reffilt],2) ne 0))
+       ycrop = minmax(where(total(imagecube[*,*,reffilt],1) ne 0))
+;      xcrop = ceil(minmax(where(total(imagecube[*,*,reffilt],2) gt 0))/10.0)*10
+;      ycrop = ceil(minmax(where(total(imagecube[*,*,reffilt],1) gt 0))/10.0)*10
        xcrop = (xcrop>0)<(xsize-1)
        ycrop = (ycrop>0)<(ysize-1)
+
+       xcrop = xcrop+(odd(xcrop) eq 0) ; force odd because hextract, below, adds a pixel
+       ycrop = ycrop+(odd(ycrop) eq 0) ; force odd because hextract, below, adds a pixel
        
 ; aggresively build an object mask using all the bands
        splog, 'Building object mask'
@@ -90,7 +96,8 @@ pro streams_skysubtract
 ; finally sky-subtract each band independently; convert from
 ; [electron/s] to [1D-12 erg/s/cm^2/hz] (picomaggies)
        kl = k_lambda(filtinfo.weff,/odon)
-       factor = 1D12*10D^(-0.4*(filtinfo.zpt-kl*sample[ic].ebv)) 
+       factor = 1D12*10D^(-0.4*(filtinfo.zpt-kl*sample[ic].ebv))
+       skyinfo.factor = factor ; keep the conversion factor!
        
        skyinfo.file = file_basename(drzfiles)
        for ib = 0, nfilt-1 do begin

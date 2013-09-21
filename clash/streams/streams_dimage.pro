@@ -130,7 +130,7 @@ pro streams_dimage, build_links=build_links, parents=parents, $
              endif
           endif
           
-          glim = 10.0   ; minimum significance above the noise
+          glim = 15.0   ; minimum significance above the noise
           gsmooth = 3.0 ; 3.0 ; default is 10, which is too aggressive
           gsaddle = 3.0 ; 3.0
           maxnstar = 50L ; 100L
@@ -166,6 +166,12 @@ pro streams_dimage, build_links=build_links, parents=parents, $
           splog, 'Modeling!'
           pushd, outpath
 
+; need to deal with the fact that streams_measure uses the same sky
+; value from the reference image for all the other images
+
+          
+          
+          
 ; test code          
 ;         cutimage = mrdfits('atlases/303/macs1206-303-templates-0.fits',0,hdr)
 ;         mge1 = streams_mge(cutimage,badpixels=badpixels,$
@@ -175,7 +181,6 @@ pro streams_dimage, build_links=build_links, parents=parents, $
 ;         help, mge1, /str
 
 ;         bulgedisk = 1 ; do two-component modeling
-
           streams_measure, cluster, psffiles=psffiles, noclobber=noclobber, $
             bulgedisk=bulgedisk, mgefit=mgefit
           heap_gc
@@ -201,6 +206,7 @@ pro streams_dimage, build_links=build_links, parents=parents, $
              model = image*0
              
              pcat = gz_mrdfits(outpath+cluster+'-pcat.fits',1)
+;            for iparent = 266, 275 do begin
              for iparent = 0L, n_elements(pcat)-1 do begin
                 splog, 'Parent ', iparent
     
@@ -210,7 +216,10 @@ pro streams_dimage, build_links=build_links, parents=parents, $
                 sfile = outpath+'/'+sub+'/'+pstr+'/'+cluster+'-'+pstr+ $
                   '-sersic'+postfix+'.fits.gz'
                 if file_test(sfile) then begin
+;                  if file_test(mfile) eq 0 then stop
+;                  mall = mrdfits(mfile,1,/silent)
                    model1 = gz_mrdfits(sfile,ib,hdr1,/silent)
+;                  model1 = model1-mall.sky[ib] ; subtract the sky
                    embed_stamp, model, model1, pcat[iparent].xst[ib], pcat[iparent].yst[ib]
                 endif
              endfor

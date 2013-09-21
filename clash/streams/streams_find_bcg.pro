@@ -7,8 +7,8 @@ pro streams_find_bcg, debug=debug
     
 ; for no particular reason, find the BCGs the full sample of CLASH 
 ; clusters, not just the STREAMS project ones    
-    sample = rsex(getenv('CLASH_DIR')+'/clash_sample.sex')
-;   sample = rsex(streams_path(/propath)+'streams_sample.sex')
+;   sample = rsex(getenv('CLASH_DIR')+'/clash_sample.sex')
+    sample = rsex(streams_path(/propath)+'streams_sample.sex')
     struct_print, sample
     ncl = n_elements(sample) 
 
@@ -18,16 +18,18 @@ pro streams_find_bcg, debug=debug
     outfile = streams_path()+'bcg_info.fits'
 
 ; wrap on each cluster    
-;   for ic = 13, ncl-1 do begin
     for ic = 0, ncl-1 do begin
+;   for ic = 0, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        splog, 'Working on cluster '+cluster
        skypath = streams_path(/skysub)+cluster+'/'
        
 ; get the preliminary coordinates of the BCG(s) and the physical
 ; scale; CLJ1226 is affected by a bright neighbor; also note that the
-; coordinates for the merging clusters are somewhat arbitrary 
-       if cluster eq 'clj1226' then rmaxkpc = 15D else rmaxkpc = 40D
+; coordinates for the merging clusters are somewhat arbitrary
+       rmaxkpc = 40D
+       if cluster eq 'clj1226' then rmaxkpc = 10D
+       if cluster eq 'macs2129' then rmaxkpc = 8
        bcg_ra1 = 15D*hms2dec(sample[ic].ra)
        bcg_dec1 = hms2dec(sample[ic].dec)
        
@@ -69,7 +71,7 @@ pro streams_find_bcg, debug=debug
        endfor
 
        drefine, cutrimage, xcen_lum, ycen_lum, $
-         xr=xcen_final, yr=ycen_final, box=3L
+         xr=xcen_final, yr=ycen_final, box=11L
 
 ;      adxy, rhdr, bcg_ra1, bcg_dec1, xcen1, ycen1
 ;      xcen1 = fix(xcen1) & ycen1 = fix(ycen1)

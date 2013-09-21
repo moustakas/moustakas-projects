@@ -53,7 +53,7 @@ return, ebv
 end
 
 pro clash_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, $
-  nominerror=nominerror, useirac=useirac, usemag=usemag
+  nominerror=nominerror, useirac=useirac, usemag=usemag, nodustcorr=nodustcorr
 
     ngal = n_elements(cat)    
     if (ngal le 0L) then begin
@@ -78,7 +78,8 @@ pro clash_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, $
 ;
 ; use one extinction value over the whole cluster field 
 
-    ebv = cluster_ebv(cat)
+    if keyword_set(nodustcorr) then ebv = 0.0 else $
+      ebv = cluster_ebv(cat)
     kl = k_lambda(weff,/odon,/silent)
     kl[notirac] = 0.0 ; don't correct the HST photometry
 
@@ -129,49 +130,51 @@ pro clash_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, $
     maggies = dblarr(nbands,ngal)
     ivarmaggies = dblarr(nbands,ngal)
     for ib = 0, nbands-1 do begin
-       ftag = tag_indx(cat[0],tags[ib])
-       utag = tag_indx(cat[0],errtags[ib])
+       if tag_exist(cat[0],tags[ib]) and tag_exist(cat[0],errtags[ib]) then begin
+          ftag = tag_indx(cat[0],tags[ib])
+          utag = tag_indx(cat[0],errtags[ib])
 
-       if keyword_set(usemag) then begin
-          limit = where((cat.(ftag) gt 90.0) and $
-            (cat.(utag) gt 0.0) and (cat.(utag) lt 90.0),nlimit)
-          if (nlimit ne 0L) then begin
-             maggies[ib,limit] = 0.0
-             ivarmaggies[ib,limit]= 1.0/(10.0^(-0.4*cat[limit].(utag)))^2.0
-          endif
+          if keyword_set(usemag) then begin
+             limit = where((cat.(ftag) gt 90.0) and $
+               (cat.(utag) gt 0.0) and (cat.(utag) lt 90.0),nlimit)
+             if (nlimit ne 0L) then begin
+                maggies[ib,limit] = 0.0
+                ivarmaggies[ib,limit]= 1.0/(10.0^(-0.4*cat[limit].(utag)))^2.0
+             endif
+             
+             good = where($
+               (cat.(ftag) gt 0.0) and (cat.(ftag) lt 90.0) and $
+               (cat.(utag) gt 0.0) and (cat.(utag) lt 90.0) and $
+               finite(cat.(utag)),ngood)
+             if (ngood ne 0L) then begin
+                magerr = cat[good].(utag)
+                mag = cat[good].(ftag) - kl[ib]*ebv + vega2ab[ib] ; + zpoffset[ib] 
+                maggies[ib,good] = 10.0^(-0.4*mag)
+                ivarmaggies[ib,good] = 1.0/(0.4*alog(10.0)*(maggies[ib,good]*magerr))^2
+             endif
+             
+             nlim = 0
+             if (nlim ne 0L) then begin
+                ivarmaggies[ib,lim] = 1.0/maggies[ib,lim]^2.0
+                maggies[ib,lim] = 0.0
+             endif
+          endif else begin
+             fact = 10D^(-0.4D*(zpt[ib]-kl[ib]*ebv+vega2ab[ib]))/apcor[ib]
+             good = where(cat.(utag) gt 0.0 and finite(cat.(utag)),ngood)
+             if (ngood ne 0L) then begin
+                maggies[ib,good] = cat[good].(ftag)*fact
+                ivarmaggies[ib,good] = 1D/(cat[good].(utag)*fact)^2.0
+             endif
+;            print, tags[ib], errtags[ib], cat[0].(ftag), cat[0].(utag), fact, maggies[ib,0], ivarmaggies[ib,0]
+          endelse 
           
-          good = where($
-            (cat.(ftag) gt 0.0) and (cat.(ftag) lt 90.0) and $
-            (cat.(utag) gt 0.0) and (cat.(utag) lt 90.0) and $
-            finite(cat.(utag)),ngood)
-          if (ngood ne 0L) then begin
-             magerr = cat[good].(utag)
-             mag = cat[good].(ftag) - kl[ib]*ebv + vega2ab[ib] ; + zpoffset[ib] 
-             maggies[ib,good] = 10.0^(-0.4*mag)
-             ivarmaggies[ib,good] = 1.0/(0.4*alog(10.0)*(maggies[ib,good]*magerr))^2
-          endif
-
-          nlim = 0
-          if (nlim ne 0L) then begin
-             ivarmaggies[ib,lim] = 1.0/maggies[ib,lim]^2.0
-             maggies[ib,lim] = 0.0
-          endif
-       endif else begin
-          fact = 10D^(-0.4D*(zpt[ib]-kl[ib]*ebv+vega2ab[ib]))/apcor[ib]
-          good = where(cat.(ftag) lt 90.0 and cat.(utag) gt 0.0 and $
-            finite(cat.(utag)),ngood)
-          if (ngood ne 0L) then begin
-             maggies[ib,good] = cat[good].(ftag)*fact
-             ivarmaggies[ib,good] = 1D/(cat[good].(utag)*fact)^2.0
-          endif
-       endelse 
-
 ; clean up NAN's; these correspond to masked areas (e.g., chip
 ; gap, outside the detection image boundaries, etc.) 
-       check = where(finite(maggies[ib,*]) eq 0 or finite(ivarmaggies[ib,*]) eq 0)
-       if check[0] ne -1 then begin
-          maggies[ib,check] = 0.0
-          ivarmaggies[ib,check] = 0.0
+          check = where(finite(maggies[ib,*]) eq 0 or finite(ivarmaggies[ib,*]) eq 0)
+          if check[0] ne -1 then begin
+             maggies[ib,check] = 0.0
+             ivarmaggies[ib,check] = 0.0
+          endif
        endif
     endfor 
 

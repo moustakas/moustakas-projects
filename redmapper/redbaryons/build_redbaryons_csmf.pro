@@ -85,8 +85,8 @@ pro build_redbaryons_csmf, debug=debug, clobber=clobber
 ; binning parameters
     binsize = redbaryons_binsize(bin=binsize,$
       minmass=minmass,maxmass=maxmass)
-    sat_masslimit = 9.5 ; 10.0 ; 10.5
-    cen_masslimit = 9.5 ; 10.0 ; 11.0
+    sat_masslimit = 10.0 ; 10.0 ; 10.5
+    cen_masslimit = 10.9 ; 10.0 ; 11.0
     
 ; read the catalogs
     if n_elements(centrals) eq 0L then read_redmapper, $
@@ -99,9 +99,14 @@ pro build_redbaryons_csmf, debug=debug, clobber=clobber
 
        isat = where(satellites.z ge zbins[iz].zlo and satellites.z lt zbins[iz].zup,nsat)
        icen = where(centrals.z ge zbins[iz].zlo and centrals.z lt zbins[iz].zup,ncen)
-       sat_mfdata1 = im_mf_vmax(satellites[isat].mstar_avg,replicate(1.0/zbins[iz].vol,nsat),$
+
+       satweight = replicate(1.0/float(nsat),nsat)
+       cenweight = replicate(1.0/float(ncen),ncen)
+;      satweight = replicate(1.0/zbins[iz].vol,nsat)*0.0+1.0
+;      cenweight = replicate(1.0/zbins[iz].vol,ncen)*0.0+1.0
+       sat_mfdata1 = im_mf_vmax(satellites[isat].mstar_avg,satweight,$
          binsize=binsize,minmass=minmass,maxmass=maxmass,masslimit=sat_masslimit)
-       cen_mfdata1 = im_mf_vmax(centrals[icen].mstar_avg,replicate(1.0/zbins[iz].vol,ncen),$
+       cen_mfdata1 = im_mf_vmax(centrals[icen].mstar_avg,cenweight,$
          binsize=binsize,minmass=minmass,maxmass=maxmass,masslimit=cen_masslimit)
 
 ; fit!

@@ -43,8 +43,13 @@ pro redbaryons_plots, pdf=pdf
     
 ; ---------------------------------------------------------------------------
 ; CSMF for satellites & centrals in six redshift bins
-    xrange = [9.8,12.5]
-    yrange = [-8.0,-2.5]
+;   xrange = [9.8,12.5]
+;   yrange = [1,5.99]
+;   yrange = [-8.0,-2.5]
+
+    xrange = [10.8,12.2]
+    yrange = [-2.5,1]
+;   yrange = [1,4.5]
 
     mingal = 3
     cen_psym = 16 & cen_color = 'firebrick'
@@ -69,17 +74,24 @@ pro redbaryons_plots, pdf=pdf
        
        plot, [0], [0], /nodata, noerase=iz gt 0, position=pos[*,iz], xsty=1, ysty=1, $
          yrange=yrange, xrange=xrange, ytickname=ytickname, xtitle=xtitle, $
-         ytitle='', xtickinterval=1, xminor=5, xtickname=xtickname, yminor=5
+         ytitle='', xtickinterval=0.5, xminor=5, xtickname=xtickname, yminor=5, $
+         ytickinterval=1.0
        im_legend, 'z='+strtrim(string(zbins[iz].zlo,format='(F12.2)'),2)+$
          '-'+strtrim(string(zbins[iz].zup,format='(F12.2)'),2), $
          /right, /top, box=0, margin=-0.1, charsize=1.3
 
-; satellites       
-       good = where(csmf_sat[iz].number ge mingal and csmf_sat[iz].limit eq 1)
-       oploterror, csmf_sat[iz].meanmass[good], alog10(csmf_sat[iz].phi[good]), $
-         csmf_sat[iz].phierr[good]/csmf_sat[iz].phi[good]/alog(10), $
-         psym=symcat(sat_psym,thick=3), symsize=0.75, color=im_color(sat_color), $
-         errcolor=im_color(sat_color)
+       if (iz gt 0) then begin
+          good = where(csmf_cen[0].number ge mingal and csmf_cen[0].limit eq 1)
+          djs_oplot, csmf_cen[0].meanmass[good], alog10(csmf_cen[0].phi[good]), $
+            line=0, color=im_color('grey')
+       endif
+
+;; satellites       
+;       good = where(csmf_sat[iz].number ge mingal and csmf_sat[iz].limit eq 1)
+;       oploterror, csmf_sat[iz].meanmass[good], alog10(csmf_sat[iz].phi[good]), $
+;         csmf_sat[iz].phierr[good]/csmf_sat[iz].phi[good]/alog(10), $
+;         psym=symcat(sat_psym,thick=3), symsize=0.75, color=im_color(sat_color), $
+;         errcolor=im_color(sat_color)
 
 ; centrals
        good = where(csmf_cen[iz].number ge mingal and csmf_cen[iz].limit eq 1)
@@ -87,13 +99,16 @@ pro redbaryons_plots, pdf=pdf
          csmf_cen[iz].phierr[good]/csmf_cen[iz].phi[good]/alog(10), $
          psym=symcat(cen_psym,thick=3), symsize=0.75, color=im_color(cen_color), $
          errcolor=im_color(cen_color)
-
-       djs_oplot, 11.6*[1,1], !y.crange, line=0
+;      print, alog10(csmf_cen[iz].phi[good])
+       
+;      djs_oplot, 11.6*[1,1], !y.crange, line=0
     endfor 
 
 ; ytitle    
     xyouts, pos[0,0]-0.06, pos[1,0], textoidl('log (\Phi / Mpc^{-3} dex^{-1})'), $
       align=0.5, /normal, orientation=90
+;   xyouts, pos[0,0]-0.06, pos[1,0], textoidl('log (\Phi / Mpc^{-3} dex^{-1})'), $
+;     align=0.5, /normal, orientation=90
     
     im_plotconfig, psfile=psfile, /psclose, pdf=pdf
 

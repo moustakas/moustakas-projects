@@ -8,6 +8,8 @@ function read_evaluation, file, questions=qq
 ; deal with blank data and also commas in the long-answers; this is
 ; stupidly hard-coded to probably three blank answers
     data2 = repstr(repstr(repstr(data1,', ',' '),',,',',...,'),',,',',...,')
+    if strmid(data2[0],0,strlen(data2[0])-1,/reverse) eq ',' then $ ; last column is empty
+      data2[0] = data2[0]+'...'
     ncol = n_elements(strsplit(data2[0],',',/extract))
 
 ; parse the questions

@@ -62,10 +62,10 @@ pro ages_mgfe_isedfit, sdss=sdss, write_paramfile=write_paramfile, build_grids=b
 ;  generate the model photometry QAplots
     if keyword_set(qaplot_models) then begin
        if keyword_set(sdss) then begin
-          cat = mrdfits(isedfit_dir+'sdss_mgfe_parent.fits.gz',1)
+          cat = mrdfits(mgfepath+'sdss_mgfe_parent.fits.gz',1)
           thesefilters = ['galex_NUV','sdss_g0','sdss_r0','sdss_i0','wise_w1']
        endif else begin
-          cat = mrdfits(isedfit_dir+'ages_mgfe_parent.fits.gz',1)
+          cat = mrdfits(mgfepath+'ages_mgfe_parent.fits.gz',1)
 ;         thesefilters = 
        endelse
        isedfit_qaplot_models, isedfit_paramfile, cat.maggies, $
@@ -77,7 +77,7 @@ pro ages_mgfe_isedfit, sdss=sdss, write_paramfile=write_paramfile, build_grids=b
 ; fit!
     if keyword_set(isedfit) then begin
        if keyword_set(sdss) then begin
-          cat = mrdfits(isedfit_dir+'sdss_mgfe_parent.fits.gz',1,$
+          cat = mrdfits(mgfepath+'sdss_mgfe_parent.fits.gz',1,$
             columns=['ra','dec','z','maggies','ivarmaggies'])
           ngal = n_elements(cat)
 
@@ -100,7 +100,7 @@ pro ages_mgfe_isedfit, sdss=sdss, write_paramfile=write_paramfile, build_grids=b
           endfor                    
           
        endif else begin
-          cat = mrdfits(isedfit_dir+'ages_mgfe_parent.fits.gz',1)
+          cat = mrdfits(mgfepath+'ages_mgfe_parent.fits.gz',1)
           isedfit, isedfit_paramfile, cat.maggies, cat.ivarmaggies, $
             cat.z, ra=cat.ra, dec=cat.dec, isedfit_dir=isedfit_dir, $
             thissfhgrid=thissfhgrid, clobber=clobber
@@ -153,9 +153,10 @@ pro ages_mgfe_isedfit, sdss=sdss, write_paramfile=write_paramfile, build_grids=b
 ; --------------------------------------------------
 ;  generate spectral energy distribution (SED) QAplots
     if keyword_set(qaplot_sed) then begin
+;      index = [2102,4357,5033]
        isedfit_qaplot_sed, isedfit_paramfile, nrandom=20, $
          isedfit_dir=isedfit_dir, montegrids_dir=montegrids_dir, $
-         thissfhgrid=thissfhgrid, clobber=clobber, /xlog
+         thissfhgrid=thissfhgrid, clobber=clobber, /xlog;, index=index
     endif
     
 return

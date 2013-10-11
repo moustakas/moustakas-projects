@@ -18,7 +18,7 @@ pro streams_bcg_postman, debug=debug
     rmaxkpc = 200D     ; [kpc]
 
 ; wrap on each cluster    
-;   for ic = 0, 0 do begin
+;   for ic = 7, 7 do begin
     for ic = 0, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        splog, 'Working on cluster '+cluster
@@ -127,9 +127,12 @@ pro streams_bcg_postman, debug=debug
 ; itself in STREAMS_BCG_APPHOT; a smoothing scale larger than 3 is
 ; usually too aggressive in the core of the BCG and increasing PLIM
 ; leaves too many faint sources undetected
-          simage = dsmooth(cutimage-model,3L)
-          dobjects, simage, objects=obj, plim=10, nlevel=1L
-          mask = obj ne -1
+          domask = 0 ; come back to the mask
+          if domask then begin
+             simage = dsmooth(cutimage-model,3L)
+             dobjects, simage, objects=obj, plim=10, nlevel=1L
+             mask = obj eq -1 ; 0 = masked, 1 = unmasked
+          endif else mask = cutimage*0
 
 ;; find residual significant peaks and mask those, too, using a fixed
 ;; 4-pixel rectangular

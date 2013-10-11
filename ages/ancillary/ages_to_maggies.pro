@@ -78,6 +78,29 @@ pro ages_to_maggies, cat, maggies, ivarmaggies, sdss=sdss, $
       totalmag=totalmag, itot=itot, bands=bootes_bands
     bands = [bands,bootes_bands]
 
+; the z-band photometry of objects near the edges of the individual
+; mosaics are suspect, so toss them out here
+    zfile = ages_path(/mycat)+'zbootes/zbootes_field_centers.fits.gz'
+;   splog, 'Reading '+zfile
+    field = mrdfits(zfile,1)
+    nfield = n_elements(field)
+    zmask = intarr(nobj) ; all start out bad
+    pad = 15.0/3600.0 ; 15" padding
+    
+    for ii = 0, nfield-1 do zmask = zmask or $
+      ((cat.ra gt field[ii].ra-field[ii].dra/2.0+pad) and $
+      (cat.ra lt field[ii].ra+field[ii].dra/2.0-pad) and $
+      (cat.dec gt field[ii].dec-field[ii].ddec/2.0+pad) and $      
+      (cat.dec lt field[ii].dec+field[ii].ddec/2.0-pad))
+;   good = where(zmask);,comp=bad)
+    zfilt = (where(strmatch(bootes_filterlist,'*bok*')))[0]
+    bad = where((zmask eq 0) and (bootes_maggies[zfilt,*] gt 0.0))
+
+;   djs_plot, cat.ra, cat.dec, ps=3, ysty=3               
+;   djs_oplot, cat[bad].ra, cat[bad].dec, ps=3, color='red'
+;   bootes_maggies[zfilt,bad] = 0.0
+    bootes_ivarmaggies[zfilt,bad] = 0.0
+    
 ; final photometry     
     maggies = [galex_maggies,bootes_maggies]
     ivarmaggies = [galex_ivarmaggies,bootes_ivarmaggies]

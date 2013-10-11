@@ -1,14 +1,14 @@
 pro phys130_lab_f13_grades, alldata, test=test, sendit=sendit, final=final
 ; jm13aug25siena - parse the grades for this class 
 
-    path = getenv('TEACHING_DIR')+'/130-F13/grades/lab/'
+    path = getenv('TEACHING_DIR')+'/Phys130/130-F13/grades/lab/'
     
-    date = '' ; update this
+    date = '13oct02' ; update this
     semester = 'Fall 2013'
     class = 'Physics 130 - General Physics I - Lab'
     
 ; read the grade spreadsheet downloaded from GoogleDocs
-    gradefile = path+'phys130-lab-grades-'+date+'.csv'
+    gradefile = path+'phys130-lab-'+date+'.csv'
     data = read_gradefile(gradefile,unique_assignments=assign)
 
 ; specify the complete list of *possible* assignments and their

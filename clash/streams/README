@@ -14,10 +14,6 @@ Define the sample: streams_sample.sex
   
 * Process Marc's BCG models and then do elliptical aperture photometry
   (see also STREAMS_BCG_MGE)
-  streams_bcg_postman
-
-* Process Marc's BCG models and then do elliptical aperture photometry
-  (see also STREAMS_BCG_MGE)
   
   
 

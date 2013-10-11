@@ -3,7 +3,7 @@ function bootes_vega2ab
     filterlist = bootes_filterlist()
     vega2ab = k_vega2ab(filterlist=filterlist,/kurucz,/silent)
 
-; LBC/U-band and zBootes magnitudes are already AB
+; LBC/u, LBC/Y, and zBootes magnitudes are already AB
     ok = where(strmatch(filterlist,'*lbc*',/fold) or $
       strmatch(filterlist,'*90prime_z*',/fold))
     vega2ab[ok] = 0.0

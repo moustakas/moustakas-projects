@@ -1,6 +1,6 @@
 pro process_grades, data, assign=assign, allassign=allassign, $
-  weight=weight, class=class, alldata=alldata, semester=semester, $
-  lab=lab, test=test, sendit=sendit, final=final
+  weight=weight, droplowest=droplowest, class=class, alldata=alldata, $
+  semester=semester, lab=lab, test=test, sendit=sendit, final=final
 ; jm12oct05siena - process the final grades
 
     nstudent = n_elements(data)
@@ -16,6 +16,8 @@ pro process_grades, data, assign=assign, allassign=allassign, $
       [replicate('F',n_elements(allassign)),'F','F','A']
     alldata = struct_addtags(alldata,replicate(junk,nstudent))
     finaltags = tag_names(alldata)
+
+    if n_elements(droplowest) eq 0 then droplowest = fltarr(n_elements(allasign))
     
 ; loop on each student and then on all the possible assignments
     for ss = 0, nstudent-1 do begin
@@ -86,13 +88,17 @@ pro process_grades, data, assign=assign, allassign=allassign, $
                 endif
              endfor
 
-; ...now add it up             
-             totpoints = total(points)
-             totpossible = total(possible)
+; ...now add it up; optionally drop the lowest grade
+             if droplowest[ii] then $
+               keep = where(points/possible gt min(points/(1.0*possible)),comp=lowest) else $
+               keep = lindgen(n_elements(points))
+             totpoints = total(points[keep])
+             totpossible = total(possible[keep])
              totperc = 100.0*totpoints/totpossible
 
              if nassign gt 1 then begin
-                printf, lun, '  TOTAL:'
+                if droplowest[ii] then printf, lun, '  TOTAL (Lowest Score Dropped):' else $
+                  printf, lun, '  TOTAL:'
                 printf, lun, '     '+strtrim(string(totpoints,format='(F12.1)'),2)+$
                   ', '+strtrim(string(totpossible,format='(F12.1)'),2)+$
                   ', '+strtrim(string(totperc,format='(F12.2)'),2)+'%'

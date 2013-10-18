@@ -137,8 +137,10 @@ pro build_mgfe_parent, get_spectra=get_spectra, sdss=sdss
 ; = 1.86578E+05 Mpc^3
 
        phot = read_ages(/photo)
-       ppxf = read_ages(/ppxf)
-
+       ppxf1 = read_ages(/ppxf)
+       allppxf = im_empty_structure(ppxf1[0],ncopies=n_elements(phot),empty_value=-999)
+       allppxf[ppxf1.ages_id] = ppxf1
+       
 ; identify main sample galaxies and apply additional sample cuts:
 ; 0.05<z<0.75; 15<Itot<19.95; reject unfluxed plates and require that
 ; the spectrum has been fitted by PPXF
@@ -158,11 +160,8 @@ pro build_mgfe_parent, get_spectra=get_spectra, sdss=sdss
          106,110,209,310,311,$ ; unfluxed
          604]  ; very crummy 
        
-       ippxf = intarr(n_elements(phot))
-       ippxf[ppxf.ages_id] = 1 ; fitted
-
        iparent = where((phot.imain eq 1) and (phot.i_tot le ifaint) and (phot.i_tot ge ibright) and $
-         (ippxf eq 1) and (phot.z ge sample_zmin) and (phot.z le sample_zmax) and $
+         (allppxf.ages_id ne -999) and (phot.z ge sample_zmin) and (phot.z le sample_zmax) and $
          (total(allmaggies gt 0,1) ge nminphot) and $
          (phot.pass ne rejplates[0]) and (phot.pass ne rejplates[1]) and $
          (phot.pass ne rejplates[2]) and (phot.pass ne rejplates[3]) and $
@@ -170,7 +169,7 @@ pro build_mgfe_parent, get_spectra=get_spectra, sdss=sdss
          (phot.pass ne rejplates[6]),ngal)
        splog, 'Ngal = ', ngal
 
-       ppxf = ppxf[iparent]
+       ppxf = allppxf[iparent]
        parent = struct_trimtags(phot[iparent],except=bands+'_*')
        parent = struct_addtags(temporary(parent),replicate({catalog_weight: 1.04, $
          field_weight: 1.0, final_weight: 1.0, maggies: fltarr(nfilt), $

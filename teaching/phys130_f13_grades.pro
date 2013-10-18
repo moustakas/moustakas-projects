@@ -1,7 +1,7 @@
 pro phys130_f13_grades, alldata, test=test, sendit=sendit, final=final
 ; jm13aug25siena - parse the grades for my two sections of this class 
 
-    date = '13oct10' ; update this
+    date = '13oct16' ; update this
     semester = 'Fall 2013'
     class = 'Physics 130 - General Physics I'
 
@@ -26,8 +26,9 @@ pro phys130_f13_grades, alldata, test=test, sendit=sendit, final=final
          weight=weight, droplowest=droplowest, class=class, $
          semester=semester, test=test, sendit=sendit, alldata=alldata, $
          final=final
-       srt = sort(alldata.current_grade)
-       struct_print, alldata[srt]
+;      srt = sort(alldata.current_grade)
+;      struct_print, alldata[srt]
+       struct_print, alldata
 
        print
        print

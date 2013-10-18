@@ -17,7 +17,7 @@ pro process_grades, data, assign=assign, allassign=allassign, $
     alldata = struct_addtags(alldata,replicate(junk,nstudent))
     finaltags = tag_names(alldata)
 
-    if n_elements(droplowest) eq 0 then droplowest = fltarr(n_elements(allasign))
+    if n_elements(droplowest) eq 0 then droplowest = fltarr(n_elements(allassign))
     
 ; loop on each student and then on all the possible assignments
     for ss = 0, nstudent-1 do begin
@@ -69,7 +69,7 @@ pro process_grades, data, assign=assign, allassign=allassign, $
              details = data[ss].(tag_indx(data,strupcase(repstr(allassign[ii]+'_details',' ','_'))))
              dates = data[ss].(tag_indx(data,strupcase(repstr(allassign[ii]+'_date',' ','_'))))
 
-; detail each assignment...
+; detail each assignment...  ignore any missing labs
              nassign = n_elements(points)
              for nn = 0, nassign-1 do begin
                 if possible[nn] gt 0 then begin ; normal assignments
@@ -78,6 +78,8 @@ pro process_grades, data, assign=assign, allassign=allassign, $
                    printf, lun, '     '+strtrim(string(points[nn],format='(F12.1)'),2)+$
                      ', '+strtrim(string(possible[nn],format='(F12.1)'),2)+$
                      ', '+strtrim(string(perc,format='(F12.2)'),2)+'%'
+                   if keyword_set(lab) and points[nn] eq 0.0 then $
+                     printf, lun, '     MISSING LAB - must be made up to pass!'
                 endif
                 if possible[nn] eq 0 and points[nn] gt 0.0 then begin ; extra credit
                    printf, lun, '  Extra Credit: '+details[nn]+': '+dates[nn]
@@ -88,17 +90,22 @@ pro process_grades, data, assign=assign, allassign=allassign, $
                 endif
              endfor
 
-; ...now add it up; optionally drop the lowest grade
-             if droplowest[ii] then $
-               keep = where(points/possible gt min(points/(1.0*possible)),comp=lowest) else $
-               keep = lindgen(n_elements(points))
+; ...now add it up, ignoring missing labs; optionally drop the lowest
+; grade 
+             if keyword_set(lab) then keep = where(points ne 0.0) else begin
+                if droplowest[ii] then $
+                  keep = where(points/possible gt min(points/(1.0*possible)),comp=lowest) else $
+                    keep = lindgen(n_elements(points))
+             endelse
              totpoints = total(points[keep])
              totpossible = total(possible[keep])
              totperc = 100.0*totpoints/totpossible
 
-             if nassign gt 1 then begin
-                if droplowest[ii] then printf, lun, '  TOTAL (Lowest Score Dropped):' else $
-                  printf, lun, '  TOTAL:'
+             if nassign gt 1 then begin                
+                if droplowest[ii] then printf, lun, '  TOTAL (Lowest Score Dropped):' else begin
+                   if keyword_set(lab) then printf, lun, '  TOTAL (excluding missing labs):' else $
+                     printf, lun, '  TOTAL:'
+                endelse
                 printf, lun, '     '+strtrim(string(totpoints,format='(F12.1)'),2)+$
                   ', '+strtrim(string(totpossible,format='(F12.1)'),2)+$
                   ', '+strtrim(string(totperc,format='(F12.2)'),2)+'%'

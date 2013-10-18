@@ -3,7 +3,7 @@ pro phys130_lab_f13_grades, alldata, test=test, sendit=sendit, final=final
 
     path = getenv('TEACHING_DIR')+'/Phys130/130-F13/grades/lab/'
     
-    date = '13oct02' ; update this
+    date = '13oct13' ; update this
     semester = 'Fall 2013'
     class = 'Physics 130 - General Physics I - Lab'
     
@@ -16,10 +16,13 @@ pro phys130_lab_f13_grades, alldata, test=test, sendit=sendit, final=final
     allassign = 'Lab'
     weight = 1.0
 
+;   data = data[where(strtrim(data.first_name,2) eq 'Victoria')]
+    
     process_grades, data, assign=assign, allassign=allassign, $
       weight=weight, class=class, semester=semester, /lab, $
       test=test, sendit=sendit, alldata=alldata, final=final
-    struct_print, alldata
+    srt = sort(alldata.current_grade)
+    struct_print, alldata[srt]
 
 return
 end

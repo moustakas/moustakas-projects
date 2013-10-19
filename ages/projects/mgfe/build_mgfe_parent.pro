@@ -47,8 +47,9 @@ pro build_mgfe_parent, get_spectra=get_spectra, sdss=sdss
        sdssphot = mrdfits(vagcpath+'object_sdss_imaging.fits.gz',$
          row=post.object_position,1)
        sdssspec = mrdfits(vagcpath+'object_sdss_spectro.fits.gz',$
-         row=post.object_position,1,columns=['CLASS','SUBCLASS',$
-         'VDISP','VDISP_ERR','SN_MEDIAN'])
+         row=post.object_position,1,columns=['SPECOBJ_ID','PLATE',$
+         'MJD','FIBERID','CLASS','SUBCLASS','VDISP','VDISP_ERR',$
+         'SN_MEDIAN'])
        galex = mrdfits(vagcpath+'object_galex_gr6.fits.gz',$
          row=post.object_position,1)
        wise = mrdfits(vagcpath+'object_wise.fits.gz',$

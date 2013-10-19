@@ -18,7 +18,7 @@ pro streams_bcg_postman, debug=debug
     rmaxkpc = 200D     ; [kpc]
 
 ; wrap on each cluster    
-;   for ic = 7, 7 do begin
+;   for ic = 1, 3 do begin
     for ic = 0, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        splog, 'Working on cluster '+cluster
@@ -39,11 +39,16 @@ pro streams_bcg_postman, debug=debug
        short = strtrim(skyinfo.band,2)
        these = where(file_test(bcgmodelpath+cluster+'_mosaic_065mas_*_'+$
          short+'_drz_*_BCG.fits.gz'),nfilt,comp=missing)
-       if missing[0] ne -1 then splog, 'Missing BCG models in '+$
-         strupcase(cluster)+': '+strjoin(strupcase(short[missing]),', ')
+       if missing[0] ne -1 then begin
+          misslist1 = strupcase(cluster)+': '+strjoin(strupcase(short[missing]),', ')
+          if n_elements(misslist) eq 0 then misslist = misslist1 else $
+            misslist = [misslist,misslist1]
+          splog, 'Missing BCG models in '+strupcase(cluster)+': '+$
+            strjoin(strupcase(short[missing]),', ')
+       endif
 
        outinfo = struct_addtags(skyinfo[these],replicate({ra: 0D, dec: 0D, $
-         ellipticity: 0.0, posangle: 0.0, size: 0.0, size_kpc: 0.0},nfilt))
+         mge_ellipticity: 0.0, mge_posangle: 0.0, mge_size: 0.0, mge_size_kpc: 0.0},nfilt))
        short = strtrim(outinfo.band,2)
        reffilt = where(short eq 'f160w') ; reference filter
 
@@ -60,10 +65,10 @@ pro streams_bcg_postman, debug=debug
        xyad, hdr, xcen_lum, ycen_lum, ra, dec
        outinfo[reffilt].ra = ra
        outinfo[reffilt].dec = dec
-       outinfo[reffilt].size = size*pixscale
-       outinfo[reffilt].size_kpc = size*pixscale*arcsec2kpc
-       outinfo[reffilt].posangle = posangle
-       outinfo[reffilt].ellipticity = ellipticity
+       outinfo[reffilt].mge_size = size*pixscale
+       outinfo[reffilt].mge_size_kpc = size*pixscale*arcsec2kpc
+       outinfo[reffilt].mge_posangle = posangle
+       outinfo[reffilt].mge_ellipticity = ellipticity
        help, outinfo[reffilt], /st
 
 ; build a 4-panel QAplot in all the bands
@@ -117,10 +122,10 @@ pro streams_bcg_postman, debug=debug
           xyad, cuthdr, xcen_lum, ycen_lum, ra, dec
           outinfo[ib].ra = ra
           outinfo[ib].dec = dec
-          outinfo[ib].size = size*pixscale
-          outinfo[ib].size_kpc = size*pixscale*arcsec2kpc
-          outinfo[ib].posangle = posangle
-          outinfo[ib].ellipticity = ellipticity
+          outinfo[ib].mge_size = size*pixscale
+          outinfo[ib].mge_size_kpc = size*pixscale*arcsec2kpc
+          outinfo[ib].mge_posangle = posangle
+          outinfo[ib].mge_ellipticity = ellipticity
           help, outinfo[ib], /str
 
 ; create an object mask so that we can do photometry on the data
@@ -132,7 +137,7 @@ pro streams_bcg_postman, debug=debug
              simage = dsmooth(cutimage-model,3L)
              dobjects, simage, objects=obj, plim=10, nlevel=1L
              mask = obj eq -1 ; 0 = masked, 1 = unmasked
-          endif else mask = cutimage*0
+          endif else mask = cutimage*0+1 
 
 ;; find residual significant peaks and mask those, too, using a fixed
 ;; 4-pixel rectangular
@@ -183,6 +188,14 @@ pro streams_bcg_postman, debug=debug
        im_mwrfits, outinfo, outfile, /clobber
     endfor                      ; close cluster loop
 
+    if n_elements(misslist) ne 0 then begin
+       print
+       splog, 'Missing clusters/filters :'
+       niceprint, misslist
+    endif
+    
+stop    
+    
 return
 end
     

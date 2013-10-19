@@ -1,5 +1,5 @@
-pro streams_bcg_postman, debug=debug
-; jm13sep04siena - do the preliminary BCG subtraction
+pro bcgsfhs_get_bcg, debug=debug
+; jm13sep04siena - cut out the BCG
 
 ; note! images in units of [10^-12 erg/s/cm^2/Hz] (pico-maggies)
 

@@ -3,7 +3,6 @@ pro bcgsfhs_skysubtract
 ; project 
 
 ; note! images are converted to [10^-12 erg/s/cm^2/Hz] (pico-maggies)
-
     sample = read_bcgsfhs_sample()
     ncl = n_elements(sample) 
 

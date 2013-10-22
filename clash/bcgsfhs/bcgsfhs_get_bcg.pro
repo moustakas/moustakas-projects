@@ -2,28 +2,25 @@ pro bcgsfhs_get_bcg, debug=debug
 ; jm13sep04siena - cut out the BCG
 
 ; note! images in units of [10^-12 erg/s/cm^2/Hz] (pico-maggies)
+    qapath = bcgsfhs_path(/bcg)+'qaplots/'
 
-    qapath = streams_path(/postman_bcg)+'qaplots/'
-    bcgmodelpath = '/Users/ioannis/archive/bcg_models/' ; FIX THIS!!!
-    
+    splog, 'Update BCGMODELPATH! to the archive!'
+    bcgmodelpath = '/Users/ioannis/archive/bcg_models/'
+
 ; read the sample
-    sample = rsex(streams_path(/propath)+'streams_sample.sex')
-    splog, 'IGNORING A2261!!!'
-    keep = where(strtrim(sample.shortname,2) ne 'a2261')
-    sample = sample[keep]
-;   struct_print, sample
+    sample = read_bcgsfhs_sample(/noa2261)
     ncl = n_elements(sample)
 
     pixscale = 0.065D ; [arcsec/pixel]
     rmaxkpc = 200D     ; [kpc]
 
 ; wrap on each cluster    
-;   for ic = 1, 3 do begin
-    for ic = 0, ncl-1 do begin
+    for ic = 4, 4 do begin
+;   for ic = 0, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        splog, 'Working on cluster '+cluster
-       skypath = streams_path(/skysub)+cluster+'/'
-       outpath = streams_path(/postman_bcg)+cluster+'/'
+       skypath = bcgsfhs_path(/skysub)+cluster+'/'
+       outpath = bcgsfhs_path(/bcg)+cluster+'/'
        if file_test(outpath,/dir) eq 0 then file_mkdir, outpath
 
        bcgqafile = qapath+cluster+'_bcg.ps'
@@ -34,7 +31,7 @@ pro bcgsfhs_get_bcg, debug=debug
 
 ; read the skyinfo structure and figure out which bands have
 ; Marc's BCG model photometry
-       skyinfo = mrdfits(streams_path(/skysub)+'skyinfo-'+$
+       skyinfo = mrdfits(bcgsfhs_path(/skysub)+'skyinfo-'+$
          cluster+'.fits.gz',1,/silent)
        short = strtrim(skyinfo.band,2)
        these = where(file_test(bcgmodelpath+cluster+'_mosaic_065mas_*_'+$
@@ -46,6 +43,9 @@ pro bcgsfhs_get_bcg, debug=debug
           splog, 'Missing BCG models in '+strupcase(cluster)+': '+$
             strjoin(strupcase(short[missing]),', ')
        endif
+
+; the F435W model for MACS1149 is not reliable; get rid of it here
+       if cluster eq 'macs1149' then these = these[where(short[these] ne 'f435w',nfilt)]
 
        outinfo = struct_addtags(skyinfo[these],replicate({ra: 0D, dec: 0D, $
          mge_ellipticity: 0.0, mge_posangle: 0.0, mge_size: 0.0, mge_size_kpc: 0.0},nfilt))
@@ -129,7 +129,7 @@ pro bcgsfhs_get_bcg, debug=debug
           help, outinfo[ib], /str
 
 ; create an object mask so that we can do photometry on the data
-; itself in STREAMS_BCG_APPHOT; a smoothing scale larger than 3 is
+; itself in BCGSFHS_ELLIPSE; a smoothing scale larger than 3 is
 ; usually too aggressive in the core of the BCG and increasing PLIM
 ; leaves too many faint sources undetected
           domask = 0 ; come back to the mask

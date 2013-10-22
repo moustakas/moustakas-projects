@@ -88,3 +88,68 @@ pro streams_sersic_fitbd, rr, sb, scoeff, sb_err=sb_err, $
    scoeff.bd_sersic_total = cumsersic_total(cum_params)
    scoeff.bd_exp_total = cumsersic_total(cum_params1)
 end
+
+
+
+function bcgsfhs_sersic_func, fit
+; return the magnitude version of the best-fitting Sersic model
+    params = [fit.sersic_lnsb0,fit.sersic_k,fit.sersic_n]
+    model = sersic_func(fit.radius,params)
+    model = -2.5*alog10(exp(model)/alog(10))
+return, model    
+end
+
+pro bcgsfhs_sersicfit
+; jm13oct22siena - fit various Sersic models to the output of
+; BCGSFHS_ELLIPSE 
+
+; read the sample
+    sample = read_bcgsfhs_sample(/noa2261)
+    struct_print, sample
+    ncl = n_elements(sample)
+
+    pixscale = 0.065D                      ; [arcsec/pixel]
+
+; wrap on each cluster    
+    for ic = 0, ncl-1 do begin
+       cluster = strtrim(sample[ic].shortname,2)
+       splog, 'Working on cluster '+cluster
+       outpath = bcgsfhs_path(/bcg)+cluster+'/'
+
+       modphot = mrdfits(datapath+cluster+'-ellipse-model.fits.gz',1,/silent)
+       nfilt = n_elements(modphot)
+
+       for ii = 0, 0 do begin ; just fit F160W
+          modgood = where(modphot[ii].sb0fit gt 10^(-0.4*modphot[ii].sblimit))
+          radius = modphot[ii].radius_kpc[modgood]
+          intensity = modphot[ii].sb0fit[modgood]
+
+          
+          
+
+       endfor
+stop
+    endfor
+
+
+;; fit various Sersic models: (1) single Sersic; (2) Sersic + disk; (3)
+;; double-Sersic 
+;          
+;          bcgsfhs_sersic_fitbd, muradius, ellipse.sb0fit[0:ellipse.na-1], $ ; (2)
+;            bdcoeff, sb_ivar=ellipse.sb0fit_ivar[0:ellipse.na-1], $
+;            sersicfit=sersicfit
+;          sersicfit = -2.5*alog10(sersicfit)
+;
+;          convert_sb, ellipse, pixscale=pixscale
+;          
+;          mu_err = 1.0/sqrt(ellipse.sb0fit_ivar[0:ellipse.na-1])
+;
+;          djs_plot, muradius_kpc, mu, /xlog, psym=8, xsty=1, ysty=1, $
+;            yr=[28,15], xrange=[pixscale*arcsec2kpc,300]
+;          djs_oplot, 10^!x.crange, out.sblimit[ib]*[1,1], line=5
+;
+;          djs_oplot, muradius_kpc, sersicfit, color='red'
+;          cc = get_kbrd(1)
+;          
+;;         bgt_ellipse_sersicradius, ellipse, outradius=outrad
+;;         bgt_ellipse_radius() ; get the half-light radius

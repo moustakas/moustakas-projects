@@ -4,16 +4,11 @@ read it.
 * Sky-subtract and pre-process the mosaics:
   bcgsfhs_skysubtract
 
-* Cut out the BCG image and model:
+* Cut out and write just the BCG image and model:
   bcgsfhs_get_bcg, /debug
-  
-* Process Marc's BCG models and then do elliptical aperture photometry
-  (see also BCGSFHS_BCG_MGE)
-  
-  
 
-* Do a preliminary subtraction of the BCG (optional)
-  bcgsfhs_bcg_mge
+* Ellipse-fit the BCGs
+  bcgsfhs_ellipse
 
-* Process everything through dimage
-  * bcgsfhs_dimage, /parents, /stargal  
+* Fit Sersic models to the surface-brightness profiles
+  bcgsfhs_sersicfit

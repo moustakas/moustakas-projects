@@ -8,7 +8,7 @@ function read_bcgsfhs_sample, noa2261=noa2261
        keep = where(strtrim(sample.shortname,2) ne 'a2261')
        sample = sample[keep]
     endif
-    struct_print, sample
+;   struct_print, sample
 
 return, sample
 end

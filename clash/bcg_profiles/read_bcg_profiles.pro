@@ -12,8 +12,9 @@ function read_bcg_profiles, cluster, scale=scale, these_filters=these_filters
 ; read the filters, optionally restricting the list
     filt = clash_filterlist(short=short,weff=weff,zpt=zpt)
     if n_elements(these_filters) ne 0 then begin
-       match, filt, these_filters, m1, m2
-       if n_elements(m2) ne n_elements(these_filters) then $
+       match, short, these_filters, m1, m2
+;      match, filt, these_filters, m1, m2
+       if n_elements(m2) ne n_elements(these_filters) or m2[0] eq -1 then $
          message, 'Problem matching filters!'
        srt = sort(m2)
        filt = filt[m1[srt]]

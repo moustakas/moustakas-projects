@@ -14,10 +14,19 @@ pro qaplot_bcgsfhs_ellipse
 ;   ytitle = '\mu (mag arcsec^{-2})'
 
 ;   yrange = [30,16]
-    xrange = [0.5,150]
+    xrange = [0.3,200]
 ;   xrange = [3*pixscale*arcsec2kpc,150]
 
-    for ic = 4, 4 do begin
+    galcolor = 'dodger blue' ; 'dark gray'
+    galline = 0
+    modline = 0
+    modcolor = 'navy'
+    refmodcolor = 'firebrick'
+    refmodline = 5
+
+    showa3 = 0 ; optionally plot the a3, a4 coefficients
+    
+    for ic = 0, 0 do begin
 ;   for ic = 0, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        print & splog, cluster, sample[ic].z
@@ -25,7 +34,13 @@ pro qaplot_bcgsfhs_ellipse
 
        psfile = paperpath+'qa_ellipse_'+cluster+suffix
        im_plotconfig, 0, pos, psfile=psfile, charsize=1.3
-       pos = im_getposition(nx=1,ny=5,yspace=0.0,xmargin=[1.3,0.4],width=6.0,xpage=7.7)
+
+       if showa3 then begin
+          pos = im_getposition(nx=1,ny=5,yspace=0.0,xmargin=[1.3,2.2],width=5.0)
+       endif else begin
+          pos = im_getposition(nx=1,ny=3,yspace=0.0,$
+            xmargin=[1.3,2.2],width=5.0)
+       endelse
        
        arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]
        
@@ -39,118 +54,127 @@ pro qaplot_bcgsfhs_ellipse
           band = strtrim(strupcase(galphot[ii].band),2)
           
           galgood = where(galphot[ii].sb0fit gt 0)
-          modgood = where(modphot[ii].sb0fit gt 10^(-0.4*modphot[ii].sblimit))
-          modgoodref = where(modphot[0].sb0fit gt 10^(-0.4*modphot[0].sblimit))
+          modgood = where(modphot[ii].sb0fit gt 0)
+          refmodgood = where(modphot[0].sb0fit gt 0)
 
-;         if ii eq 11 then stop
+;         galgood = where(galphot[ii].sb0fit gt 0)
+;         modgood = where(modphot[ii].sb0fit gt 10^(-0.4*modphot[ii].sblimit))
+;         refmodgood = where(modphot[0].sb0fit gt 10^(-0.4*modphot[0].sblimit))
+
+          sbmin = 10^(-0.4*modphot[ii].sblimit)
+;         rmax = interpolate(modphot[ii].radius_kpc[modgood],findex($
+;           modphot[ii].sb0fit[modgood],sbmin))
 
 ; SB profile (data + model + Sersic fit)
-          yrange = [min(modphot[ii].sb0fit[modgood])<min(modphot[0].sb0fit[modgoodref])<$
+          yrange = [min(modphot[ii].sb0fit[modgood])<min(modphot[0].sb0fit[refmodgood])<$
             min(galphot[ii].sb0fit[galgood]),$
-            max(modphot[ii].sb0fit[modgood])>max(modphot[0].sb0fit[modgoodref])>$
+            max(modphot[ii].sb0fit[modgood])>max(modphot[0].sb0fit[refmodgood])>$
             max(galphot[ii].sb0fit[galgood])]
           yrange = -2.5*alog10(yrange)
-          
+
           djs_plot, [0], [0], /nodata, position=pos[*,0], xsty=1, ysty=3, $
             yrange=yrange, xrange=xrange, /xlog, xtickname=replicate(' ',10), $
             title=strupcase(cluster)+'/'+band, yminor=3, ytickinterval=3, $
             ytitle='\mu (mag arcsec^{-2})'
+;         djs_oplot, rmax*[1,1], !y.crange, line=0, color=cgcolor('grey')
+          djs_oplot, [5.0,10^!x.crange[1]], -2.5*alog10(sbmin)*[1,1], $
+            line=0, color=cgcolor('grey')
+
+          if ii gt 0 then begin
+             djs_oplot, modphot[0].radius_kpc[refmodgood], $
+               -2.5*alog10(modphot[0].sb0fit[refmodgood]), $
+               color=cgcolor(refmodcolor), line=refmodline
+             im_legend, ['F160W/Model',band+'/Model',band+'/Data'], /left, $
+               /bottom, box=0, margin=0, line=[refmodline,modline,galline], pspacing=1.7, $
+               color=cgcolor([refmodcolor,modcolor,galcolor]), thick=8, charsize=1.0
+          endif else begin
+             im_legend, ['F160W/Model','F160W/Data'], /left, /bottom, box=0, $
+               margin=0, line=[modline,galline], pspacing=1.7, $
+               color=cgcolor([modcolor,galcolor]), thick=8, charsize=1.0
+          endelse
 
           djs_oplot, galphot[ii].radius_kpc[galgood], $
             -2.5*alog10(galphot[ii].sb0fit[galgood]), $
-            psym=symcat(16,thick=2), symsize=0.5, color=cgcolor('grey');, thick=6
-
-          if ii eq 0 then begin
-             line = 5
-             color = 'firebrick'
-             im_legend, 'F160W', /right, /top, box=0, margin=0, line=5, $
-               pspacing=1.7, color=cgcolor(color)
-          endif else begin
-             djs_oplot, modphot[0].radius_kpc[modgood], $
-               -2.5*alog10(modphot[0].sb0fit[modgood]), $
-               color=cgcolor('firebrick'), line=5
-             line = 0
-             color = 'navy'
-             im_legend, ['F160W',band], /right, $
-               /top, box=0, margin=0, line=[5,0], pspacing=1.7, $
-               color=cgcolor(['firebrick','navy'])
-          endelse
-
+            color=cgcolor(galcolor), line=galline, psym=-symcat(16,thick=2), symsize=0.5
           djs_oplot, modphot[ii].radius_kpc[modgood], $
             -2.5*alog10(modphot[ii].sb0fit[modgood]), $
-            color=cgcolor(color), line=line
+            color=cgcolor(modcolor), line=modline
           
 ; ellipticity (model)
           djs_plot, [0], [0], /nodata, position=pos[*,1], /noerase, xsty=1, ysty=1, $
             yrange=[0.0,0.7], xrange=xrange, /xlog, xtickname=replicate(' ',10), $
             ytickinterval=0.2, ytitle='\epsilon', yminor=2
 
-          if ii eq 0 then begin
-             line = 5
-             color = 'firebrick'
-          endif else begin
-             djs_oplot, modphot[0].radius_kpc[modgood], modphot[0].ellipticityfit[modgood], $
-               color=cgcolor('firebrick'), line=5
-             line = 0
-             color = 'navy'
-          endelse
+          if ii gt 0 then begin
+             djs_oplot, modphot[0].radius_kpc[refmodgood], modphot[0].ellipticityfit[refmodgood], $
+               color=cgcolor(refmodcolor), line=refmodline
+          endif
 
+          djs_oplot, galphot[ii].radius_kpc[galgood], galphot[ii].ellipticityfit[galgood], $
+            color=cgcolor(galcolor), line=galline, psym=-symcat(16,thick=2), symsize=0.5
           djs_oplot, modphot[ii].radius_kpc[modgood], modphot[ii].ellipticityfit[modgood], $
-            color=cgcolor(color), line=line
+            color=cgcolor(modcolor), line=modline
 
 ; position angle (model)
+          if showa3 then begin
+             xtitle = ''
+             xtickname = replicate(' ',10)
+          endif else begin
+             xtitle = 'Semi-Major Axis (kpc)'
+             delvarx, xtickname
+          endelse
+
           djs_plot, [0], [0], /nodata, position=pos[*,2], /noerase, xsty=1, ysty=1, $
-            yrange=[0.0,180], xrange=xrange, /xlog, xtickname=replicate(' ',10), $
+            yrange=[0.0,180], xrange=xrange, /xlog, xtickname=xtickname, xtitle=xtitle, $
             ytitle='PA (degree)', yminor=2
 
-          if ii eq 0 then begin
-             line = 5
-             color = 'firebrick'
-          endif else begin
-             djs_oplot, modphot[0].radius_kpc[modgood], modphot[0].pafit[modgood]*!radeg+90, $
-               color=cgcolor('firebrick'), line=5
-             line = 0
-             color = 'navy'
-          endelse
+          if ii gt 0 then begin
+             djs_oplot, modphot[0].radius_kpc[refmodgood], modphot[0].pafit[refmodgood]*!radeg+90, $
+               color=cgcolor(refmodcolor), line=refmodline
+          endif
 
+          djs_oplot, galphot[ii].radius_kpc[galgood], galphot[ii].pafit[galgood]*!radeg+90, $
+            color=cgcolor(galcolor), line=galline, psym=-symcat(16,thick=2), symsize=0.5
           djs_oplot, modphot[ii].radius_kpc[modgood], modphot[ii].pafit[modgood]*!radeg+90, $
-            color=cgcolor(color), line=line
+            color=cgcolor(modcolor), line=modline
 
+          if showa3 then begin
 ; a3*100 (model)
-          djs_plot, [0], [0], /nodata, position=pos[*,3], /noerase, xsty=1, ysty=1, $
-            yrange=[-0.15,0.15], xrange=xrange, /xlog, xtickname=replicate(' ',10), $
-            ytitle='100 a_{3}/a', ytickinterval=0.1, yminor=2
-
-          if ii eq 0 then begin
-             line = 5
-             color = 'firebrick'
-          endif else begin
-             djs_oplot, modphot[0].radius_kpc[modgood], 100*modphot[0].a3fit[modgood]/modphot[0].majora, $
-               color=cgcolor('firebrick'), line=5
-             line = 0
-             color = 'navy'
-          endelse
-
-          djs_oplot, modphot[ii].radius_kpc[modgood], 100*modphot[ii].a3fit[modgood]/modphot[ii].majora, $
-            color=cgcolor(color), line=line
-
+             djs_plot, [0], [0], /nodata, position=pos[*,3], /noerase, xsty=1, ysty=1, $
+               yrange=[-0.15,0.15], xrange=xrange, /xlog, xtickname=replicate(' ',10), $
+               ytitle='100 a_{3}/a', ytickinterval=0.1, yminor=2
+             
+             if ii gt 0 then begin
+                djs_oplot, modphot[0].radius_kpc[refmodgood], $
+                  100*modphot[0].a3fit[refmodgood]/modphot[0].majora[refmodgood], $
+                  color=cgcolor(refmodcolor), line=refmodline
+             endif
+             
+             djs_oplot, galphot[ii].radius_kpc[galgood], $
+               100*galphot[ii].a3fit[galgood]/galphot[ii].majora[galgood], $
+               color=cgcolor(galcolor), line=galline, psym=-symcat(16,thick=2), symsize=0.5
+             djs_oplot, modphot[ii].radius_kpc[modgood], $
+               100*modphot[ii].a3fit[modgood]/modphot[ii].majora[modgood], $
+               color=cgcolor(modcolor), line=modline
+             
 ; a4*100 (model)
-          djs_plot, [0], [0], /nodata, position=pos[*,4], /noerase, xsty=1, ysty=1, $
-            yrange=[-0.15,0.15], xrange=xrange, /xlog, xtitle='Semi-Major Axis (kpc)', $
-            ytitle='100 a_{4}/a', ytickinterval=0.1, yminor=2
+             djs_plot, [0], [0], /nodata, position=pos[*,4], /noerase, xsty=1, ysty=1, $
+               yrange=[-0.15,0.15], xrange=xrange, /xlog, xtitle='Semi-Major Axis (kpc)', $
+               ytitle='100 a_{4}/a', ytickinterval=0.1, yminor=2
 
-          if ii eq 0 then begin
-             line = 5
-             color = 'firebrick'
-          endif else begin
-             djs_oplot, modphot[0].radius_kpc[modgood], 100*modphot[0].a4fit[modgood]/modphot[0].majora, $
-               color=cgcolor('firebrick'), line=5
-             line = 0
-             color = 'navy'
-          endelse
-
-          djs_oplot, modphot[ii].radius_kpc[modgood], 100*modphot[ii].a4fit[modgood]/modphot[ii].majora, $
-            color=cgcolor(color), line=line
+             if ii gt 0 then begin
+                djs_oplot, modphot[0].radius_kpc[refmodgood], $
+                  100*modphot[0].a4fit[refmodgood]/modphot[0].majora[refmodgood], $
+                  color=cgcolor(refmodcolor), line=refmodline
+             endif
+             
+             djs_oplot, galphot[ii].radius_kpc[galgood], $
+               100*galphot[ii].a4fit[galgood]/galphot[ii].majora[galgood], $
+               color=cgcolor(galcolor), line=galline, psym=-symcat(16,thick=2), symsize=0.5
+             djs_oplot, modphot[ii].radius_kpc[modgood], $
+               100*modphot[ii].a4fit[modgood]/modphot[ii].majora[modgood], $
+               color=cgcolor(modcolor), line=modline
+          endif
 
        endfor
        im_plotconfig, psfile=psfile, /psclose, /pdf

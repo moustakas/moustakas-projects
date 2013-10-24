@@ -66,17 +66,16 @@ pro bcgsfhs_ellipse, debug=debug, clobber=clobber
 
 ; read the sample
     sample = read_bcgsfhs_sample(/noa2261)
-    struct_print, sample
     ncl = n_elements(sample)
 
     fact = 1D-12                           ; conversion from picomaggies to maggies
     pixscale = 0.065D                      ; [arcsec/pixel]
     pixarea = 5.0*alog10(pixscale)         ; 2.5*log10(pixscale^2)
-    rmax = 150.0                           ; [kpc]
+    rmax = 200.0                           ; [kpc]
 
 ; wrap on each cluster    
-    for ic = 4, 4 do begin
-;   for ic = 0, ncl-1 do begin
+;   for ic = 8, 8 do begin
+    for ic = 0, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        splog, 'Working on cluster '+cluster
        outpath = bcgsfhs_path(/bcg)+cluster+'/'
@@ -109,34 +108,39 @@ pro bcgsfhs_ellipse, debug=debug, clobber=clobber
 
           adxy, hdr, info[reffilt].ra, info[reffilt].dec, xcen, ycen
 
-; ellipse-fit the model and then use the identical ellipse parameters
-; to generate the surface-brightness profile from the (unmasked)
-; image; note that the ellipse PA (in radians) in GZ's code is
+; ellipse-fit the model; note that the ellipse PA (in radians) in GZ's code is
 ; measured positive from the X-axis, not the *Y-axis* as we assume
 ; below
           modellipse1 = do_ellipse(model,invvar=invvar,ini_xcen=xcen, $
             ini_ycen=ycen,ini_e0=info[reffilt].mge_ellipticity,$
             ini_pa0=info[reffilt].mge_posangle,namax=namax,$
             pixscale=pixscale,arcsec2kpc=arcsec2kpc)
+          
+; optionally use the identical ellipse parameters to generate the
+; surface-brightness profile from the data themselves
+          constrained_fit = 0
 
-          imellipse1 = modellipse1
-          for ia = 0, modellipse1.na-1 do begin
-             sbcoord = bgt_ellipse_sb(image,imivar=invvar,xcen=modellipse1.xcenfit[ia],$
-               ycen=modellipse1.xcenfit[ia],pa=modellipse1.pafit[ia],$
-               ee=modellipse1.ellipticityfit[ia],majora=modellipse1.majora[ia],$
-               ea=ea,sbcoord_ivar=sbcoord_ivar)
-             bgt_ellipse_fit, ea, sbcoord, ecoeff, ini_value=ini_value, $
-               sb_ivar=sbcoord_ivar, status=status, fixed=[0,1,1,1,1]
-             imellipse1.sb0[ia] = ecoeff.sb0 ; only free parameter is the SB
-             imellipse1.sb0_ivar[ia] = median(sbcoord_ivar)
-          endfor
-          bgt_ellipse_allfit, image, imellipse1, imivar=invvar
+          if constrained_fit then begin
+             imellipse1 = modellipse1
+             for ia = 0, modellipse1.na-1 do begin
+                sbcoord = bgt_ellipse_sb(image,imivar=invvar,xcen=modellipse1.xcenfit[ia],$
+                  ycen=modellipse1.xcenfit[ia],pa=modellipse1.pafit[ia],$
+                  ee=modellipse1.ellipticityfit[ia],majora=modellipse1.majora[ia],$
+                  ea=ea,sbcoord_ivar=sbcoord_ivar)
+                bgt_ellipse_fit, ea, sbcoord, ecoeff, ini_value=ini_value, $
+                  sb_ivar=sbcoord_ivar, status=status, fixed=[0,1,1,1,1]
+                imellipse1.sb0[ia] = ecoeff.sb0 ; only free parameter is the SB
+                imellipse1.sb0_ivar[ia] = median(sbcoord_ivar)
+             endfor
+             bgt_ellipse_allfit, image, imellipse1, imivar=invvar
+          endif else begin
+             imellipse1 = do_ellipse(image,invvar=invvar*mask,ini_xcen=xcen,$
+               ini_ycen=ycen,ini_e0=info[reffilt].mge_ellipticity,$
+               ini_pa0=info[reffilt].mge_posangle,namax=namax,$
+               pixscale=pixscale,arcsec2kpc=arcsec2kpc)
+          endelse
 
-;; convert from intensity to mag/arcsec^2          
-;         convert_sb, modellipse1, pixscale=pixscale
-;         convert_sb, imellipse1, pixscale=pixscale
-
-; get the median ellipticity and position angle          
+; get the median ellipticity and position angle from the model 
           median_ellipse = get_median_ellipse(modellipse1,sblimit=info[ib].sblimit)
           modellipse1 = struct_addtags(struct_addtags(info[ib],modellipse1),median_ellipse)
           imellipse1 = struct_addtags(struct_addtags(info[ib],imellipse1),median_ellipse)
@@ -146,16 +150,6 @@ pro bcgsfhs_ellipse, debug=debug, clobber=clobber
           if n_elements(imellipse) eq 0 then imellipse = imellipse1 else $
             imellipse = [imellipse,imellipse1]
           
-;;         splog, 'Ellipse-fitting the data...'
-;          imellipse1 = do_ellipse(image,invvar=invvar,$;*mask,$
-;            ini_xcen=xcen,ini_ycen=ycen,ini_e0=info[reffilt].mge_ellipticity,$
-;            ini_pa0=info[reffilt].mge_posangle,namax=namax,$
-;            pixscale=pixscale,arcsec2kpc=arcsec2kpc)
-;          convert_sb, imellipse1, pixscale=pixscale
-;          imellipse1 = struct_addtags(info[ib],imellipse1)
-;          if n_elements(imellipse) eq 0 then imellipse = imellipse1 else $
-;            imellipse = [imellipse,imellipse1]
-
 ; now do elliptical-aperture photometry on the model images; build the
 ; radial annuli and the output structure
           if ib eq reffilt then begin ; not general!

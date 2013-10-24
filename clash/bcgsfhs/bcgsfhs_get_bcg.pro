@@ -15,8 +15,8 @@ pro bcgsfhs_get_bcg, debug=debug
     rmaxkpc = 200D     ; [kpc]
 
 ; wrap on each cluster    
-    for ic = 4, 4 do begin
-;   for ic = 0, ncl-1 do begin
+    for ic = 7, 7 do begin
+;   for ic = 8, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        splog, 'Working on cluster '+cluster
        skypath = bcgsfhs_path(/skysub)+cluster+'/'
@@ -26,6 +26,7 @@ pro bcgsfhs_get_bcg, debug=debug
        bcgqafile = qapath+cluster+'_bcg.ps'
 
 ; get a fixed RMAXKPC cutout centered on the BCG
+       ebv = sample[ic].ebv
        arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]
        rmax = ceil(rmaxkpc/arcsec2kpc/pixscale)         ; [pixels]
 
@@ -49,6 +50,7 @@ pro bcgsfhs_get_bcg, debug=debug
 
        outinfo = struct_addtags(skyinfo[these],replicate({ra: 0D, dec: 0D, $
          mge_ellipticity: 0.0, mge_posangle: 0.0, mge_size: 0.0, mge_size_kpc: 0.0},nfilt))
+       weff = outinfo.weff
        short = strtrim(outinfo.band,2)
        reffilt = where(short eq 'f160w') ; reference filter
 
@@ -96,9 +98,9 @@ pro bcgsfhs_get_bcg, debug=debug
           hextract, image, hdr, cutimage, cuthdr, x0, x1, y0, y1, /silent
           hextract, invvar, ivarhdr, cutinvvar, cutivarhdr, x0, x1, y0, y1, /silent
 
-; read the BCG model, sky-subtract and scale to picomaggies, and
-; finally crop to the same region; need to check where the model
-; becomes unreliable!
+; read the BCG model, sky-subtract, scale to picomaggies (which
+; includes dust correction: see BCGSFHS_SKYSUBTRACT), and finally crop
+; to the same region
           bcgmodelfile = file_search(bcgmodelpath+cluster+$
             '_mosaic_065mas_*_'+short[ib]+'_drz_*_BCG.fits.gz')
           if file_test(bcgmodelfile) eq 0 then message, 'This should not happen!'
@@ -132,10 +134,12 @@ pro bcgsfhs_get_bcg, debug=debug
 ; itself in BCGSFHS_ELLIPSE; a smoothing scale larger than 3 is
 ; usually too aggressive in the core of the BCG and increasing PLIM
 ; leaves too many faint sources undetected
-          domask = 0 ; come back to the mask
+          if cluster eq 'clj1226' then domask = 0 else domask = 1 ; come back to the mask
           if domask then begin
              simage = dsmooth(cutimage-model,3L)
-             dobjects, simage, objects=obj, plim=10, nlevel=1L
+             plim = 30.0
+             delvarx, obj
+             dobjects, simage, objects=obj, plim=plim, nlevel=1L
              mask = obj eq -1 ; 0 = masked, 1 = unmasked
           endif else mask = cutimage*0+1 
 
@@ -158,7 +162,7 @@ pro bcgsfhs_get_bcg, debug=debug
 ;         cgimage, mask, /negative, /keep, minvalue=0, maxvalue=1, stretch=5
 ;         cgimage, (cutimage-model)*(mask eq 0), /negative, $
 ;           /keep, minvalue=0.0, maxvalue=5.0, stretch=5
-         
+
 ; write out
           outfile = outpath+cluster+'-'+short[ib]+'.fits'
           splog, 'Writing '+outfile
@@ -170,16 +174,20 @@ pro bcgsfhs_get_bcg, debug=debug
           spawn, 'gzip -f '+outfile
        
           cgloadct, 0, /silent
-          cgimage, cutimage, clip=3, /negative, stretch=5, minvalue=0.0, maxvalue=1.0, $
+          mx1 = weighted_quantile(cutimage,quant=0.9)
+          cgimage, cutimage, clip=3, /negative, stretch=5, minvalue=0.0, maxvalue=mx1, $
             margin=0, /keep_aspect, position=pos[*,0], /save
           xyouts, pos[0,0]+0.02, pos[3,0]-0.05, strupcase(cluster)+'/'+$
             strupcase(short[ib]), /norm, charsize=1.5
-          cgimage, cutinvvar, clip=3, /negative, /noerase, $
-            stretch=5, margin=0, /keep_aspect, position=pos[*,1]
+          cgimage, cutimage*mask, clip=5, /negative, /noerase, $
+            stretch=5, margin=0, /keep_aspect, position=pos[*,1], $
+            minvalue=0.0, maxvalue=mx1
+;         cgimage, cutinvvar, clip=3, /negative, /noerase, $
+;           stretch=5, margin=0, /keep_aspect, position=pos[*,1]
           cgimage, model, clip=3, /negative, /noerase, minvalue=0.0, $
-            maxvalue=1.0, stretch=5, margin=0, /keep_aspect, position=pos[*,2]
+            maxvalue=mx1, stretch=5, margin=0, /keep_aspect, position=pos[*,2]
           cgimage, cutimage-model, clip=3, /negative, /noerase, minvalue=0.0, $
-            maxvalue=1.0, stretch=5, margin=0, /keep_aspect, position=pos[*,3]
+            maxvalue=mx1, stretch=5, margin=0, /keep_aspect, position=pos[*,3]
        endfor                   ; close filter loop
        im_plotconfig, /psclose, psfile=bcgqafile, /pdf
 

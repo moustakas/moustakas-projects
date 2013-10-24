@@ -1,155 +1,204 @@
-;+
-; NAME:
-;   bgt_sersic_fit1d
-; CALLING SEQUENCE:
-; INPUT:
-; OUTPUT:
-; COMMENTS:
-;   -- not in ln scale, R vs I
-; REVISION HISTORY:
-;   ??-NOV-2008, Started, Guangtun Zhu, NYU
-;   15-Mar-2009, sort of documented, Guangtun Zhu, NYU
-;-
-
-; fit a Sersic + disk
-
-pro streams_sersic_fitbd, rr, sb, scoeff, sb_err=sb_err, $
-  sb_ivar=sb_ivar, ini_value=ini_value, fixed=fixed, $
+pro bcgsfhs_sersic2, rr, sb, scoeff, sb_err=sb_err, $
+  sb_ivar=sb_ivar, init_params=init_params, fixed=fixed, $
   sersicfit=sersicfit
+; fit a double Sersic function
 
-   parinfo = replicate({value:0.D, fixed:0, limited:[0,0], $
-                        limits:[0.D,0.D]}, 5)
+    parinfo = replicate({value:0.D, fixed:0, limited:[0,0], $
+      limits:[0D,0D]},6)
 
-;; sb0 ~ max(sb0)
-   parinfo[0].limited = [1,0]
-   parinfo[0].limits = [0.D,0.D]
-;; k>0
-   parinfo[1].limited = [1,0]
-   parinfo[1].limits = [0.D,0.D]
-;; 2<n<6
-   parinfo[2].limited = [1,1]
-   parinfo[2].limits = [1.D,10.D]
-;; sb0 for exp
-   parinfo[3].limited = [1,0]
-   parinfo[3].limits = [0.0D,0.D]
-;; kk(1/rd) for exp
-   parinfo[4].limited = [1,0]
-   parinfo[4].limits = [0.D,0.0D]
+; sb01 > 0 
+    parinfo[0].limited = [1,0]
+    parinfo[0].limits = [0D,0D]
+; k1>0
+    parinfo[1].limited = [1,0]
+    parinfo[1].limits = [0D,0D]
+; 1<n1<10
+    parinfo[2].limited = [1,1]
+    parinfo[2].limits = [1D,10D]
+; sb02 > 0
+    parinfo[3].limited = [1,0]
+    parinfo[3].limits = [0D,0D]
+; k2>0
+    parinfo[4].limited = [1,0]
+    parinfo[4].limits = [0D,0D]
+; 1<n2<10
+    parinfo[5].limited = [1,1]
+    parinfo[5].limits = [1D,10D]
 
-   if (not keyword_set(ini_value)) then begin
-      parinfo[*].value = [max(sb), 4., 4., 0.1*max(sb), 1./30.]
-   endif else begin
-      parinfo[*].value = ini_value
-   endelse
-   if (not keyword_set(fixed)) then begin
-      parinfo[*].fixed = [0,0,0,0,0]
-   endif else begin
-      parinfo[*].fixed = fixed
-   endelse
-   ii = where(sb_ivar gt 0. and finite(sb) eq 1, nn)
-   if nn gt 2 then begin
-      xx = rr[ii]
-      xxsb = sb[ii]
-      xxsb_ivar = sb_ivar[ii]*xx^1.5
+    if n_elements(init_params) eq 0 then begin
+       parinfo.value = [max(sb), 4.0, 4.0, 0.1*max(sb), 4.0, 4.0]
+    endif else parinfo.value = init_params
 
-      params= MPFITFUN('bd_func', xx, xxsb, xxsb_err, parinfo=parinfo, yfit=sersicfit, $
-                      perror=perror, covar=covar, weights=xxsb_ivar, status=status, /quiet)
-   endif else status = -1
+    if n_elements(fixed) ne 0 then parinfo.fixed = fixed
 
-   if(n_tags(scoeff) eq 0) then $
-   scoeff={bd_sersic_sb0:max(sb), bd_sersic_k:0.d, bd_sersic_n:0.d, $
-            bd_sersic_sb0_err:0., bd_sersic_k_err:0., bd_sersic_n_err:0., $
-            bd_exp_sb0:0.1*max(sb), bd_exp_k:0.d, $
-            bd_exp_sb0_err:0.1*max(sb), bd_exp_k_err:0.d, $
-            bd_covar:fltarr(5,5), bd_status:status, $
-            bd_sersic_total: 0., bd_exp_total:0.}
-
-   if (status le 0) then begin
-       params = parinfo[*].value
-       perror = fltarr(5)
-       covar = fltarr(5,5)
-       status = -1
-   endif
-   scoeff.bd_sersic_sb0 = params[0]
-   scoeff.bd_sersic_k = params[1]
-   scoeff.bd_sersic_n = params[2]
-   scoeff.bd_exp_sb0 = params[3]
-   scoeff.bd_exp_k = params[4]
-   scoeff.bd_sersic_sb0_err = perror[0]
-   scoeff.bd_sersic_k_err = perror[1]
-   scoeff.bd_sersic_n_err = perror[2]
-   scoeff.bd_exp_sb0_err = perror[3]
-   scoeff.bd_exp_k_err = perror[4]
-
-   scoeff.bd_covar = covar
-   cum_params = params[0:2]
-   cum_params1 = [params[3:4],1]
-;  cum_params[0] = exp(params[0])
-   scoeff.bd_sersic_total = cumsersic_total(cum_params)
-   scoeff.bd_exp_total = cumsersic_total(cum_params1)
+    good = where(sb_ivar gt 0.0 and finite(sb) eq 1, nn)
+    xx = rr[good]
+    xxsb = sb[good]
+    xxsb_ivar = sb_ivar[good]
+    
+    params = mpfitfun('bcgsfhs_sersic2_func',xx,xxsb,parinfo=parinfo,$
+      yfit=sersicfit,perror=perror,covar=covar,weights=xxsb_ivar,$
+      status=status,quiet=1)
+    
+    scoeff = {$
+      sersic2_sb01: max(sb), sersic2_k1: 0D, sersic2_n1: 0D, $
+      sersic2_sb01_err: 0.0, sersic2_k1_err: 0.0, sersic2_n1_err: 0.0, $
+      sersic2_sb02: max(sb), sersic2_k2: 0D, sersic2_n2: 0D, $
+      sersic2_sb02_err: 0.0, sersic2_k2_err: 0.0, sersic2_n2_err: 0.0, $
+      sersic2_covar: fltarr(6,6), sersic2_status: status, $
+      sersic2_total1: 0.0, sersic2_total2: 0.0}
+    
+    scoeff.sersic2_sb01 = params[0]
+    scoeff.sersic2_k1 = params[1]
+    scoeff.sersic2_n1 = params[2]
+    scoeff.sersic2_sb02 = params[3]
+    scoeff.sersic2_k2 = params[4]
+    scoeff.sersic2_n2 = params[5]
+    
+    scoeff.sersic2_sb01_err = perror[0]
+    scoeff.sersic2_k1_err = perror[1]
+    scoeff.sersic2_n1_err = perror[2]
+    scoeff.sersic2_sb02_err = perror[3]
+    scoeff.sersic2_k2_err = perror[4]
+    scoeff.sersic2_n2_err = perror[5]
+    
+    scoeff.sersic2_covar = covar
+    scoeff.sersic2_total1 = cumsersic_total(params[0:2])
+    scoeff.sersic2_total2 = cumsersic_total(params[3:5])
+    
+return
 end
 
+pro bcgsfhs_sersic, rr, sb, scoeff, sb_err=sb_err, $
+  sb_ivar=sb_ivar, init_params=init_params, fixed=fixed, $
+  sersicfit=sersicfit
+; fit a single Sersic function
+    
+    parinfo = replicate({value:0.D, fixed:0, limited:[0,0], $
+      limits:[0.D,0.D]}, 3)
 
+; sb0 > max(sb0)
+    parinfo[0].limited = [1,0]
+    parinfo[0].limits = [max(sb),0D]
+; k>0
+    parinfo[1].limited = [1,0]
+    parinfo[1].limits = [0D,0D]
+; n>0, <10
+    parinfo[2].limited = [1,1]
+    parinfo[2].limited = [1D,10D]
+   
+    if n_elements(init_params) eq 0 then begin
+       parinfo.value = [max(sb), 4.0, 4.0]
+    endif else parinfo.value = init_params 
 
-function bcgsfhs_sersic_func, fit
-; return the magnitude version of the best-fitting Sersic model
-    params = [fit.sersic_lnsb0,fit.sersic_k,fit.sersic_n]
-    model = sersic_func(fit.radius,params)
-    model = -2.5*alog10(exp(model)/alog(10))
-return, model    
+    if n_elements(fixed) ne 0 then parinfo.fixed = fixed
+
+    good = where(sb_ivar gt 0. and finite(sb) eq 1, nn)
+    xx = rr[good]
+    xxsb = sb[good]
+    xxsb_ivar = sb_ivar[good] 
+ 
+    params = mpfitfun('bcgsfhs_sersic_func',xx,xxsb,parinfo=parinfo,$
+      perror=perror,covar=covar,weights=xxsb_ivar,$
+      status=status,quiet=1,yfit=sersicfit)
+    scoeff = {sersic_sb0: max(sb), sersic_k:0.d, sersic_n: 0D, $
+      sersic_sb0_err:0., sersic_k_err:0., sersic_n_err: 0.0, $
+      sersic_covar:fltarr(3,3), sersic_status: status, $
+      sersic_total: 0.}
+
+    scoeff.sersic_sb0 = params[0]
+    scoeff.sersic_k = params[1]
+    scoeff.sersic_n = params[2]
+    scoeff.sersic_sb0_err = perror[0]
+    scoeff.sersic_k_err = perror[1]
+    scoeff.sersic_n_err = perror[2]
+    scoeff.sersic_covar = covar
+    scoeff.sersic_total = cumsersic_total(params)
+
+return
 end
 
-pro bcgsfhs_sersicfit
+pro bcgsfhs_sersicfit, debug=debug
 ; jm13oct22siena - fit various Sersic models to the output of
 ; BCGSFHS_ELLIPSE 
 
 ; read the sample
     sample = read_bcgsfhs_sample(/noa2261)
-    struct_print, sample
+;   struct_print, sample
     ncl = n_elements(sample)
 
     pixscale = 0.065D                      ; [arcsec/pixel]
 
 ; wrap on each cluster    
-    for ic = 0, ncl-1 do begin
+    for ic = 3, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        splog, 'Working on cluster '+cluster
-       outpath = bcgsfhs_path(/bcg)+cluster+'/'
+       datapath = bcgsfhs_path(/bcg)+cluster+'/'
 
        modphot = mrdfits(datapath+cluster+'-ellipse-model.fits.gz',1,/silent)
        nfilt = n_elements(modphot)
 
-       for ii = 0, 0 do begin ; just fit F160W
+       for ii = 0, nfilt-1 do begin ; just fit F160W
+;      for ii = 0, 0 do begin ; just fit F160W
+          band = strtrim(strupcase(modphot[ii].band),2)
+
           modgood = where(modphot[ii].sb0fit gt 10^(-0.4*modphot[ii].sblimit))
-          radius = modphot[ii].radius_kpc[modgood]
-          intensity = modphot[ii].sb0fit[modgood]
+          radius = modphot[ii].radius[modgood]*pixscale ; [arcsec]
+          radius_kpc = modphot[ii].radius_kpc[modgood]  ; [kpc]
+          sb = modphot[ii].sb0fit[modgood]
+          sb_ivar = modphot[ii].sb0fit_ivar[modgood]
 
-          
-          
+; fit with a single-Sersic and then a double-Sersic
+          bcgsfhs_sersic, radius_kpc, sb, sersic, sb_ivar=sb_ivar
+;; this (working) code is to use the F160W to constrain the free
+;; parameters of the Sersic model
+;          if ii gt 0 then begin
+;             bcgsfhs_sersic, radius_kpc, sb, sersic, sb_ivar=sb_ivar, $
+;               init_params=[out[0].sersic_sb0,out[0].sersic_k,$
+;               out[0].sersic_n], fixed=[0,1,1]
+;          endif else begin
+;             bcgsfhs_sersic, radius_kpc, sb, sersic, sb_ivar=sb_ivar
+;          endelse
+          bcgsfhs_sersic2, radius_kpc, sb, sersic2, sb_ivar=sb_ivar
 
+; do photometry in radial apertures, using the Sersic model to
+; extrapolate inward
+          int_radius_kpc = [0,range(min(radius_kpc)*1E-3,min(radius_kpc)*0.95,30,/log)]
+          int_sb = [bcgsfhs_sersic_func(int_radius_kpc,params=sersic),sb]
+          tot = -2.5*alog10(2.0*!pi*im_integral(int_radius_kpc,int_radius_kpc*int_sb))
+          print, band, tot
+          
+; pack into a structure          
+          if ii eq 0 then out = struct_addtags(sersic,sersic2) else $
+            out = [out,struct_addtags(sersic,sersic2)]
+          
+          if keyword_set(debug) then begin
+;            help, sersic, sersic2, /str
+;            splog, band, sersic.sersic_n, sersic2.sersic2_n1, sersic2.sersic2_n2
+
+             rr = [0,range(0.01,200,500,/log)]
+             djs_plot, radius_kpc, -2.5*alog10(sb), psym=8, /xlog, $
+               xrange=[0.1,200], xsty=1, yrange=[30,16]
+             djs_oplot, rr, -2.5*alog10(bcgsfhs_sersic_func(rr,params=out[ii])), $
+               color=cgcolor('yellow')
+             if ii gt 0 then djs_oplot, rr, -2.5*alog10(bcgsfhs_sersic_func(rr,$
+               params=out[0])), color=cgcolor('forest green')
+             
+             djs_oplot, rr, -2.5*alog10(bcgsfhs_sersic2_func(rr,params=out[ii])), $
+               color=cgcolor('red')
+             djs_oplot, rr, -2.5*alog10(bcgsfhs_sersic_func(rr,[out[ii].sersic2_sb01,$
+               out[ii].sersic2_k1,out[ii].sersic2_n1])), color=cgcolor('orange'), line=5
+             djs_oplot, rr, -2.5*alog10(bcgsfhs_sersic_func(rr,[out[ii].sersic2_sb02,$
+               out[ii].sersic2_k2,out[ii].sersic2_n2])), color=cgcolor('orange'), line=5
+             cc = get_kbrd(1)
+          endif
        endfor
-stop
+; write out
+       im_mwrfits, out, datapath+cluster+'-sersic.fits', clobber=clobber
     endfor
 
-
-;; fit various Sersic models: (1) single Sersic; (2) Sersic + disk; (3)
-;; double-Sersic 
-;          
-;          bcgsfhs_sersic_fitbd, muradius, ellipse.sb0fit[0:ellipse.na-1], $ ; (2)
-;            bdcoeff, sb_ivar=ellipse.sb0fit_ivar[0:ellipse.na-1], $
-;            sersicfit=sersicfit
-;          sersicfit = -2.5*alog10(sersicfit)
-;
-;          convert_sb, ellipse, pixscale=pixscale
-;          
-;          mu_err = 1.0/sqrt(ellipse.sb0fit_ivar[0:ellipse.na-1])
-;
-;          djs_plot, muradius_kpc, mu, /xlog, psym=8, xsty=1, ysty=1, $
-;            yr=[28,15], xrange=[pixscale*arcsec2kpc,300]
-;          djs_oplot, 10^!x.crange, out.sblimit[ib]*[1,1], line=5
-;
-;          djs_oplot, muradius_kpc, sersicfit, color='red'
-;          cc = get_kbrd(1)
-;          
 ;;         bgt_ellipse_sersicradius, ellipse, outradius=outrad
 ;;         bgt_ellipse_radius() ; get the half-light radius
+
+return
+end

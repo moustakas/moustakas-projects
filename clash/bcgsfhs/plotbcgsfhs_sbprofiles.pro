@@ -40,6 +40,7 @@ pro plotbcgsfhs_sbprofiles, pdf=pdf
 
        arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]
        
+       
        galphot = mrdfits(datapath+cluster+'-ellipse-image.fits.gz',1,/silent)
        modphot = mrdfits(datapath+cluster+'-ellipse-model.fits.gz',1,/silent)
        nfilt = n_elements(modphot)
@@ -99,6 +100,13 @@ pro plotbcgsfhs_sbprofiles, pdf=pdf
             color=cgcolor(color[ii]), line=line[ii]
 ;         djs_oplot, 10^!x.crange, galphot[this].sblimit*[1,1], line=5, $
 ;           color=cgcolor(color[ii])
+
+; overplot Marc's SB profile, as a consistency check
+          pp = read_bcg_profiles(cluster,these_filters=thesefilt[ii])
+          if size(pp,/type) eq 8 then begin
+             ww = where(pp.sma gt -90)
+             djs_oplot, pp.sma[ww], pp.mu[ww], psym=symcat(15,thick=2), symsize=0.4
+          endif
        endfor
 ;      cc = get_kbrd(1)
     endfor

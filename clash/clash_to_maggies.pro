@@ -165,7 +165,8 @@ pro clash_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, $
                 maggies[ib,good] = cat[good].(ftag)*fact
                 ivarmaggies[ib,good] = 1D/(cat[good].(utag)*fact)^2.0
              endif
-;            print, tags[ib], errtags[ib], cat[0].(ftag), cat[0].(utag), fact, maggies[ib,0], ivarmaggies[ib,0]
+;            print, tags[ib], errtags[ib], cat[0].(ftag), $
+;              cat[0].(utag), fact, maggies[ib,0], ivarmaggies[ib,0] 
           endelse 
           
 ; clean up NAN's; these correspond to masked areas (e.g., chip
@@ -185,5 +186,6 @@ pro clash_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, $
 ;;      if isirac[0] ne -1 then minerr[isirac] = 0.1 ; note!
 ;       k_minerror, maggies, ivar, minerr
 ;    endif
+
 return   
 end

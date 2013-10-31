@@ -38,13 +38,6 @@ pro filaments_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
          sfhgrid=1, nmodel=nmodel, age=[0.005,0.5], tau=[0.1,5.0], $
          Zmetal=[0.0008,0.03], AV=[0.0,5.0], pburst=0.0, interval_pburst=1.0, $
          oiiihb=[0.0,1.0], /nebular, /flatAV, /delayed, clobber=clobber
-
-;      write_isedfit_paramfile, params=params, isedfit_dir=isedfit_dir, $
-;        prefix=prefix, filterlist=filterlist, use_redshift=use_redshift, $
-;        spsmodels=spsmodels, imf=imf, redcurve=redcurve, /igm, $
-;        sfhgrid=2, nmodel=nmodel, age=[0.05,6.0], tau=[0.01,6.0], $
-;        Zmetal=[0.0008,0.03], AV=[0.0,3.0], pburst=0.1, interval_pburst=1.0, $
-;        nebular=0, /flatAV, /delayed, /append, clobber=clobber
     endif
 
 ; --------------------------------------------------
@@ -62,14 +55,17 @@ pro filaments_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
          clobber=clobber
     endif
 
-;; --------------------------------------------------
-;; generate the model photometry QAplots
-;    if keyword_set(qaplot_models) then begin
-;       thesefilters = ['galex_NUV','sdss_g0','sdss_r0','sdss_i0','wise_w1']
-;       isedfit_qaplot_models, isedfit_paramfile, cat.maggies, $
-;         cat.ivarmaggies, cat.z, isedfit_dir=isedfit_dir, $
-;         thissfhgrid=thissfhgrid, thesefilters=thesefilters, clobber=clobber
-;    endif
+; --------------------------------------------------
+; generate the model photometry QAplots
+    if keyword_set(qaplot_models) then begin
+       thesefilters = ['clash_wfc3_f275w','clash_wfc3_f390w','clash_acs_f475w',$
+         'clash_acs_f814w.par','clash_wfc3_f160w.par']
+       clash_to_maggies, cat, maggies, ivarmaggies, /nodustcorr
+       isedfit_qaplot_models, isedfit_paramfile, maggies, $
+         ivarmaggies, cat.z, isedfit_dir=isedfit_dir, $
+         thissfhgrid=thissfhgrid, thesefilters=thesefilters, $
+         zcolor_pdffile='', clobber=clobber
+    endif
     
 ; --------------------------------------------------
 ; do the fitting!

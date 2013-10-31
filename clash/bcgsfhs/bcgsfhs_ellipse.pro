@@ -65,7 +65,7 @@ pro bcgsfhs_ellipse, debug=debug, clobber=clobber
 ; note! images in units of [10^-12 erg/s/cm^2/Hz] (pico-maggies)
 
 ; read the sample
-    sample = read_bcgsfhs_sample(/noa2261)
+    sample = read_bcgsfhs_sample()
     ncl = n_elements(sample)
 
     fact = 1D-12                           ; conversion from picomaggies to maggies
@@ -73,15 +73,17 @@ pro bcgsfhs_ellipse, debug=debug, clobber=clobber
     pixarea = 5.0*alog10(pixscale)         ; 2.5*log10(pixscale^2)
     rmax = 200.0                           ; [kpc]
 
+    ellpath = bcgsfhs_path()+'ellipse/'
+
 ; wrap on each cluster    
-;   for ic = 8, 8 do begin
-    for ic = 0, ncl-1 do begin
+    for ic = 10, 10 do begin
+;   for ic = 0, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        splog, 'Working on cluster '+cluster
-       outpath = bcgsfhs_path(/bcg)+cluster+'/'
+       datapath = bcgsfhs_path(/bcg)+cluster+'/'
 
 ; read the info structure to get the filters
-       info = mrdfits(outpath+cluster+'-mgeskyinfo.fits.gz',1,/silent)
+       info = mrdfits(datapath+cluster+'-mgeskyinfo.fits.gz',1,/silent)
        short = strtrim(info.band,2)
        reffilt = where(short eq 'f160w') ; reference filter
        nfilt = n_elements(info)
@@ -92,7 +94,7 @@ pro bcgsfhs_ellipse, debug=debug, clobber=clobber
        delvarx, imellipse, modellipse, phot
        for ib = nfilt-1, 0, -1 do begin
 ;      for ib = nfilt-1, nfilt-1 do begin
-          imfile = outpath+cluster+'-'+short[ib]+'.fits.gz'
+          imfile = datapath+cluster+'-'+short[ib]+'.fits.gz'
           splog, 'Reading '+file_basename(imfile)
 
 ; read the data and convert to intensity (maggies surface brightness)
@@ -203,9 +205,9 @@ pro bcgsfhs_ellipse, debug=debug, clobber=clobber
 ;         djs_plot, phot1.radius_kpc, -2.5*alog10(phot1.maggies), ysty=3, psym=8, /xlog, xsty=3
        endfor                   ; close filter loop
 ; write everything out
-       im_mwrfits, imellipse, outpath+cluster+'-ellipse-image.fits', clobber=clobber
-       im_mwrfits, modellipse, outpath+cluster+'-ellipse-model.fits', clobber=clobber
-       im_mwrfits, phot, outpath+cluster+'-ellipse-ellphot.fits', clobber=clobber
+       im_mwrfits, imellipse, ellpath+cluster+'-ellipse-image.fits', clobber=clobber
+       im_mwrfits, modellipse, ellpath+cluster+'-ellipse-model.fits', clobber=clobber
+       im_mwrfits, phot, ellpath+cluster+'-ellipse-ellphot.fits', clobber=clobber
     endfor                      ; close cluster loop
 
 stop    

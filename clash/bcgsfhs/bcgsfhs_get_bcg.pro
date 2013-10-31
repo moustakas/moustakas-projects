@@ -8,14 +8,14 @@ pro bcgsfhs_get_bcg, debug=debug
     bcgmodelpath = '/Users/ioannis/archive/bcg_models/'
 
 ; read the sample
-    sample = read_bcgsfhs_sample(/noa2261)
+    sample = read_bcgsfhs_sample()
     ncl = n_elements(sample)
 
     pixscale = 0.065D ; [arcsec/pixel]
     rmaxkpc = 200D     ; [kpc]
 
 ; wrap on each cluster    
-    for ic = 7, 7 do begin
+    for ic = 10, 10 do begin
 ;   for ic = 8, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        splog, 'Working on cluster '+cluster

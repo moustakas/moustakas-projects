@@ -1,7 +1,7 @@
 function read_bcg_profiles, cluster, scale=scale, these_filters=these_filters
 ; jm13may20siena - read a M. Postman style BCG profile file 
 
-    profilepath = getenv('CLASH_DATA')+'/bcg_profiles/13jul17/'
+    profilepath = getenv('CLASH_DATA')+'/bcg_profiles/13oct29/'
     if n_elements(cluster) eq 0 then begin
        splog, 'Need CLUSTER name.'
        return, -1
@@ -9,6 +9,8 @@ function read_bcg_profiles, cluster, scale=scale, these_filters=these_filters
 
     clash = rsex(getenv('CLASH_DIR')+'/clash_sample.sex')
 
+    if n_elements(scale) eq 0 then scale = '065mas' ; other option is '030mas'
+    
 ; read the filters, optionally restricting the list
     filt = clash_filterlist(short=short,weff=weff,zpt=zpt)
     if n_elements(these_filters) ne 0 then begin
@@ -47,7 +49,7 @@ function read_bcg_profiles, cluster, scale=scale, these_filters=these_filters
       ell_err:     fltarr(nrmax)-99.0,$
       pa:          fltarr(nrmax)-99.0,$
       pa_err:      fltarr(nrmax)-99.0}
-    allfile = profilepath+cluster+'_mosaic_*_*_'+short+'_*.txt'
+    allfile = profilepath+cluster+'_mosaic_*'+scale+'*_*_'+short+'_*.txt'
 
     nrow = 9
     check = fltarr(nfilt)+1

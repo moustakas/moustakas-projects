@@ -7,8 +7,25 @@ read it.
 * Cut out and write just the BCG image and model:
   bcgsfhs_get_bcg, /debug
 
-* Ellipse-fit the BCGs
+* Ellipse-fit the BCGs; make QAplots
   bcgsfhs_ellipse
+  qaplots_bcgsfhs_ellipse
 
-* Fit Sersic models to the surface-brightness profiles
-  bcgsfhs_sersicfit
+* Fit Sersic models to the surface-brightness profiles and compute
+  radial aperture photometry from which we will model the SEDs in
+  radial bins 
+   bcgsfhs_sersicfit 
+   qaplot_bcgsfhs_seds - plot the SEDs
+
+
+### Paper plots ###
+
+* plotbcgsfhs_sbprofiles - surface brightness profiles + Sersic
+  function fits overlaid
+
+* plotbcgsfhs_ssps - build some simple SSPs; overlay the (K-corrected)
+  BCG photometry and the models on a color-color plot
+
+  
+
+

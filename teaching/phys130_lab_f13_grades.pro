@@ -3,7 +3,7 @@ pro phys130_lab_f13_grades, alldata, test=test, sendit=sendit, final=final
 
     path = getenv('TEACHING_DIR')+'/Phys130/130-F13/grades/lab/'
     
-    date = '13oct13' ; update this
+    date = '13oct30' ; update this
     semester = 'Fall 2013'
     class = 'Physics 130 - General Physics I - Lab'
     

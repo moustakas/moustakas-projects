@@ -1,23 +1,31 @@
-function bcgsfhs_sersic2_func, xe, pe, params=params
-; sb = sb01*exp(-k1*r^(1/n1)) + sb02*exp(-k2*r^(1/n2))
-; pe = [sb01,k1,n1,sb02,k2,n2]
-    if n_elements(params) eq 0 then begin
-       use_sb01 = pe[0]
-       use_k1 = pe[1]
-       use_n1 = pe[2]
-       use_sb02 = pe[3]
-       use_k2 = pe[4]
-       use_n2 = pe[5]
-    endif else begin
-       use_sb01 = params.sersic2_sb01
-       use_k1 = params.sersic2_k1
-       use_n1 = params.sersic2_n1
-       use_sb02 = params.sersic2_sb02
-       use_k2 = params.sersic2_k2
-       use_n2 = params.sersic2_n2
-    endelse
-    model = use_sb01*exp(-use_k1*xe^(1.0/use_n1)) + $
-      use_sb02*exp(-use_k2*xe^(1.0/use_n2))
+function bcgsfhs_sersic2_func, rr, pp, params=params, parinfo=parinfo
+; pp = [sbe1,re1,n1,sbe2,re2,n2]
+
+    if n_elements(params) ne 0 then pp = $
+      [params.sersic2_sbe1,params.sersic2_re1,params.sersic2_n1,$
+      params.sersic2_sbe2,params.sersic2_re2,params.sersic2_n2]
+
+; make sure the parameters don't go outside the boundaries,
+; since mpfit does not 
+    use_pp = pp
+    if n_elements(parinfo) ne 0 then begin
+       for ii = 0, n_elements(pp)-1 do if parinfo[ii].limited[0] then $
+         use_pp[ii] = use_pp[ii] > parinfo[ii].limits[0]
+       for ii = 0, n_elements(pp)-1 do if parinfo[ii].limited[1] then $
+         use_pp[ii] = use_pp[ii] < parinfo[ii].limits[1]
+    endif
+
+    use_sbe1 = pp[0]
+    use_re1 = pp[1]
+    use_n1 = pp[2]
+    use_sbe2 = pp[3]
+    use_re2 = pp[4]
+    use_n2 = pp[5]
+
+; fit the sum of two Sersic models     
+    model = use_sbe1*exp(-get_sersicb(use_n1)*((rr/use_re1)^(1D/use_n1)-1D)) + $
+      use_sbe2*exp(-get_sersicb(use_n2)*((rr/use_re2)^(1D/use_n2)-1D))
+
 return, model
 end
 

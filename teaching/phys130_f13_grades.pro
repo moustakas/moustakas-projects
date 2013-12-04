@@ -1,7 +1,7 @@
 pro phys130_f13_grades, alldata, test=test, sendit=sendit, final=final
 ; jm13aug25siena - parse the grades for my two sections of this class 
 
-    date = '13oct30' ; update this
+    date = '13dec01' ; update this
     semester = 'Fall 2013'
     class = 'Physics 130 - General Physics I'
 
@@ -18,7 +18,8 @@ pro phys130_f13_grades, alldata, test=test, sendit=sendit, final=final
        allassign = ['Homework','Lab','Quizzes','Final Exam']
        weight = [0.25,0.15,0.40,0.20]
        droplowest = [0,0,1,0]
-;      keep = where(strmatch(data.last_name,'*Ippo*'))
+
+;      keep = where(strmatch(data.last_name,'*Flet*'))
 ;      keep = where(data.final_exam gt 0.0)
 ;      data = data[keep]
 

@@ -14,11 +14,13 @@ read it.
 * Fit Sersic models to the surface-brightness profiles and compute
   radial aperture photometry from which we will model the SEDs in
   radial bins 
-   bcgsfhs_sersicfit 
+   bcgsfhs_sersicfit, /dofit, /dophot, /qaplot
    qaplot_bcgsfhs_seds - plot the SEDs
 
 
 ### Paper plots ###
+
+* plotbcgsfhs_montage - build a nice color montage
 
 * plotbcgsfhs_sbprofiles - surface brightness profiles + Sersic
   function fits overlaid

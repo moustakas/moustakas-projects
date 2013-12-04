@@ -1,5 +1,6 @@
-pro z11_to_maggies, cat, maggies, ivar, filterlist=filterlist, nJy=nJy
-; jm12aug14siena
+pro hff_to_maggies, cat, maggies, ivar, filterlist=filterlist, $
+  nJy=nJy, usehawki=usehawki
+; jm13nov08siena 
 
     ngal = n_elements(cat)    
     if (ngal le 0L) then begin
@@ -7,13 +8,13 @@ pro z11_to_maggies, cat, maggies, ivar, filterlist=filterlist, nJy=nJy
        return
     endif
 
-    filterlist = z11_filterlist(short_filter=filt)
+    filterlist = clash_filterlist(short_filter=filt,/useirac,usehawki=usehawki)
     nbands = n_elements(filterlist)
 
     tags = filt+'_flux'
     errtags = filt+'_fluxerr'
 
-; conversion factor from nJy or uJy to AB mags
+; conversion factor from nJy or uJy to AB maggies
     if keyword_set(nJy) then fact = 10D^(-0.4D*28.9) else $
       fact = 10D^(-0.4D*23.9)
 

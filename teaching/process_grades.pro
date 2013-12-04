@@ -140,12 +140,12 @@ pro process_grades, data, assign=assign, allassign=allassign, $
           printf, lun, 'Some of your scores in the class have not been tabulated yet.'
           printf, lun, 'However, based on the fraction of your grade that you have'
           printf, lun, 'earned so far, your current percent grade in the class is '+$
-            strtrim(string(current,format='(F12.2)'),2)+'%.'
+            strtrim(string(current,format='(F12.1)'),2)+'%.'
           printf, lun, ' '
           printf, lun, 'If we ASSUME that you will earn 90% of the possible remaining'
-          printf, lun, 'points on ALL the remaining assignments or examinations, then'
+          printf, lun, 'points on ALL the forthcoming assignments or examinations, then'
           printf, lun, 'your final percent grade in the class will be '+$
-            strtrim(string(grade,format='(F12.2)'),2)+'%.'
+            strtrim(string(grade,format='(F12.1)'),2)+'%.'
           printf, lun, ' '
           printf, lun, 'Keep studying!!'
        endif else begin
@@ -155,10 +155,10 @@ pro process_grades, data, assign=assign, allassign=allassign, $
                 alldata[ss].(indx) = grade
                 printf, lun, 'All labs have been completed!  Your final'
                 printf, lun, 'percent grade in the course is: '+$
-                  strtrim(string(grade,format='(F12.2)'),2)+'%'
+                  strtrim(string(grade,format='(F12.1)'),2)+'%'
              endif else begin
                 printf, lun, 'Your current percent grade in lab is '+$
-                  strtrim(string(grade,format='(F12.2)'),2)+'%.'
+                  strtrim(string(grade,format='(F12.1)'),2)+'%.'
              endelse
           endif else begin
              indx = tag_indx(alldata,'final_grade')
@@ -169,7 +169,7 @@ pro process_grades, data, assign=assign, allassign=allassign, $
              alldata[ss].(indx) = data[ss].(iindx)
              
              printf, lun, 'Your final percent grade in the class is: '+$
-               strtrim(string(grade,format='(F12.2)'),2)+'%'
+               strtrim(string(grade,format='(F12.1)'),2)+'%'
              printf, lun, ' '
              printf, lun, 'Your final letter grade in the class is: '+$
                strtrim(alldata[ss].(indx),2)

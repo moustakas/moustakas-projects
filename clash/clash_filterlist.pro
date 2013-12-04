@@ -1,6 +1,6 @@
 function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
   zpt=zpt, alam=alam, useirac=useirac, weff=weff, fwhm=fwhm, pivotwave=pivotwave, $
-  width=width, instr=instr, dropbluest=dropbluest
+  width=width, instr=instr, dropbluest=dropbluest, usehawki=usehawki
 ; jm11apr24ucsd 
 
     filterlist = [$
@@ -162,6 +162,16 @@ function clash_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
        pivotwave = [pivotwave,1D4*[3.551,4.496]]
 ;      width = [width,[0.7,1.0,1.5,3.0]*1D4] ; approximate for IRAC!
        width = [width,[4313.0,5712]*2] ; approximate for IRAC!
+    endif
+
+; add HAWK-I/Ks
+    if keyword_set(usehawki) then begin
+       filterlist = [filterlist,'hawki_Ks1.par']
+       nice_filter = [nice_filter,'HAWKI-Ks']
+       short_filter = [short_filter,'HAWKI_KS']
+       zpt = [zpt,0.0]
+       pivotwave = [pivotwave,21420.8]
+       width = [width,1922.24]
     endif
 
 ; drop the bluest UVIS filters (used in a number of different

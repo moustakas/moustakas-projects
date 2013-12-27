@@ -85,7 +85,7 @@ pro process_grades, data, assign=assign, allassign=allassign, $
                    printf, lun, '  Extra Credit: '+details[nn]+': '+dates[nn]
                    if keyword_set(lab) then printf, lun, '     Points earned: '+$
                      strtrim(string(points[nn],format='(F12.1)'),2) else $
-                       printf, lun, '     Homework points earned: '+$
+                       printf, lun, '     Points earned: '+$
                      strtrim(string(points[nn],format='(F12.1)'),2)
                 endif
              endfor

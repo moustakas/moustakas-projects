@@ -1,5 +1,5 @@
 function deep2_path, catalogs=catalogs, dr3=dr3, dr4=dr4, specfit=specfit, $
-  projects=projects, papers=papers, alphadata=alphadata
+  projects=projects, papers=papers, alphadata=alphadata, ppxf=ppxf
 ; jm06aug28uofa
 
     datapath = getenv('IM_ARCHIVE_DIR')+'/data/deep2/'
@@ -13,6 +13,10 @@ function deep2_path, catalogs=catalogs, dr3=dr3, dr4=dr4, specfit=specfit, $
     if keyword_set(specfit) then begin
        if keyword_set(dr3) then return, datapath+'specfit_dr3/'
        if keyword_set(dr4) then return, datapath+'specfit_dr4/'
+    endif
+    if keyword_set(ppxf) then begin
+       if keyword_set(dr3) then return, datapath+'ppxf_dr3/'
+       if keyword_set(dr4) then return, datapath+'ppxf_dr4/'
     endif
     if keyword_set(projects) then return, datapath+'projects/'
     if keyword_set(alphadata) then return, datapath+'data/alpha/'

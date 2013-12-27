@@ -14,7 +14,9 @@ pro z11_to_maggies, cat, maggies, ivar, filterlist=filterlist, nJy=nJy
     errtags = filt+'_fluxerr'
 
 ; conversion factor from nJy or uJy to AB mags
-    if keyword_set(nJy) then fact = 10D^(-0.4D*28.9) else $
+; print, (23.0+9.0)/0.4-48.6
+;     31.4000
+    if keyword_set(nJy) then fact = 10D^(-0.4D*31.4) else $
       fact = 10D^(-0.4D*23.9)
 
 ; construct maggies and ivarmaggies in each band       

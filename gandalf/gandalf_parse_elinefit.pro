@@ -60,7 +60,8 @@ function gandalf_parse_elinefit, sol, esol, linepars, $
     broad = where((linepars.kind eq 'l') and (linepars.action ne 'i') and $
       (strmatch(linepars.name,'*broad*',/fold) eq 1),nbroad)
     strong = where((linepars.kind eq 'l') and (linepars.action ne 'i'),nstrong)
-    weak = where((linepars.kind ne 'l') and (linepars.action ne 'i'),nweak)
+    weak = where((linepars.kind ne 'l'),nweak)
+;   weak = where((linepars.kind ne 'l') and (linepars.action ne 'i'),nweak) ; wrong!
 
     strong_linez = fltarr(nstrong)-1.0
     strong_sigma = fltarr(nstrong)-1.0

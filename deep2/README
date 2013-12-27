@@ -53,11 +53,13 @@ Next, compute K-corrections for just the Q34 sample using
     kcorr.dr4.goodspec1d.Q34.fits.gz (N=34817)
 
 Next, model the nebular emission lines in the Q34 sample using
-'deep2_specfit_dr4', which runs on each individual DEEP2 mask.  All
-the masks are merged together using 'deep2_merge_specfit', producing
-an emission-line catalog that is line-matched to the parent Q34
-redshift catalog:
-    speclinefit.dr4.fits.gz (N=34817)
+'deep2_gandalf_specfit_dr4', which runs on each individual DEEP2 mask.
+Then, the routine 'parse_deep2_gandalf_specfit_dr4' is run to parse
+the output files and to produce the final 'specdata' and 'specfit'
+files.  Finally, all the masks are merged together using
+'deep2_merge_gandalf_specfit_dr4', producing an emission-line catalog
+that is line-matched to the parent Q34 redshift catalog:
+deep2.ppxf.specdata.dr4_v1.0.fits.gz (N=34817)
 
 Finally, to create a tarball of all the 1D spectra for this sample of
 objects run the following command from the parent DR4 directory:

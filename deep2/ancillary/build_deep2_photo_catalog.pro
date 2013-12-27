@@ -1,6 +1,7 @@
 pro build_deep2_photo_catalog
 ; jm13jul14siena - match the Matthews+13 extended photometric catalog
-; to my revised redshift catalog of objects with good spectra
+;   to my revised redshift catalog of objects with good spectra
+; jm13dec23siena - add WISE photometry
 
     catpath = deep2_path(/catalogs)
     

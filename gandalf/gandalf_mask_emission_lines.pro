@@ -55,7 +55,7 @@ function gandalf_mask_emission_lines, npix, Vsys, linepars, $
              tmppixels[w] = -1 
           endif else begin 
 ;            print, linepars[i].name+' is outside your wavelength range. We shall ignore it' ; NEW - V1.3
-             linepars[i].action = 'i'                                         ; NEW - V1.3 
+             linepars[i].action = 'i'                                         ; NEW - V1.3
           endelse
        endif
     endfor
@@ -81,7 +81,7 @@ function gandalf_mask_emission_lines, npix, Vsys, linepars, $
           meml_rpix = meml_cpix + msigma
           if (meml_bpix le 2.0) or (meml_rpix ge (npix-2.0)) then begin
 ;            print, linepars[i].name+' is outside your wavelength range. We shall ignore it' ; NEW - V1.3
-             linepars[i].action = 'i' ; NEW - V1.3 
+             linepars[i].action = 'i' ; NEW - V1.3
           endif             
        endif 
     endfor
@@ -100,6 +100,10 @@ function gandalf_mask_emission_lines, npix, Vsys, linepars, $
        if (strtrim(linepars[big].action,2) eq 'i') then linepars[sat[ii]].action = 'i'
     endfor
 
+; if all the lines have been dropped then we're done
+    if (total(linepars.action eq 'i') eq nline) then $
+      return, goodpixels
+
 ; narrow lines
     tied = where((strmatch(linepars.fit,'*t*') eq 1) and $
       (strmatch(linepars.name,'*broad*',/fold) eq 0),ntied)
@@ -116,7 +120,10 @@ function gandalf_mask_emission_lines, npix, Vsys, linepars, $
              if (nthese eq 0L) then message, 'Fix me!'
              bluest = min(linepars[these].lambda,blueindx)
              linepars[tied[ii]].fit = 't'+strtrim(linepars[these[blueindx]].i,2)
+             linepars[tied[ii]].fit_iter2 = 't'+strtrim(linepars[these[blueindx]].i,2)
+;            if ii eq 3 then stop
              linepars[these[blueindx]].fit = 'f'
+             linepars[these[blueindx]].fit_iter2 = 'f'
 ;; first try tying to [OII]
 ;             oii = where(strmatch(linepars.name,'*oii_*',/fold),noii)
 ;             if (noii ne 0) then begin
@@ -125,6 +132,8 @@ function gandalf_mask_emission_lines, npix, Vsys, linepars, $
 ;             endif
           endif
        endif
+;      if linepars[2].fit eq 'f' then stop
+;      struct_print, linepars[tied[ii]], /no_head
     endfor
 
 ; broad lines; note that the broad lines remain tied even on the

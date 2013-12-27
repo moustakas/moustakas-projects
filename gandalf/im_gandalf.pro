@@ -588,7 +588,6 @@ FUNCTION FITFUNC_GAS, pars, CSTAR=cstar, GALAXY=galaxy, NOISE=noise, EMISSION_SE
                       FOR_ERRORS=for_errors
 compile_opt idl2, hidden
 
-
 npix = n_elements(galaxy)
 x = range(-1d,1d,npix)             ; X needs to be within [-1,1] for Legendre Polynomials
 
@@ -980,7 +979,8 @@ IF n_elements(reddening) GT 0 AND mdegree NE 0 THEN message, 'Reddening & polyno
 ;endfor
 
 dummy = emission_setup ; This will help us restoring later the input emission_setup structure
-i_f = where(emission_setup.action eq 'f')
+i_f = where(emission_setup.action eq 'f',nn)
+if nn eq 0 then return ; no lines to fit - get out!
 emission_setup = dummy[i_f]
 ;emission_setup = create_struct('i',dummy.i[i_f],'name',dummy.name[i_f],$
 ;                               'lambda',dummy.lambda[i_f],'action',dummy.action[i_f],$
@@ -1086,7 +1086,6 @@ for iter = 0, 1 do begin
 ; as regards the position and width of the lines these should only be
 ; considered as lower estimates for the real uncertainties.
 ;  if iter eq 1 then stop
-
    best_pars = mpfit('FITFUNC_GAS',start_pars, FUNCTARGS=functargs, PARINFO=parinfo, $
      FTOL=1d-2, NFEV=ncalls, ERRMSG=errmsg, PERROR=errors, STATUS=status, QUIET=1)
 

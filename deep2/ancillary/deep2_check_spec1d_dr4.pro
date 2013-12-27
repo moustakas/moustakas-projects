@@ -81,8 +81,8 @@ pro deep2_check_spec1d_dr4, debug=debug
        print, format='("DEEP2_CHECK_SPEC1D: ",I0,"/",I0,".",A1,$)', $
          ii+1, ngalaxy, string(13b)
 
-       spec1 = mrdfits(datapath+zcat_out[ii].file,1,h1,/silent)
-       spec2 = mrdfits(datapath+zcat_out[ii].file,2,h2,/silent)
+       spec1 = mrdfits(datapath+zcat_out[ii].file+'.gz',1,h1,/silent)
+       spec2 = mrdfits(datapath+zcat_out[ii].file+'.gz',2,h2,/silent)
 
 ; check to make sure that the blue and red extractions are right        
        ex1 = strtrim(sxpar(h1,'EXTNAME'),2)

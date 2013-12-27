@@ -106,7 +106,32 @@ pro oplot_iz06, linewave, xx=xx, yy=yy
     endif
 return
 end
-
+pro oplot_maio08, maio08, xx=xx, yy=yy, oii=oii, neiii=neiii
+    color = 'orange' & psym = 15
+    xx = alog10(maio08.oiii/maio08.hb)
+    xxerr = im_compute_error(maio08.oiii,maio08.oiii_err,maio08.hb,maio08.hb_err,/log)
+    if keyword_set(oii) then begin
+       yy = alog10(maio08.oii/maio08.hb)
+       yyerr = im_compute_error(maio08.oii,maio08.oii_err,maio08.hb,maio08.hb_err,/log)
+    endif
+    if keyword_set(neiii) then begin
+       yy = alog10(maio08.neiii/maio08.hb)
+       yyerr = im_compute_error(maio08.neiii,maio08.neiii_err,maio08.hb,maio08.hb_err,/log)
+    endif
+    oploterror, xx, yy, xxerr, yyerr, psym=symcat(psym), $
+      color=im_color(color), symsize=2.5
+return
+end
+pro oplot_mann09, mann09, xx=xx, yy=yy
+    color = 'dodger blue' & psym = 16
+    xx = alog10(mann09.oiii/mann09.hb)
+    xxerr = im_compute_error(mann09.oiii,mann09.oiii_err,mann09.hb,mann09.hb_err,/log)
+    yy = alog10(mann09.oii/mann09.hb)
+    yyerr = im_compute_error(mann09.oii,mann09.oii_err,mann09.hb,mann09.hb_err,/log)
+    oploterror, xx, yy, xxerr, yyerr, psym=symcat(psym), $
+      color=im_color(color), symsize=2.5
+return
+end
 pro oplot_calibration, out
 ; overplot the calibration
     common isedfit_calibrate
@@ -271,11 +296,58 @@ pro calibrate_ratio, xx, yy, weight=weight, name=name, wave=wave, $
 return
 end
 
-pro isedfit_calibrate_lineratios 
+pro isedfit_calibrate_lineratios, nebular_continuum=nebular_continuum, $
+  local=local, highredshift=highredshift
 ; jm13aug01siena -
 
     common isedfit_calibrate
     path = getenv('IM_PROJECTS_DIR')+'/isedfit/'
+    litpath = getenv('IM_PAPERS_DIR')+'/literature/data/'
+
+    oiiihbtitle = 'log ([OIII] \lambda5007 / H\beta)'
+    oiiihbrange = [-1.3,1.3]
+    oiiihbaxis = range(-1.0,1.0,100)
+    
+; examine the evolution of the emission-line ratios with redshift
+    if keyword_set(highredshift) then begin
+       ffile = getenv('IMPRO_DIR')+'/etc/isedfit_forbidden_lineratios.fits.gz'
+       fdata = mrdfits(ffile,1)
+
+;      l09 = rsex(litpath+'09lehnert.sex')
+       maio08 = rsex(litpath+'08maiolino.sex')
+       mann09 = rsex(litpath+'09mannucci.sex')
+
+       psfile = path+'qa_highz_lineratios.ps'
+       im_plotconfig, 0, pos, psfile=psfile, height=5.0, width=6.6, $
+         xmargin=[1.4,0.5]
+
+; --------------------
+; [OII] 3727; *doublet*
+       this = where(strtrim(fdata.name,2) eq '[OII]_3727')
+       ytitle = 'log (OII] \lambda3727 / H\beta)'
+       yrange = [-2,1]
+       
+       djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
+         xrange=oiiihbrange, yrange=yrange, ytitle=textoidl(ytitle), $
+         xtitle=textoidl(oiiihbtitle)
+       oplot_maio08, maio08, /oii
+       oplot_mann09, mann09
+       oplot_calibration, fdata[this]
+
+; --------------------
+; [Ne III] 3869
+       this = where(strtrim(fdata.name,2) eq '[NeIII]_3869')
+       ytitle = 'log ([Ne III] \lambda3869 / H\beta)'
+       yrange = [-2,0.5]
+       djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
+         xrange=oiiihbrange, yrange=yrange, ytitle=textoidl(ytitle), $
+         xtitle=textoidl(oiiihbtitle)
+       oplot_maio08, maio08, /neiii
+       oplot_calibration, fdata[this]
+       
+       im_plotconfig, /psclose, psfile=psfile, /pdf
+
+    endif
 
 ; ---------------------------------------------------------------------------
 ; write out the nebular *continuum* spectrum for use with
@@ -283,18 +355,21 @@ pro isedfit_calibrate_lineratios
 ; spectrum varies just with the number of Lyman-continuum photons, so
 ; I can safely choose any age; the units of the continuum spectrum is
 ; erg/s/A per unit N(Lyc)
-    sb99 = im_read_starburst99('SB99_PadovaAGB_Kroupa_Z0.020',path=path)
-    this = 10 ; age index
+    if keyword_set(nebular_continuum) then begin
+    
+       sb99 = im_read_starburst99('SB99_PadovaAGB_Kroupa_Z0.020',path=path)
+       this = 10                ; age index
 
 ; build an oversampling wavelength array near the spectral breaks, to
 ; ensure adequate sampling
-    outwave = range(min(sb99.wave),max(sb99.wave),n_elements(sb99.wave)*2)/1D4 ; oversample
-    sbreak = [0.0912,0.342,0.365,0.816,1.455,2.277,3.277,4.460]
-    for ii = 0, n_elements(sbreak)-1 do outwave = [outwave,$
-      10D^(range(alog10(sbreak[ii])-0.01,alog10(sbreak[ii])+0.01,100))]
-    outwave = outwave[sort(outwave)]
-    outwave = outwave*1D4
-    cneb = {wave_neb: outwave, flam_neb: interpolate(sb99.flux_gas[*,this]/10D^sb99.nlyc[this],$
+       outwave = range(min(sb99.wave),max(sb99.wave),n_elements(sb99.wave)*2)/1D4 ; oversample
+       sbreak = [0.0912,0.342,0.365,0.816,1.455,2.277,3.277,4.460]
+       for ii = 0, n_elements(sbreak)-1 do outwave = [outwave,$
+         10D^(range(alog10(sbreak[ii])-0.01,alog10(sbreak[ii])+0.01,100))]
+       outwave = outwave[sort(outwave)]
+       outwave = outwave*1D4
+       cneb = {wave_neb: outwave, flam_neb: interpolate($
+         sb99.flux_gas[*,this]/10D^sb99.nlyc[this],$
       findex(sb99.wave,outwave))}
 ;   zero = where(out.wave lt 912.0)
 ;   out.flam_neb[zero] = 0.0
@@ -304,8 +379,8 @@ pro isedfit_calibrate_lineratios
 ;   djs_oplot, sb99.wave/1D4, sb99.flux_gas[*,this]/10D^sb99.nlyc[this], color='orange'
 ;   djs_oplot, sb99.wave/1D4, sb99.flux_gas[*,this+20]/10D^sb99.nlyc[this+20], color='green'
 
-    outfile = getenv('IMPRO_DIR')+'/etc/isedfit_nebular_continuum.fits'
-    im_mwrfits, cneb, outfile, /clobber
+       outfile = getenv('IMPRO_DIR')+'/etc/isedfit_nebular_continuum.fits'
+       im_mwrfits, cneb, outfile, /clobber
 
 ;; below are some notes from Pegase and Koleva+09 for computing the
 ;; nebular *continuum*
@@ -333,6 +408,7 @@ pro isedfit_calibrate_lineratios
 ;
 ;; see equation (1) in Koleva+09    
 ;    flam_neb = gamma_tot*nlyc*light/wave^2/alpha2
+    endif
     
 ; ---------------------------------------------------------------------------    
 ; now do the emission lines
@@ -370,136 +446,133 @@ pro isedfit_calibrate_lineratios
 
 ; See also http://www.pa.uky.edu/~peter/atomic, Peimbert et al. 2004,
 ; ApJS, 150, 431, and Stasinska 2007 for additional useful data.
-    
+
+    if keyword_set(local) then begin
 ; --------------------------------------------------
 ; read the emission-line data we need
-    if n_elements(peg) eq 0 then peg = read_pegase_hii() ; Pegase
-    if n_elements(g99) eq 0 then g99 = mrdfits(getenv('CATALOGS_DIR')+$ ; Garnett+99    
-      '/99garnett/99garnett_table2.fits.gz',1)
-    if n_elements(iz06) eq 0 then iz06 = im_read_vizier_tsv($ ; Izotov+06
-      getenv('CATALOGS_DIR')+'/hiiregions/06izotov/2006_izotov.dat')
-    if n_elements(sdss) eq 0 then sdss = read_mysdss()
-    if n_elements(hii) eq 0 then hii = read_myhii()
-    if n_elements(atlas) eq 0 then atlas = read_myatlas()
-
+       if n_elements(peg) eq 0 then peg = read_pegase_hii()             ; Pegase
+       if n_elements(g99) eq 0 then g99 = mrdfits(getenv('CATALOGS_DIR')+$ ; Garnett+99    
+         '/99garnett/99garnett_table2.fits.gz',1)
+       if n_elements(iz06) eq 0 then iz06 = im_read_vizier_tsv($ ; Izotov+06
+         getenv('CATALOGS_DIR')+'/hiiregions/06izotov/2006_izotov.dat')
+       if n_elements(sdss) eq 0 then sdss = read_mysdss()
+       if n_elements(hii) eq 0 then hii = read_myhii()
+       if n_elements(atlas) eq 0 then atlas = read_myatlas()
+       
 ;   galev = rsex(path+'galev_emlines.dat')
 ;   ratio = [[galev.ratio_z0],[galev.ratio_z1],[galev.ratio_z2],[galev.ratio_z3]]>(1E-6)
 ;   ratio = alog10(ratio)>(-3)
 
 ; some plotting variables    
-    oiiihbtitle = 'log ([OIII] \lambda5007 / H\beta)'
-    oiiihbrange = [-1.3,1.1]
-    oiiihbaxis = range(-1.0,1.0,100)
-    
-    psfile = path+'qa_calibrate_lineratios.ps'
-    im_plotconfig, 0, pos, psfile=psfile, height=5.0, width=6.6, $
-      xmargin=[1.4,0.5]
-
+       psfile = path+'qa_calibrate_lineratios.ps'
+       im_plotconfig, 0, pos, psfile=psfile, height=5.0, width=6.6, $
+         xmargin=[1.4,0.5]
+       
 ; --------------------
 ; CIII] 1909 (is this a doublet?)
-    ytitle = 'log (CIII] \lambda1909 / H\beta)'
-    yrange = [-2,1]
-    djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
-      xrange=oiiihbrange, yrange=yrange, ytitle=textoidl(ytitle), $
-      xtitle=textoidl(oiiihbtitle)
-    oplot_peg, 1909, xx=pegxx, yy=pegyy
-    oplot_g99, 1909, xx=g99xx, yy=g99yy
-    calibrate_ratio, [pegxx,g99xx], [pegyy,g99yy], name='CIII]_1909',$
-      wave=1908.702D, ncoeff=1, out=out, indx=indx
-    oplot_calibration, out[indx]
-    
+       ytitle = 'log (CIII] \lambda1909 / H\beta)'
+       yrange = [-2,1]
+       djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
+         xrange=oiiihbrange, yrange=yrange, ytitle=textoidl(ytitle), $
+         xtitle=textoidl(oiiihbtitle)
+       oplot_peg, 1909, xx=pegxx, yy=pegyy
+       oplot_g99, 1909, xx=g99xx, yy=g99yy
+       calibrate_ratio, [pegxx,g99xx], [pegyy,g99yy], name='CIII]_1909',$
+         wave=1908.702D, ncoeff=1, out=out, indx=indx
+       oplot_calibration, out[indx]
+       
 ; --------------------
 ; CII] 1335
-    ytitle = 'log (CII] \lambda1335 / H\beta)'
-    yrange = [-2,1]
-    djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
-      xrange=oiiihbrange, yrange=yrange, ytitle=textoidl(ytitle), $
-      xtitle=textoidl(oiiihbtitle)
-    oplot_peg, 1335, xx=pegxx, yy=pegyy
-    calibrate_ratio, pegxx, pegyy, name='CII]_1335',$
-      wave=1335.707D, ncoeff=1, out=out, indx=indx
-    oplot_calibration, out[indx]
-
+       ytitle = 'log (CII] \lambda1335 / H\beta)'
+       yrange = [-2,1]
+       djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
+         xrange=oiiihbrange, yrange=yrange, ytitle=textoidl(ytitle), $
+         xtitle=textoidl(oiiihbtitle)
+       oplot_peg, 1335, xx=pegxx, yy=pegyy
+       calibrate_ratio, pegxx, pegyy, name='CII]_1335',$
+         wave=1335.707D, ncoeff=1, out=out, indx=indx
+       oplot_calibration, out[indx]
+       
 ; --------------------
 ; CII] 2325
-    ytitle = 'log (CII] \lambda2325 / H\beta)'
-    yrange = [-2,1]
-    djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
-      xrange=oiiihbrange, yrange=yrange, ytitle=textoidl(ytitle), $
-      xtitle=textoidl(oiiihbtitle)
-    oplot_peg, 2325, xx=pegxx, yy=pegyy
-    oplot_g99, 2325, xx=g99xx, yy=g99yy
-    calibrate_ratio, [pegxx,g99xx], [pegyy,g99yy], name='CII]_2325',$
-      wave=2324.689D, ncoeff=1, out=out, indx=indx
-    oplot_calibration, out[indx]
-
+       ytitle = 'log (CII] \lambda2325 / H\beta)'
+       yrange = [-2,1]
+       djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
+         xrange=oiiihbrange, yrange=yrange, ytitle=textoidl(ytitle), $
+         xtitle=textoidl(oiiihbtitle)
+       oplot_peg, 2325, xx=pegxx, yy=pegyy
+       oplot_g99, 2325, xx=g99xx, yy=g99yy
+       calibrate_ratio, [pegxx,g99xx], [pegyy,g99yy], name='CII]_2325',$
+         wave=2324.689D, ncoeff=1, out=out, indx=indx
+       oplot_calibration, out[indx]
+       
 ; --------------------
 ; [OII] 2470
-    ytitle = 'log (OII] \lambda2470 / H\beta)'
-    yrange = [-2,1]
-    djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
-      xrange=oiiihbrange, yrange=yrange, ytitle=textoidl(ytitle), $
-      xtitle=textoidl(oiiihbtitle)
-    oplot_peg, 2470, xx=pegxx, yy=pegyy
-    oplot_g99, 2470, xx=g99xx, yy=g99yy
-    calibrate_ratio, [pegxx,g99xx], [pegyy,g99yy], name='[OII]_2470',$
-      wave=2470.341D, ncoeff=1, out=out, indx=indx
-    oplot_calibration, out[indx]
+       ytitle = 'log (OII] \lambda2470 / H\beta)'
+       yrange = [-2,1]
+       djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
+         xrange=oiiihbrange, yrange=yrange, ytitle=textoidl(ytitle), $
+         xtitle=textoidl(oiiihbtitle)
+       oplot_peg, 2470, xx=pegxx, yy=pegyy
+       oplot_g99, 2470, xx=g99xx, yy=g99yy
+       calibrate_ratio, [pegxx,g99xx], [pegyy,g99yy], name='[OII]_2470',$
+         wave=2470.341D, ncoeff=1, out=out, indx=indx
+       oplot_calibration, out[indx]
 
 ; --------------------
 ; [OII] 3727; *doublet*
-    ytitle = 'log (OII] \lambda3727 / H\beta)'
-    yrange = [-2,1]
-    sxx = sdss.oiiihb
-    syy = sdss.oiihb
-    im_hogg_scatterplot, sxx, syy, position=pos, xsty=1, ysty=1, $
-      xrange=oiiihbrange, yrange=yrange, ytitle=textoidl(ytitle), $
-      xtitle=textoidl(oiiihbtitle)
-    oplot_peg, 3727, xx=pegxx, yy=pegyy
-    oplot_hii, xx=hxx, yy=hyy, /oii
-    oplot_atlas, xx=axx, yy=ayy, /oii
-    weight = [axx*0+1.0/n_elements(axx),hxx*0+1.0/n_elements(hxx),$ ; equal weight
-      sxx*0+1.0/n_elements(sxx)]
-    calibrate_ratio, [axx,hxx,sxx], [ayy,hyy,syy], name='[OII]_3727',$
-      wave=3727.4230D, ncoeff=4, out=out, indx=indx, /fitmedian
-    oplot_calibration, out[indx]
+       ytitle = 'log (OII] \lambda3727 / H\beta)'
+       yrange = [-2,1]
+       sxx = sdss.oiiihb
+       syy = sdss.oiihb
+       im_hogg_scatterplot, sxx, syy, position=pos, xsty=1, ysty=1, $
+         xrange=oiiihbrange, yrange=yrange, ytitle=textoidl(ytitle), $
+         xtitle=textoidl(oiiihbtitle)
+       oplot_peg, 3727, xx=pegxx, yy=pegyy
+       oplot_hii, xx=hxx, yy=hyy, /oii
+       oplot_atlas, xx=axx, yy=ayy, /oii
+       weight = [axx*0+1.0/n_elements(axx),hxx*0+1.0/n_elements(hxx),$ ; equal weight
+         sxx*0+1.0/n_elements(sxx)]
+       calibrate_ratio, [axx,hxx,sxx], [ayy,hyy,syy], name='[OII]_3727',$
+         wave=3727.4230D, ncoeff=4, out=out, indx=indx, /fitmedian
+       oplot_calibration, out[indx]
 
 ; --------------------
 ; [NII] 6584; *doublet*
-    ytitle = 'log (NII] \lambda6584 / H\beta)'
-    yrange = [-2,1]
-    sxx = sdss.oiiihb
-    syy = sdss.niihb
-    im_hogg_scatterplot, sxx, syy, position=pos, xsty=1, ysty=1, $
-      xrange=oiiihbrange, yrange=yrange, ytitle=textoidl(ytitle), $
-      xtitle=textoidl(oiiihbtitle)
-    oplot_peg, 6584, xx=pegxx, yy=pegyy
-    oplot_hii, xx=hxx, yy=hyy, /nii
-    oplot_atlas, xx=axx, yy=ayy, /nii
-    weight = [axx*0+1.0/n_elements(axx),hxx*0+1.0/n_elements(hxx),$ ; equal weight
-      sxx*0+1.0/n_elements(sxx)]
-    calibrate_ratio, [axx,hxx,sxx], [ayy,hyy,syy], name='[NII]_6584',$
-      wave=6583.458D, ncoeff=3, out=out, indx=indx, /fitmedian
-    oplot_calibration, out[indx]
+       ytitle = 'log (NII] \lambda6584 / H\beta)'
+       yrange = [-2,1]
+       sxx = sdss.oiiihb
+       syy = sdss.niihb
+       im_hogg_scatterplot, sxx, syy, position=pos, xsty=1, ysty=1, $
+         xrange=oiiihbrange, yrange=yrange, ytitle=textoidl(ytitle), $
+         xtitle=textoidl(oiiihbtitle)
+       oplot_peg, 6584, xx=pegxx, yy=pegyy
+       oplot_hii, xx=hxx, yy=hyy, /nii
+       oplot_atlas, xx=axx, yy=ayy, /nii
+       weight = [axx*0+1.0/n_elements(axx),hxx*0+1.0/n_elements(hxx),$ ; equal weight
+         sxx*0+1.0/n_elements(sxx)]
+       calibrate_ratio, [axx,hxx,sxx], [ayy,hyy,syy], name='[NII]_6584',$
+         wave=6583.458D, ncoeff=3, out=out, indx=indx, /fitmedian
+       oplot_calibration, out[indx]
 
 ; --------------------
 ; [SII] 6716; *doublet*
-    ytitle = 'log (SII] \lambda6716 / H\beta)'
-    yrange = [-2,1]
-    sxx = sdss.oiiihb
-    syy = sdss.sii6716hb
-    im_hogg_scatterplot, sxx, syy, position=pos, xsty=1, ysty=1, $
-      xrange=oiiihbrange, yrange=yrange, ytitle=textoidl(ytitle), $
-      xtitle=textoidl(oiiihbtitle)
-    oplot_peg, 6716, xx=pegxx, yy=pegyy
-    oplot_hii, xx=hxx, yy=hyy, /sii6716
-    oplot_atlas, xx=axx, yy=ayy, /sii6716
-    weight = [axx*0+1.0/n_elements(axx),hxx*0+1.0/n_elements(hxx),$ ; equal weight
-      sxx*0+1.0/n_elements(sxx)]
-    calibrate_ratio, [axx,hxx,sxx], [ayy,hyy,syy], name='[SII]_6716',$
-      wave=6716.440D, ncoeff=3, out=out, indx=indx, /fitmedian
-    oplot_calibration, out[indx]
-
+       ytitle = 'log (SII] \lambda6716 / H\beta)'
+       yrange = [-2,1]
+       sxx = sdss.oiiihb
+       syy = sdss.sii6716hb
+       im_hogg_scatterplot, sxx, syy, position=pos, xsty=1, ysty=1, $
+         xrange=oiiihbrange, yrange=yrange, ytitle=textoidl(ytitle), $
+         xtitle=textoidl(oiiihbtitle)
+       oplot_peg, 6716, xx=pegxx, yy=pegyy
+       oplot_hii, xx=hxx, yy=hyy, /sii6716
+       oplot_atlas, xx=axx, yy=ayy, /sii6716
+       weight = [axx*0+1.0/n_elements(axx),hxx*0+1.0/n_elements(hxx),$ ; equal weight
+         sxx*0+1.0/n_elements(sxx)]
+       calibrate_ratio, [axx,hxx,sxx], [ayy,hyy,syy], name='[SII]_6716',$
+         wave=6716.440D, ncoeff=3, out=out, indx=indx, /fitmedian
+       oplot_calibration, out[indx]
+       
 ;; --------------------
 ;; [SII] 6731; *doublet*; in the low-density limit, [SII] 6716 is about
 ;; 30% stronger than [SII] 6731; therefore, to make sure that [SII]
@@ -529,15 +602,15 @@ pro isedfit_calibrate_lineratios
     
 ; --------------------
 ; [Ne III] 3869
-    ytitle = 'log ([Ne III] \lambda3869 / H\beta)'
-    yrange = [-2,1]
-    djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
-      xrange=oiiihbrange, yrange=yrange, ytitle=textoidl(ytitle), $
-      xtitle=textoidl(oiiihbtitle)
-    oplot_iz06, '3868', xx=iz06xx, yy=iz06yy
-    calibrate_ratio, [iz06xx], [iz06yy], name='[NeIII]_3869',$
-      wave=3868.752D, ncoeff=2, out=out, indx=indx
-    oplot_calibration, out[indx]
+       ytitle = 'log ([Ne III] \lambda3869 / H\beta)'
+       yrange = [-2,0.5]
+       djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
+         xrange=oiiihbrange, yrange=yrange, ytitle=textoidl(ytitle), $
+         xtitle=textoidl(oiiihbtitle)
+       oplot_iz06, '3868', xx=iz06xx, yy=iz06yy
+       calibrate_ratio, [iz06xx], [iz06yy], name='[NeIII]_3869',$
+         wave=3868.752D, ncoeff=2, out=out, indx=indx
+       oplot_calibration, out[indx]
 
 ;; below are some helium lines which I'm ignoring because the
 ;; line-ratios match pretty well the theoretical case B values
@@ -568,13 +641,14 @@ pro isedfit_calibrate_lineratios
 ;      wave=4471D, ncoeff=1, out=out, indx=indx
 ;    oplot_calibration, out[indx]
 
-    im_plotconfig, /psclose, psfile=psfile, /pdf
+       im_plotconfig, /psclose, psfile=psfile, /pdf
 
 ; write out    
-    struct_print, out
-    
-    outfile = getenv('IMPRO_DIR')+'/etc/isedfit_forbidden_lineratios.fits'
-    im_mwrfits, out, outfile, /clobber
+       struct_print, out
+       
+       outfile = getenv('IMPRO_DIR')+'/etc/isedfit_forbidden_lineratios.fits'
+       im_mwrfits, out, outfile, /clobber
+    endif
 
 return
 end

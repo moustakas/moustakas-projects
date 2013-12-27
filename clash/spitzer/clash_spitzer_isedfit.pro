@@ -41,12 +41,16 @@ pro clash_spitzer_isedfit, write_paramfile=write_paramfile, build_grids=build_gr
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
 
 ; read and stack all the clusters together
+    rr = read_clash_redshifts()
     for ii = 0, n_elements(clash)-1 do begin
        catfile = isedfit_dir+strtrim(clash[ii].dirname,2)+'_final_specz.cat'
        if file_test(catfile) then begin
           cat1 = rsex(catfile)
           cat1 = struct_addtags(replicate({cluster: strtrim(clash[ii].shortname,2)},$
             n_elements(cat1)),cat1)
+;         djs_plot, cat1.ra, cat1.dec, psym=6
+;         djs_oplot, rr.ra, rr.dec, psym=7, color='green'
+;         cc = get_kbrd(1)
           if ii eq 0 then cat = cat1 else cat = [cat,cat1]
        endif
     endfor
@@ -57,7 +61,7 @@ pro clash_spitzer_isedfit, write_paramfile=write_paramfile, build_grids=build_gr
 
     zminmax = minmax(zz)
     zbin = 0.03
-
+stop
 ; --------------------------------------------------
 ; (mandatory) choose your priors: write the iSEDfit parameter file 
     if keyword_set(write_paramfile) then begin

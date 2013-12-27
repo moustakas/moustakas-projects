@@ -8,7 +8,7 @@ function read_gandalf_elinelist, linefile, actionfit=actionfit, $
     endif
 
     readcol, linefile, eml_i, eml_name, eml_lambda, eml_action, $
-      eml_kind, eml_a, eml_v, eml_s, eml_fit, eml_fit_iter2, skip=2, $
+      eml_kind, eml_a, eml_v, eml_s, eml_fit, eml_fit_iter2, $
       format='I,A,F,A,A,F,F,F,A,A', comment='#', /silent
     nlines = n_elements(eml_i)
 

@@ -47,6 +47,8 @@ function gandalf_clean_emission, restwave, restflux, bestfit, $
        amp_err = esol[ii*4+1]
        sigma_err = esol[ii*4+3]
 
+;      if strmatch(new_linepars[isline[ii]].name,'*5007*') then stop
+
 ; occasionally the amplitude *error* is zero because the line hit a
 ; boundary in MPFIT; set the flux to zero, too, which isn't
 ; quite the right thing to do, but only happens rather rarely
@@ -82,26 +84,26 @@ function gandalf_clean_emission, restwave, restflux, bestfit, $
                '  '+linepars[isline[ii]].name
              cc = get_kbrd(1)
           endif
+       endif
 ; 1-sigma upper limit; for simplicity assume an intrinsic velocity
 ; width of 125 km/s
 ;         new_linepars[isline[ii]].limit = sqrt(2.0*!pi)*$
 ;           new_linepars[isline[ii]].lambda*125.0/im_light()*resid_noise 
 
 ; now deal with the non-detections          
-          if (amp lt snrcut*resid_noise) and $
-            (strmatch(linepars[isline[ii]].name,'*broad*',/fold) eq 0) then begin
-;         if (amp/resid_noise lt snrcut) then begin
+       if ((nindx eq 0L) or (amp lt snrcut*resid_noise)) and $
+         (strmatch(linepars[isline[ii]].name,'*broad*',/fold) eq 0) then begin
+;      if (amp/resid_noise lt snrcut) then begin
 ; set the amplitude and flux to zero
-;            if (abs(amp) gt 0) and (amp_err eq 0.0) then $
-             if keyword_set(debug) then $
-               splog, 'Removing '+new_linepars[isline[ii]].name, $
-               amp, resid_noise, amp/resid_noise
-             new_sol[ii*4+0] = 0.0 
-             new_sol[ii*4+1] = 0.0
-             new_etemplates[*,ii] = 0.0
-          endif else if (abs(amp) gt 0) and (amp_err eq 0.0) then message, 'Fix me'
-       endif
-    endfor
+;         if (abs(amp) gt 0) and (amp_err eq 0.0) then $
+          if keyword_set(debug) then $
+            splog, 'Removing '+new_linepars[isline[ii]].name, $
+            amp, resid_noise, amp/resid_noise
+          new_sol[ii*4+0] = 0.0 
+          new_sol[ii*4+1] = 0.0
+          new_etemplates[*,ii] = 0.0
+       endif else if (abs(amp) gt 0) and (amp_err eq 0.0) then message, 'Fix me'
+    endfor 
 
 ; now that crummy lines have been removed, go back and compute the
 ; mean continuum level and the error in the mean, so that we can

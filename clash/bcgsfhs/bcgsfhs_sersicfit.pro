@@ -1,3 +1,36 @@
+function get_radius, radius_sb, nrad=nrad, inrad=inrad, outrad=outrad
+; everything in kpc
+
+    radius = radius_sb
+    nrad = n_elements(radius)
+    
+    deltar = (shift(radius,-1)-radius)/2.0
+    deltar[nrad-1] = (radius[nrad-1]-radius[nrad-2])/2.0
+    outrad = radius+deltar
+    inrad = radius-shift(deltar,1)
+    inrad[0] = 0.0
+
+;   niceprint, inrad, radius, outrad    
+    
+; --------------------
+;; old but functioning code:    
+;    if n_elements(nrad) eq 0 then nrad = 20
+;    nrad1 = nrad-1
+;    inrad = range(min(radius_sb),rmax,nrad1,/asinh) ; inner radius [kpc]
+;    outrad = inrad+(shift(inrad,-1)-inrad)           ; outer radius [kpc]
+;
+;; adjust the edges
+;    outrad[nrad1-1] = (inrad[nrad1-1]-inrad[nrad1-2])+inrad[nrad1-1]
+;    outrad = [inrad[0],outrad]
+;    inrad = [0D,inrad]
+;    radius = (outrad-inrad)/2.0+inrad
+; --------------------
+
+;   niceprint, inrad, radius, outrad
+
+return, radius
+end
+
 function get_sersic_variance, radius_kpc, sersic=sersic, debug=debug
 ; variance in the SB profile of a Sersic fit at fixed radius,
 ; accounting for the covariance in the paramaeters
@@ -36,26 +69,9 @@ function get_sersic_variance, radius_kpc, sersic=sersic, debug=debug
 return, sb_var
 end
 
-function get_radius, radius_sb, nrad=nrad, rmax=rmax, $
-  inrad=inrad, outrad=outrad
-; everything in kpc
-    if n_elements(nrad) eq 0 then nrad = 20
-    nrad1 = nrad-1
-    inrad = range(min(radius_sb),rmax,nrad1,/asinh) ; inner radius [kpc]
-    outrad = inrad+(shift(inrad,-1)-inrad)           ; outer radius [kpc]
-
-; adjust the edges
-    outrad[nrad1-1] = (inrad[nrad1-1]-inrad[nrad1-2])+inrad[nrad1-1]
-    outrad = [inrad[0],outrad]
-    inrad = [0D,inrad]
-    radius = (outrad-inrad)/2.0+inrad
-    
-;   niceprint, inrad, radius, outrad
-return, radius
-end
-
 pro bcgsfhs_sersic2, rr, sb, scoeff, sb_ivar=sb_ivar, $
-  init_params=init_params, fixed=fixed, sersicfit=sersicfit
+  init_params=init_params, fixed=fixed, sersicfit=sersicfit, $
+  verbose=verbose
 ; fit a double Sersic function
 
 ; parse the data; take the log
@@ -95,10 +111,9 @@ pro bcgsfhs_sersic2, rr, sb, scoeff, sb_ivar=sb_ivar, $
 
     if n_elements(fixed) ne 0 then parinfo.fixed = fixed
 
-    quiet = 1
     params = mpfitfun('bcgsfhs_sersic2_func',xx,xxsb,parinfo=parinfo,$
       yfit=sersicfit,perror=perror,covar=covar,weights=xxsb_ivar,$
-      dof=dof,bestnorm=chi2,status=status,quiet=quiet,$
+      dof=dof,bestnorm=chi2,status=status,quiet=keyword_set(verbose) eq 0,$
       functargs={parinfo: parinfo})
 
 ;   djs_plot, rr, -2.5*alog10(xxsb), /xlog, psym=8, xsty=3, ysty=3, $
@@ -139,8 +154,10 @@ return
 end
 
 pro bcgsfhs_sersic, rr, sb, scoeff, sb_ivar=sb_ivar, $
-  init_params=init_params, fixed=fixed, sersicfit=sersicfit
-; fit a single Sersic function
+  init_params=init_params, fixed=fixed, sersicfit=sersicfit, $
+  verbose=verbose
+; fit a single Sersic function; RR should be in kpc; the model
+; returned is in magnitudes 
 
 ; parse the data; take the log
     good = where(sb_ivar gt 0.0 and finite(sb),nn)
@@ -170,10 +187,9 @@ pro bcgsfhs_sersic, rr, sb, scoeff, sb_ivar=sb_ivar, $
       parinfo.value = [median(xxsb), 10D, 4D]
     if n_elements(fixed) eq nparam then parinfo.fixed = fixed
     
-    quiet = 1
     params = mpfitfun('bcgsfhs_sersic_func',xx,xxsb,parinfo=parinfo,$
       perror=perror,covar=covar,weights=xxsb_ivar,bestnorm=chi2,dof=dof,$
-      status=status,quiet=quiet,yfit=sersicfit,functargs={parinfo: parinfo})
+      status=status,quiet=keyword_set(verbose) eq 0,yfit=sersicfit,functargs={parinfo: parinfo})
 
     factor = sqrt(chi2/dof)
     scoeff = {$
@@ -245,10 +261,9 @@ pro bcgsfhs_sersic2_multiband, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
         parinfo.value = [0.1D,1.5D,30D,4D,0.1*replicate(median(xxsb),nband),$
       replicate(median(xxsb),nband)]
 
-    quiet = 0
     params = mpfitfun('bcgsfhs_sersic2_multiband_func',xx,xxsb,parinfo=parinfo,$
       yfit=sersicfit,perror=perror,covar=covar,weights=xxsb_ivar,dof=dof,$
-      bestnorm=chi2,status=status,quiet=quiet,functargs={parinfo: parinfo, wave: wave})
+      bestnorm=chi2,status=status,quiet=keyword_set(verbose) eq 0,functargs={parinfo: parinfo, wave: wave})
 
     factor = sqrt(chi2/dof)
     for ib = 0, nband-1 do begin
@@ -320,10 +335,10 @@ pro bcgsfhs_sersic_multiband, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
         parinfo.value = [10D, 4D, replicate(median(xxsb),nband)]
     if n_elements(fixed) eq nparam then parinfo.fixed = fixed
     
-    quiet = 1
     params = mpfitfun('bcgsfhs_sersic_multiband_func',xx,xxsb,parinfo=parinfo,$
       perror=perror,covar=covar,weights=xxsb_ivar,bestnorm=chi2,dof=dof,$
-      status=status,quiet=quiet,yfit=sersicfit,functargs={parinfo: parinfo, wave: wave})
+      status=status,quiet=keyword_set(verbose) eq 0,yfit=sersicfit,$
+      functargs={parinfo: parinfo, wave: wave})
 
     factor = sqrt(chi2/dof)
     for ib = 0, nband-1 do begin
@@ -351,7 +366,9 @@ pro bcgsfhs_sersic_multiband, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
 return
 end
 
-pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, qaplot=qaplot, clobber=clobber
+pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
+  qaplot_seds=qaplot_seds, qaplot_sbprofiles=qaplot_sbprofiles, $
+  qaplot_colorradius=qaplot_colorradius, verbose=verbose
 ; jm13oct22siena - fit various Sersic models to the output of
 ; BCGSFHS_ELLIPSE 
 
@@ -360,19 +377,19 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, qaplot=qaplot, clobber=clobbe
 
 ; read the sample
     sample = read_bcgsfhs_sample()
+;   sample = sample[3]
     ncl = n_elements(sample)
 
     nphotradius = 10            ; number of radial bins
-;   nphotradius = 15            ; number of radial bins
-    rmax_kpc = 100.0            ; [kpc]
+    photradius_multiplier = range(0.05,3.0,nphotradius,/log) ; search for "snippet", below
+
+    maxradius_kpc = 100.0       ; [kpc]
     pixscale = 0.065D           ; [arcsec/pixel]
     errfloor = 0.0D             ; error floor on my SB measurements 
 ;   errfloor = 0.02D            ; error floor on my SB measurements 
 
 ; build the radius vector
     
-    
-
 ; do 2-component Sersic fitting?    
     dosersic2 = 1
 
@@ -393,27 +410,38 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, qaplot=qaplot, clobber=clobbe
           pp = read_bcg_profiles(cluster,these_filters=strtrim(modphot.band,2))
           nfilt = n_elements(modphot)
        
-; fit the red bands independent, but the bluest bands simultaneously
-; because of the low S/N
+; fit the red bands independently, but the bluest bands simultaneously
+; because of the low S/N; typically tie the bands that are blueward of
+; the 4000-A break together
           if cluster eq 'macs2129' or cluster eq 'macs0744' then wcut = 6000.0 else wcut = 5000.0
           blue = where(modphot.weff lt wcut,nblue,comp=red,ncomp=nred)
           for ib = 0, nred-1 do begin
-             amax = max(pp[red[ib]].sma,mxindx) ; [kpc]
-             if pp[red[ib]].mu[mxindx] gt modphot[red[ib]].sblimit then $
-               amax = pp[red[ib]].sma[mxindx-1]
 
-             modgood = where(modphot[red[ib]].majora*pixscale*arcsec2kpc le amax and $
+; if AMAX_KPC occurs when the SB profile is below the formal 1-sigma
+; surface brightness limit of the data, then cut it off
+             amax_kpc = max(pp[red[ib]].sma,mxindx) ; [kpc]
+             if pp[red[ib]].mu[mxindx] gt modphot[red[ib]].sblimit then $
+               amax_kpc = pp[red[ib]].sma[mxindx-1]
+
+             modgood = where(modphot[red[ib]].majora*pixscale*arcsec2kpc le amax_kpc and $
                modphot[red[ib]].sb0fit gt 0 and modphot[red[ib]].sb0fit_ivar gt 0,nmodgood)
+             amin_kpc = min(modphot[red[ib]].majora[modgood])*pixscale*arcsec2kpc
+
+;            amax_pix = amax_kpc/pixscale/arcsec2kpc
+;            amin_pix = min(modphot[red[ib]].majora)
           
 ; the equivalent radius needs to be sorted (note: the ellipse
-; parameters in BCGSFHS_ELLIPSE are monotonic in semi-major axis, not
-; equivalent radius!)  also add a minimum error floor to the surface
-; brightnesses
+; parameters in BCGSFHS_ELLIPSE are monotonic in *semi-major axis*,
+; not equivalent radius!)  also add a minimum error floor to the
+; surface brightnesses
              sb = modphot[red[ib]].sb0fit[modgood]*1D
              sb_var_floor = (sb*errfloor)^2.0
              sb_ivar = 1D/(1D/modphot[red[ib]].sb0fit_ivar[modgood]+sb_var_floor)
              radius_kpc = modphot[red[ib]].radius_kpc[modgood] ; [kpc]
-             
+
+             rmin_kpc = min(radius_kpc)
+             rmax_kpc = max(radius_kpc)
+
              srt = sort(radius_kpc)
              radius_kpc = radius_kpc[srt]
              sb = sb[srt]
@@ -425,34 +453,49 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, qaplot=qaplot, clobber=clobbe
 
 ; pack into a structure
              if ib eq 0 then begin
-                out = struct_addtags(struct_trimtags(modphot,select=[$
-                  'file','band','weff','sblimit','ra','dec','mge_*']),$
-                  im_empty_structure(sersic,ncopies=nfilt))
-                out = struct_addtags(out,replicate({sersic_covar_multiband: $
-                  fltarr(2+nblue,2+nblue)},nfilt))
+                out = struct_addtags(struct_addtags(struct_addtags($
+                  struct_trimtags(modphot,select=['file','band','weff','sblimit',$
+                  'ra','dec','mge_*']),replicate({amin_kpc: 0.0, amax_kpc: 0.0, $
+                  rmin_kpc: 0.0, rmax_kpc: 0.0},nfilt)),im_empty_structure(sersic,$
+                  ncopies=nfilt)),replicate({sersic_covar_multiband: fltarr(2+nblue,2+nblue)},nfilt))
                 if dosersic2 then begin
-                   out = struct_addtags(out,im_empty_structure(sersic2,ncopies=nfilt))
-                   out = struct_addtags(out,replicate({sersic2_covar_multiband: $
+                   out = struct_addtags(struct_addtags(out,im_empty_structure($
+                     sersic2,ncopies=nfilt)),replicate({sersic2_covar_multiband: $
                      fltarr(2*nblue+4,2*nblue+4)},nfilt))
                 endif
-             endif 
+             endif
              
              out[red[ib]] = im_struct_assign(sersic,out[red[ib]],/nozero)
              if dosersic2 then out[red[ib]] = im_struct_assign(sersic2,out[red[ib]],/nozero)
+
+             out[red[ib]].amin_kpc = amin_kpc
+             out[red[ib]].amax_kpc = amax_kpc
+             out[red[ib]].rmin_kpc = rmin_kpc
+             out[red[ib]].rmax_kpc = rmax_kpc
           endfor 
           
-; now fit the blue bands simultaneously 
+; now fit the blue bands simultaneously
           for ib = 0, nblue-1 do begin
-             amax = max(pp[blue[ib]].sma,mxindx) ; [kpc]
-             if pp[blue[ib]].mu[mxindx] gt modphot[blue[ib]].sblimit then amax = pp[blue[ib]].sma[mxindx-1]
+             amax_kpc = max(pp[blue[ib]].sma,mxindx) ; [kpc]
+             if pp[blue[ib]].mu[mxindx] gt modphot[blue[ib]].sblimit then $
+               amax_kpc = pp[blue[ib]].sma[mxindx-1]
 
-             modgood = where(modphot[blue[ib]].majora*pixscale*arcsec2kpc le amax and $
+             modgood = where(modphot[blue[ib]].majora*pixscale*arcsec2kpc le amax_kpc and $
                modphot[blue[ib]].sb0fit gt 0 and modphot[blue[ib]].sb0fit_ivar gt 0,nmodgood)
+             amin_kpc = min(modphot[blue[ib]].majora[modgood])*pixscale*arcsec2kpc
              
              sb = modphot[blue[ib]].sb0fit[modgood]*1D
              sb_var_floor = (sb*errfloor)^2.0
              sb_ivar = 1D/(1D/modphot[blue[ib]].sb0fit_ivar[modgood]+sb_var_floor)
              radius_kpc = modphot[blue[ib]].radius_kpc[modgood] ; [kpc]
+
+             rmin_kpc = min(radius_kpc)
+             rmax_kpc = max(radius_kpc)
+
+             out[blue[ib]].amin_kpc = amin_kpc
+             out[blue[ib]].amax_kpc = amax_kpc
+             out[blue[ib]].rmin_kpc = rmin_kpc
+             out[blue[ib]].rmax_kpc = rmax_kpc
              
              srt = sort(radius_kpc)
              radius_kpc = radius_kpc[srt]
@@ -470,8 +513,8 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, qaplot=qaplot, clobber=clobbe
                 fit_radius_kpc = [fit_radius_kpc,radius_kpc]
                 fit_wave = [fit_wave,replicate(modphot[blue[ib]].weff,nmodgood)]
              endelse
-          endfor 
-          
+          endfor
+
           bcgsfhs_sersic_multiband, fit_radius_kpc, fit_sb, fit_wave, $
             multisersic, sb_ivar=fit_sb_ivar
           for ib = 0, nblue-1 do begin
@@ -495,19 +538,72 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, qaplot=qaplot, clobber=clobbe
           im_mwrfits, out, sersicpath+cluster+'-sersic.fits', clobber=clobber
        endfor
     endif
-
     
 ; ##################################################
-; build a QAplot
-    if keyword_set(qaplot) then begin
-       ncol = 3
-       rr = [0,range(0.01,200,500,/log)]
-       
-; -------------------------
-; second QAplot: color-radius plots, relative to F160W
+; build QAplots
+    ncol = 3 ; number of columns
+    rr = [0,range(0.01,200,500,/log)] ; equivalent radius [kpc]
+
+; -------------------------    
+; QAplot: SEDs
+    if keyword_set(qaplot_seds) then begin
+       psfile = sersicpath+'qa_seds.ps'
+       im_plotconfig, 0, pos, psfile=psfile, charsize=1.8, $
+         height=5.0
+    
+       xrange = [0.3,2.0]
+       yrange = [26,10]
+    
+       for ic = 0, ncl-1 do begin
+          cluster = strtrim(sample[ic].shortname,2)
+          phot = mrdfits(sersicpath+cluster+'-phot.fits.gz',1,/silent)
+          nrad = n_elements(phot[0].photradius_kpc)
+          nfilt = n_elements(phot)
+
+          djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
+            xrange=xrange, yrange=yrange, xtitle='Wavelength \lambda (\mu'+'m)', $
+            ytitle='Magnitude (AB)', /xlog, title=strupcase(cluster)
+
+; integrated light       
+          mab = maggies2mag(phot.maggies_int,ivarmaggies=phot.ivarmaggies_int,$
+            magerr=maberr,lomagerr=mabloerr,himagerr=mabhierr,magnsigma=mabupper)
+          used = where(mab gt -90.0,nused)
+          upper = where(mab lt -90.0 and mabupper gt -90,nupper)
+          
+          oploterror, phot[used].weff/1D4, mab[used], mabhierr[used], $
+            psym=-symcat(16), symsize=1.5, color=cgcolor('firebrick'), $
+            /hibar, errcolor=cgcolor('firebrick')
+          oploterror, phot[used].weff/1D4, mab[used], mabloerr[used], psym=3, $
+            color=cgcolor('firebrick'), /lobar, errcolor=cgcolor('firebrick')
+
+; radial bins       
+          for ir = 0, nrad-1 do begin
+             mab = maggies2mag(phot.maggies[ir],ivarmaggies=phot.ivarmaggies[ir],$
+               magerr=maberr,lomagerr=mabloerr,himagerr=mabhierr,magnsigma=mabupper)
+             used = where(mab gt -90.0,nused)
+             upper = where(mab lt -90.0 and mabupper gt -90,nupper)
+             if (nused ne 0) then begin
+                oploterror, phot[used].weff/1D4, mab[used], mabhierr[used], $
+                  psym=-symcat(16), symsize=1.5, color=cgcolor('dodger blue'), $
+                  /hibar, errcolor=cgcolor('dodger blue')
+                oploterror, phot[used].weff/1D4, mab[used], mabloerr[used], psym=3, $
+                  color=cgcolor('dodger blue'), /lobar, errcolor=cgcolor('dodger blue')
+             endif
+             if (nupper ne 0) then begin
+                djs_oplot, [phot[upper].weff/1D4], [mabupper[upper]], $
+                  psym=symcat(11,thick=6), symsize=2.0, color=cgcolor('forest green')
+             endif
+          endfor 
+       endfor 
+       im_plotconfig, psfile=psfile, /psclose, /pdf
+    endif
+
+; -------------------------    
+; QAplot: color-radius plots, relative to F160W
+    if keyword_set(qaplot_colorradius) then begin
        psfile = sersicpath+'qa_color_sersic.ps'
        im_plotconfig, 0, pos, psfile=psfile, charsize=1.1
-;      for ic = 0, 0 do begin
+
        for ic = 0, ncl-1 do begin
           cluster = strtrim(sample[ic].shortname,2)
           splog, cluster
@@ -516,7 +612,6 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, qaplot=qaplot, clobber=clobbe
           
           sersic = mrdfits(sersicpath+cluster+'-sersic.fits.gz',1,/silent)
           modphot = mrdfits(ellpath+cluster+'-ellipse-model.fits.gz',1,/silent)
-          pp = read_bcg_profiles(cluster,these_filters=strtrim(modphot.band,2))
           nfilt = n_elements(modphot)-1 ; relative to F160W
           
           nrow = ceil(nfilt/float(ncol))
@@ -525,15 +620,14 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, qaplot=qaplot, clobber=clobbe
           for ib = 1, nfilt-1 do begin
              band = strtrim(strupcase(modphot[ib].band),2)
 
-             amax = max(pp[ib].sma,mxindx)<max(pp[0].sma,mxindx) ; [kpc]
-             if pp[ib].mu[mxindx] gt modphot[ib].sblimit then amax = pp[ib].sma[mxindx-1]
-
-             modgood = where(modphot[ib].majora*pixscale*arcsec2kpc le amax and $
+             modgood = where($
+               modphot[ib].majora*pixscale*arcsec2kpc le sersic[ib].amax_kpc and $
                modphot[ib].sb0fit gt 0 and modphot[ib].sb0fit_ivar gt 0 and $
-               modphot[0].majora*pixscale*arcsec2kpc le amax and $
+               modphot[0].majora*pixscale*arcsec2kpc le sersic[0].amax_kpc and $
                modphot[0].sb0fit gt 0 and modphot[0].sb0fit_ivar gt 0)
-             modbad = where((modphot[ib].majora*pixscale*arcsec2kpc gt amax or $
-               modphot[0].majora*pixscale*arcsec2kpc gt amax) and $
+             modbad = where($
+               (modphot[ib].majora*pixscale*arcsec2kpc gt sersic[ib].amax_kpc or $
+               modphot[0].majora*pixscale*arcsec2kpc gt sersic[0].amax_kpc) and $
                modphot[ib].sb0fit gt 0 and modphot[ib].sb0fit_ivar gt 0 and $
                modphot[0].sb0fit gt 0 and modphot[0].sb0fit_ivar gt 0)
              
@@ -593,14 +687,14 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, qaplot=qaplot, clobber=clobbe
 ;           textoidl('Equivalent Radius (kpc)'), align=0.5, charsize=1.1, /norm
        endfor
        im_plotconfig, psfile=psfile, /psclose, /pdf
+    endif
 
-stop       
-
-; -------------------------
-; first QAplot: SB profiles and the Sersic fits
+; -------------------------    
+; QAplot: SB profiles and the Sersic fits
+    if keyword_set(qaplot_sbprofiles) then begin
        psfile = sersicpath+'qa_sersic.ps'
        im_plotconfig, 0, pos, psfile=psfile, charsize=1.3
-;      for ic = 2, 2 do begin
+
        for ic = 0, ncl-1 do begin
           cluster = strtrim(sample[ic].shortname,2)
           splog, cluster
@@ -609,22 +703,17 @@ stop
 
           sersic = mrdfits(sersicpath+cluster+'-sersic.fits.gz',1,/silent)
           modphot = mrdfits(ellpath+cluster+'-ellipse-model.fits.gz',1,/silent)
-          pp = read_bcg_profiles(cluster,these_filters=strtrim(modphot.band,2))
           nfilt = n_elements(modphot)
 
           nrow = ceil(nfilt/float(ncol))
           pos = im_getposition(nx=ncol,ny=nrow,yspace=0.0,xspace=0.0,$
             xmargin=[0.9,0.4],width=2.4)
           for ib = 0, nfilt-1 do begin
-;         for ib = 0, nfilt-1 do begin
              band = strtrim(strupcase(modphot[ib].band),2)
 
-             amax = max(pp[ib].sma,mxindx) ; [kpc]
-             if pp[ib].mu[mxindx] gt modphot[ib].sblimit then amax = pp[ib].sma[mxindx-1]
-
-             modgood = where(modphot[ib].majora*pixscale*arcsec2kpc le amax and $
+             modgood = where(modphot[ib].majora*pixscale*arcsec2kpc le sersic[ib].amax_kpc and $
                modphot[ib].sb0fit gt 0 and modphot[ib].sb0fit_ivar gt 0)
-             modbad = where(modphot[ib].majora*pixscale*arcsec2kpc gt amax and $
+             modbad = where(modphot[ib].majora*pixscale*arcsec2kpc gt sersic[ib].amax_kpc and $
                modphot[ib].sb0fit gt 0 and modphot[ib].sb0fit_ivar gt 0)
              
              sb = modphot[ib].sb0fit[modgood]*1D
@@ -690,9 +779,10 @@ stop
                 endelse
              endif
 
-             djs_oplot, [10.0,10^!x.crange[1]], modphot[ib].sblimit*[1,1], $
+             djs_oplot, [6.0,10^!x.crange[1]], modphot[ib].sblimit*[1,1], $
                line=0                              ;, color=cgcolor('grey')
-;            djs_oplot, amax*[1,1], !y.crange, line=0 ;, color=cgcolor('grey')
+             djs_oplot, sersic[ib].rmax_kpc*[1,1], [!y.crange[0]-0.2,!y.crange[0]-6], $
+               line=0           ;, color=cgcolor('grey')
           endfor
           
           xyouts, min(pos[0,*])-0.06, (max(pos[3,*])-min(pos[1,*]))/2.0+min(pos[1,*]), $
@@ -708,106 +798,151 @@ stop
 ; do radial aperture photometry in each band, using the Sersic models
 ; to extrapolate inward and outward
     if keyword_set(dophot) then begin
+
+;; -------------------------
+;; from this snippet of code, I conclude that we should measure photometry
+;; in NRAD radial apertures from approximately 0.05-3 times Re in the
+;; F160W band 
+;       for ic = 0, ncl-1 do begin
+;          cluster = strtrim(sample[ic].shortname,2)
+;          jj = mrdfits(sersicpath+cluster+'-sersic.fits.gz',1,/silent,row=0)
+;          print, jj.sersic_re, jj.rmin_kpc, jj.rmax_kpc, jj.rmin_kpc/jj.sersic_re, $
+;            jj.rmax_kpc/jj.sersic_re, '   '+cluster
+;       endfor
+;; -------------------------
+
 ; wrap on each cluster    
-       for ic = 0, 0 do begin
-;      for ic = 0, ncl-1 do begin
+;      for ic = 3, 3 do begin
+       for ic = 0, ncl-1 do begin
+          arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]
+
           cluster = strtrim(sample[ic].shortname,2)
-          splog, cluster
+          splog, 'Measuring aperture photometry for cluster '+cluster
 
           sersic = mrdfits(sersicpath+cluster+'-sersic.fits.gz',1,/silent)
           modphot = mrdfits(ellpath+cluster+'-ellipse-model.fits.gz',1,/silent)
-          reffilt = where(strtrim(modphot.band,2) eq 'f160w')
           nfilt = n_elements(modphot)
 
+; initialize the radial photometry structure using F160W as the
+; reference band 
+          photradius_kpc = get_radius(photradius_multiplier*sersic[0].sersic_re,$
+            nrad=nphotradius,inrad=photradius_kpc_in,outrad=photradius_kpc_out)
+;         niceprint, photradius_kpc_in, photradius_kpc, photradius_kpc_out
+             
+          phot = replicate({$
+            photradius_kpc:          photradius_kpc,$
+            photradius_kpc_in:    photradius_kpc_in,$
+            photradius_kpc_out:  photradius_kpc_out,$
+            maggies:            fltarr(nphotradius),$
+            ivarmaggies:        fltarr(nphotradius),$
+            maggies_int_obs:                    0.0,$ ; observed integrated flux
+            ivarmaggies_int_obs:                0.0,$
+            maggies_int:                        0.0,$ ; integrated flux (Sersic extrapolated)
+            ivarmaggies_int:                    0.0,$
+            dabmag_in:                          0.0,$ ; magnitude correction from extrapolating inward
+            dabmag_out:                         0.0,$ ; magnitude correction from extrapolating outward
+            dabmag_int: 0.0},nfilt)                   ; AB magnitude difference between _int and _int_obs,
+                                                      ;  or the sum of DABMAG_IN and DABMAG_OUT
+          phot = struct_addtags(sersic,phot)
+          
+; now loop on each band          
           for ib = 0, nfilt-1 do begin
              band = strtrim(strupcase(modphot[ib].band),2)
 
-; define the radial photometry structure
-             if ib eq reffilt then begin ; not general!
-                photradius_kpc = get_radius(radius_kpc,nrad=nphotradius,rmax=rmax_kpc,$
-                  inrad=photradius_in_kpc,outrad=photradius_out_kpc)
-                niceprint, photradius_kpc_in, photradius_kpc, photradius_kpc_out
-                
-                phot_template = {$
-                  amax:                               0.0,$ ; [kpc]
-                  photradius_kpc:          photradius_kpc,$
-                  photradius_in_kpc:    photradius_in_kpc,$
-                  photradius_out_kpc:  photradius_out_kpc,$
-;                 photisdata:         intarr(nphotradius),$ ; 1=observed photometry; 0=extrapolated photometry 
-                  maggies:            fltarr(nphotradius),$
-                  ivarmaggies:        fltarr(nphotradius),$
-                  maggies_int_obs:                    0.0,$ ; observed integrated flux
-                  ivarmaggies_int_obs:                0.0,$
-                  maggies_int:                        0.0,$ ; integrated flux (Sersic extrapolated)
-                  ivarmaggies_int:                    0.0,$
-                  dabmag_int:         0.0} ; AB magnitude difference between _int and _int_obs
-             endif 
-             phot1 = phot_template
-             phot1.amax = amax
-stop             
-; use the Sersic model to extrapolate the SB profile inward and outward
-             radius_arcsec = radius_kpc/arcsec2kpc ; the data [arcsec]
-             radius_arcsec_extrap_in = [0,range(min(radius_arcsec)*1E-3,min(radius_arcsec)*0.95,20,/log)]
-             radius_arcsec_extrap_out = range(max(radius_arcsec)*1.05,500.0,50,/log)
+             modgood = where(modphot[ib].majora*pixscale*arcsec2kpc le sersic[ib].amax_kpc and $
+               modphot[ib].sb0fit gt 0 and modphot[ib].sb0fit_ivar gt 0,nmodgood)
+
+             sb = modphot[ib].sb0fit[modgood]*1D
+             sb_var_floor = (sb*errfloor)^2.0
+             sb_ivar = 1D/(1D/modphot[ib].sb0fit_ivar[modgood]+sb_var_floor)
+             radius_kpc = modphot[ib].radius_kpc[modgood] ; [kpc]
+             
+             srt = sort(radius_kpc)
+             radius_kpc = radius_kpc[srt]
+             sb = sb[srt]
+             sb_ivar = sb_ivar[srt]
+             sb_var = 1.0/sb_ivar
+
+; use the Sersic model to extrapolate the SB profile inward and
+; outward and then integrate to get the total magnitude; our radii
+; need to be in arcseconds to make the units work out when we
+; integrate
+             radius_arcsec = radius_kpc/arcsec2kpc
+             radius_arcsec_extrap_in = [0,range(min(radius_arcsec)*1E-3,min(radius_arcsec)*0.999,20,/log)]
+             radius_arcsec_extrap_out = range(max(radius_arcsec)*1.001,500.0/arcsec2kpc,30,/log)
              
              int_radius_arcsec = [radius_arcsec_extrap_in,radius_arcsec,radius_arcsec_extrap_out]
-             int_sb = [bcgsfhs_sersic_func(radius_arcsec_extrap_in*arcsec2kpc,params=sersic),sb,$
-               bcgsfhs_sersic_func(radius_arcsec_extrap_out*arcsec2kpc,params=sersic)]
+             int_sb = [10.0^(-0.4*bcgsfhs_sersic_func(radius_arcsec_extrap_in*arcsec2kpc,params=sersic[ib])),$
+               sb,10.0^(-0.4*bcgsfhs_sersic_func(radius_arcsec_extrap_out*arcsec2kpc,params=sersic[ib]))]
+
+; the code below is fancier because it takes into account the covariance in
+; the Sersic parameters, but for now just extrapolate the last
+; measured variance
+             int_sb_var = [interpolate(sb_var,findex(radius_arcsec,radius_arcsec_extrap_in)),$
+               sb_var,interpolate(sb_var,findex(radius_arcsec,radius_arcsec_extrap_out))]
              
-; get the variance of the SB profile accounting for the covariance in
-; the Sersic parameters
-             if sersic.sersic_sb0_err eq 0.0 or sersic.sersic_k_err eq 0.0 or $
-               sersic.sersic_n_err eq 0.0 then begin
-                splog, band+' - ERROR IS ZERO!'
-                int_sb_var = [$
-                  radius_arcsec_extrap_in*0.0+median(sb_var),$
-                  sb_var,$
-                  radius_arcsec_extrap_out*0.0+median(sb_var)]
-             endif else begin
-                int_sb_var = [$
-                  get_sersic_variance(radius_arcsec_extrap_in,sersic=sersic)>sb_var[0],$
-                  sb_var,$
-                  get_sersic_variance(radius_arcsec_extrap_out,sersic=sersic)>sb_var[n_elements(sb_var)-1]]
-             endelse
+;; get the variance of the SB profile accounting for the covariance in
+;; the Sersic parameters
+;             if sersic.sersic_sb0_err eq 0.0 or sersic.sersic_k_err eq 0.0 or $
+;               sersic.sersic_n_err eq 0.0 then begin
+;                splog, band+' - ERROR IS ZERO!'
+;                int_sb_var = [$
+;                  radius_arcsec_extrap_in*0.0+median(sb_var),$
+;                  sb_var,$
+;                  radius_arcsec_extrap_out*0.0+median(sb_var)]
+;             endif else begin
+;                int_sb_var = [$
+;                  get_sersic_variance(radius_arcsec_extrap_in,sersic=sersic)>sb_var[0],$
+;                  sb_var,$
+;                  get_sersic_variance(radius_arcsec_extrap_out,sersic=sersic)>sb_var[n_elements(sb_var)-1]]
+;             endelse
+
+; get the total galaxy magnitude as well as the size of the magnitude
+; correction due to the Sersic extrapolation
+             phot[ib].maggies_int = 2.0*!pi*im_integral(int_radius_arcsec,int_radius_arcsec*int_sb)
+             phot[ib].ivarmaggies_int = 1.0/(2.0*!pi*im_integral(int_radius_arcsec,int_radius_arcsec*int_sb_var))
              
-             if total(int_sb_var eq 0) ne 0.0 then stop
-          
-; do the photometry           
-             phot1.maggies_int = 2.0*!pi*im_integral(int_radius_arcsec,int_radius_arcsec*int_sb)
-             phot1.ivarmaggies_int = 1.0/(2.0*!pi*im_integral(int_radius_arcsec,int_radius_arcsec*int_sb_var))
-             
-             phot1.maggies_int_obs = 2.0*!pi*im_integral(radius_arcsec,radius_arcsec*sb)
-             phot1.ivarmaggies_int_obs = 1.0/(2.0*!pi*im_integral(radius_arcsec,radius_arcsec*sb_var))
-             
-             phot1.dabmag_int = -2.5*alog10(phot1.maggies_int_obs/phot1.maggies_int)
-             
+             phot[ib].maggies_int_obs = 2.0*!pi*im_integral(radius_arcsec,radius_arcsec*sb)
+             phot[ib].ivarmaggies_int_obs = 1.0/(2.0*!pi*im_integral(radius_arcsec,radius_arcsec*sb_var))
+
+             phot[ib].dabmag_in = -2.5*alog10(1+2.0*!pi*im_integral(radius_arcsec_extrap_in,$
+               radius_arcsec_extrap_in*10.0^(-0.4*bcgsfhs_sersic_func($
+               radius_arcsec_extrap_in*arcsec2kpc,params=sersic[ib])))/phot[ib].maggies_int_obs)
+             phot[ib].dabmag_out = -2.5*alog10(1+2.0*!pi*im_integral(radius_arcsec_extrap_out,$
+               radius_arcsec_extrap_out*10.0^(-0.4*bcgsfhs_sersic_func($
+               radius_arcsec_extrap_out*arcsec2kpc,params=sersic[ib])))/phot[ib].maggies_int_obs)
+             phot[ib].dabmag_int = -2.5*alog10(phot[ib].maggies_int/phot[ib].maggies_int_obs)
+
+; now do photometry in each aperture
              for ir = 0, nphotradius-1 do begin
-                if max(radius_kpc) gt phot1.photradius_kpc[ir] then begin
-                   phot1.maggies[ir] = 2.0*!pi*im_integral(int_radius_arcsec,int_radius_arcsec*int_sb,$
-                     phot1.photradius_in_kpc[ir],phot1.photradius_out_kpc[ir])
-                   phot1.ivarmaggies[ir] = 1.0/(2.0*!pi*im_integral(int_radius_arcsec,int_radius_arcsec*$
-                     int_sb_var,phot1.photradius_in_kpc[ir],phot1.photradius_out_kpc[ir]))
-                endif else begin ; extrapolation
-                   phot1.maggies[ir] = 0.0
-                   phot1.ivarmaggies[ir] = 1.0/(10.0^(-0.4*modphot[ib].sblimit))^2
-                endelse
+                phot[ib].maggies[ir] = 2.0*!pi*im_integral(int_radius_arcsec,int_radius_arcsec*int_sb,$
+                  phot[ib].photradius_kpc_in[ir]/arcsec2kpc,phot[ib].photradius_kpc_out[ir]/arcsec2kpc)
+                phot[ib].ivarmaggies[ir] = 1.0/(2.0*!pi*im_integral(int_radius_arcsec,int_radius_arcsec*$
+                  int_sb_var,phot[ib].photradius_kpc_in[ir]/arcsec2kpc,phot[ib].photradius_kpc_out[ir]/arcsec2kpc))
              endfor
              
-; pack everything into a structure
-             out1 = struct_addtags(struct_trimtags(modphot[ib],select=[$
-               'file','band','weff','sblimit','ra','dec','mge_*']),phot1)
-             if dosersic2 eq 0 then out1 = struct_addtags(out1,sersic) else $
-               out1 = struct_addtags(struct_addtags(out1,sersic),sersic2)
-             if ib eq 0 then out = out1 else out = [out,out1]
-          endfor
-          
+;            for ir = 0, nphotradius-1 do begin
+;               if max(radius_kpc) gt phot[ib].photradius_kpc[ir] then begin
+;                  phot[ib].maggies[ir] = 2.0*!pi*im_integral(int_radius_arcsec,int_radius_arcsec*int_sb,$
+;                    phot[ib].photradius_in_kpc[ir],phot[ib].photradius_out_kpc[ir])
+;                  phot[ib].ivarmaggies[ir] = 1.0/(2.0*!pi*im_integral(int_radius_arcsec,int_radius_arcsec*$
+;                    int_sb_var,phot[ib].photradius_in_kpc[ir],phot[ib].photradius_out_kpc[ir]))
+;               endif else begin ; extrapolation
+;                  phot[ib].maggies[ir] = 0.0
+;                  phot[ib].ivarmaggies[ir] = 1.0/(10.0^(-0.4*modphot[ib].sblimit))^2
+;               endelse
+;            endfor
+;            if total(int_sb_var eq 0) ne 0.0 then stop
+             
+          endfor 
+
 ; write out
-          im_mwrfits, out, sersicpath+cluster+'-phot.fits', clobber=clobber
-       endfor 
+          im_mwrfits, phot, sersicpath+cluster+'-phot.fits', clobber=clobber
+       endfor
     endif
 
 stop    
-
+    
 return
 end
 

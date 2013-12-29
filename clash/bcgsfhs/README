@@ -1,22 +1,25 @@
 Define the sample in bcgsfhs_sample.sex.  Use read_bcgsfhs_sample() to
 read it.
 
-* Sky-subtract and pre-process the mosaics:
+Sky-subtract and pre-process the mosaics:
   bcgsfhs_skysubtract
 
-* Cut out and write just the BCG image and model:
+Cut out and write just the BCG image and model:
   bcgsfhs_get_bcg, /debug
 
-* Ellipse-fit the BCGs; make QAplots
+Ellipse-fit the BCGs; make QAplots
   bcgsfhs_ellipse
   qaplots_bcgsfhs_ellipse
 
-* Fit Sersic models to the surface-brightness profiles and compute
-  radial aperture photometry from which we will model the SEDs in
-  radial bins 
-   bcgsfhs_sersicfit, /dofit, /dophot, /qaplot
-   qaplot_bcgsfhs_seds - plot the SEDs
-
+Construct the radial surface brightness profiles of the sample and
+then fit both single and double Sersic models in order to extrapolate
+the data inward and outward.  Finally, measure aperture photometry in
+logarithmically spaced radial bins and the total magnitude in each
+band.
+  bcgsfhs_sersicfit, /dofit - Sersic fitting
+  bcgsfhs_sersicfit, /dophot - aperture photometry
+  bcgsfhs_sersicfit, /qaplot_sbprofiles, /qaplot_colorradius - build some QAplots
+  qaplot_bcgsfhs_seds - QAplots of the SEDs
 
 ### Paper plots ###
 

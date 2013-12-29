@@ -12,7 +12,7 @@ pro hff_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
     
 ; gather the photometry
-    cat = rsex(isedfit_dir+'flx_iso.dec17')
+    cat = rsex(isedfit_dir+'flx_iso.dec26')
     cat.bpz = abs(cat.bpz)
 
 ;   oldcat = rsex(isedfit_dir+'a2744_13dec03.lis')
@@ -101,14 +101,15 @@ pro hff_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
 ; --------------------------------------------------
 ; generate spectral energy distribution (SED) QAplots
     if keyword_set(qaplot_sed) then begin
+;      index = where(cat.irac_ch1_flux gt 0.0 or cat.irac_ch2_flux gt 0.0)
+
 ;      cat = cat[where(cat.bpz ge 7.0 and cat.bpz lt 10.01)]
 ;      cat = cat[reverse(sort(cat.bpz))]
-       index = where(cat.irac_ch1_flux gt 0.0 or cat.irac_ch2_flux gt 0.0)
 ;      index = where(cat.id ne 1580 and cat.id ne 490 and $
 ;        (cat.irac_ch1_flux gt 0.0 or cat.irac_ch2_flux gt 0.0))
        isedfit_qaplot_sed, isedfit_paramfile, isedfit_dir=isedfit_dir, $
          montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
-         clobber=clobber, /xlog, galaxy=galaxy, yrange=[30,23], $
+         clobber=clobber, /xlog, galaxy=galaxy, yrange=[30.5,23], $
          xrange=[0.3,7.0]*1D4, nsigma=2.0, index=index
     endif
     

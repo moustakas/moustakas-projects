@@ -105,7 +105,7 @@ pro plotbcgsfhs_sbprofiles, pdf=pdf
                psym=symcat(16), symsize=0.4
           endif
 
-          modgood = where(modphot[this].majora*pixscale*arcsec2kpc le sersic[this].amax and $
+          modgood = where(modphot[this].majora*pixscale*arcsec2kpc le sersic[this].amax_kpc and $
             modphot[this].sb0fit gt 0 and modphot[this].sb0fit_ivar gt 0)
 
 ;         modgood = where(modphot[this].sb0fit gt 10^(-0.4*modphot[this].sblimit) and $

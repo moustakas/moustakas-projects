@@ -28,7 +28,7 @@ pro hff_to_maggies, cat, maggies, ivar, filterlist=filterlist, $
        utag = tag_indx(cat[0],errtags[ib])
 
        if ftag ne -1 and utag ne -1 then begin
-          good = where(cat.(utag) gt 0.0,ngood)
+          good = where(cat.(utag) gt 0.0 and cat.(utag) lt 1E3,ngood)
 ;         print, filt[ib], cat[good[0]].(ftag); *fact
           if (ngood ne 0L) then begin
              maggies[ib,good] = cat[good].(ftag)*fact

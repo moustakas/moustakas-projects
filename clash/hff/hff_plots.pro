@@ -4,6 +4,53 @@ pro hff_plots
     montegrids_dir = isedfit_dir+'montegrids/'
 
 ; --------------------------------------------------
+; generate a P(z) QAplot comparing my photoz's with BPZ    
+    prefix = 'hff_photoz'
+    isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
+
+    rr = read_isedfit(isedfit_paramfile,params=pp,isedfit_post=post)
+    ngal = n_elements(rr)
+
+; read the catalog    
+    cat = rsex(isedfit_dir+'flx_iso.dec17')
+    cat = cat[where(abs(cat.bpz) ge 7.0 and abs(cat.bpz) lt 10.01)]
+    cat = cat[reverse(sort(abs(cat.bpz)))]
+
+    galaxy = 'ID '+string(cat.id,format='(I0)')
+    bpz = read_bpz_probs(isedfit_dir+'a2744_dec17.probs',$
+      redshift=bpz_redshift)
+    match, cat.id, bpz.id, m1, m2
+    srt = sort(m1) & m1 = m1[srt] & m2 = m2[srt]
+    bpz = bpz[m2]
+
+; make the plot    
+    psfile = isedfit_dir+'a2744_photoz_13dec17.ps'
+
+    xrange = [0.0,12.0]
+;   yrange = [0,max(post.pofz)*1.05]
+    
+    im_plotconfig, 0, pos, psfile=psfile, height=5.0, xmargin=[1.3,0.4], width=6.8
+    for ii = 0, ngal-1 do begin
+       yrange = [0.0,(max(post[ii].pofz)>max(bpz[ii].pofz))*1.05]
+       title = galaxy[ii]+', z_{iSEDfit}='+strtrim(string(rr[ii].z,format='(F12.3)'),2)+' '+$
+         'z_{BPZ}='+strtrim(string(cat[ii].bpz,format='(F12.3)'),2)
+       djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
+         xtitle='Redshift', ytitle='Posterior Probability', $
+         xrange=xrange, yrange=yrange, title=title
+       djs_oplot, pp.redshift, post[ii].pofz, line=0, thick=8, psym=10, color=cgcolor('firebrick')
+       djs_oplot, bpz_redshift, bpz[ii].pofz, line=0, $
+         color=cgcolor('dodger blue'), thick=8, psym=10
+       djs_oplot, rr[ii].z*[1,1], !y.crange, thick=6
+       djs_oplot, abs(cat[ii].bpz)*[1,1], !y.crange, thick=6, line=5
+;      im_legend, [galaxy[ii],'z_{iSEDfit}='+strtrim(string(rr[ii].z,format='(F12.3)'),2),$
+;        'z_{BPZ}='+strtrim(string(zz[ii],format='(F12.3)'),2)], /left, /top, $
+;        box=0, margin=0, textcolor=cgcolor(['black','firebrick','dodger blue'])
+    endfor
+    im_plotconfig, psfile=psfile, /psclose, /pdf
+
+stop    
+    
+; --------------------------------------------------
 ; make a multi-panel plot for the paper adopting the BPZ redshifts
     prefix = 'hff'
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
@@ -13,7 +60,7 @@ pro hff_plots
     hwhm = hwhm/1D4
     
     rr = read_isedfit(isedfit_paramfile)
-    cat = rsex(isedfit_dir+'flx_iso.dec17')
+    cat = rsex(isedfit_dir+'flx_iso.dec26')
     cat.bpz = abs(cat.bpz)
 
     cat = cat[where(cat.bpz ge 7.0 and cat.bpz lt 10.01)]
@@ -165,53 +212,6 @@ pro hff_plots
     
 stop
 
-; --------------------------------------------------
-; generate a P(z) QAplot comparing my photoz's with BPZ    
-    prefix = 'hff_photoz'
-    isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
-
-    rr = read_isedfit(isedfit_paramfile,params=pp,isedfit_post=post)
-    ngal = n_elements(rr)
-
-; read the catalog    
-    cat = rsex(isedfit_dir+'flx_iso.dec17')
-    cat = cat[where(abs(cat.bpz) ge 7.0 and abs(cat.bpz) lt 10.01)]
-    cat = cat[reverse(sort(abs(cat.bpz)))]
-
-    galaxy = 'ID '+string(cat.id,format='(I0)')
-    bpz = read_bpz_probs(isedfit_dir+'a2744_dec17.probs',$
-      redshift=bpz_redshift)
-    match, cat.id, bpz.id, m1, m2
-    srt = sort(m1) & m1 = m1[srt] & m2 = m2[srt]
-    bpz = bpz[m2]
-
-; make the plot    
-    psfile = isedfit_dir+'a2744_photoz_13dec17.ps'
-
-    xrange = [0.0,12.0]
-;   yrange = [0,max(post.pofz)*1.05]
-    
-    im_plotconfig, 0, pos, psfile=psfile, height=5.0, xmargin=[1.3,0.4], width=6.8
-    for ii = 0, ngal-1 do begin
-       yrange = [0.0,(max(post[ii].pofz)>max(bpz[ii].pofz))*1.05]
-       title = galaxy[ii]+', z_{iSEDfit}='+strtrim(string(rr[ii].z,format='(F12.3)'),2)+' '+$
-         'z_{BPZ}='+strtrim(string(cat[ii].bpz,format='(F12.3)'),2)
-       djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
-         xtitle='Redshift', ytitle='Posterior Probability', $
-         xrange=xrange, yrange=yrange, title=title
-       djs_oplot, pp.redshift, post[ii].pofz, line=0, thick=8, psym=10, color=cgcolor('firebrick')
-       djs_oplot, bpz_redshift, bpz[ii].pofz, line=0, $
-         color=cgcolor('dodger blue'), thick=8, psym=10
-       djs_oplot, rr[ii].z*[1,1], !y.crange, thick=6
-       djs_oplot, abs(cat[ii].bpz)*[1,1], !y.crange, thick=6, line=5
-;      im_legend, [galaxy[ii],'z_{iSEDfit}='+strtrim(string(rr[ii].z,format='(F12.3)'),2),$
-;        'z_{BPZ}='+strtrim(string(zz[ii],format='(F12.3)'),2)], /left, /top, $
-;        box=0, margin=0, textcolor=cgcolor(['black','firebrick','dodger blue'])
-    endfor
-    im_plotconfig, psfile=psfile, /psclose, /pdf
-
-stop    
-    
 return
 end
     

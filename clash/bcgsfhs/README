@@ -18,9 +18,12 @@ logarithmically spaced radial bins and the total magnitude in each
 band.
   bcgsfhs_sersicfit, /dofit - Sersic fitting
   bcgsfhs_sersicfit, /dophot - aperture photometry
-  bcgsfhs_sersicfit, /qaplot_sbprofiles, /qaplot_colorradius - build some QAplots
-  qaplot_bcgsfhs_seds - QAplots of the SEDs
+  bcgsfhs_sersicfit, /qaplot_sbprofiles, /qaplot_colorradius, /qaplot_seds - build some QAplots
 
+Do the SED-fitting and compute K-corrections
+  bcgsfhs_isedfit
+
+  
 ### Paper plots ###
 
 * plotbcgsfhs_montage - build a nice color montage

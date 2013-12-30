@@ -372,12 +372,11 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
 ; jm13oct22siena - fit various Sersic models to the output of
 ; BCGSFHS_ELLIPSE 
 
-    ellpath = bcgsfhs_path()+'ellipse/'
-    sersicpath = bcgsfhs_path()+'sersic/'
+    ellpath = bcgsfhs_path(/ellipse)
+    sersicpath = bcgsfhs_path(/sersic)
 
 ; read the sample
     sample = read_bcgsfhs_sample()
-;   sample = sample[3]
     ncl = n_elements(sample)
 
     nphotradius = 10            ; number of radial bins

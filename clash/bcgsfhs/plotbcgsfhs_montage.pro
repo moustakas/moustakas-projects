@@ -3,7 +3,7 @@ pro get_colorcutout, image, outfile=outfile, cluster=cluster
     ps_start, outfile
     cgdisplay, 1000, 1000
     cgimage, image, /keep_aspect
-    if n_elements(cluster) ne 0 then cgtext, 0.08, 0.85, strupcase(cluster), $
+    if n_elements(cluster) ne 0 then cgtext, 0.08, 0.85, cluster, $
       /normal, color='white', charsize=4.0, charthick=2.0
     ps_end, /png
     
@@ -46,7 +46,7 @@ pro plotbcgsfhs_montage, cfirst, clast, dobcg=dobcg, donobcg=donobcg, $
 ;      onecluster_montage = 1
     endif
     
-    coloroutpath = bcgsfhs_path()+'colormosaics/'
+    coloroutpath = bcgsfhs_path(/colormosaics)
     paperpath = bcgsfhs_path(/paper)
 
     sample = read_bcgsfhs_sample()
@@ -234,6 +234,7 @@ pro plotbcgsfhs_montage, cfirst, clast, dobcg=dobcg, donobcg=donobcg, $
        
        for ic = cfirst, clast do begin
           cluster = strtrim(sample[ic].shortname,2)
+          title = repstr(repstr(strupcase(sample[ic].dirname),'_',' '),'ABELL','Abell')
           arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]
        
 ; extract the center of the mosaic centered on the BCG
@@ -256,7 +257,7 @@ pro plotbcgsfhs_montage, cfirst, clast, dobcg=dobcg, donobcg=donobcg, $
           bcg = read_png(coloroutpath+cluster+'/'+cluster+'-bcg.png')
           nobcg = read_png(coloroutpath+cluster+'/'+cluster+'-nobcg.png')
 
-          get_colorcutout, im[*,x0:x1,y0:y1], outfile=coloroutpath+cluster+'/'+cluster+'-image-cutout.png', cluster=cluster
+          get_colorcutout, im[*,x0:x1,y0:y1], outfile=coloroutpath+cluster+'/'+cluster+'-image-cutout.png', cluster=title
           get_colorcutout, bcg[*,x0:x1,y0:y1], outfile=coloroutpath+cluster+'/'+cluster+'-bcg-cutout.png'
           get_colorcutout, nobcg[*,x0:x1,y0:y1], outfile=coloroutpath+cluster+'/'+cluster+'-nobcg-cutout.png'
 

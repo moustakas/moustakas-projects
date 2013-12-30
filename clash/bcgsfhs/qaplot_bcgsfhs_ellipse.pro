@@ -1,7 +1,7 @@
 pro qaplot_bcgsfhs_ellipse
 ; jm13oct22siena - generate a QAplot for the output of BCGSFHS_ELLIPSE
 
-    ellpath = bcgsfhs_path()+'ellipse/'
+    ellpath = bcgsfhs_path(/ellipse)
     qapath = ellpath+'qaplots/'
 
     sample = read_bcgsfhs_sample()

@@ -48,8 +48,8 @@ pro plotbcgsfhs_sbprofiles, pdf=pdf
     for ic = 0, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        print & splog, cluster, sample[ic].z
-       ellpath = bcgsfhs_path()+'ellipse/'
-       sersicpath = bcgsfhs_path()+'sersic/'
+       ellpath = bcgsfhs_path(/ellipse)
+       sersicpath = bcgsfhs_path(/sersic)
 ;      datapath = bcgsfhs_path(/bcg)+cluster+'/'
 
        arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]

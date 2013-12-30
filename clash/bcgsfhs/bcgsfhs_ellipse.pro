@@ -73,7 +73,7 @@ pro bcgsfhs_ellipse, debug=debug, clobber=clobber
     pixarea = 5.0*alog10(pixscale)         ; 2.5*log10(pixscale^2)
     rmax = 200.0                           ; [kpc]
 
-    ellpath = bcgsfhs_path()+'ellipse/'
+    ellpath = bcgsfhs_path(/ellipse)
 
 ; wrap on each cluster    
     for ic = 10, 10 do begin

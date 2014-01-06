@@ -12,7 +12,7 @@ pro hff_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
     
 ; gather the photometry
-    cat = rsex(isedfit_dir+'flx_iso.dec26')
+    cat = rsex(isedfit_dir+'flx_iso.jan03')
     cat.bpz = abs(cat.bpz)
 
 ;   oldcat = rsex(isedfit_dir+'a2744_13dec03.lis')

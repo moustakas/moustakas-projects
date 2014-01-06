@@ -11,8 +11,8 @@ pro bcgsfhs_skysubtract
     ysize = 5000L
     
 ; specifiy the filters and some other handy info    
-    filt = clash_filterlist(short=short,instr=instr,$
-      weff=weff,zpt=zpt,/dropbluest)
+    filt = bcgsfhs_filterlist(short=short,instr=instr,$
+      weff=weff,zpt=zpt)
     allfiltinfo = replicate({filt: '', short: '', instr: '', $
       weff: 0.0, zpt: 0.0},n_elements(filt))
     allfiltinfo.filt = filt

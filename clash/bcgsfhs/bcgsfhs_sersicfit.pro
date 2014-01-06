@@ -71,7 +71,7 @@ end
 
 pro bcgsfhs_sersic2, rr, sb, scoeff, sb_ivar=sb_ivar, $
   init_params=init_params, fixed=fixed, sersicfit=sersicfit, $
-  verbose=verbose
+  fixdevac=fixdevac, verbose=verbose
 ; fit a double Sersic function
 
 ; parse the data; take the log
@@ -86,31 +86,36 @@ pro bcgsfhs_sersic2, rr, sb, scoeff, sb_ivar=sb_ivar, $
 
 ; sbe1 > 0 
     parinfo[0].limited = [1,0]
-    parinfo[0].limits = [1D-15,0D]
+    parinfo[0].limits = [1D-12,0D]
 ; re1>0
     parinfo[1].limited = [1,1]
-    parinfo[1].limits = [1D-3,500D]
+    parinfo[1].limits = [0.01D,500D]
 ; 1<n1<10
     parinfo[2].limited = [1,1]
-    parinfo[2].limits = [1D,10D]
+    parinfo[2].limits = [0.1D,10D]
 
 ; sbe2 > 0
     parinfo[3].limited = [1,0]
-    parinfo[3].limits = [1D-15,0D]
+    parinfo[3].limits = [1D-12,0D]
 ; re2>0
     parinfo[4].limited = [1,1]
-    parinfo[4].limits = [1D-3,50D]
+    parinfo[4].limits = [0.01D,500D]
 ; 1<n2<10
     parinfo[5].limited = [1,1]
-    parinfo[5].limits = [1D,10D]
-
+    parinfo[5].limits = [0.1D,10D]        
+    
     if n_elements(init_params) eq nparam then $
       parinfo.value = init_params else $
-      parinfo.value = [median(xxsb),1D,1D,0.1*median(xxsb),4D,10D]
+      parinfo.value = [median(xxsb),1D,1D,0.1*median(xxsb),1D,4D]
     if n_elements(fixed) eq nparam then parinfo.fixed = fixed
 
     if n_elements(fixed) ne 0 then parinfo.fixed = fixed
 
+    if keyword_set(fixdevac) then begin
+       parinfo[5].value = 4D
+       parinfo[5].fixed = 1
+    endif
+    
     params = mpfitfun('bcgsfhs_sersic2_func',xx,xxsb,parinfo=parinfo,$
       yfit=sersicfit,perror=perror,covar=covar,weights=xxsb_ivar,$
       dof=dof,bestnorm=chi2,status=status,quiet=keyword_set(verbose) eq 0,$
@@ -177,10 +182,10 @@ pro bcgsfhs_sersic, rr, sb, scoeff, sb_ivar=sb_ivar, $
     parinfo[0].limits = [10D,35D]
 ; re>0
     parinfo[1].limited = [1,1]
-    parinfo[1].limits = [1D-3,500D]
+    parinfo[1].limits = [0.01D,500D]
 ; 0<n<10
     parinfo[2].limited = [1,1]
-    parinfo[2].limits = [1D,10D]
+    parinfo[2].limits = [0.1D,10D]
 
     if n_elements(init_params) eq nparam then $
       parinfo.value = init_params else $
@@ -211,7 +216,8 @@ return
 end
 
 pro bcgsfhs_sersic2_multiband, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
-  init_params=init_params, fixed=fixed, sersicfit=sersicfit
+  init_params=init_params, fixed=fixed, sersicfit=sersicfit, $
+  fixdevac=fixdevac, verbose=verbose
 ; fit a double-Sersic function to multiple bands simultaneously; solve
 ; for the best-fit half-light radius and Sersic n parameter, but allow
 ; the surface brightness at re to vary 
@@ -232,13 +238,13 @@ pro bcgsfhs_sersic2_multiband, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
 
 ; re1>0
     parinfo[0].limited = [1,1]
-    parinfo[0].limits = [1D-3,500D]
+    parinfo[0].limits = [0.01D,500D]
 ; 1<n1<10
     parinfo[1].limited = [1,1]
     parinfo[1].limits = [0.1D,10D]
 ; re2>0
     parinfo[2].limited = [1,1]
-    parinfo[2].limits = [1D-3,500D]
+    parinfo[2].limits = [0.01D,500D]
 ; 1<n2<10
     parinfo[3].limited = [1,1]
     parinfo[3].limits = [0.1D,10D]
@@ -246,24 +252,33 @@ pro bcgsfhs_sersic2_multiband, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
 ; sbe1 - surface brightness at re
     for ib = 0, nband-1 do begin
        parinfo[4+ib].limited = [1,0]
-       parinfo[4+ib].limits = [0D,0D]
+;      parinfo[4+ib].limits = [0D,0D]
+       parinfo[4+ib].limits = [1D-12,0D]
     endfor
 
 ; sbe2 - surface brightness at re
     for ib = 0, nband-1 do begin
        parinfo[4+nband+ib].limited = [1,0]
-       parinfo[4+nband+ib].limits = [0D,0D]
+;      parinfo[4+nband+ib].limits = [0D,0D]
+       parinfo[4+nband+ib].limits = [1D-12,0D]
     endfor
 
     if n_elements(fixed) eq nparam then parinfo.fixed = fixed
     if n_elements(init_params) eq nparam then $
       parinfo.value = init_params else $
-        parinfo.value = [0.1D,1.5D,30D,4D,0.1*replicate(median(xxsb),nband),$
-      replicate(median(xxsb),nband)]
+        parinfo.value = [1D,1D,30D,4D,replicate(median(xxsb),nband),$
+      0.1*replicate(median(xxsb),nband)]
 
+    if keyword_set(fixdevac) then begin
+       parinfo[3].value = 4D
+       parinfo[3].fixed = 1
+    endif
+
+;   struct_print, parinfo
     params = mpfitfun('bcgsfhs_sersic2_multiband_func',xx,xxsb,parinfo=parinfo,$
       yfit=sersicfit,perror=perror,covar=covar,weights=xxsb_ivar,dof=dof,$
-      bestnorm=chi2,status=status,quiet=keyword_set(verbose) eq 0,functargs={parinfo: parinfo, wave: wave})
+      bestnorm=chi2,status=status,quiet=keyword_set(verbose) eq 0,$
+      functargs={parinfo: parinfo, wave: wave})
 
     factor = sqrt(chi2/dof)
     for ib = 0, nband-1 do begin
@@ -299,7 +314,7 @@ return
 end
 
 pro bcgsfhs_sersic_multiband, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
-  init_params=init_params, fixed=fixed, sersicfit=sersicfit
+  init_params=init_params, fixed=fixed, sersicfit=sersicfit, verbose=verbose
 ; fit multiple bands simultaneously; solve for the best-fit half-light
 ; radius and Sersic n parameter, but allow the surface brightness at
 ; re to vary 
@@ -320,10 +335,10 @@ pro bcgsfhs_sersic_multiband, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
 
 ; re>0
     parinfo[0].limited = [1,1]
-    parinfo[0].limits = [1D-3,300D]
+    parinfo[0].limits = [0.1D,500D]
 ; 0<n<10
     parinfo[1].limited = [1,1]
-    parinfo[1].limits = [1D,10D]
+    parinfo[1].limits = [0.1D,10D]
 ; sbe - surface brightness at re
     for ib = 0, nband-1 do begin
        parinfo[2+ib].limited = [1,1]
@@ -377,20 +392,19 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
 
 ; read the sample
     sample = read_bcgsfhs_sample()
+
+    splog, 'Come back to A2261!'    
+    sample = sample[13]
     ncl = n_elements(sample)
 
-    nphotradius = 10            ; number of radial bins
-    photradius_multiplier = range(0.05,3.0,nphotradius,/log) ; search for "snippet", below
-
-    maxradius_kpc = 100.0       ; [kpc]
     pixscale = 0.065D           ; [arcsec/pixel]
-    errfloor = 0.0D             ; error floor on my SB measurements 
-;   errfloor = 0.02D            ; error floor on my SB measurements 
+    errfloor = 0.0D ; 0.02      ; magnitude error floor on my SB measurements 
+    nphotradius = 15            ; number of radial bins
+    photradius_multiplier = range(0.03,3.0,nphotradius,/log) ; search for "snippet", below
 
-; build the radius vector
-    
 ; do 2-component Sersic fitting?    
     dosersic2 = 1
+    fixdevac = 1 ; fix the 2nd Sersic model to n=4?
 
 ; ##################################################
 ; fit single and double Sersic models to every band
@@ -406,133 +420,378 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
 ; read the data and Marc's SB profiles to determine the last radius at
 ; which the models are reliable
           modphot = mrdfits(ellpath+cluster+'-ellipse-model.fits.gz',1,/silent)
-          pp = read_bcg_profiles(cluster,these_filters=strtrim(modphot.band,2))
+          allband = strtrim(modphot.band,2)
+          
+          pp = read_bcg_profiles(cluster,these_filters=allband)
           nfilt = n_elements(modphot)
-       
-; fit the red bands independently, but the bluest bands simultaneously
-; because of the low S/N; typically tie the bands that are blueward of
-; the 4000-A break together
-          if cluster eq 'macs2129' or cluster eq 'macs0744' then wcut = 6000.0 else wcut = 5000.0
-          blue = where(modphot.weff lt wcut,nblue,comp=red,ncomp=nred)
-          for ib = 0, nred-1 do begin
+
+; first fit the (rest-frame) near-IR bands simultaneously, then the
+; optical bands together, and finally the bluest bands; we do this
+; because to help constrain the low S/N bands
+          delvarx, nir, opt, blue, nir_multiband
+          nir_multiband = 0 ; by default fit the near-IR bands individually
+          case cluster of
+             'a209': begin
+                blue = where(allband eq 'f475w' or allband eq 'f435w' or allband eq 'f390w')
+                nir = lindgen(nfilt) & remove, [blue], nir ; everything else
+             end
+             'a383': begin
+                opt = where(allband eq 'f775w' or allband eq 'f814w')
+                blue = where(allband eq 'f475w' or allband eq 'f435w')
+                nir = lindgen(nfilt) & remove, [opt,blue], nir ; everything else
+             end
+             'macs0744': begin
+                blue = where(allband eq 'f475w' or allband eq 'f555w')
+                nir = lindgen(nfilt) & remove, [blue], nir ; everything else
+             end
+             'a611': begin
+                opt = where(allband eq 'f850lp' or allband eq 'f606w' or $
+                  allband eq 'f814w' or allband eq 'f775w')
+                blue = where(allband eq 'f475w' or allband eq 'f435w')
+                nir = lindgen(nfilt) & remove, [opt,blue], nir ; everything else
+                nir_multiband = 1 ; constrain!
+             end
+             'macs1149': begin
+                opt = where(allband eq 'f850lp' or allband eq 'f606w' or $
+                  allband eq 'f814w' or allband eq 'f775w')
+                blue = where(allband eq 'f475w' or allband eq 'f435w')
+                nir = lindgen(nfilt) & remove, [opt,blue], nir ; everything else
+                nir_multiband = 1 ; constrain!
+             end
+             'a1423': begin
+                opt = where(allband eq 'f850lp' or allband eq 'f814w' or $
+                  allband eq 'f775w' or allband eq 'f625w')
+                blue = where(allband eq 'f606w' or allband eq 'f475w' or $
+                  allband eq 'f435w' or allband eq 'f390w')
+                nir = lindgen(nfilt) & remove, [opt,blue], nir ; everything else
+             end
+             'macs1206': begin
+                opt = where(allband eq 'f850lp' or allband eq 'f814w' or $
+                  allband eq 'f775w' or allband eq 'f625w')
+                blue = where(allband eq 'f606w' or allband eq 'f475w' or $
+                  allband eq 'f435w' or allband eq 'f390w')
+                nir = lindgen(nfilt) & remove, [opt,blue], nir ; everything else
+                nir_multiband = 1 ; constrain!
+             end
+             'clj1226': begin
+                blue = -1
+                opt = where(allband eq 'f850lp' or allband eq 'f814w' or $
+                  allband eq 'f775w' or allband eq 'f625w' or allband eq 'f606w')
+                nir = lindgen(nfilt) & remove, [opt], nir ; everything else
+                nir_multiband = 1 ; constrain!
+             end
+             'macs1311': begin
+                opt = where(allband eq 'f775w' or allband eq 'f625w' or allband eq 'f606w')
+                blue = where(allband eq 'f475w' or allband eq 'f435w')
+                nir = lindgen(nfilt) & remove, [opt,blue], nir ; everything else
+             end
+             'macs1720': begin
+                opt = where(allband eq 'f850lp' or allband eq 'f814w' or $
+                  allband eq 'f775w' or allband eq 'f625w')
+                blue = where(allband eq 'f606w' or allband eq 'f475w')
+                nir = lindgen(nfilt) & remove, [opt,blue], nir ; everything else
+             end
+             'macs2129': begin
+                opt = where(allband eq 'f850lp' or allband eq 'f814w')
+                blue = where(allband eq 'f475w' or allband eq 'f435w')
+                nir = lindgen(nfilt) & remove, [opt,blue], nir ; everything else
+             end
+             'rxj2129': begin
+                opt = where(allband eq 'f850lp' or allband eq 'f814w' or $
+                  allband eq 'f775w' or allband eq 'f625w' or allband eq 'f606w')
+                blue = where(allband eq 'f475w' or allband eq 'f435w')
+                nir = lindgen(nfilt) & remove, [opt,blue], nir ; everything else
+                nir_multiband = 1 ; constrain!
+             end
+; the blue bands for ms2137 don't fit well!
+             'ms2137': begin
+                opt = where(allband eq 'f850lp' or allband eq 'f814w' or $
+                  allband eq 'f775w' or allband eq 'f625w')
+                blue = where(allband eq 'f475w' or allband eq 'f435w' or allband eq 'f390w')
+                nir = lindgen(nfilt) & remove, [opt,blue], nir ; everything else
+                nir_multiband = 1 ; constrain!
+             end
+             'rxj2248': begin
+                opt = where(allband eq 'f850lp' or allband eq 'f814w' or $
+                  allband eq 'f775w' or allband eq 'f625w' or allband eq 'f606w')
+                blue = where(allband eq 'f475w' or allband eq 'f435w')
+                nir = lindgen(nfilt) & remove, [opt,blue], nir ; everything else
+                nir_multiband = 1 ; constrain!
+             end
+             else: begin
+                opt = -1
+                blue = where(modphot.weff/1D4 lt 0.5,comp=nir)
+             end
+          endcase
+          nnir = n_elements(nir)
+          if opt[0] eq -1 then nopt = 0 else nopt = n_elements(opt)
+          if blue[0] eq -1 then nblue = 0 else nblue = n_elements(blue)
+
+;         nopt = 0
+;         nir = where(modphot.weff/(1+sample[ic].z)/1D4 ge 0.4,nnir,comp=blue,ncomp=nblue)
+;         splog, 'Tying blue bands: '+strjoin(modphot[blue].band,', ')
+          
+;         nir = where(modphot.weff/(1+sample[ic].z)/1D4 ge 0.6,nnir)
+;         opt = where(modphot.weff/(1+sample[ic].z)/1D4 lt 0.6 and $
+;           modphot.weff/(1+sample[ic].z)/1D4 gt 0.4,nopt)
+;         blue = where(modphot.weff/(1+sample[ic].z)/1D4 le 0.4,nblue)
+
+; output structure
+          out = struct_addtags(struct_trimtags(modphot,$
+            select=['file','band','weff','sblimit','ra','dec','mge_*']),$
+            replicate({amin_kpc: 0.0, amax_kpc: 0.0, rmin_kpc: 0.0, $
+            rmax_kpc: 0.0, $
+            sersic_covar_nir:  fltarr(2+nnir,2+nnir),$
+            sersic_covar_opt:  fltarr(2+nopt,2+nopt),$
+            sersic_covar_blue: fltarr(2+nblue,2+nblue)},nfilt))
+          if dosersic2 then begin
+             out = struct_addtags(out,replicate({$
+               sersic2_covar_nir:  fltarr(2*nnir+4,2*nnir+4),$
+               sersic2_covar_opt:  fltarr(2*nopt+4,2*nopt+4),$
+               sersic2_covar_blue: fltarr(2*nblue+4,2*nblue+4)},nfilt))
+          endif
+
+; near-IR, fitted individually
+          if nir_multiband eq 0 then begin
+             for ib = 0, nnir-1 do begin
 
 ; if AMAX_KPC occurs when the SB profile is below the formal 1-sigma
 ; surface brightness limit of the data, then cut it off
-             amax_kpc = max(pp[red[ib]].sma,mxindx) ; [kpc]
-             if pp[red[ib]].mu[mxindx] gt modphot[red[ib]].sblimit then $
-               amax_kpc = pp[red[ib]].sma[mxindx-1]
+                amax_kpc = max(pp[nir[ib]].sma,mxindx) ; [kpc]
+                if pp[nir[ib]].mu[mxindx] gt modphot[nir[ib]].sblimit then $
+                  amax_kpc = pp[nir[ib]].sma[mxindx-1]
+                
+                modgood = where(modphot[nir[ib]].majora*pixscale*arcsec2kpc le amax_kpc and $
+                  modphot[nir[ib]].sb0fit gt 0 and modphot[nir[ib]].sb0fit_ivar gt 0,nmodgood)
+                amin_kpc = min(modphot[nir[ib]].majora[modgood])*pixscale*arcsec2kpc
 
-             modgood = where(modphot[red[ib]].majora*pixscale*arcsec2kpc le amax_kpc and $
-               modphot[red[ib]].sb0fit gt 0 and modphot[red[ib]].sb0fit_ivar gt 0,nmodgood)
-             amin_kpc = min(modphot[red[ib]].majora[modgood])*pixscale*arcsec2kpc
-
-;            amax_pix = amax_kpc/pixscale/arcsec2kpc
-;            amin_pix = min(modphot[red[ib]].majora)
-          
 ; the equivalent radius needs to be sorted (note: the ellipse
 ; parameters in BCGSFHS_ELLIPSE are monotonic in *semi-major axis*,
 ; not equivalent radius!)  also add a minimum error floor to the
 ; surface brightnesses
-             sb = modphot[red[ib]].sb0fit[modgood]*1D
-             sb_var_floor = (sb*errfloor)^2.0
-             sb_ivar = 1D/(1D/modphot[red[ib]].sb0fit_ivar[modgood]+sb_var_floor)
-             radius_kpc = modphot[red[ib]].radius_kpc[modgood] ; [kpc]
-
-             rmin_kpc = min(radius_kpc)
-             rmax_kpc = max(radius_kpc)
-
-             srt = sort(radius_kpc)
-             radius_kpc = radius_kpc[srt]
-             sb = sb[srt]
-             sb_ivar = sb_ivar[srt]
+                sb = modphot[nir[ib]].sb0fit[modgood]*1D
+                sb_var_floor = (sb*errfloor)^2.0
+                sb_ivar = 1D/(1D/modphot[nir[ib]].sb0fit_ivar[modgood]+sb_var_floor)
+                radius_kpc = modphot[nir[ib]].radius_kpc[modgood] ; [kpc]
+                
+                rmin_kpc = min(radius_kpc)
+                rmax_kpc = max(radius_kpc)
+                
+                out[nir[ib]].amin_kpc = amin_kpc
+                out[nir[ib]].amax_kpc = amax_kpc
+                out[nir[ib]].rmin_kpc = rmin_kpc
+                out[nir[ib]].rmax_kpc = rmax_kpc
+                
+                srt = sort(radius_kpc)
+                radius_kpc = radius_kpc[srt]
+                sb = sb[srt]
+                sb_ivar = sb_ivar[srt]
              
 ; fit with a single-Sersic and then a double-Sersic
-             bcgsfhs_sersic, radius_kpc, sb, sersic, sb_ivar=sb_ivar
-             if dosersic2 then bcgsfhs_sersic2, radius_kpc, sb, sersic2, sb_ivar=sb_ivar
+                bcgsfhs_sersic, radius_kpc, sb, sersic, sb_ivar=sb_ivar, verbose=verbose
+                if dosersic2 then bcgsfhs_sersic2, radius_kpc, sb, sersic2, $
+                  sb_ivar=sb_ivar, fixdevac=fixdevac, verbose=verbose
 
-; pack into a structure
-             if ib eq 0 then begin
-                out = struct_addtags(struct_addtags(struct_addtags($
-                  struct_trimtags(modphot,select=['file','band','weff','sblimit',$
-                  'ra','dec','mge_*']),replicate({amin_kpc: 0.0, amax_kpc: 0.0, $
-                  rmin_kpc: 0.0, rmax_kpc: 0.0},nfilt)),im_empty_structure(sersic,$
-                  ncopies=nfilt)),replicate({sersic_covar_multiband: fltarr(2+nblue,2+nblue)},nfilt))
-                if dosersic2 then begin
-                   out = struct_addtags(struct_addtags(out,im_empty_structure($
-                     sersic2,ncopies=nfilt)),replicate({sersic2_covar_multiband: $
-                     fltarr(2*nblue+4,2*nblue+4)},nfilt))
-                endif
-             endif
+; expand the output structure
+                if ib eq 0 then begin
+                   out = struct_addtags(out,im_empty_structure(sersic[0],ncopies=nfilt))
+                   if dosersic2 then out = struct_addtags(out,im_empty_structure(sersic2[0],ncopies=nfilt))
+                endif 
              
-             out[red[ib]] = im_struct_assign(sersic,out[red[ib]],/nozero)
-             if dosersic2 then out[red[ib]] = im_struct_assign(sersic2,out[red[ib]],/nozero)
-
-             out[red[ib]].amin_kpc = amin_kpc
-             out[red[ib]].amax_kpc = amax_kpc
-             out[red[ib]].rmin_kpc = rmin_kpc
-             out[red[ib]].rmax_kpc = rmax_kpc
-          endfor 
-          
-; now fit the blue bands simultaneously
-          for ib = 0, nblue-1 do begin
-             amax_kpc = max(pp[blue[ib]].sma,mxindx) ; [kpc]
-             if pp[blue[ib]].mu[mxindx] gt modphot[blue[ib]].sblimit then $
-               amax_kpc = pp[blue[ib]].sma[mxindx-1]
-
-             modgood = where(modphot[blue[ib]].majora*pixscale*arcsec2kpc le amax_kpc and $
-               modphot[blue[ib]].sb0fit gt 0 and modphot[blue[ib]].sb0fit_ivar gt 0,nmodgood)
-             amin_kpc = min(modphot[blue[ib]].majora[modgood])*pixscale*arcsec2kpc
-             
-             sb = modphot[blue[ib]].sb0fit[modgood]*1D
-             sb_var_floor = (sb*errfloor)^2.0
-             sb_ivar = 1D/(1D/modphot[blue[ib]].sb0fit_ivar[modgood]+sb_var_floor)
-             radius_kpc = modphot[blue[ib]].radius_kpc[modgood] ; [kpc]
-
-             rmin_kpc = min(radius_kpc)
-             rmax_kpc = max(radius_kpc)
-
-             out[blue[ib]].amin_kpc = amin_kpc
-             out[blue[ib]].amax_kpc = amax_kpc
-             out[blue[ib]].rmin_kpc = rmin_kpc
-             out[blue[ib]].rmax_kpc = rmax_kpc
-             
-             srt = sort(radius_kpc)
-             radius_kpc = radius_kpc[srt]
-             sb = sb[srt]
-             sb_ivar = sb_ivar[srt]
-             
-             if ib eq 0 then begin
-                fit_sb = sb
-                fit_sb_ivar = sb_ivar
-                fit_radius_kpc = radius_kpc
-                fit_wave = replicate(modphot[blue[ib]].weff,nmodgood)
-             endif else begin
-                fit_sb = [fit_sb,sb]
-                fit_sb_ivar = [fit_sb_ivar,sb_ivar]
-                fit_radius_kpc = [fit_radius_kpc,radius_kpc]
-                fit_wave = [fit_wave,replicate(modphot[blue[ib]].weff,nmodgood)]
-             endelse
-          endfor
-
-          bcgsfhs_sersic_multiband, fit_radius_kpc, fit_sb, fit_wave, $
-            multisersic, sb_ivar=fit_sb_ivar
-          for ib = 0, nblue-1 do begin
-             out[blue[ib]] = im_struct_assign(multisersic[ib],out[blue[ib]],/nozero)
-             out[blue[ib]].sersic_covar = 0
-             out[blue[ib]].sersic_covar_multiband = multisersic[ib].sersic_covar
-          endfor
-          niceprint, modphot.band, out.sersic_n, out.sersic_n_err, $
-            out.sersic_re, out.sersic_re_err, out.sersic_sbe, out.sersic_sbe_err
-          
-          if dosersic2 then begin
-             bcgsfhs_sersic2_multiband, fit_radius_kpc, fit_sb, fit_wave, $
-               multisersic2, sb_ivar=fit_sb_ivar, sersicfit=sersicfit
-             for ib = 0, nblue-1 do begin
-                out[blue[ib]] = im_struct_assign(multisersic2[ib],out[blue[ib]],/nozero)
-                out[blue[ib]].sersic2_covar = 0
-                out[blue[ib]].sersic2_covar_multiband = multisersic2[ib].sersic2_covar
+                out[nir[ib]] = im_struct_assign(sersic,out[nir[ib]],/nozero)
+                if dosersic2 then out[nir[ib]] = im_struct_assign(sersic2,out[nir[ib]],/nozero)
              endfor
           endif
+
+; near-IR, fitted together
+          if nir_multiband then begin
+             for ib = 0, nnir-1 do begin
+                amax_kpc = max(pp[nir[ib]].sma,mxindx) ; [kpc]
+                if pp[nir[ib]].mu[mxindx] gt modphot[nir[ib]].sblimit then $
+                  amax_kpc = pp[nir[ib]].sma[mxindx-1]
+
+                modgood = where(modphot[nir[ib]].majora*pixscale*arcsec2kpc le amax_kpc and $
+                  modphot[nir[ib]].sb0fit gt 0 and modphot[nir[ib]].sb0fit_ivar gt 0,nmodgood)
+                amin_kpc = min(modphot[nir[ib]].majora[modgood])*pixscale*arcsec2kpc
+                
+                sb = modphot[nir[ib]].sb0fit[modgood]*1D
+                sb_var_floor = (sb*errfloor)^2.0
+                sb_ivar = 1D/(1D/modphot[nir[ib]].sb0fit_ivar[modgood]+sb_var_floor)
+                radius_kpc = modphot[nir[ib]].radius_kpc[modgood] ; [kpc]
+
+                rmin_kpc = min(radius_kpc)
+                rmax_kpc = max(radius_kpc)
+                
+                out[nir[ib]].amin_kpc = amin_kpc
+                out[nir[ib]].amax_kpc = amax_kpc
+                out[nir[ib]].rmin_kpc = rmin_kpc
+                out[nir[ib]].rmax_kpc = rmax_kpc
+             
+                srt = sort(radius_kpc)
+                radius_kpc = radius_kpc[srt]
+                sb = sb[srt]
+                sb_ivar = sb_ivar[srt]
+             
+                if ib eq 0 then begin
+                   fit_sb = sb
+                   fit_sb_ivar = sb_ivar
+                   fit_radius_kpc = radius_kpc
+                   fit_wave = replicate(modphot[nir[ib]].weff,nmodgood)
+                endif else begin
+                   fit_sb = [fit_sb,sb]
+                   fit_sb_ivar = [fit_sb_ivar,sb_ivar]
+                   fit_radius_kpc = [fit_radius_kpc,radius_kpc]
+                   fit_wave = [fit_wave,replicate(modphot[nir[ib]].weff,nmodgood)]
+                endelse
+             endfor
+             
+             bcgsfhs_sersic_multiband, fit_radius_kpc, fit_sb, fit_wave, $
+               multisersic, sb_ivar=fit_sb_ivar, verbose=verbose
+             out = struct_addtags(out,im_empty_structure(multisersic[0],ncopies=nfilt))
+             
+             for ib = 0, nnir-1 do begin
+                out[nir[ib]] = im_struct_assign(multisersic[ib],out[nir[ib]],/nozero)
+                out[nir[ib]].sersic_covar = 0
+                out[nir[ib]].sersic_covar_nir = multisersic[ib].sersic_covar
+             endfor
+             
+             if dosersic2 then begin
+                bcgsfhs_sersic2_multiband, fit_radius_kpc, fit_sb, fit_wave, $
+                  multisersic2, sb_ivar=fit_sb_ivar, sersicfit=sersicfit, $
+                  fixdevac=fixdevac, verbose=verbose
+                out = struct_addtags(out,im_empty_structure(multisersic2[0],ncopies=nfilt))
+                for ib = 0, nnir-1 do begin
+                   out[nir[ib]] = im_struct_assign(multisersic2[ib],out[nir[ib]],/nozero)
+                   out[nir[ib]].sersic2_covar = 0
+                   out[nir[ib]].sersic2_covar_nir = multisersic2[ib].sersic2_covar
+                endfor
+             endif
+          endif
+
+; optical
+          if nopt gt 0 then begin
+             for ib = 0, nopt-1 do begin
+                amax_kpc = max(pp[opt[ib]].sma,mxindx) ; [kpc]
+                if pp[opt[ib]].mu[mxindx] gt modphot[opt[ib]].sblimit then $
+                  amax_kpc = pp[opt[ib]].sma[mxindx-1]
+                
+                modgood = where(modphot[opt[ib]].majora*pixscale*arcsec2kpc le amax_kpc and $
+                  modphot[opt[ib]].sb0fit gt 0 and modphot[opt[ib]].sb0fit_ivar gt 0,nmodgood)
+                amin_kpc = min(modphot[opt[ib]].majora[modgood])*pixscale*arcsec2kpc
+                
+                sb = modphot[opt[ib]].sb0fit[modgood]*1D
+                sb_var_floor = (sb*errfloor)^2.0
+                sb_ivar = 1D/(1D/modphot[opt[ib]].sb0fit_ivar[modgood]+sb_var_floor)
+                radius_kpc = modphot[opt[ib]].radius_kpc[modgood] ; [kpc]
+
+                rmin_kpc = min(radius_kpc)
+                rmax_kpc = max(radius_kpc)
+
+                out[opt[ib]].amin_kpc = amin_kpc
+                out[opt[ib]].amax_kpc = amax_kpc
+                out[opt[ib]].rmin_kpc = rmin_kpc
+                out[opt[ib]].rmax_kpc = rmax_kpc
+             
+                srt = sort(radius_kpc)
+                radius_kpc = radius_kpc[srt]
+                sb = sb[srt]
+                sb_ivar = sb_ivar[srt]
+             
+                if ib eq 0 then begin
+                   fit_sb = sb
+                   fit_sb_ivar = sb_ivar
+                   fit_radius_kpc = radius_kpc
+                   fit_wave = replicate(modphot[opt[ib]].weff,nmodgood)
+                endif else begin
+                   fit_sb = [fit_sb,sb]
+                   fit_sb_ivar = [fit_sb_ivar,sb_ivar]
+                   fit_radius_kpc = [fit_radius_kpc,radius_kpc]
+                   fit_wave = [fit_wave,replicate(modphot[opt[ib]].weff,nmodgood)]
+                endelse
+             endfor
+             
+             bcgsfhs_sersic_multiband, fit_radius_kpc, fit_sb, fit_wave, $
+               multisersic, sb_ivar=fit_sb_ivar, verbose=verbose
+             for ib = 0, nopt-1 do begin
+                out[opt[ib]] = im_struct_assign(multisersic[ib],out[opt[ib]],/nozero)
+                out[opt[ib]].sersic_covar = 0
+                out[opt[ib]].sersic_covar_opt = multisersic[ib].sersic_covar
+             endfor
+          
+             if dosersic2 then begin
+                bcgsfhs_sersic2_multiband, fit_radius_kpc, fit_sb, fit_wave, $
+                  multisersic2, sb_ivar=fit_sb_ivar, sersicfit=sersicfit, $
+                  fixdevac=fixdevac, verbose=verbose
+                for ib = 0, nopt-1 do begin
+                   out[opt[ib]] = im_struct_assign(multisersic2[ib],out[opt[ib]],/nozero)
+                   out[opt[ib]].sersic2_covar = 0
+                   out[opt[ib]].sersic2_covar_opt = multisersic2[ib].sersic2_covar
+                endfor
+             endif
+          endif
+
+; blue
+          if nblue ne 0 then begin
+             for ib = 0, nblue-1 do begin
+                amax_kpc = max(pp[blue[ib]].sma,mxindx) ; [kpc]
+                if pp[blue[ib]].mu[mxindx] gt modphot[blue[ib]].sblimit then $
+                  amax_kpc = pp[blue[ib]].sma[mxindx-1]
+                
+                modgood = where(modphot[blue[ib]].majora*pixscale*arcsec2kpc le amax_kpc and $
+                  modphot[blue[ib]].sb0fit gt 0 and modphot[blue[ib]].sb0fit_ivar gt 0,nmodgood)
+                amin_kpc = min(modphot[blue[ib]].majora[modgood])*pixscale*arcsec2kpc
+                
+                sb = modphot[blue[ib]].sb0fit[modgood]*1D
+                sb_var_floor = (sb*errfloor)^2.0
+                sb_ivar = 1D/(1D/modphot[blue[ib]].sb0fit_ivar[modgood]+sb_var_floor)
+                radius_kpc = modphot[blue[ib]].radius_kpc[modgood] ; [kpc]
+
+                rmin_kpc = min(radius_kpc)
+                rmax_kpc = max(radius_kpc)
+
+                out[blue[ib]].amin_kpc = amin_kpc
+                out[blue[ib]].amax_kpc = amax_kpc
+                out[blue[ib]].rmin_kpc = rmin_kpc
+                out[blue[ib]].rmax_kpc = rmax_kpc
+             
+                srt = sort(radius_kpc)
+                radius_kpc = radius_kpc[srt]
+                sb = sb[srt]
+                sb_ivar = sb_ivar[srt]
+             
+                if ib eq 0 then begin
+                   fit_sb = sb
+                   fit_sb_ivar = sb_ivar
+                   fit_radius_kpc = radius_kpc
+                   fit_wave = replicate(modphot[blue[ib]].weff,nmodgood)
+                endif else begin
+                   fit_sb = [fit_sb,sb]
+                   fit_sb_ivar = [fit_sb_ivar,sb_ivar]
+                   fit_radius_kpc = [fit_radius_kpc,radius_kpc]
+                   fit_wave = [fit_wave,replicate(modphot[blue[ib]].weff,nmodgood)]
+                endelse
+             endfor
+             
+             bcgsfhs_sersic_multiband, fit_radius_kpc, fit_sb, fit_wave, $
+               multisersic, sb_ivar=fit_sb_ivar, verbose=verbose
+             for ib = 0, nblue-1 do begin
+                out[blue[ib]] = im_struct_assign(multisersic[ib],out[blue[ib]],/nozero)
+                out[blue[ib]].sersic_covar = 0
+                out[blue[ib]].sersic_covar_blue = multisersic[ib].sersic_covar
+             endfor
+             
+             if dosersic2 then begin
+                bcgsfhs_sersic2_multiband, fit_radius_kpc, fit_sb, fit_wave, $
+                  multisersic2, sb_ivar=fit_sb_ivar, sersicfit=sersicfit, $
+                  fixdevac=fixdevac, verbose=verbose
+                for ib = 0, nblue-1 do begin
+                   out[blue[ib]] = im_struct_assign(multisersic2[ib],out[blue[ib]],/nozero)
+                   out[blue[ib]].sersic2_covar = 0
+                   out[blue[ib]].sersic2_covar_blue = multisersic2[ib].sersic2_covar
+                endfor
+             endif
+          endif
+
 ; write out
           im_mwrfits, out, sersicpath+cluster+'-sersic.fits', clobber=clobber
        endfor
@@ -734,23 +993,36 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
              endelse
              
              djs_plot, radius_kpc, -2.5*alog10(sb), psym=symcat(16), /xlog, noerase=ib gt 0, $
-               xrange=[0.3,200], xsty=1, yrange=[28,16], position=pos[*,ib], $
+               xrange=[0.3,200], xsty=1, yrange=[29,16], position=pos[*,ib], $
                xtickname=xtickname, ytickname=ytickname, title=title, $
                symsize=0.5, ytickinterval=3, ysty=1
 
              label = [$
-               '\mu_{e}='+strtrim(string(sersic[ib].sersic_sbe,format='(F12.1)'),2),$
-               'r_{e}='+strtrim(string(sersic[ib].sersic_re,format='(F12.1)'),2)+' kpc',$
+               '\chi^{2}_{\nu, single}='+$
+               strtrim(string(sersic[ib].sersic_chi2/sersic[ib].sersic_dof,format='(F12.2)'),2),$
+               '\mu_{e}='+strtrim(string(sersic[ib].sersic_sbe,format='(F12.1)'),2)+','+$
+               'n='+strtrim(string(sersic[ib].sersic_n,format='(F12.2)'),2)+','+$
+               'r_{e}='+strtrim(string(sersic[ib].sersic_re,format='(F12.1)'),2)+' kpc']
+             
+;            label = [$
+;              '\mu_{e}='+strtrim(string(sersic[ib].sersic_sbe,format='(F12.1)'),2),$
 ;              'r_{e}='+strtrim(string(sersic[ib].sersic_re,format='(F12.1)'),2)+' kpc',$
-               'n='+strtrim(string(sersic[ib].sersic_n,format='(F12.2)'),2),$
-               '\chi^{2}_{\nu, single}='+strtrim(string(sersic[ib].sersic_chi2/$
-               sersic[ib].sersic_dof,format='(F12.2)'),2)]
+;              'n='+strtrim(string(sersic[ib].sersic_n,format='(F12.2)'),2),$
+;              '\chi^{2}_{\nu, single}='+strtrim(string(sersic[ib].sersic_chi2/$
+;              sersic[ib].sersic_dof,format='(F12.2)'),2)]
              if dosersic2 then begin
                 if sersic[ib].sersic2_sbe1 eq 0.0 or sersic[ib].sersic2_sbe2 eq 0.0 then begin
                    label = [label,'Sersic-2 dropped']
                 endif else begin
-                   label = [label,'\chi^{2}_{\nu, double}='+strtrim(string(sersic[ib].sersic2_chi2/$
-                     sersic[ib].sersic2_dof,format='(F12.2)'),2)]
+                   label = [label,$
+                     '\chi^{2}_{\nu, double}='+strtrim(string(sersic[ib].sersic2_chi2/$
+                     sersic[ib].sersic2_dof,format='(F12.2)'),2),$
+                     '\mu_{e1}='+strtrim(string(-2.5*alog10(sersic[ib].sersic2_sbe1),format='(F12.1)'),2)+','+$
+                     'n_{1}='+strtrim(string(sersic[ib].sersic2_n1,format='(F12.2)'),2)+','+$
+                     'r_{e1}='+strtrim(string(sersic[ib].sersic2_re1,format='(F12.2)'),2)+' kpc',$
+                     '\mu_{e2}='+strtrim(string(-2.5*alog10(sersic[ib].sersic2_sbe2),format='(F12.1)'),2)+','+$
+                     'n_{2}='+strtrim(string(sersic[ib].sersic2_n2,format='(F12.2)'),2)+','+$
+                     'r_{e2}='+strtrim(string(sersic[ib].sersic2_re2,format='(F12.1)'),2)+' kpc']
                 endelse
              endif
              im_legend, label, /left, /bottom, box=0, margin=0, charsize=0.7, charthick=1.8
@@ -775,13 +1047,13 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
                      sersic[ib].sersic2_re1,sersic[ib].sersic2_n1]), color=cgcolor('orange'), line=2
                    djs_oplot, rr, bcgsfhs_sersic_func(rr,[-2.5*alog10(sersic[ib].sersic2_sbe2),$
                      sersic[ib].sersic2_re2,sersic[ib].sersic2_n2]), color=cgcolor('orange'), line=2
+;                  if band eq 'F435W' then stop
                 endelse
              endif
 
-             djs_oplot, [6.0,10^!x.crange[1]], modphot[ib].sblimit*[1,1], $
-               line=0                              ;, color=cgcolor('grey')
-             djs_oplot, sersic[ib].rmax_kpc*[1,1], [!y.crange[0]-0.2,!y.crange[0]-6], $
-               line=0           ;, color=cgcolor('grey')
+             djs_oplot, [70.0,10^!x.crange[1]], modphot[ib].sblimit*[1,1], line=0
+;            djs_oplot, [6.0,10^!x.crange[1]], modphot[ib].sblimit*[1,1], line=0
+;            djs_oplot, sersic[ib].rmax_kpc*[1,1], [!y.crange[0]-0.2,!y.crange[0]-6], line=0
           endfor
           
           xyouts, min(pos[0,*])-0.06, (max(pos[3,*])-min(pos[1,*]))/2.0+min(pos[1,*]), $
@@ -823,9 +1095,13 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
           nfilt = n_elements(modphot)
 
 ; initialize the radial photometry structure using F160W as the
-; reference band 
-          photradius_kpc = get_radius(photradius_multiplier*sersic[0].sersic_re,$
+; reference band
+          photradius_kpc = get_radius(photradius_multiplier*30.0,$ ; fixed radii for all clusters
             nrad=nphotradius,inrad=photradius_kpc_in,outrad=photradius_kpc_out)
+;         photradius_kpc = get_radius(photradius_multiplier*sersic[0].sersic2_re2,$ ; use 2nd component!
+;           nrad=nphotradius,inrad=photradius_kpc_in,outrad=photradius_kpc_out)
+;         photradius_kpc = get_radius(photradius_multiplier*sersic[0].sersic_re,$
+;           nrad=nphotradius,inrad=photradius_kpc_in,outrad=photradius_kpc_out)
 ;         niceprint, photradius_kpc_in, photradius_kpc, photradius_kpc_out
              
           phot = replicate({$
@@ -871,8 +1147,12 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
              radius_arcsec_extrap_out = range(max(radius_arcsec)*1.001,500.0/arcsec2kpc,30,/log)
              
              int_radius_arcsec = [radius_arcsec_extrap_in,radius_arcsec,radius_arcsec_extrap_out]
-             int_sb = [10.0^(-0.4*bcgsfhs_sersic_func(radius_arcsec_extrap_in*arcsec2kpc,params=sersic[ib])),$
-               sb,10.0^(-0.4*bcgsfhs_sersic_func(radius_arcsec_extrap_out*arcsec2kpc,params=sersic[ib]))]
+
+; single and 2-component Sersic fluxes
+;            int_sb = [10.0^(-0.4*bcgsfhs_sersic_func(radius_arcsec_extrap_in*arcsec2kpc,params=sersic[ib])),$
+;              sb,10.0^(-0.4*bcgsfhs_sersic_func(radius_arcsec_extrap_out*arcsec2kpc,params=sersic[ib]))]
+             int_sb = [bcgsfhs_sersic2_func(radius_arcsec_extrap_in*arcsec2kpc,params=sersic[ib]),$
+               sb,bcgsfhs_sersic2_func(radius_arcsec_extrap_out*arcsec2kpc,params=sersic[ib])]
 
 ; the code below is fancier because it takes into account the covariance in
 ; the Sersic parameters, but for now just extrapolate the last
@@ -904,13 +1184,26 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
              phot[ib].maggies_int_obs = 2.0*!pi*im_integral(radius_arcsec,radius_arcsec*sb)
              phot[ib].ivarmaggies_int_obs = 1.0/(2.0*!pi*im_integral(radius_arcsec,radius_arcsec*sb_var))
 
+;; single Sersic             
+;             phot[ib].dabmag_in = -2.5*alog10(1+2.0*!pi*im_integral(radius_arcsec_extrap_in,$
+;               radius_arcsec_extrap_in*10.0^(-0.4*bcgsfhs_sersic_func($
+;               radius_arcsec_extrap_in*arcsec2kpc,params=sersic[ib])))/phot[ib].maggies_int_obs)
+;             phot[ib].dabmag_out = -2.5*alog10(1+2.0*!pi*im_integral(radius_arcsec_extrap_out,$
+;               radius_arcsec_extrap_out*10.0^(-0.4*bcgsfhs_sersic_func($
+;               radius_arcsec_extrap_out*arcsec2kpc,params=sersic[ib])))/phot[ib].maggies_int_obs)
+; double Sersic             
              phot[ib].dabmag_in = -2.5*alog10(1+2.0*!pi*im_integral(radius_arcsec_extrap_in,$
-               radius_arcsec_extrap_in*10.0^(-0.4*bcgsfhs_sersic_func($
-               radius_arcsec_extrap_in*arcsec2kpc,params=sersic[ib])))/phot[ib].maggies_int_obs)
+               radius_arcsec_extrap_in*bcgsfhs_sersic2_func($
+               radius_arcsec_extrap_in*arcsec2kpc,params=sersic[ib]))/phot[ib].maggies_int_obs)
              phot[ib].dabmag_out = -2.5*alog10(1+2.0*!pi*im_integral(radius_arcsec_extrap_out,$
-               radius_arcsec_extrap_out*10.0^(-0.4*bcgsfhs_sersic_func($
-               radius_arcsec_extrap_out*arcsec2kpc,params=sersic[ib])))/phot[ib].maggies_int_obs)
+               radius_arcsec_extrap_out*bcgsfhs_sersic2_func($
+               radius_arcsec_extrap_out*arcsec2kpc,params=sersic[ib]))/phot[ib].maggies_int_obs)
+
              phot[ib].dabmag_int = -2.5*alog10(phot[ib].maggies_int/phot[ib].maggies_int_obs)
+
+;            print, phot[ib].band, 2.0*!pi*im_integral(radius_arcsec_extrap_out,$
+;              radius_arcsec_extrap_out*10.0^(-0.4*bcgsfhs_sersic_func($
+;              radius_arcsec_extrap_out*arcsec2kpc,params=sersic[ib])))
 
 ; now do photometry in each aperture
              for ir = 0, nphotradius-1 do begin
@@ -940,8 +1233,6 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
        endfor
     endif
 
-stop    
-    
 return
 end
 

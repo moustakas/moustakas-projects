@@ -23,6 +23,9 @@ band.
 Do the SED-fitting and compute K-corrections
   bcgsfhs_isedfit
 
+Get ancillary photometry for the sample
+  bcgsfhs_get_ancillary
+    
   
 ### Paper plots ###
 

@@ -12,7 +12,7 @@ pro hff_plots
     ngal = n_elements(rr)
 
 ; read the catalog    
-    cat = rsex(isedfit_dir+'flx_iso.dec17')
+    cat = rsex(isedfit_dir+'flx_iso.jan03')
     cat = cat[where(abs(cat.bpz) ge 7.0 and abs(cat.bpz) lt 10.01)]
     cat = cat[reverse(sort(abs(cat.bpz)))]
 

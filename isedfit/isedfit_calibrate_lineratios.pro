@@ -310,6 +310,14 @@ pro isedfit_calibrate_lineratios, nebular_continuum=nebular_continuum, $
     
 ; examine the evolution of the emission-line ratios with redshift
     if keyword_set(highredshift) then begin
+
+samples to add:
+ly+14
+cardamone+09 (green peas)       
+izotov+11 (luminous compact galaxies)
+atek+11 (z=0.35-2.3)
+
+
        ffile = getenv('IMPRO_DIR')+'/etc/isedfit_forbidden_lineratios.fits.gz'
        fdata = mrdfits(ffile,1)
 

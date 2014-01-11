@@ -1,4 +1,4 @@
-pro hff_plots
+pro a2744_plots
 
     isedfit_dir = getenv('CLASH_PROJECTS')+'/hff/'
     montegrids_dir = isedfit_dir+'montegrids/'

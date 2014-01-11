@@ -1,8 +1,8 @@
-function read_deep2, kcorr=kcorr, ispec=ispec, silent=silent
+function read_deep2, kcorr=kcorr, ispec=ispec, ppxf=ppxf, silent=silent
 ; jm07dec04nyu
 ; jm08mar31nyu - major update
 
-    common deep2_read, deep2_kcorr, deep2_ispec
+    common deep2_read, deep2_kcorr, deep2_ispec, deep2_ppxf
     
     catpath = deep2_path(/catalogs)
     if keyword_set(kcorr) then begin
@@ -22,4 +22,14 @@ function read_deep2, kcorr=kcorr, ispec=ispec, silent=silent
        endif else if (not keyword_set(silent)) then splog, 'Restoring '+file_basename(thisfile)
        return, deep2_ispec
     endif
+
+    if keyword_set(ppxf) then begin
+       thisfile = catpath+'deep2.ppxf.specdata.dr4_v1.0.fits.gz'
+       if (size(deep2_ppxf,/type) ne 8L) then begin
+          if (not keyword_set(silent)) then splog, 'Reading '+thisfile
+          deep2_ppxf = mrdfits(thisfile,1,silent=0)
+       endif else if (not keyword_set(silent)) then splog, 'Restoring '+file_basename(thisfile)
+       return, deep2_ppxf
+    endif
+
 end

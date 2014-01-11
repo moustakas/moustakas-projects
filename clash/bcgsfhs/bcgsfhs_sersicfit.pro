@@ -394,7 +394,7 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
     sample = read_bcgsfhs_sample()
 
     splog, 'Come back to A2261!'    
-    sample = sample[13]
+;   sample = sample[13]
     ncl = n_elements(sample)
 
     pixscale = 0.065D           ; [arcsec/pixel]

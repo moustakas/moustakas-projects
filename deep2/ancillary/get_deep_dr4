@@ -1,0 +1,20 @@
+#!/bin/csh -f 
+
+# curl http://deep.berkeley.edu/DR3/zcat.dr3.uniq.fits.gz >! ${BASEPATH}/deep2/analysis/zcat.dr3.uniq.fits.gz
+
+wget http://deep.ps.uci.edu/DR4/data/pcat_ext.11.fits.gz 
+wget http://deep.ps.uci.edu/DR4/data/pcat_ext.12.fits.gz 
+wget http://deep.ps.uci.edu/DR4/data/pcat_ext.13.fits.gz 
+wget http://deep.ps.uci.edu/DR4/data/pcat_ext.14.fits.gz 
+							 
+wget http://deep.ps.uci.edu/DR4/data/pcat_ext.21.fits.gz 
+wget http://deep.ps.uci.edu/DR4/data/pcat_ext.22.fits.gz 
+wget http://deep.ps.uci.edu/DR4/data/pcat_ext.23.fits.gz 
+							 
+wget http://deep.ps.uci.edu/DR4/data/pcat_ext.31.fits.gz 
+wget http://deep.ps.uci.edu/DR4/data/pcat_ext.32.fits.gz 
+wget http://deep.ps.uci.edu/DR4/data/pcat_ext.33.fits.gz 
+							 
+wget http://deep.ps.uci.edu/DR4/data/pcat_ext.41.fits.gz 
+wget http://deep.ps.uci.edu/DR4/data/pcat_ext.42.fits.gz 
+wget http://deep.ps.uci.edu/DR4/data/pcat_ext.43.fits.gz 

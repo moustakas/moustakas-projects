@@ -1,4 +1,4 @@
-function read_bpz_probs, file, redshift=zz
+function read_bpz_probs, file, redshift=zz, dz=dz
 ; jm13dec11siena - read the BPZ "probs" file
     
     txt = djs_readlines(file,nhead=1,head=head)

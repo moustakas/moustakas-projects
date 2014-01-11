@@ -19,7 +19,7 @@ function gandalf_parse_elinefit, sol, esol, linepars, $
     for ii = 0, nline-1 do begin
        names = linepars[ii].name+['','_amp','_linez','_sigma',$
          '_continuum','_ew','_limit','_ew_limit','_wave']
-       values = [replicate('[0.0,-1.0]',n_elements(names)-3),'-1.0','-1.0','-1.0']
+       values = [replicate('[0.0,-1.0]',n_elements(names)-3),'-1.0','-1.0','-1D'] ; double!
        out1 = mrd_struct(names,values,1)
        if (ii eq 0) then out = out1 else out = struct_addtags(out,out1)
     endfor

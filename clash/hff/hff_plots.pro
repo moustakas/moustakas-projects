@@ -3,6 +3,8 @@ pro hff_plots
     isedfit_dir = getenv('CLASH_PROJECTS')+'/hff/'
     montegrids_dir = isedfit_dir+'montegrids/'
 
+    suffix = 'jan03'
+    
 ; --------------------------------------------------
 ; generate a P(z) QAplot comparing my photoz's with BPZ    
     prefix = 'hff_photoz'
@@ -12,36 +14,46 @@ pro hff_plots
     ngal = n_elements(rr)
 
 ; read the catalog    
-    cat = rsex(isedfit_dir+'flx_iso.jan03')
-    cat = cat[where(abs(cat.bpz) ge 7.0 and abs(cat.bpz) lt 10.01)]
-    cat = cat[reverse(sort(abs(cat.bpz)))]
+    cat = rsex(isedfit_dir+'flx_iso.'+suffix)
+;   cat.bpz = abs(cat.bpz)
+;   cat = cat[where(cat.bpz ge 7.0 and cat.bpz lt 10.01)]
+;   cat = cat[reverse(sort(cat.bpz))]
+
+;   cat = cat[where(abs(cat.bpz) ge 7.0 and abs(cat.bpz) lt 10.01)]
+;   cat = cat[reverse(sort(abs(cat.bpz)))]
 
     galaxy = 'ID '+string(cat.id,format='(I0)')
-    bpz = read_bpz_probs(isedfit_dir+'a2744_dec17.probs',$
-      redshift=bpz_redshift)
-    match, cat.id, bpz.id, m1, m2
-    srt = sort(m1) & m1 = m1[srt] & m2 = m2[srt]
-    bpz = bpz[m2]
+    bpz = rsex(isedfit_dir+'bpz/jan03.bpz')
+    pbpz = read_bpz_probs(isedfit_dir+'bpz/jan03.probs',$
+      redshift=bpz_redshift,dz=dz)
+    niceprint, cat.id, bpz.id, bpz.z_b, rr.z
+;   match2, cat.id, bpz.id, m1, m2
+;   srt = sort(m1) & m1 = m1[srt] & m2 = m2[srt]
+;   bpz = bpz[m2]
 
 ; make the plot    
-    psfile = isedfit_dir+'a2744_photoz_13dec17.ps'
+    psfile = isedfit_dir+'a2744_photoz_'+suffix+'.ps'
 
     xrange = [0.0,12.0]
 ;   yrange = [0,max(post.pofz)*1.05]
     
     im_plotconfig, 0, pos, psfile=psfile, height=5.0, xmargin=[1.3,0.4], width=6.8
     for ii = 0, ngal-1 do begin
-       yrange = [0.0,(max(post[ii].pofz)>max(bpz[ii].pofz))*1.05]
+       pofz_ised = post[ii].pofz
+       pofz_bpz = pbpz[ii].pofz*pp.zbin/dz
+
+;      yrange = [0.0,max(post[ii].pofz)]
+       yrange = [0.0,(max(pofz_ised)>max(pofz_bpz))*1.05]
        title = galaxy[ii]+', z_{iSEDfit}='+strtrim(string(rr[ii].z,format='(F12.3)'),2)+' '+$
-         'z_{BPZ}='+strtrim(string(cat[ii].bpz,format='(F12.3)'),2)
+         'z_{BPZ}='+strtrim(string(bpz[ii].z_b,format='(F12.3)'),2)
        djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
          xtitle='Redshift', ytitle='Posterior Probability', $
          xrange=xrange, yrange=yrange, title=title
-       djs_oplot, pp.redshift, post[ii].pofz, line=0, thick=8, psym=10, color=cgcolor('firebrick')
-       djs_oplot, bpz_redshift, bpz[ii].pofz, line=0, $
-         color=cgcolor('dodger blue'), thick=8, psym=10
+       djs_oplot, pp.redshift, pofz_ised, line=0, thick=8, psym=10, color=cgcolor('firebrick')
+       djs_oplot, bpz_redshift, pofz_bpz, line=0, color=cgcolor('dodger blue'), thick=8, psym=10
        djs_oplot, rr[ii].z*[1,1], !y.crange, thick=6
-       djs_oplot, abs(cat[ii].bpz)*[1,1], !y.crange, thick=6, line=5
+       djs_oplot, bpz[ii].z_b*[1,1], !y.crange, thick=6, line=5
+       djs_oplot, cat[ii].bpz*[1,1], !y.crange, thick=6, line=5, color='orange'
 ;      im_legend, [galaxy[ii],'z_{iSEDfit}='+strtrim(string(rr[ii].z,format='(F12.3)'),2),$
 ;        'z_{BPZ}='+strtrim(string(zz[ii],format='(F12.3)'),2)], /left, /top, $
 ;        box=0, margin=0, textcolor=cgcolor(['black','firebrick','dodger blue'])
@@ -60,11 +72,12 @@ stop
     hwhm = hwhm/1D4
     
     rr = read_isedfit(isedfit_paramfile)
-    cat = rsex(isedfit_dir+'flx_iso.dec26')
+    cat = rsex(isedfit_dir+'flx_iso.jan03')
     cat.bpz = abs(cat.bpz)
 
     cat = cat[where(cat.bpz ge 7.0 and cat.bpz lt 10.01)]
     cat = cat[reverse(sort(cat.bpz))]
+
     if total(abs(rr.z-cat.bpz) gt 1E-5) ne 0.0 then message, 'Mismatch!'
 ;   niceprint, cat.id, cat.bpz, rr.z
 
@@ -79,7 +92,7 @@ stop
     rr = read_isedfit(isedfit_paramfile,index=these,/getmodels)
     
     col = 'dodger blue'
-    psfile = isedfit_dir+'a2744_seds_13dec17.eps'
+    psfile = isedfit_dir+'a2744_seds_'+suffix+'.eps'
     xrange = [0.3,6.0]
     im_plotconfig, 5, pos, psfile=psfile, xmargin=[1.1,0.2], $
       height=[2.6,2.6], xspace=0.05, yspace=0.05
@@ -135,6 +148,8 @@ stop
 
     im_plotconfig, psfile=psfile, /psclose, /pdf, /pskeep
 
+stop    
+    
 ; --------------------------------------------------
 ; write out a table for the paper adopting the BPZ redshifts
     prefix = 'hff'
@@ -143,7 +158,7 @@ stop
     rr = read_isedfit(isedfit_paramfile,params=pp,isedfit_post=post)
     ngal = n_elements(rr)
 
-    cat = rsex(isedfit_dir+'flx_iso.dec17')
+    cat = rsex(isedfit_dir+'flx_iso.jan03')
     cat.bpz = abs(cat.bpz)
 
     cat = cat[where(cat.bpz ge 7.0 and cat.bpz lt 10.01)]

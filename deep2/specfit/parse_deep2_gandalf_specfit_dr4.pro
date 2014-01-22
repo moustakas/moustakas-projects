@@ -203,9 +203,12 @@ pro parse_deep2_gandalf_specfit_dr4, thismask=thismask, $
           if (n_elements(specfit) eq 0) then specfit = specfit1 else $
             specfit = [temporary(specfit),specfit1]
           
-;         djs_plot, exp(wave), flux, psym=10, xsty=3, ysty=3
-;         djs_oplot, exp(wave), continuum, psym=10, color='red'
-;         djs_oplot, exp(wave), continuum+bestlinefit, psym=10, color='blue'
+         djs_plot, exp(wave), flux, psym=10, xsty=3, ysty=3, xr=[3710,3740]
+         djs_oplot, exp(wave), continuum, psym=10, color='red'
+         djs_oplot, exp(wave), continuum+bestlinefit, psym=10, color='blue'
+
+
+stop         
        endfor 
 
        im_mwrfits, specdata, specdatafile[ii], /clobber

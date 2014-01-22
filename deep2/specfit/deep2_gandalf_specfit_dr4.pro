@@ -213,7 +213,8 @@ pro deep2_gandalf_specfit_dr4, zcat, debug=debug, broad=broad, $
 ; fit each mask separately; spectral parameters are from J. Newman+13,
 ; Table 2
     velscale = deep2_ppxf_velscale()
-    line_inst_vdisp = 24.0 ; Gaussian-sigma resolution at z=1 [km/s]
+    line_inst_vdisp = 20.0 ; Gaussian-sigma resolution at z=1 [km/s]
+;   line_inst_vdisp = 24.0 ; Gaussian-sigma resolution at z=1 [km/s]
     
 ; read the emission-line file here to get the total number of lines
 ; that we are going to be fitting
@@ -258,7 +259,7 @@ pro deep2_gandalf_specfit_dr4, zcat, debug=debug, broad=broad, $
 
 ; fit each object using GANDALF/PPXF
        t0 = systime(1)
-       for iobj = 81, 81 do begin
+       for iobj = 4, 4 do begin
 ;      for iobj = 0, nobj-1 do begin
 ;         print, iobj
           print, format='("Object ",I0,"/",I0,A10,$)', iobj, nobj, string(13b)
@@ -330,7 +331,7 @@ pro deep2_gandalf_specfit_dr4, zcat, debug=debug, broad=broad, $
             velscale=velscale,linefile=linefile,line_inst_vdisp=line_inst_vdisp,$
             broad=broad,linepars=linepars,esol=esol,etemplates=etemplates,$
             echi2=echi2,debug=debug,vmaxshift_iter1=vmaxshift_iter1)
-
+stop
 ; pack everything into a structure          
           specdata1 = struct_addtags(struct_trimtags(zcat_mask[iobj],$
             select=['galaxy','file','zcatindx','minwave','maxwave','objno',$

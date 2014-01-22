@@ -112,8 +112,9 @@ pro simulate_desi_deep2, minwave=minwave, maxwave=maxwave, $
        nthese = i2-i1+1L
        these = lindgen(nthese)+i1
 
-       ised = read_isedfit(desipath+'desi_deep2_paramfile.par',$
-         /getmodels,isedfit_dir=desipath,index=these,/flam)
+       ised = read_isedfit(desipath+'desi_deep2_paramfile.par',/getmodels,$
+         isedfit_dir=desipath,montegrids_dir=desipath+'montegrids/',$
+         index=these,/flam)
        
        for igal = 0, nthese-1 do begin
 ;; read the observed DEEP2 spectrum       
@@ -186,23 +187,37 @@ pro simulate_desi_deep2, minwave=minwave, maxwave=maxwave, $
           if igal eq 0 then outflux = fltarr(nthese,npix) ; output spectra
 
           outflux[igal,*] = flux
-          outinfo = ispec[these]
+;         outinfo = ispec[these]
+
+          outinfo = struct_trimtags(ispec[these],select=['GALAXY',$
+            'ZCATINDX','MINWAVE','MAXWAVE','OBJNO','RA','DEC',$
+            'MASK','SLIT','Z','CONTINUUM_SNR','OII_3727_*'])
        endfor ; close galaxy loop
+
+       outfile = desipath+'desi_deep2_spectra/desi_deep2_chunk'+$
+         string(ichunk+1,format='(I2.2)')+'.fits'
        
-       mkhdr, hdr, outflux
+       mkhdr, hdr, outflux, /extend
        sxdelpar, hdr, 'DATE'
        sxdelpar, hdr, 'COMMENT'
        sxaddpar, hdr, 'OBJTYPE', 'ELG-DEEP2', 'object type'
        sxaddpar, hdr, 'FLUXUNIT', 'erg/s/cm^2/A', ' spectrum flux units'
-       sxaddpar, hdr, 'COEFF0', coeff0, ' reference log10(Angstrom)'
-       sxaddpar, hdr, 'COEFF1', coeff1, ' delta log10(Angstrom)'
+       sxaddpar, hdr, 'CRVAL1', coeff0, ' reference log10(Angstrom)'
+       sxaddpar, hdr, 'CDELT1', coeff1, ' delta log10(Angstrom)'
        sxaddpar, hdr, 'LOGLAM', 1, ' log10 spaced wavelengths'
        sxaddpar, hdr, 'VELSCALE', velpixsize, ' pixel size in km/s'
 
-       im_mwrfits, outflux, desipath+'desi_deep2_spectra/desi_deep2_chunk'+$
-         string(ichunk+1,format='(I2.2)')+'.fits', hdr, /clobber
-       im_mwrfits, outinfo, desipath+'desi_deep2_spectra/desi_deep2_chunk'+$
-         string(ichunk+1,format='(I2.2)')+'.info.fits', /clobber
+       im_mwrfits, transpose(outflux), outfile, hdr, /clobber, /nogzip
+
+;      mkhdr, hdr, 0
+;      sxdelpar, hdr, 'DATE'
+;      sxdelpar, hdr, 'COMMENT'
+;      sxaddpar, hdr, 'OBJTYPE', 'ELG-DEEP2', 'object type'
+       
+       im_mwrfits, outinfo, outfile, /append, /gzip
+
+       
+stop       
     endfor                      ; close chunk loop
 
 return

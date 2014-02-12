@@ -70,7 +70,7 @@ pro a2744_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
     if keyword_set(kcorrect) then begin
        isedfit_kcorrect, isedfit_paramfile, isedfit_dir=isedfit_dir, $
          montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
-         absmag_filterlist=bessell_filterlist(), band_shift=0.0, $
+         absmag_filterlist=galex_filterlist(), band_shift=0.0, $
          clobber=clobber
     endif 
 

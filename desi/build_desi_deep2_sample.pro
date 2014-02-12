@@ -22,6 +22,9 @@ pro build_desi_deep2_sample
       ispec.oii_3727_2[0]/ispec.oii_3727_2[1] gt 5.0,ngal)
     splog, 'Sample ', ngal
 
+build a poor-mans desi sample by applying on [OII] flux simple cut >5e-17 cgs
+
+    
     im_mwrfits, zcat[these], outpath+'deep2_zcat.fits', /clobber
     im_mwrfits, ispec[these], outpath+'deep2_ispec.fits', /clobber
     

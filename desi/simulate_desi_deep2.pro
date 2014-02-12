@@ -209,6 +209,12 @@ pro simulate_desi_deep2, minwave=minwave, maxwave=maxwave, $
 
        im_mwrfits, transpose(outflux), outfile, hdr, /clobber, /nogzip
 
+ToDo
+* convert the fluxes to physical units
+* build the full header - add an EXTNAME tag
+* document each tag of the FITS table
+* more tags - integrated [OII] flux, flux in each component, sigma, EW, continuum flux
+       
 ;      mkhdr, hdr, 0
 ;      sxdelpar, hdr, 'DATE'
 ;      sxdelpar, hdr, 'COMMENT'

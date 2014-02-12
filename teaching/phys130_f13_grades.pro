@@ -6,7 +6,8 @@ pro phys130_f13_grades, alldata, test=test, sendit=sendit, final=final
     class = 'Physics 130 - General Physics I'
 
     section = ['06','24']
-    for ii = 0, 1 do begin
+    for ii = 1, 1 do begin
+;   for ii = 0, 1 do begin
        path = getenv('TEACHING_DIR')+'/Phys130/130-F13/grades/'+section[ii]+'/'
 
 ; read the grade spreadsheet downloaded from GoogleDocs
@@ -19,8 +20,8 @@ pro phys130_f13_grades, alldata, test=test, sendit=sendit, final=final
        weight = [0.25,0.15,0.40,0.20]
        droplowest = [0,0,1,0]
 
-;      keep = where(strmatch(data.last_name,'*Lavera*') eq 0)
-       keep = where(data.final_exam gt 0.0)
+       keep = where(strmatch(data.last_name,'*Lavera*'))
+;      keep = where(data.final_exam gt 0.0)
        data = data[keep]
 
        process_grades, data, assign=assign, allassign=allassign, $

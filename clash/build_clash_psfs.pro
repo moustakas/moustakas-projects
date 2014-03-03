@@ -212,15 +212,15 @@ pro build_clash_psfs, sexcatalogs=sexcatalogs, candidates=candidates, $
 ; jm13may30siena - build the PSFs for CLASH in all 16+1 bands using
 ; all the clusters
 
-; missing fullfield mosaics: CLJ1226, MACS1311    
-    
 ; unzip and rezip everything
 ; find /Volumes/Archive_the_First/clash-archive/ -name "*-fullfield_mosaic_065mas_*.fits.gz" -print | xargs gunzip -v
     
     clash = rsex(getenv('CLASH_DIR')+'/clash_sample.sex')
 ; no full-field mosaics yet
-    keep = where(strtrim(clash.shortname,2) ne 'macs1311' and strtrim(clash.shortname,2) ne 'clj1226')
-    clash = clash[keep]
+    these = where(strtrim(clash.shortname,2) eq 'macs1311' or strtrim(clash.shortname,2) eq 'clj1226')
+    clash = clash[these]
+;   keep = where(strtrim(clash.shortname,2) ne 'macs1311' and strtrim(clash.shortname,2) ne 'clj1226')
+;   clash = clash[keep]
 
 ;   ww = where(strtrim(clash.shortname,2) eq 'macs0717' or strtrim(clash.shortname,2) eq 'macs0744' or $
 ;     strtrim(clash.shortname,2) eq 'rxj1347' or strtrim(clash.shortname,2) eq 'macs2129' or $
@@ -287,6 +287,7 @@ pro build_clash_psfs, sexcatalogs=sexcatalogs, candidates=candidates, $
                      instr[ib]+'_'+short[ib]+'_drz_????????.fits',count=nn)
 ;                  imfile = file_search(mosaicpath+cluster+'_mosaic_065mas_'+$
 ;                    instr[ib]+'_'+short[ib]+'_drz_????????.fits')
+
                    if nn ne 0 then begin
                       hdr = headfits(imfile)
                       gain = sxpar(hdr,'ccdgain')*sxpar(hdr,'exptime')        

@@ -83,8 +83,8 @@ function gandalf_clean_emission, restwave, restflux, bestfit, $
              splog, amp, resid_noise, amp/resid_noise, $
                '  '+linepars[isline[ii]].name
              cc = get_kbrd(1)
-          endif
-       endif
+          endif 
+       endif else resid_noise = 1E16
 ; 1-sigma upper limit; for simplicity assume an intrinsic velocity
 ; width of 125 km/s
 ;         new_linepars[isline[ii]].limit = sqrt(2.0*!pi)*$

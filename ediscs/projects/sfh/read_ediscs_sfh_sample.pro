@@ -4,7 +4,7 @@ function read_ediscs_sfh_sample, field=field, cluster=cluster, all=all, silent=s
 ;   common sfh_sample, ediscs_field, ediscs_cluster
 
     if keyword_set(all) then suffix = '_all' else suffix = ''
-    datapath = ediscs_path(/projects)+'sfh/'
+    datapath = ediscs_path()+'sfh/'
     if keyword_set(field) then begin
        thisfile = datapath+'ediscs_sfh_field'+suffix+'.fits.gz'
        if (size(ediscs_field,/type) ne 8) then begin

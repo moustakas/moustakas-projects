@@ -43,7 +43,8 @@
 pro parse_deep2_gandalf_specfit_dr4, thismask=thismask, $
   firstmask=firstmask, lastmask=lastmask, debug=debug 
 
-    snrcut_line = 3.0  ; see GANDALF_CLEAN_EMISSION
+    snrcut_line = 1.5  ; see GANDALF_CLEAN_EMISSION
+;   snrcut_line = 3.0  ; see GANDALF_CLEAN_EMISSION
     light = 2.99792458D5 ; speed of light [km/s]
     velscale = deep2_ppxf_velscale()
 
@@ -91,7 +92,7 @@ pro parse_deep2_gandalf_specfit_dr4, thismask=thismask, $
 
 ; loop on each object
        t0 = systime(1)
-;      for iobj = 18, 18 do begin
+;      for iobj = 23, 23 do begin
 ;      for iobj = 2, 2 do begin
        for iobj = 0, nobj-1 do begin
 ;         print, iobj, nobj
@@ -146,7 +147,7 @@ pro parse_deep2_gandalf_specfit_dr4, thismask=thismask, $
           mask = ferr lt 1E5
           new_sol = gandalf_clean_emission(wave,flux,$
             bestfit,mask,etemplates,linepars,sol,$
-            esol,snrcut=snrcut_line,velscale=velscale,debug=0,$
+            esol,snrcut=snrcut_line,velscale=velscale,debug=debug,$
             new_etemplates=new_etemplates,new_linepars=new_linepars,$
             fitlines=fitlines)
           new_etemplates = new_etemplates
@@ -203,12 +204,9 @@ pro parse_deep2_gandalf_specfit_dr4, thismask=thismask, $
           if (n_elements(specfit) eq 0) then specfit = specfit1 else $
             specfit = [temporary(specfit),specfit1]
           
-         djs_plot, exp(wave), flux, psym=10, xsty=3, ysty=3, xr=[3710,3740]
-         djs_oplot, exp(wave), continuum, psym=10, color='red'
-         djs_oplot, exp(wave), continuum+bestlinefit, psym=10, color='blue'
-
-
-stop         
+;        djs_plot, exp(wave), flux, psym=10, xsty=3, ysty=3, xr=[3710,3740]
+;        djs_oplot, exp(wave), continuum, psym=10, color='red'
+;        djs_oplot, exp(wave), continuum+bestlinefit, psym=10, color='blue'
        endfor 
 
        im_mwrfits, specdata, specdatafile[ii], /clobber

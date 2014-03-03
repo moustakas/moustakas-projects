@@ -31,8 +31,8 @@ pro build_deep2_photo_catalog
     phot[fix].bestrerr = zcat[fix].magrerr
     phot[fix].bestierr = zcat[fix].magierr
     
-    im_mwrfits, phot, 'photo.dr4.goodspec1d.Q34.fits', /clobber
-    
+    im_mwrfits, phot, catpath+'photo.dr4.goodspec1d.Q34.fits', /clobber
+
 ; ---------------------------------------------------------------------------
 ; full catalog    
     phot = mrdfits(catpath+'zcat_ext.uniq.fits.gz',1)
@@ -60,7 +60,7 @@ pro build_deep2_photo_catalog
     phot[fix].bestrerr = zcat[fix].magrerr
     phot[fix].bestierr = zcat[fix].magierr
 
-    im_mwrfits, phot, 'photo.dr4.goodspec1d.fits', /clobber
+    im_mwrfits, phot, catpath+'photo.dr4.goodspec1d.fits', /clobber
 
 return
 end

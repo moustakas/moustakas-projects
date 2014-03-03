@@ -30,7 +30,7 @@ pro plot_ediscs_sfh, ps=ps
     ps = 1
     if keyword_set(ps) then suffix = '.ps' else suffix = '.eps'
 
-    sfhpath = ediscs_path(/projects)+'sfh/'
+    sfhpath = ediscs_path()+'sfh/'
     paperpath = sfhpath
     cluster = read_ediscs_sfh_sample(/cluster)
     field = read_ediscs_sfh_sample(/field)
@@ -38,8 +38,70 @@ pro plot_ediscs_sfh, ps=ps
     allfield = read_ediscs_sfh_sample(/field,/all)
 
 ; --------------------------------------------------
-; S/N vs I-band magnitude and M_V
+; 4-panel plot for the paper showing the spectra and the spectral fits
+; for four objects
+;    
+;    EDCSNJ1301302-1138187 - old with emission:  EW(OII) = 6.30 +/- 0.80
+;    EDCSNJ1301302-1138187 - old with no emission
+;    EDCSNJ1018454-1212235 or EDCSNJ1040337-1157231 - middle age bin 
+;    EDCSNJ1018445-1208545 - young age bin
 
+    gal = ['EDCSNJ1018467-1211527','EDCSNJ1301302-1138187',$
+      'EDCSNJ1018454-1212235',$ ; or EDCSNJ1040337-1157231
+      'EDCSNJ1018445-1208545']
+    match, strtrim(cluster.galaxy,2), gal, m1, m2
+    srt = sort(m1)
+    m1 = m1[srt] & m2 = m2[srt]
+
+    
+    psfile = paperpath+'snr_vs_mag.eps'
+    im_plotconfig, 6, pos, psfile=psfile
+
+    xrange = [0.2,100]
+    yrange1 = [17.5,25]
+    yrange2 = [-16,-24.5]
+
+    xtitle = 'Continuum S/N (pixel^{-1})'
+    ytitle1 = 'I_{tot} (AB mag)'
+    ytitle2 = 'M_{V} (AB mag)'
+
+; vs I-mag    
+    djs_plot, [0], [0], /nodata, position=pos[*,0], xsty=1, ysty=1, $
+      xtickname=replicate(' ',10), xtitle='', ytitle=ytitle1, $
+      xrange=xrange, yrange=yrange1, /xlog
+    djs_oplot, allcluster.continuum_snr, -2.5*alog10(allcluster.maggies[3]), $
+      psym=symcat(16), color=fsc_color('firebrick',101), symsize=0.7
+    djs_oplot, allfield.continuum_snr, -2.5*alog10(allfield.maggies[3]), $
+      psym=symcat(15), color=fsc_color('dodger blue',101), symsize=0.7
+    djs_oplot, 3.0*[1,1], !y.crange, line=0, thick=4
+    djs_oplot, 10^!x.crange, 23*[1,1], line=5, thick=6
+
+; vs M_V
+    djs_plot, [0], [0], /nodata, /noerase, position=pos[*,1], xsty=1, ysty=1, $
+      xtitle=xtitle, ytitle=ytitle2, xrange=xrange, yrange=yrange2, /xlog
+    djs_oplot, allcluster.continuum_snr, allcluster.ubvrijhk_absmag_00[2], $
+      psym=symcat(16), color=fsc_color('firebrick',101), symsize=0.7
+    djs_oplot, allfield.continuum_snr, allfield.ubvrijhk_absmag_00[2], $
+      psym=symcat(15), color=fsc_color('dodger blue',101), symsize=0.7
+    djs_oplot, 3.0*[1,1], !y.crange, line=0, thick=4
+    djs_oplot, 10^!x.crange, -19.0*[1,1], line=5, thick=6
+
+; plot absolute magnitude vs I-band magnitude
+    djs_plot, [0], [0], /nodata, xsty=1, ysty=1, $
+      xtitle=ytitle1, ytitle=ytitle2, xrange=yrange1, yrange=yrange2
+    djs_oplot, -2.5*alog10(allcluster.maggies[3]), allcluster.ubvrijhk_absmag_00[2], $
+      psym=symcat(16), color=fsc_color('firebrick',101), symsize=0.7
+    djs_oplot, -2.5*alog10(allfield.maggies[3]), allfield.ubvrijhk_absmag_00[2], $
+      psym=symcat(15), color=fsc_color('dodger blue',101), symsize=0.7
+    djs_oplot, !x.crange, -19.0*[1,1], line=0, thick=4
+    djs_oplot, 23*[1,1], !y.crange, line=0, thick=4
+
+    im_plotconfig, /psclose, /pdf, psfile=psfile, /pskeep
+
+stop    
+    
+; --------------------------------------------------
+; S/N vs I-band magnitude and M_V
     psfile = paperpath+'snr_vs_mag'+suffix
     im_plotconfig, 6, pos, psfile=psfile
 
@@ -82,7 +144,7 @@ pro plot_ediscs_sfh, ps=ps
     djs_oplot, !x.crange, -19.0*[1,1], line=0, thick=4
     djs_oplot, 23*[1,1], !y.crange, line=0, thick=4
 
-    im_plotconfig, /psclose
+    im_plotconfig, /psclose, /pdf, psfile=psfile
 
 ; --------------------------------------------------
 ; D(4000) vs Hd_A
@@ -101,14 +163,14 @@ pro plot_ediscs_sfh, ps=ps
       xtitle=xtitle+ '(raw)', ytitle=ytitle+ '(raw)', xrange=xrange, yrange=yrange
     oplot_hda_d4000, field.lick_hd_a_cor[0], field.d4000_narrow_cor[0], $
       field.lick_hd_a_cor[1], field.d4000_narrow_cor[1], field.oii_3727_ew[0]
-    legend, 'Field', /right, /top, box=0, charsize=1.8
+    im_legend, 'Field', /right, /top, box=0, charsize=1.8
 ; model
     djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
       xtitle=xtitle+' (BC03)', ytitle=ytitle+ ' (BC03)', xrange=xrange, yrange=yrange
     oplot_hda_d4000, field.lick_hd_a_model[0], field.d4000_narrow_model[0], $
       field.lick_hd_a_model[1]*0.0, field.d4000_narrow_model[1]*0.0, field.oii_3727_ew[0]
-    legend, 'Field', /right, /top, box=0, charsize=1.8
-    im_plotconfig, /psclose
+    im_legend, 'Field', /right, /top, box=0, charsize=1.8
+    im_plotconfig, /psclose, /pdf, psfile=psfile
 
 ; #########################
 ; cluster
@@ -119,15 +181,15 @@ pro plot_ediscs_sfh, ps=ps
       xtitle=xtitle+' (raw)', ytitle=ytitle+' (raw)', xrange=xrange, yrange=yrange
     oplot_hda_d4000, cluster.lick_hd_a_cor[0], cluster.d4000_narrow_cor[0], $
       cluster.lick_hd_a_cor[1], cluster.d4000_narrow_cor[1], cluster.oii_3727_ew[0]
-    legend, 'Cluster', /right, /top, box=0, charsize=1.8
+    im_legend, 'Cluster', /right, /top, box=0, charsize=1.8
     !p.multi = 0
 ; model
     djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
       xtitle=xtitle+' (BC03)', ytitle=ytitle+' (BC03)', xrange=xrange, yrange=yrange
     oplot_hda_d4000, cluster.lick_hd_a_model[0], cluster.d4000_narrow_model[0], $
       cluster.lick_hd_a_model[1]*0.0, cluster.d4000_narrow_model[1]*0.0, cluster.oii_3727_ew[0]
-    legend, 'Cluster', /right, /top, box=0, charsize=1.8
-    im_plotconfig, /psclose
+    im_legend, 'Cluster', /right, /top, box=0, charsize=1.8
+    im_plotconfig, /psclose, /pdf, psfile=psfile
     
 return
 end

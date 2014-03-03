@@ -49,7 +49,7 @@ pro deep2_kcorrect, zcat, result, clobber=clobber
     splog, 'Computing ugriz k-corrections'
     ugriz_kcorrect = im_kcorrect(zcat.zbest,obsmaggies,obsmaggies_ivar,$
       obsfilters,sdss_filterlist(),band_shift=ugriz_band_shift,chi2=chi2,$
-      coeffs=coeffs,rmaggies=rmaggies,vname=vname,mass=mass,/silent,$
+      coeffs=coeffs,bestmaggies=bestmaggies,vname=vname,mass=mass,/silent,$
       absmag=ugriz_absmag,ivarabsmag=ugriz_absmag_ivar,clineflux=cflux)
 
     splog, 'Computing UBVRI k-corrections'
@@ -60,7 +60,8 @@ pro deep2_kcorrect, zcat, result, clobber=clobber
     result_template = {$
 ;     z:                          -999.0, $
       maggies:        fltarr(nobsfilter), $
-      ivarmaggies:   fltarr(nobsfilter), $
+      ivarmaggies:    fltarr(nobsfilter), $
+      bestmaggies:    fltarr(nobsfilter), $
       mass:                       -999.0, $
 ;     intsfh:                     -999.0, $
       coeffs:                  fltarr(5), $
@@ -79,9 +80,10 @@ pro deep2_kcorrect, zcat, result, clobber=clobber
     result = replicate(result_template,ngal)
     result = struct_addtags(zcat,temporary(result))
 
-;   result.z                 = zcat.z
+;   result.z               = zcat.z
     result.maggies         = obsmaggies
     result.ivarmaggies     = obsmaggies_ivar
+    result.bestmaggies     = bestmaggies
     result.mass              = alog10(mass)   ; Chabrier IMF
 ;   result.intsfh            = alog10(intsfh) ; Chabrier IMF
     result.coeffs            = coeffs

@@ -3,7 +3,7 @@ pro phys140_s14_grades, alldata, test=test, sendit=sendit, final=final
 
     path = getenv('TEACHING_DIR')+'/Phys140/140-S14/grades/'
     
-    date = '14feb06' ; update this
+    date = '14feb27' ; update this
     semester = 'Spring 2014'
     class = 'Physics 140 - General Physics II'
 
@@ -15,8 +15,8 @@ pro phys140_s14_grades, alldata, test=test, sendit=sendit, final=final
 ; relative weights
     allassign = ['Homework','Lab','Quizzes','Final Exam']
     weight = [0.25,0.15,0.40,0.20]
-    droplowest = [0,0,0,0]
-;   droplowest = [0,0,1,0]
+;   droplowest = [0,0,0,0]
+    droplowest = [0,0,1,0]
 
 ;   keep = where(strmatch(data.last_name,'*Ippo*'))
 ;   keep = where(data.final_exam gt 0.0)
@@ -24,7 +24,7 @@ pro phys140_s14_grades, alldata, test=test, sendit=sendit, final=final
     
     process_grades, data, assign=assign, allassign=allassign, $
       weight=weight, class=class, semester=semester, test=test, $
-      sendit=sendit, alldata=alldata, final=final
+      sendit=sendit, alldata=alldata, final=final, droplowest=droplowest
     srt = sort(alldata.current_grade)
     struct_print, alldata[srt]
 

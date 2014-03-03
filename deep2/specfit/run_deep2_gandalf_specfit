@@ -12,3 +12,10 @@ echo "deep2_gandalf_specfit_dr4, firstmask=201, lastmask=267" | /usr/bin/nohup i
 echo "deep2_gandalf_specfit_dr4, firstmask=268, lastmask=334" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.log.05 &
 echo "deep2_gandalf_specfit_dr4, firstmask=335, lastmask=399" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.log.06 &
 
+echo "parse_deep2_gandalf_specfit_dr4,   firstmask=0,  lastmask=66" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.parse.log.01 &
+echo "parse_deep2_gandalf_specfit_dr4,  firstmask=67, lastmask=133" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.parse.log.02 &
+echo "parse_deep2_gandalf_specfit_dr4, firstmask=134, lastmask=200" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.parse.log.03 &
+echo "parse_deep2_gandalf_specfit_dr4, firstmask=201, lastmask=267" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.parse.log.04 &
+echo "parse_deep2_gandalf_specfit_dr4, firstmask=268, lastmask=334" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.parse.log.05 &
+echo "parse_deep2_gandalf_specfit_dr4, firstmask=335, lastmask=399" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.parse.log.06 &
+

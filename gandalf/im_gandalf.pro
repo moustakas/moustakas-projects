@@ -585,7 +585,7 @@ FUNCTION FITFUNC_GAS, pars, CSTAR=cstar, GALAXY=galaxy, NOISE=noise, EMISSION_SE
                       GOODPIXELS=goodpixels, L0_GAL=l0_gal, LSTEP_GAL=lstep_gal,                    $
                       BESTFIT=bestfit, WEIGHTS=weights, EMISSION_TEMPLATES=emission_templates,      $
                       INT_DISP=int_disp, LOG10=log10, REDDENING=reddening, L0_TEMPL=l0_templ,       $
-                      FOR_ERRORS=for_errors
+                      FOR_ERRORS=for_errors, teststop=teststop
 compile_opt idl2, hidden
 
 npix = n_elements(galaxy)
@@ -652,6 +652,8 @@ if (total(sol gt 1D20) ge 1) then splog, 'Possible problem!' ; message, 'Problem
 
 ; output weights for the templates
 weights = sol[degree+1:n_elements(sol)-1]
+;print, weights
+if keyword_set(teststop) then stop
 ; Make the array containing each of the best matching emission-line templates
 ;
 ; Array with the Gaussian templates weigths. 
@@ -730,7 +732,9 @@ for i=0,nlines-1 do begin
     sol_final[k]   = sol_final[k+1]* sqrt(2*!pi) * sigma * lambda0[i] * exp(sol_final[k+2]/c)/c 
     k=k+4
     if (keyword_set(for_errors) eq 0) then h=h+2 else h=h+3
+;if i eq 1 then stop
 endfor
+
 ; Append reddening values to the final solution vector, after the
 ; emission-line parameters
 if (keyword_set(for_errors) eq 0) then begin
@@ -1093,7 +1097,7 @@ for iter = 0, 1 do begin
       print, errmsg
       error = best_pars*0.0
    endif
-endfor
+endfor 
 ; #########################
 
 ; ------------------------------------
@@ -1110,9 +1114,9 @@ resid = fitfunc_gas(best_pars,CSTAR=cstar, GALAXY=galaxy, NOISE=noise, $
                     GOODPIXELS=goodpixels, BESTFIT=bestfit, WEIGHTS=weights, $
                     EMISSION_SETUP=emission_setup, L0_GAL=l0_gal, LSTEP_GAL=lstep_gal, $
                     EMISSION_TEMPLATES=emission_templates, INT_DISP=int_disp, $
-                    LOG10=log10, REDDENING=reddening, L0_TEMPL=l0_templ)
+                    LOG10=log10, REDDENING=reddening, L0_TEMPL=l0_templ,teststop=0)
     chi2   = im_robust_sigma(resid, /ZERO)^2 
-;
+
 if total(noise) eq n_elements(galaxy) then begin
     ; If you have input as errors on the fluxes an array of constant unity vales
     ; compute Chi^2/DOF and use this instead of bestnorm/dof to rescale the formal uncertainties
@@ -1181,7 +1185,7 @@ IF KEYWORD_SET(FOR_ERRORS) THEN BEGIN
         start_pars[h+1] = sol_i[1]/velscale + offset ; back to pixels positions
         start_pars[h+2] = sol_i[2]/velscale          ; back to pixels widths
         h = h + 3
-    endfor
+     endfor
     ; If needed, add the starting reddening guesses
     if (n_elements(reddening) ne 0) then $
       start_pars[3*nlines:3*nlines+n_elements(reddening)-1] = sol[4*nlines:4*nlines+n_elements(reddening)-1]

@@ -59,7 +59,7 @@ pro a2744_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
 ; do the fitting!
     if keyword_set(isedfit) then begin
        hff_to_maggies, cat, maggies, ivarmaggies, /nJy, filterlist=filt
-       if keyword_set(photoz) eq 0 then z = cat.zb1
+       if keyword_set(photoz) eq 0 then z = cat.z_b_1
        isedfit, isedfit_paramfile, maggies, ivarmaggies, z, thissfhgrid=thissfhgrid, $
          isedfit_dir=isedfit_dir, outprefix=outprefix, isedfit_results=ised, $
          isedfit_post=isedpost, clobber=clobber, photoz=photoz, index=index

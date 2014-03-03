@@ -9,16 +9,23 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
     montegrids_dir = isedfit_dir+'montegrids/'
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
 
-    filterlist = deep2_filterlist()
-
-    cat = mrdfits(isedfit_dir+'deep2_zcat.fits.gz',1)
+;   filterlist = deep2_filterlist()
+;   cat = mrdfits(isedfit_dir+'deep2_zcat.fits.gz',1)
     
+; fit everything in DR4 so that I can use the iSEDfit results for both
+; targeting tests and template simulations
+    cat = read_deep2_zcat(photo=phot)
+    deep2_to_maggies, phot, maggies, ivarmaggies, filterlist=filterlist
+
+    zminmax = [0.7,1.5]
+    index = where(cat.z gt zminmax[0] and cat.z lt zminmax[1])
+
 ; --------------------------------------------------
 ; write the parameter file
     if keyword_set(write_paramfile) then begin
        write_isedfit_paramfile, params=params, isedfit_dir=isedfit_dir, $
          prefix=prefix, filterlist=filterlist, spsmodels='fsps_v2.4_miles', $
-         imf='chab', redcurve='charlot', /igm, zminmax=[0.7,1.6], nzz=30.0, $
+         imf='chab', redcurve='charlot', /igm, zminmax=zminmax, nzz=30.0, $
          nmodel=1000L, age=[0.1,7.2], tau=[0.01,7], Zmetal=[0.004,0.03], $
          pburst=0.2, interval_pburst=2.0, clobber=clobber
     endif
@@ -42,17 +49,17 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 ; generate the model photometry QAplots
     if keyword_set(qaplot_models) then begin
        thesefilters = ['deep_B','deep_R','deep_I']
-       isedfit_qaplot_models, isedfit_paramfile, cat.maggies, $
-         cat.ivarmaggies, cat.z, isedfit_dir=isedfit_dir, $
+       isedfit_qaplot_models, isedfit_paramfile, maggies, $
+         ivarmaggies, cat.zbest, isedfit_dir=isedfit_dir, $
          thissfhgrid=thissfhgrid, thesefilters=thesefilters, clobber=clobber
     endif
     
 ; --------------------------------------------------
 ; fit!
     if keyword_set(isedfit) then begin
-       isedfit, isedfit_paramfile, cat.maggies, cat.ivarmaggies, $
+       isedfit, isedfit_paramfile, maggies, ivarmaggies, $
          cat.zbest, ra=cat.ra, dec=cat.dec, isedfit_dir=isedfit_dir, $
-         thissfhgrid=thissfhgrid, clobber=clobber
+         thissfhgrid=thissfhgrid, clobber=clobber, index=index
     endif 
 
 ; --------------------------------------------------
@@ -60,8 +67,8 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
     if keyword_set(kcorrect) then begin
        isedfit_kcorrect, isedfit_paramfile, isedfit_dir=isedfit_dir, $
          montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
-         absmag_filterlist=bessell_filterlist(), band_shift=0.0, $
-         clobber=clobber
+         absmag_filterlist=sdss_filterlist(), band_shift=0.0, $
+         clobber=clobber, index=index
     endif 
 
 ; --------------------------------------------------
@@ -70,7 +77,7 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
        galaxy = strtrim(cat.objno,2)+'/'+strtrim(cat.source,2)
        isedfit_qaplot_sed, isedfit_paramfile, isedfit_dir=isedfit_dir, $
          montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
-         clobber=clobber, /xlog, nrandom=50, galaxy=galaxy
+         clobber=clobber, /xlog, nrandom=50, galaxy=galaxy, index=index
     endif
 
 return

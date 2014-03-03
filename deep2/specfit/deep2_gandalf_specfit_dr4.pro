@@ -103,7 +103,7 @@ function deep2_fit_unfluxed_continuum, wave, flux, ferr, zabs=zabs, $
        djs_plot, exp(restwave), restflux, xsty=3, ysty=3, ps=10
 ;      djs_plot, exp(restwave), restflux, xsty=3, ysty=3, ps=10, xr=[4800,5050]
 ;      djs_plot, exp(restwave), restflux, xsty=3, ysty=3, ps=10;, xr=[5500,6800] ; xr=[4700,5050]
-       djs_oplot, exp(restwave[rej]), restflux[rej], ps=6, sym=0.2, color='blue'
+       if rej[0] ne -1 then djs_oplot, exp(restwave[rej]), restflux[rej], ps=6, sym=0.2, color='blue'
        djs_oplot, exp(restwave), continuum, ps=10, color='red'
        splog, 'Waiting for keystroke...' & cc = get_kbrd(1)
     endif
@@ -128,9 +128,9 @@ function deep2_fit_unfluxed_lines, wave, flux, ferr, continuum, $
        sigma_smooth = 600.0
     endif else begin
        if (n_elements(vmaxshift_iter1) eq 0) then vmaxshift_iter1 = 500D
-       vmaxshift_iter2 = 310.0D
-       sigmamax_iter1 = 520.0D
-       sigmamax_iter2 = 520.0D
+       vmaxshift_iter2 = 300.0D
+       sigmamax_iter1 = 500.0D
+       sigmamax_iter2 = 500.0D
        sigma_smooth = 300.0
     endelse
 
@@ -173,10 +173,11 @@ function deep2_fit_unfluxed_lines, wave, flux, ferr, continuum, $
       sigmamax_iter2=sigmamax_iter2
 
 ; parse the output
+;   debug = 1
     if keyword_set(debug) then begin
 ;      djs_plot, exp(restwave), restlineflux, ps=10, xr=[4800,5100]
 ;      djs_plot, exp(restwave), restlineflux, ps=10;, xr=[3650,4100]
-       djs_plot, exp(restwave), restlineflux, ps=10, xr=[6000,6950]
+       djs_plot, exp(restwave), restlineflux, ps=10, xr=[3700,3750]
        djs_oplot, exp(restwave), bestlinefit, ps=10, color='green'
 ;      djs_oplot, exp(restwave[goodpixels]), restlineflux[goodpixels], ps=4, color='blue'
 ;      djs_oplot, exp(restwave[goodlinepixels]), restlineflux[goodlinepixels], ps=4, color='red'
@@ -213,6 +214,7 @@ pro deep2_gandalf_specfit_dr4, zcat, debug=debug, broad=broad, $
 ; fit each mask separately; spectral parameters are from J. Newman+13,
 ; Table 2
     velscale = deep2_ppxf_velscale()
+;   line_inst_vdisp = 0.0 ; Gaussian-sigma resolution at z=1 [km/s]
     line_inst_vdisp = 20.0 ; Gaussian-sigma resolution at z=1 [km/s]
 ;   line_inst_vdisp = 24.0 ; Gaussian-sigma resolution at z=1 [km/s]
     
@@ -225,19 +227,18 @@ pro deep2_gandalf_specfit_dr4, zcat, debug=debug, broad=broad, $
     nfinalpix = 9000L
 ;   nfinalpix = 2*4096L+500L
     specdata_template = {$
-      z:        0.0, $
+      z:                           0.0, $
       line_inst_vdisp: line_inst_vdisp, $
-      continuum_snr:   0.0, $
-      emission_line_chi2:  0.0, $
-
+      continuum_snr:               0.0, $
+      emission_line_chi2:          0.0, $
       wave:          dblarr(nfinalpix), $ ; double!
       flux:          fltarr(nfinalpix), $
       ferr:          fltarr(nfinalpix), $
       continuum:     fltarr(nfinalpix), $
-      etemplates:       fltarr(nfinalpix,nlines),$
-      fitlines:                 intarr(nlines)-1,$
-      sol:                      fltarr(4,nlines),$
-      esol:                     fltarr(4,nlines)}
+      etemplates: fltarr(nfinalpix,nlines),$
+      fitlines:        intarr(nlines)-1,$
+      sol:             fltarr(4,nlines),$
+      esol:             fltarr(4,nlines)}
 
 ; fit each mask separately
     t1 = systime(1)
@@ -259,32 +260,47 @@ pro deep2_gandalf_specfit_dr4, zcat, debug=debug, broad=broad, $
 
 ; fit each object using GANDALF/PPXF
        t0 = systime(1)
-       for iobj = 4, 4 do begin
-;      for iobj = 0, nobj-1 do begin
-;         print, iobj
+;      for iobj = 69, 69 do begin
+;      for iobj = 9, 9 do begin
+;      for iobj = 4, 4 do begin
+       for iobj = 0, nobj-1 do begin
           print, format='("Object ",I0,"/",I0,A10,$)', iobj, nobj, string(13b)
 
-          zabs = zcat_mask[iobj].zbest
+          zabs = zcat_mask[iobj].z ; not zbest!
           vsys = alog(zabs+1.0D)*light ; systemic velocity
 
-; possibly interpolate where the spectra do not overlap and set the
-; inverse variance there equal to zero; also possibly normalize the
-; spectra to be the same where they (nearly) overlap 
-          spec1 = mrdfits(strtrim(spec1dpath+zcat_mask[iobj].file,2)+'.gz',1,/silent)
-          spec2 = mrdfits(strtrim(spec1dpath+zcat_mask[iobj].file,2)+'.gz',2,/silent)
+; combine the red and blue components using the home-grown DEEP2
+; script           
+          spec = fill_gap(strtrim(spec1dpath+zcat_mask[iobj].file,2),/silent)
+          obswave = spec.lambda
+          obsflux = spec.spec
+          obsinvvar = spec.ivar
+          obsvar = 1.0/(obsinvvar+(obsinvvar eq 0))*(obsinvvar ne 0)
 
-          obswave = [spec1.lambda,spec2.lambda]
-          obsflux = [spec1.spec,spec2.spec]
-          obsinvvar = [spec1.ivar,spec2.ivar]
+; get the mean S/N
+          inrange = where(obsinvvar ne 0.0)
+;         inrange = where((obsflux ne 0.0) and (obsinvvar ne 0.0))
+          snr = djs_median(obsflux[inrange]*sqrt(obsinvvar[inrange]))
 
-          srt = sort(obswave)
-          obswave = obswave[srt]
-          obsflux = obsflux[srt]
-          obsinvvar = obsinvvar[srt]          
-          obsferr = obsinvvar*0.0+1E16
-          good = where(obsinvvar gt 0.0,ngood)
-          if ngood eq 0L then message, 'Bad bad!'
-          obsferr[good] = 1.0/sqrt(obsinvvar[good])
+;; possibly interpolate where the spectra do not overlap and set the
+;; inverse variance there equal to zero; also possibly normalize the
+;; spectra to be the same where they (nearly) overlap 
+;          spec1 = mrdfits(strtrim(spec1dpath+zcat_mask[iobj].file,2)+'.gz',1,/silent)
+;          spec2 = mrdfits(strtrim(spec1dpath+zcat_mask[iobj].file,2)+'.gz',2,/silent)
+;
+;          obswave = [spec1.lambda,spec2.lambda]
+;          obsflux = [spec1.spec,spec2.spec]
+;          obsinvvar = [spec1.ivar,spec2.ivar]
+
+;          srt = sort(obswave)
+;          obswave = obswave[srt]
+;          obsflux = obsflux[srt]
+;          obsinvvar = obsinvvar[srt]          
+;
+;          obsferr = obsinvvar*0.0+1E16
+;          good = where(obsinvvar gt 0.0,ngood)
+;          if ngood eq 0L then message, 'Bad bad!'
+;          obsferr[good] = 1.0/sqrt(obsinvvar[good])
 
 ;         djs_plot, [0], [0], xr=minmax(obswave), yr=minmax(obsflux)
 ;         djs_oplot, spec2.lambda, spec2.spec, color='red', ps=10
@@ -297,27 +313,42 @@ pro deep2_gandalf_specfit_dr4, zcat, debug=debug, broad=broad, $
 ; so without too much loss of information set the minimum wavelength
 ; to 6350.0
           if thismask[imask] eq 3252 then begin
-             good = where((obswave ge 6500.0) and $
-               (obswave le 9200.0),ngood)
+             good = where((obswave ge 6500.0) and (obswave le 9200.0),ngood)
           endif else begin
-             good = where((obswave ge zcat_mask[iobj].minwave) and $
-               (obswave le zcat_mask[iobj].maxwave),ngood)
+; the GT and LT (instead of GE and LE) is important for padding the
+; edges by one pixel
+             good = where((obswave gt zcat_mask[iobj].minwave) and $
+               (obswave lt zcat_mask[iobj].maxwave),ngood)
           endelse
-          obswave = obswave[good]
-          obsflux = obsflux[good]
-          obsferr = obsferr[good]
-          obsinvvar = obsinvvar[good]
 
-          log_rebin, minmax(obswave), obsflux, flux, wave, velscale=velscale
-          log_rebin, minmax(obswave), obsferr^2, var, velscale=velscale
+; rebin to constant ln-lambda; don't use log_rebin because it
+; assumes a constant dispersion           
+;         flux = im_log_rebin(obswave,obsflux,outwave=wave,vsc=velscale)
+;         var = im_log_rebin(obswave,obsferr^2,vsc=velscale)
+;         log_rebin, minmax(obswave[good]), obsflux[good], flux, wave, velscale=velscale
+;         log_rebin, minmax(obswave[good]), obsferr[good]^2, var, velscale=velscale
+
+          lnscale = velscale/light
+          npix = floor((alog(max(obswave[good]))-alog(min(obswave[good])))/lnscale)-1
+          wave = alog(min(obswave[good]))+dindgen(npix)*lnscale
+
+          flux = rebin_spectrum(obsflux,obswave,exp(wave))
+          var = rebin_spectrum(obsvar,obswave,exp(wave))
+
+; trim any edge pixels with zero variance
+          good = where(var gt 0,npix)
+          if ngood eq 0 then message, 'Problem here!'
+
+          wave = wave[good]
+          flux = flux[good]
+          var = var[good]
           ferr = sqrt(abs(var))
-          npix = n_elements(wave)
 
-; get the mean S/N
-          inrange = where((obsflux gt 0.0) and (obsferr gt 0.0))
-;         inrange = where((obsflux gt 0.0) and (obswave gt 7900.0) and $
-;           (obswave lt 7700.0) and (obsferr gt 0.0))
-          snr = djs_median(obsflux[inrange]/obsferr[inrange])
+;         splog, 'HACK!!!'
+;         ww = where(exp(wave) gt 7000.0 and exp(wave) lt 7400.0,npix)
+;         wave = wave[ww]
+;         ferr = ferr[ww]
+;         flux = flux[ww]
           
 ; fit the continuum using a very similiar algorithm to
 ; AGES_SMOOTH_RESIDUALS (see ages_gandalf_specfit)
@@ -331,7 +362,14 @@ pro deep2_gandalf_specfit_dr4, zcat, debug=debug, broad=broad, $
             velscale=velscale,linefile=linefile,line_inst_vdisp=line_inst_vdisp,$
             broad=broad,linepars=linepars,esol=esol,etemplates=etemplates,$
             echi2=echi2,debug=debug,vmaxshift_iter1=vmaxshift_iter1)
-stop
+;         print, reform(sol,4,4)
+
+;djs_plot, exp(wave)/(1+zabs), flux, xr=[3710,3740], psym=10
+;djs_oplot, 3726.032*[1,1], !y.crange, color='red'    ; /1.0005
+;djs_oplot, 3728.815*[1,1], !y.crange, color='red'
+;djs_oplot, exp(wave)/(1+zabs), etemplates[*,0], color='orange'
+;djs_oplot, exp(wave)/(1+zabs), etemplates[*,1], color='blue'
+
 ; pack everything into a structure          
           specdata1 = struct_addtags(struct_trimtags(zcat_mask[iobj],$
             select=['galaxy','file','zcatindx','minwave','maxwave','objno',$

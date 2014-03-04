@@ -1,4 +1,4 @@
-pro deep2_elg_targeting
+pro deep2_desi_elg_targeting
 ; jm14mar01siena - optimize the DESI targeting using DEEP2
 ; spectroscopy of galaxies in the Groth Strip (Field 1)
 
@@ -8,8 +8,12 @@ pro deep2_elg_targeting
 
 ; read the full DEEP2 photometric catalog and the window function     
     deep2phot = mrdfits(deep2_path(/cat)+'pcat_ext.fits.gz',1)
+    deep2_to_maggies, deep2phot, mm, ii
+
+stop    
+    
     keep = where(where(strmid(strtrim(deep2phot.objno,2),0,1) eq 1) and $
-      deep2phot.pgal eq 3 and deep2phot.r gt 18 and deep2phot.r lt 23.6,ngal)
+      deep2phot.pgal ge 0.5 and deep2phot.r gt 18 and deep2phot.r lt 23.6,ngal)
     splog, ngal
     phot = deep2phot[keep]
     

@@ -13,22 +13,20 @@ catalogs for 34,830 galaxies with high-quality spectroscopic redshifts
 * deep2.ppxf.specdata.dr4_v1.0.fits.gz - pPXF/GANDALF-based
   emission-line catalog, particularly for [OII] 
 
-The next step is to fit to the broadband photometry using iSEDfit in
-order to determine K-corrections, the continuum flux at 3727 A (around
-[OII]), and the stellar masses and SFRs (and other physical
-properties) for the galaxies in the sample.  iSEDfit is run just on
-galaxies with z=0.7-1.5, where [OII] is measureable in DEEP2 spectroscopy. 
+Next, I fit broadband photometry using iSEDfit in order to determine
+K-corrections, the continuum flux at 3727 A (around [OII]), and the
+stellar masses and SFRs (and other physical properties) for the
+galaxies in the sample.  Note that iSEDfit is run just on galaxies
+with z=0.7-1.5, where [OII] is measureable in DEEP2 spectroscopy.
 
+Running 'desi_deep2_isedfit, /isedfit, /kcorrect, /clobber' yields the
+following iSEDfit catalogs, line-matched to all the preceding FITS
+tables:
 
-Running 'desi_deep2_isedfit, /isedfit, /kcorrect, /clobber'
+* desi_deep2_fsps_v2.4_miles_chab_charlot_sfhgrid01.fits.gz
+* desi_deep2_fsps_v2.4_miles_chab_charlot_sfhgrid01.fits.gz
 
-
-* desi_deep2_fsps_v2.4_miles_chab_charlot_sfhgrid01.fits.gz - iSEDfit
-  catalog (only fitted to z=0.7-1.6 galaxies)
-
-* desi_deep2_fsps_v2.4_miles_chab_charlot_sfhgrid01.fits.gz -
-  iSEDfit-based catalog of K-corrections and 3727-A continuum fluxes
-
+The next step are to 
 
 
 

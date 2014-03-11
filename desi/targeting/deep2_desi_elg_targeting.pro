@@ -46,8 +46,8 @@ pro deep2_desi_elg_targeting, build_parent=build_parent, $
 ; jm14mar01siena - optimize the DESI targeting using DEEP2
 ; spectroscopy of galaxies in the Groth Strip (Field 1)
 
-    deep2path = getenv('IM_PROJECTS_DIR')+'/desi/deep2/'
-    isedfit_paramfile = deep2path+'desi_deep2_paramfile.par'
+    templatepath = getenv('IM_PROJECTS_DIR')+'/desi/templates/'
+    isedfit_paramfile = templatepath+'desi_deep2_paramfile.par'
     winpath = deep2_path(/window)
     outpath = getenv('IM_PROJECTS_DIR')+'/desi/targeting/'
 
@@ -208,7 +208,7 @@ pro deep2_desi_elg_targeting, build_parent=build_parent, $
 ; [OII]-emitting galaxies     
     if keyword_set(build_oiihiz) then begin
        zcat = mrdfits(outpath+'egs_parent_deep2.fits.gz',1)
-       kised = mrdfits(deep2path+'desi_deep2_fsps_v2.4_miles_'+$
+       kised = mrdfits(templatepath+'desi_deep2_fsps_v2.4_miles_'+$
          'chab_charlot_sfhgrid01_kcorr.z0.0.fits.gz',1,$
          rows=zcat.parentindx)
        ppxf = (read_deep2(/ppxf))[zcat.parentindx]

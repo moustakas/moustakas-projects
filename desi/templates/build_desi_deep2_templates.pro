@@ -1,9 +1,10 @@
 ;+
 ; NAME:
-;   SIMULATE_DESI_DEEP2
+;   BUILD_DESI_DEEP2_TEMPLATES
 ;
 ; PURPOSE:
-;   Generate emission-line galaxy spectra for DESI using DEEP2.
+;   Generate emission-line galaxy spectra for DESI using the DEEP2
+;   spectroscopy and photometry.
 ;
 ; INPUTS:
 ;
@@ -32,8 +33,9 @@
 ;
 ; MODIFICATION HISTORY:
 ;   J. Moustakas, 2014 Jan 09, Siena
+;   jm14mar11siena - major update
 ;
-; Copyright (C) 2013, John Moustakas
+; Copyright (C) 2014, John Moustakas
 ; 
 ; This program is free software; you can redistribute it and/or modify 
 ; it under the terms of the GNU General Public License as published by 
@@ -73,7 +75,7 @@ pro simulate_desi_deep2, minwave=minwave, maxwave=maxwave, $
   velpixsize=velpixsize, debug=debug
 ; jm13dec18siena - simulate DESI spectra using DEEP2
 
-    desipath = getenv('IM_PROJECTS_DIR')+'/desi/deep2/'
+    templatepath = getenv('IM_PROJECTS_DIR')+'/desi/deep2/'
 
     light = im_light(/kms)
     light_ang = im_light(/Ang)
@@ -94,8 +96,8 @@ pro simulate_desi_deep2, minwave=minwave, maxwave=maxwave, $
     nline = n_elements(linewave)
     
 ; read the fitted sample
-    if keyword_set(debug) then zcat = mrdfits(desipath+'deep2_zcat.fits.gz',1)
-    ispec = mrdfits(desipath+'deep2_ispec.fits.gz',1)
+    if keyword_set(debug) then zcat = mrdfits(templatepath+'deep2_zcat.fits.gz',1)
+    ispec = mrdfits(templatepath+'deep2_ispec.fits.gz',1)
     ngal = n_elements(ispec)
 
     weff = k_lambda_eff(filterlist=deep2_filterlist())
@@ -112,8 +114,8 @@ pro simulate_desi_deep2, minwave=minwave, maxwave=maxwave, $
        nthese = i2-i1+1L
        these = lindgen(nthese)+i1
 
-       ised = read_isedfit(desipath+'desi_deep2_paramfile.par',/getmodels,$
-         isedfit_dir=desipath,montegrids_dir=desipath+'montegrids/',$
+       ised = read_isedfit(templatepath+'desi_deep2_paramfile.par',/getmodels,$
+         isedfit_dir=templatepath,montegrids_dir=templatepath+'montegrids/',$
          index=these,/flam)
        
        for igal = 0, nthese-1 do begin
@@ -194,7 +196,7 @@ pro simulate_desi_deep2, minwave=minwave, maxwave=maxwave, $
             'MASK','SLIT','Z','CONTINUUM_SNR','OII_3727_*'])
        endfor ; close galaxy loop
 
-       outfile = desipath+'desi_deep2_spectra/desi_deep2_chunk'+$
+       outfile = templatepath+'desi_deep2_spectra/desi_deep2_chunk'+$
          string(ichunk+1,format='(I2.2)')+'.fits'
        
        mkhdr, hdr, outflux, /extend

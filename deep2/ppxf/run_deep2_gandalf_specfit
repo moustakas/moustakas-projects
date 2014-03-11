@@ -5,17 +5,33 @@
 # np = 6 & nmask = 400 & n1 = nmask/np & n2 = ceil(nmask/float(np))
 # niceprint, lindgen(np)*n2, lindgen(np)*n2+n1
 
-echo "deep2_gandalf_specfit_dr4,   firstmask=0,  lastmask=66" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.log.01 &
-echo "deep2_gandalf_specfit_dr4,  firstmask=67, lastmask=133" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.log.02 &
-echo "deep2_gandalf_specfit_dr4, firstmask=134, lastmask=200" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.log.03 &
-echo "deep2_gandalf_specfit_dr4, firstmask=201, lastmask=267" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.log.04 &
-echo "deep2_gandalf_specfit_dr4, firstmask=268, lastmask=334" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.log.05 &
-echo "deep2_gandalf_specfit_dr4, firstmask=335, lastmask=399" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.log.06 &
+echo "deep2_gandalf_specfit_dr4,   firstmask=0,  lastmask=68" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.log.01 &
+echo "deep2_gandalf_specfit_dr4,  firstmask=69, lastmask=137" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.log.02 &
+echo "deep2_gandalf_specfit_dr4, firstmask=138, lastmask=206" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.log.03 &
+echo "deep2_gandalf_specfit_dr4, firstmask=207, lastmask=275" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.log.04 &
+echo "deep2_gandalf_specfit_dr4, firstmask=276, lastmask=344" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.log.05 &
+echo "deep2_gandalf_specfit_dr4, firstmask=345, lastmask=410" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.log.06 &
 
-echo "parse_deep2_gandalf_specfit_dr4,   firstmask=0,  lastmask=66" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.parse.log.01 &
-echo "parse_deep2_gandalf_specfit_dr4,  firstmask=67, lastmask=133" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.parse.log.02 &
-echo "parse_deep2_gandalf_specfit_dr4, firstmask=134, lastmask=200" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.parse.log.03 &
-echo "parse_deep2_gandalf_specfit_dr4, firstmask=201, lastmask=267" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.parse.log.04 &
-echo "parse_deep2_gandalf_specfit_dr4, firstmask=268, lastmask=334" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.parse.log.05 &
-echo "parse_deep2_gandalf_specfit_dr4, firstmask=335, lastmask=399" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.parse.log.06 &
+echo "parse_deep2_gandalf_specfit_dr4,   firstmask=0,  lastmask=68" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.parse.log.01 &
+echo "parse_deep2_gandalf_specfit_dr4,  firstmask=69, lastmask=137" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.parse.log.02 &
+echo "parse_deep2_gandalf_specfit_dr4, firstmask=138, lastmask=206" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.parse.log.03 &
+echo "parse_deep2_gandalf_specfit_dr4, firstmask=207, lastmask=275" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.parse.log.04 &
+echo "parse_deep2_gandalf_specfit_dr4, firstmask=276, lastmask=344" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.parse.log.05 &
+echo "parse_deep2_gandalf_specfit_dr4, firstmask=345, lastmask=410" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.parse.log.06 &
 
+
+
+
+echo "deep2_gandalf_specfit_dr4,   firstmask=0,  lastmask=68, /fixoii" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.fixoii.log.01 &
+echo "deep2_gandalf_specfit_dr4,  firstmask=69, lastmask=137, /fixoii" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.fixoii.log.02 &
+echo "deep2_gandalf_specfit_dr4, firstmask=138, lastmask=206, /fixoii" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.fixoii.log.03 &
+echo "deep2_gandalf_specfit_dr4, firstmask=207, lastmask=275, /fixoii" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.fixoii.log.04 &
+echo "deep2_gandalf_specfit_dr4, firstmask=276, lastmask=344, /fixoii" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.fixoii.log.05 &
+echo "deep2_gandalf_specfit_dr4, firstmask=345, lastmask=410, /fixoii" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.fixoii.log.06 &
+
+echo "parse_deep2_gandalf_specfit_dr4,   firstmask=0,  lastmask=68, /fixoii" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.fixoii.parse.log.01 &
+echo "parse_deep2_gandalf_specfit_dr4,  firstmask=69, lastmask=137, /fixoii" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.fixoii.parse.log.02 &
+echo "parse_deep2_gandalf_specfit_dr4, firstmask=138, lastmask=206, /fixoii" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.fixoii.parse.log.03 &
+echo "parse_deep2_gandalf_specfit_dr4, firstmask=207, lastmask=275, /fixoii" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.fixoii.parse.log.04 &
+echo "parse_deep2_gandalf_specfit_dr4, firstmask=276, lastmask=344, /fixoii" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.fixoii.parse.log.05 &
+echo "parse_deep2_gandalf_specfit_dr4, firstmask=345, lastmask=410, /fixoii" | /usr/bin/nohup idl > & ~/deep2/ppxf_dr4/specfit.fixoii.parse.log.06 &

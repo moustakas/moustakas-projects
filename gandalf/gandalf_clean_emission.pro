@@ -68,6 +68,7 @@ function gandalf_clean_emission, restwave, restflux, bestfit, $
          (mask eq 1),nindx)
        if (nindx ne 0) then begin
           resid_noise = robust_sigma(resid[indx],/zero)
+          if resid_noise eq -1 then resid_noise = djsig(resid[indx])
           if keyword_set(debug) then begin
              plot, exp(restwave), resid, xr=linewave+[-70,70], $
                title=new_linepars[isline[ii]].name, psym=10, $

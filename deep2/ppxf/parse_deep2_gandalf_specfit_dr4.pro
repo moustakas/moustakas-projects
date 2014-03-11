@@ -40,8 +40,8 @@
 ; General Public License for more details. 
 ;-
 
-pro parse_deep2_gandalf_specfit_dr4, thismask=thismask, $
-  firstmask=firstmask, lastmask=lastmask, debug=debug 
+pro parse_deep2_gandalf_specfit_dr4, thismask=thismask, firstmask=firstmask, $
+  lastmask=lastmask, fixoii=fixoii, debug=debug 
 
     snrcut_line = 1.5  ; see GANDALF_CLEAN_EMISSION
 ;   snrcut_line = 3.0  ; see GANDALF_CLEAN_EMISSION
@@ -51,15 +51,18 @@ pro parse_deep2_gandalf_specfit_dr4, thismask=thismask, $
 ; path names and emission-line file name
     version = deep2_version(/ppxf)
     specfitpath = deep2_path(/ppxf,/dr4)
-    linefile = specfitpath+'gandalf_elinelist_'+version+'.dat'
+
+    if keyword_set(fixoii) then oiisuffix = 'fixoii_' else oiisuffix = ''
+    linefile = specfitpath+'gandalf_elinelist_'+oiisuffix+version+'.dat'
     linefile_broad = repstr(linefile,'elinelist_','elinelist_broad_')
+    splog, linefile
 
 ; parse the full list of files written by DEEP2_GANDALF_SPECFIT, or a
 ; subset
     if (n_elements(thismask) eq 0) then begin
-       rawfiles = file_search(specfitpath+'specdata_raw_????.fits.gz')
+       rawfiles = file_search(specfitpath+'specdata_raw_'+oiisuffix+'????.fits.gz')
     endif else begin
-       rawfiles = specfitpath+'specdata_raw_'+$
+       rawfiles = specfitpath+'specdata_raw_'+oiisuffix+$
          string(thismask,format='(I0)')+'.fits.gz'
     endelse
     nraw = n_elements(rawfiles)
@@ -207,7 +210,62 @@ pro parse_deep2_gandalf_specfit_dr4, thismask=thismask, $
 ;        djs_plot, exp(wave), flux, psym=10, xsty=3, ysty=3, xr=[3710,3740]
 ;        djs_oplot, exp(wave), continuum, psym=10, color='red'
 ;        djs_oplot, exp(wave), continuum+bestlinefit, psym=10, color='blue'
-       endfor 
+       endfor
+
+; combine the [OII] doublet
+       specdata = struct_addtags(specdata,replicate({$
+         fixoii:    keyword_set(fixoii),$ ; 1=[OII] doublet ratio was fixed
+         oii_3727:           [0.0,-2.0],$
+         oii_3727_amp:       [0.0,-2.0],$
+         oii_3727_linez:     [0.0,-2.0],$
+         oii_3727_sigma:     [0.0,-2.0],$
+         oii_3727_continuum: [0.0,-2.0],$
+         oii_3727_ew:        [0.0,-2.0],$
+         oii_3727_limit:     [0.0,-2.0],$
+         oii_3727_ew_limit:  [0.0,-2.0],$
+         oii_3727_wave:      3727.4235D},nobj))
+;      for iobj = 4, nobj-1 do begin
+       for iobj = 0, nobj-1 do begin
+; both are good
+          if specdata[iobj].oii_3727_1[1] gt 0.0 and specdata[iobj].oii_3727_2[1] gt 0.0 then begin
+             specdata[iobj].oii_3727[0] = specdata[iobj].oii_3727_1[0]+specdata[iobj].oii_3727_2[0]
+             specdata[iobj].oii_3727[1] = sqrt(specdata[iobj].oii_3727_1[1]^2+specdata[iobj].oii_3727_2[1]^2)
+             specdata[iobj].oii_3727_ew[0] = specdata[iobj].oii_3727_1_ew[0]+specdata[iobj].oii_3727_2_ew[0]
+             specdata[iobj].oii_3727_ew[1] = sqrt(specdata[iobj].oii_3727_1_ew[1]^2+specdata[iobj].oii_3727_2_ew[1]^2)
+
+             specdata[iobj].oii_3727_amp[0] = djs_mean([specdata[iobj].oii_3727_1_amp[0],specdata[iobj].oii_3727_2_amp[0]])
+             specdata[iobj].oii_3727_amp[1] = djs_mean([specdata[iobj].oii_3727_1_amp[1],specdata[iobj].oii_3727_2_amp[1]])
+             specdata[iobj].oii_3727_linez[0] = djs_mean([specdata[iobj].oii_3727_1_linez[0],specdata[iobj].oii_3727_2_linez[0]])
+             specdata[iobj].oii_3727_linez[1] = djs_mean([specdata[iobj].oii_3727_1_linez[1],specdata[iobj].oii_3727_2_linez[1]])
+             specdata[iobj].oii_3727_sigma[0] = djs_mean([specdata[iobj].oii_3727_1_sigma[0],specdata[iobj].oii_3727_2_sigma[0]])
+             specdata[iobj].oii_3727_sigma[1] = djs_mean([specdata[iobj].oii_3727_1_sigma[1],specdata[iobj].oii_3727_2_sigma[1]])
+             specdata[iobj].oii_3727_continuum[0] = djs_mean([specdata[iobj].oii_3727_1_continuum[0],specdata[iobj].oii_3727_2_continuum[0]])
+             specdata[iobj].oii_3727_continuum[1] = djs_mean([specdata[iobj].oii_3727_1_continuum[1],specdata[iobj].oii_3727_2_continuum[1]])
+             specdata[iobj].oii_3727_limit = djs_mean([specdata[iobj].oii_3727_1_limit,specdata[iobj].oii_3727_2_limit])
+             specdata[iobj].oii_3727_ew_limit = djs_mean([specdata[iobj].oii_3727_1_ew_limit,specdata[iobj].oii_3727_2_ew_limit])
+          endif
+; one is good
+          if specdata[iobj].oii_3727_1[1] gt 0.0 and specdata[iobj].oii_3727_2[1] eq -1.0 then begin
+             specdata[iobj].oii_3727 = specdata[iobj].oii_3727_1
+             specdata[iobj].oii_3727_ew = specdata[iobj].oii_3727_1_ew
+             specdata[iobj].oii_3727_amp = specdata[iobj].oii_3727_1_amp
+             specdata[iobj].oii_3727_linez = specdata[iobj].oii_3727_1_linez
+             specdata[iobj].oii_3727_sigma = specdata[iobj].oii_3727_1_sigma
+             specdata[iobj].oii_3727_continuum = specdata[iobj].oii_3727_1_continuum
+             specdata[iobj].oii_3727_limit = specdata[iobj].oii_3727_1_limit
+             specdata[iobj].oii_3727_ew_limit = specdata[iobj].oii_3727_1_ew_limit
+          endif
+          if specdata[iobj].oii_3727_1[1] eq -1.0 and specdata[iobj].oii_3727_2[1] gt 0.0 then begin
+             specdata[iobj].oii_3727 = specdata[iobj].oii_3727_2
+             specdata[iobj].oii_3727_ew = specdata[iobj].oii_3727_2_ew
+             specdata[iobj].oii_3727_amp = specdata[iobj].oii_3727_2_amp
+             specdata[iobj].oii_3727_linez = specdata[iobj].oii_3727_2_linez
+             specdata[iobj].oii_3727_sigma = specdata[iobj].oii_3727_2_sigma
+             specdata[iobj].oii_3727_continuum = specdata[iobj].oii_3727_2_continuum
+             specdata[iobj].oii_3727_limit = specdata[iobj].oii_3727_2_limit
+             specdata[iobj].oii_3727_ew_limit = specdata[iobj].oii_3727_2_ew_limit
+          endif
+       endfor
 
        im_mwrfits, specdata, specdatafile[ii], /clobber
        im_mwrfits, specfit, specfitfile[ii], /clobber

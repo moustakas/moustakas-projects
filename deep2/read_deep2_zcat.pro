@@ -1,4 +1,4 @@
-function read_deep2_zcat, dr=dr, all=all, photo=photo
+function read_deep2_zcat, dr=dr, all=all, photo=photo, weight=weight
 ; jm06aug28uofa
 ; jm13jun17siena - updated to DR4
 ; jm13jul14siena - by default read the sample of objects with (Q>=3)
@@ -20,11 +20,20 @@ function read_deep2_zcat, dr=dr, all=all, photo=photo
     splog, 'Reading '+catpath+zcatfile
     zcat = mrdfits(catpath+zcatfile,1,/silent)
 
-; also optionally read in the line-matched photometry file
+; also optionally read in the line-matched photometry file (see
+; BUILD_DEEP2_PHOTO_CATALOG) 
     if arg_present(photo) then begin
        photofile = 'photo.'+dr+'.goodspec1d'+suffix+'.fits.gz'
        splog, 'Reading '+catpath+photofile
        photo = mrdfits(catpath+photofile,1,/silent)
+    endif
+    
+; also optionally read in the line-matched weight file (see
+; BUILD_DEEP2_COMPLETENESS)
+    if arg_present(weight) then begin
+       weightfile = 'weight.zcat.'+dr+'.goodspec1d'+suffix+'.fits.gz'
+       splog, 'Reading '+catpath+weightfile
+       weight = mrdfits(catpath+weightfile,1,/silent)
     endif
     
 return, zcat

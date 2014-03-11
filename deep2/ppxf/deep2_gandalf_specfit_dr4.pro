@@ -127,7 +127,7 @@ function deep2_fit_unfluxed_lines, wave, flux, ferr, continuum, $
        sigmamax_iter2 = 1D4 ; 2300D ; 1800D
        sigma_smooth = 600.0
     endif else begin
-       if (n_elements(vmaxshift_iter1) eq 0) then vmaxshift_iter1 = 500D
+       if (n_elements(vmaxshift_iter1) eq 0) then vmaxshift_iter1 = 500D ; 500D
        vmaxshift_iter2 = 300.0D
        sigmamax_iter1 = 500.0D
        sigmamax_iter2 = 500.0D
@@ -187,7 +187,7 @@ function deep2_fit_unfluxed_lines, wave, flux, ferr, continuum, $
 return, sol
 end
 
-pro deep2_gandalf_specfit_dr4, zcat, debug=debug, broad=broad, $
+pro deep2_gandalf_specfit_dr4, zcat, debug=debug, fixoii=fixoii, broad=broad, $
   thismask=thismask, firstmask=firstmask, lastmask=lastmask
     
     light = 2.99792458D5 ; speed of light [km/s]
@@ -196,9 +196,12 @@ pro deep2_gandalf_specfit_dr4, zcat, debug=debug, broad=broad, $
     version = deep2_version(/ppxf)
     specfitpath = deep2_path(/ppxf,/dr4)
     spec1dpath = deep2_path(/dr4)
-    linefile = specfitpath+'gandalf_elinelist_'+version+'.dat'
+
+    if keyword_set(fixoii) then oiisuffix = 'fixoii_' else oiisuffix = ''
+    linefile = specfitpath+'gandalf_elinelist_'+oiisuffix+version+'.dat'
     if keyword_set(broad) then $
       linefile = repstr(linefile,'elinelist_','elinelist_broad_')
+    splog, linefile
 
     if n_elements(zcat) eq 0L then zcat = read_deep2_zcat() ; Q34 sample
 
@@ -247,7 +250,7 @@ pro deep2_gandalf_specfit_dr4, zcat, debug=debug, broad=broad, $
 
 ; output file names
        suffix = string(thismask[imask],format='(I0)')       
-       specdatafile = specfitpath+'specdata_raw_'+suffix+'.fits'
+       specdatafile = specfitpath+'specdata_raw_'+oiisuffix+suffix+'.fits'
        if keyword_set(broad) then specdatafile = repstr(specdatafile,'raw_','raw_broad_')
 
 ; read all the spectra off this mask so we don't have to access
@@ -260,13 +263,22 @@ pro deep2_gandalf_specfit_dr4, zcat, debug=debug, broad=broad, $
 
 ; fit each object using GANDALF/PPXF
        t0 = systime(1)
-;      for iobj = 69, 69 do begin
+;      for iobj = 71, 71 do begin
 ;      for iobj = 9, 9 do begin
 ;      for iobj = 4, 4 do begin
        for iobj = 0, nobj-1 do begin
           print, format='("Object ",I0,"/",I0,A10,$)', iobj, nobj, string(13b)
 
           zabs = zcat_mask[iobj].z ; not zbest!
+
+; some hacks to get things working for individual objects; not
+; sure what's going on here (i.e., why the fitted redshifts are
+; so different compared to the official DEEP2 redshifts)
+          case zcat_mask[iobj].objno of
+             11015256L: zabs = 1.221
+             else:
+          endcase
+
           vsys = alog(zabs+1.0D)*light ; systemic velocity
 
 ; combine the red and blue components using the home-grown DEEP2
@@ -362,7 +374,7 @@ pro deep2_gandalf_specfit_dr4, zcat, debug=debug, broad=broad, $
             velscale=velscale,linefile=linefile,line_inst_vdisp=line_inst_vdisp,$
             broad=broad,linepars=linepars,esol=esol,etemplates=etemplates,$
             echi2=echi2,debug=debug,vmaxshift_iter1=vmaxshift_iter1)
-;         print, reform(sol,4,4)
+;         print, reform(sol,4,3)
 
 ;djs_plot, exp(wave)/(1+zabs), flux, xr=[3710,3740], psym=10
 ;djs_oplot, 3726.032*[1,1], !y.crange, color='red'    ; /1.0005

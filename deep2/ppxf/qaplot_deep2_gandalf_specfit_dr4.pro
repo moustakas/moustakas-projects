@@ -175,8 +175,9 @@ pro qaplot_deep2_gandalf_specfit_dr4, specdata, specfit, $
        return
     endif
 
+    fixoii = specdata[0].fixoii ; assume all are the same
     if (n_elements(specfit) eq 0L) then $
-      specfit = read_deep2_gandalf_specfit_dr4(specdata,linear=linear)
+      specfit = read_deep2_gandalf_specfit_dr4(specdata,linear=linear,fixoii=fixoii)
 
     if (n_elements(psfile) eq 0) then psfile = $
       'qaplot_deep2_gandalf_specfit.ps'

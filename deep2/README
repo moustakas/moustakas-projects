@@ -1,39 +1,48 @@
 J. Moustakas - Siena College
-2013 July
+2013 July - original analysis
+2014 March - updated to include spectra from pointing 43 and the
+             statistical weights for the survey
 
 First I downloaded all the DR4 catalogs and 1D and 2D spectra from
 http://deep.ps.uci.edu/dr4/home.html
 
-The full official DEEP2 redshift catalog is called
-zcat.deep2.dr4.fits.gz (N=52989) and the catalog of unique galaxies is
-zcat.deep2.dr4.uniq.fits.gz (N=50319).  Among the unique galaxy
-sample, N=35781 have Q>=3.
+The full official DEEP2 redshift catalog and the catalog of unique
+galaxies are called
+    zcat.deep2.dr4.fits.gz (N=52989) 
+    zcat.deep2.dr4.uniq.fits.gz (N=50319).  
+Among the unique galaxy sample, N=35781 have Q>=3.
 
-However, I found that not all the objects in this redshift catalog
-have 1D/2D spectra, or some of the spectra that can be downloaded are
-empty.  (Similarly, not all the 1D/2D spectra that can be downloaded
-have redshifts, but that's to be expected.)
+However, I found that the 1D/2D spectra of some of the objects in this
+redshift catalog are empty/junk.
 
 The code 'deep2_check_spec1d_dr4' runs through the full catalog of
 unique objects and checks the fidelity of the 1D spectra and produces
-three files:
-    zcat.dr4.nospec1d.fits.gz (N=1272)
-    zcat.dr4.junkspec1d.fits.gz (N=186)
-    zcat.dr4.goodspec1d.fits.gz (N=48861)
-    zcat.dr4.goodspec1d.Q34.fits.gz (N=34817)
+the following files:
+    zcat.dr4.nospec1d.fits.gz (N=0 - all accounted for!)
+    zcat.dr4.junkspec1d.fits.gz (N=78)
+    zcat.dr4.goodspec1d.fits.gz (N=50241)
+    zcat.dr4.goodspec1d.Q34.fits.gz (N=35781)
 
 The first catalog contains objects in the redshift catalog without 1D
-spectra; the second catalog has objects with 1D spectra that contain
-all zeros (or more specifically all the inverse variances are zero,
-although most have Q<3); and the third catalog is my revised
-high-fidelity redshift catalog of (unique) objects with good spectra
-(contains 97% of the original objects).  The last catalog also has the
-following cuts applied:
-    ZBEST GT 0 && ZQUALITY GE 3
+spectra (i.e., none!); the second catalog has objects with 1D spectra
+that contain all zeros (or more specifically all the inverse variances
+are zero, although note that nearly all have Q<3); and the third
+catalog is my revised high-fidelity redshift catalog of (unique)
+objects with good spectra (contains 99.8% of the original objects).
+The last catalog also has the following cuts applied: ZBEST GT 0 &&
+ZQUALITY GE 3.
 
 The 'zcat.dr4.goodspec1d.Q34.fits.gz' redshift catalog is used in all
 my subsequent analysis.  Note that these catalogs can be accessed
-using the 'read_deep2_zcat()' script.
+using the 'read_deep2_zcat(all=all)' script.
+
+Next, generate a line-matched catalog of statistical weights for the
+sample based on the window functions described in Newman+12 and at
+http://deep.ps.uci.edu/dr4/completeness.html by running
+'build_deep2_completeness' which produces the following catalogs:
+    weight.zcat.deep2.dr4.uniq.fits.gz (N=50319)
+    weight.zcat.dr4.goodspec1d.fits.gz (N=50241)
+    weight.zcat.dr4.goodspec1d.Q34.fits.gz (N=35781)
 
 Next, create a line-matched photometric catalog by running
 'build_deep2_photo_catalog', which matches the Matthews+13 extended
@@ -41,25 +50,36 @@ photometric catalog (BRI and ugriz) to my new redshift catalog.  Note
 that some objects in the original redshift catalog do not have entries
 in the Matthews+13 catalog, even though they should, so for these I
 use the original BRI photometry contained in the redshift catalog.
-Among the full sample four objects have valid photometry in just two
+Among the full sample, four objects have valid photometry in just two
 bands, so those aren't very useful; the overwhelming majority (~74%)
 have 8-band photometry (BRI+ugriz), while the remainder (~25%) have
 3-band BRI photometry.  The output files produced are:
-photo.dr4.goodspec1d.fits.gz (N=48861)
-photo.dr4.goodspec1d.Q34.fits.gz (N=34817)
+photo.dr4.goodspec1d.fits.gz (N=50241)
+photo.dr4.goodspec1d.Q34.fits.gz (N=35781)
 
 Next, compute K-corrections for just the Q34 sample using
 'deep2_kcorrect', which creates the line-matched file:
-    kcorr.dr4.goodspec1d.Q34.fits.gz (N=34817)
+    kcorr.dr4.goodspec1d.Q34.fits.gz (N=35781)
 
 Next, model the nebular emission lines in the Q34 sample using
 'deep2_gandalf_specfit_dr4', which runs on each individual DEEP2 mask.
-Then, the routine 'parse_deep2_gandalf_specfit_dr4' is run to parse
-the output files and to produce the final 'specdata' and 'specfit'
-files.  Finally, all the masks are merged together using
+Then, run the routine 'parse_deep2_gandalf_specfit_dr4' to parse the
+output files and to produce the final 'specdata' and 'specfit' files.
+Finally, all the masks are merged together using
 'deep2_merge_gandalf_specfit_dr4', producing an emission-line catalog
 that is line-matched to the parent Q34 redshift catalog:
-deep2.ppxf.specdata.dr4_v1.0.fits.gz (N=34817)
+    deep2.ppxf.specdata.dr4_v1.0.fits.gz (N=35781)
+
+I also produce a catalog in which the [OII] 3726/3729 doublet ratio is
+fixed to be 0.73 (i.e., 3729/3726=1.35) which guarantees that [OII] is
+fitted with both components of the doublet.  The code sequence used is
+'deep2_gandalf_specfit_dr4, /fixoii' then
+'parse_deep2_gandalf_specfit_dr4, /fixoii' then
+'deep2_merge_gandalf_specfit_dr4, /fixoii', resulting in catalog
+below.  Note that in the merging step I use the catalog where the
+[OII] doublet ratio is allowed to vary and where [OII] is
+well-measured in place of the fixed-[OII] measurements.
+    deep2.ppxf.specdata.fixoii.dr4_v1.0.fits.gz (N=35781)
 
 Finally, to create a tarball of all the 1D spectra for this sample of
 objects run the following command from the parent DR4 directory:

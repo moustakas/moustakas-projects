@@ -23,6 +23,7 @@ pro build_deep2_photo_catalog
 ; here
     deep2_to_maggies, phot, mm, ii
     fix = where(total(mm gt 0,1) eq 0)
+    
     phot[fix].bestb = zcat[fix].magb
     phot[fix].bestr = zcat[fix].magr
     phot[fix].besti = zcat[fix].magi

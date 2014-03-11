@@ -1,5 +1,5 @@
 function read_deep2_gandalf_specfit_dr4, specdata1, observed=observed, $
-  linear=linear, silent=silent
+  linear=linear, fixoii=fixoii, silent=silent
 ; jm13dec20siena - based on READ_AGES_GANDALF_SPECFIT; default is to
 ;   return *rest-frame* ln-binned spectra; use /OBSERVED to convert to
 ;   the observed frame, and /LINEAR to convert to linear wavelength 
@@ -10,6 +10,8 @@ function read_deep2_gandalf_specfit_dr4, specdata1, observed=observed, $
        return, -1L
     endif
 
+    if keyword_set(fixoii) then oiisuffix = 'fixoii_' else oiisuffix = ''
+    
     version = deep2_version(/ppxf)
     specfitpath = deep2_path(/ppxf,/dr4)
     spec1dpath = deep2_path(/dr4)
@@ -26,7 +28,7 @@ function read_deep2_gandalf_specfit_dr4, specdata1, observed=observed, $
 
 ; read the SPECFIT file       
        specfitfile = specfitpath+'specfit_'+$
-         string(umask[imask],format='(I0)')+'.fits.gz'
+         oiisuffix+string(umask[imask],format='(I0)')+'.fits.gz'
        if (file_test(specfitfile,/reg) eq 0) then begin
           splog, 'SPECFITFILE '+specfitfile+' not found'
           continue

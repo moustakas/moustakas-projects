@@ -1,10 +1,10 @@
 J. Moustakas
-2014 Mar 04
+2014 Mar
 
 The DEEP2/DESI targeting and template simulations both start from my
 spectral analysis of the DEEP2/DR4 dataset (see the related README).
 The results of this preliminary work are the following line-matched
-catalogs for 34,830 galaxies with high-quality spectroscopic redshifts
+catalogs for 35,781 galaxies with high-quality spectroscopic redshifts
 (Q>=3) and 1D spectra:
     zcat.dr4.goodspec1d.Q34.fits.gz - full redshift catalog
     weight.zcat.dr4.goodspec1d.Q34.fits.gz - statistical weights
@@ -14,16 +14,17 @@ catalogs for 34,830 galaxies with high-quality spectroscopic redshifts
       emission-line catalog, particularly for [OII] 
 
 Next, I fit broadband photometry using iSEDfit in order to determine
-K-corrections, the continuum flux at 3727 A (around [OII]), and the
-stellar masses and SFRs (and other physical properties) for the
-galaxies in the sample.  Note that iSEDfit is run just on galaxies
-with z=0.7-1.5, where [OII] is measureable in DEEP2 spectroscopy.
+K-corrections, estimate the continuum flux at 3727 A (around [OII]),
+and derive the stellar masses and SFRs (and other physical properties)
+for the galaxies in the sample.  Note that iSEDfit is run just on
+galaxies with z=0.7-1.5, where [OII] is measureable in DEEP2
+spectroscopy.  Specifically, running 
+  desi_deep2_isedfit, /isedfit,  /kcorrect, /clobber
+produces the following iSEDfit catalogs, line-matched to all the
+preceding FITS tables:
 
-Running 'desi_deep2_isedfit, /isedfit, /kcorrect, /clobber' yields the
-following iSEDfit catalogs, line-matched to all the preceding FITS
-tables:
     desi_deep2_fsps_v2.4_miles_chab_charlot_sfhgrid01.fits.gz
-    desi_deep2_fsps_v2.4_miles_chab_charlot_sfhgrid01.fits.gz
+    desi_deep2_fsps_v2.4_miles_chab_charlot_sfhgrid01_kcorr.z0.0.fits.gz
 
 The next step are to explore the color selection criteria for DESI.
 

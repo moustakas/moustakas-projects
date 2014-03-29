@@ -93,9 +93,12 @@ pro process_grades, data, assign=assign, allassign=allassign, $
 ; ...now add it up, ignoring missing labs; optionally drop the lowest
 ; grade 
              if keyword_set(lab) then keep = where(points ne 0.0) else begin
-                if droplowest[ii] then $
-                  keep = where(points/possible gt min(points/(1.0*possible)),comp=lowest) else $
-                    keep = lindgen(n_elements(points))
+                if droplowest[ii] then begin
+                   frac = points/(possible+(possible eq 0))*(possible ne 0)+999*(possible eq 0)
+                   keep = where(frac gt min(frac),comp=lowest)
+                endif else begin
+                   keep = lindgen(n_elements(points))
+                endelse
              endelse
              totpoints = total(points[keep])
              totpossible = total(possible[keep])

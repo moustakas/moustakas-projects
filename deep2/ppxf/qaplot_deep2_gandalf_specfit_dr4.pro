@@ -176,8 +176,19 @@ pro qaplot_deep2_gandalf_specfit_dr4, specdata, specfit, $
     endif
 
     fixoii = specdata[0].fixoii ; assume all are the same
-    if (n_elements(specfit) eq 0L) then $
-      specfit = read_deep2_gandalf_specfit_dr4(specdata,linear=linear,fixoii=fixoii)
+    if (n_elements(specfit) eq 0L) then begin
+       fixoii = specdata[uniq(specdata.fixoii,sort(specdata.fixoii))].fixoii
+       if n_elements(fixoii) eq 1 then begin
+          specfit = read_deep2_gandalf_specfit_dr4(specdata,linear=linear,fixoii=fixoii[0])
+       endif else begin
+          zero = where(specdata.fixoii eq 0,comp=one)
+          specfit0 = read_deep2_gandalf_specfit_dr4(specdata[zero],linear=linear,fixoii=0)
+          specfit1 = read_deep2_gandalf_specfit_dr4(specdata[one],linear=linear,fixoii=1)
+          specfit = im_empty_structure(specfit0[0],ncopies=nobj)
+          specfit[zero] = temporary(specfit0)
+          specfit[one] = temporary(specfit1)
+       endelse
+    endif
 
     if (n_elements(psfile) eq 0) then psfile = $
       'qaplot_deep2_gandalf_specfit.ps'

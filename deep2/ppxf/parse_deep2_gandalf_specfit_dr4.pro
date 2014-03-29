@@ -221,8 +221,8 @@ pro parse_deep2_gandalf_specfit_dr4, thismask=thismask, firstmask=firstmask, $
          oii_3727_sigma:     [0.0,-2.0],$
          oii_3727_continuum: [0.0,-2.0],$
          oii_3727_ew:        [0.0,-2.0],$
-         oii_3727_limit:     [0.0,-2.0],$
-         oii_3727_ew_limit:  [0.0,-2.0],$
+         oii_3727_limit:           -2.0,$
+         oii_3727_ew_limit:        -2.0,$
          oii_3727_wave:      3727.4235D},nobj))
 ;      for iobj = 4, nobj-1 do begin
        for iobj = 0, nobj-1 do begin

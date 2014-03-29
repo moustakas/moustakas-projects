@@ -5,7 +5,7 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 ; DESI project
     
     prefix = 'desi_deep2'
-    isedfit_dir = getenv('IM_PROJECTS_DIR')+'/desi/deep2/'
+    isedfit_dir = getenv('IM_PROJECTS_DIR')+'/desi/templates/'
     montegrids_dir = isedfit_dir+'montegrids/'
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
 
@@ -18,7 +18,7 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
     deep2_to_maggies, phot, maggies, ivarmaggies, filterlist=filterlist
 
     zminmax = [0.7,1.5]
-    index = where(cat.z gt zminmax[0] and cat.z lt zminmax[1])
+    index = where(cat.zbest ge zminmax[0] and cat.zbest le zminmax[1])
 
 ; --------------------------------------------------
 ; write the parameter file
@@ -65,6 +65,7 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 ; --------------------------------------------------
 ; compute K-corrections
     if keyword_set(kcorrect) then begin
+;      index = [9,23,29]
        isedfit_kcorrect, isedfit_paramfile, isedfit_dir=isedfit_dir, $
          montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
          absmag_filterlist=sdss_filterlist(), band_shift=0.0, $

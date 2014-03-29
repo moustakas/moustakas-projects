@@ -3,7 +3,7 @@ pro desi_lris14mar
 ; to get redshifts for, for follow-up with Keck/LRIS, all for training
 ; DESI targeting
 
-    outpath = getenv('IM_PROJECTS_DIR')+'/desi/lris14mar/'
+    outpath = getenv('IM_PROJECTS_DIR')+'/desi/targeting/lris14mar/'
 
     deep3 = mrdfits(getenv('IM_DATA_DIR')+'/deep3/deep3.egs.2012jun13.fits.gz',1)
     deep2 = mrdfits(deep2_path(/catalogs)+'zcat.deep2.dr4.uniq.fits.gz',1)

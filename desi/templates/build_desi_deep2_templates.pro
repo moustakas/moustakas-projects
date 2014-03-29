@@ -78,6 +78,7 @@ pro build_desi_deep2_templates, minwave=minwave, maxwave=maxwave, $
 ; jm13dec18siena - take the output of BUILD_DESI_DEEP2_TEMPLATE_SAMPLE
 ;   and generate the full-resolution spectra
 
+    version = 'v1.0'
     templatepath = getenv('IM_PROJECTS_DIR')+'/desi/templates/'
     
     light = im_light(/kms)
@@ -98,7 +99,7 @@ pro build_desi_deep2_templates, minwave=minwave, maxwave=maxwave, $
 
     obswave = crval1+dindgen(npix)*cdelt1 ; log-10 spacing
     obswave_edges = k_lambda_to_edges(10D^obswave)
-    
+
     weff = k_lambda_eff(filterlist=deep2_filterlist())
     nband = n_elements(weff)
 
@@ -222,9 +223,10 @@ pro build_desi_deep2_templates, minwave=minwave, maxwave=maxwave, $
        endfor ; close galaxy loop
 
        if nchunk eq 1 then begin
-          outfile = templatepath+'desi_deep2_templates.fits'
+          outfile = templatepath+'desi_deep2_templates_'+version+'.fits'
        endif else begin
-          outfile = templatepath+'desi_deep2_templates_chunk'+string(ichunk+1,format='(I2.2)')+'.fits'
+          outfile = templatepath+'desi_deep2_templates_'+version+'_chunk'+$
+            string(ichunk+1,format='(I2.2)')+'.fits'
        endelse
 
 ; build the spectrum header

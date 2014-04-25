@@ -29,15 +29,14 @@ function get_hiz, ugriz, mostek=mostek
 return, hiz
 end
 
-function get_ugriz, cat
+function get_ugriz, cat, bri=bri, errbri=brierr, ugrizerr=ugrizerr
 ; compute dust-corrected ugriz magnitudes
     deep2_to_maggies, cat, mm, ii
-    offset = 3 ; offset from the BRI photometry
-    ugriz = fltarr(5,n_elements(cat))-99.0
-    for ii = 0, 4 do begin
-       good = where(mm[offset+ii,*] gt 0)
-       ugriz[ii,good] = -2.5*alog10(mm[offset+ii,good])
-    endfor
+    mag = maggies2mag(mm,ivarmaggies=ii,magerr=magerr)
+    bri = mag[0:2,*]
+    brierr = magerr[0:2,*]
+    ugriz = mag[3:7,*]
+    ugrizerr = magerr[3:7,*]
 return, ugriz
 end
 

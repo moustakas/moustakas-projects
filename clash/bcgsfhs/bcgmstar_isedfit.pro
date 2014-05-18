@@ -1,22 +1,22 @@
-pro bcgsfhs_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
+pro bcgmstar_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
   model_photometry=model_photometry, qaplot_models=qaplot_models, isedfit=isedfit, $
   kcorrect=kcorrect, qaplot_sed=qaplot_sed, thissfhgrid=thissfhgrid, $
   qaplot_results=qaplot_results, clobber=clobber
 ; jm13dec29siena - do SED-fitting
 
-    prefix = 'bcgsfhs'
+    prefix = 'bcgmstar'
     
-    sersicpath = bcgsfhs_path(/sersic)
-    isedfit_dir = bcgsfhs_path(/isedfit)
+    sersicpath = bcgmstar_path(/sersic)
+    isedfit_dir = bcgmstar_path(/isedfit)
     montegrids_dir = isedfit_dir+'montegrids/'
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
     
 ; read the sample
-    sample = read_bcgsfhs_sample(/zsort)
+    sample = read_bcgmstar_sample(/zsort)
     struct_print, sample
     ncl = n_elements(sample)
 
-    filterlist = bcgsfhs_filterlist(short=short)
+    filterlist = bcgmstar_filterlist(short=short)
     nfilt = n_elements(filterlist)
 
 ; gather the photometry
@@ -134,7 +134,7 @@ pro bcgsfhs_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
 ; --------------------------------------------------
 ; generate some QAplots of the results
     if keyword_set(qaplot_results) then begin
-       sample = read_bcgsfhs_sample()
+       sample = read_bcgmstar_sample()
        ncl = n_elements(sample)
 
        ncol = 3 ; number of columns

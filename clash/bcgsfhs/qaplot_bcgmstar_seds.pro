@@ -1,18 +1,18 @@
-pro qaplot_bcgsfhs_seds
+pro qaplot_bcgmstar_seds
 ; jm14jan01siena - generate a QAplot of the SEDs
 
     showmodel = 1
     
-    prefix = 'bcgsfhs'
+    prefix = 'bcgmstar'
 
-    qapath = bcgsfhs_path()
-    ancpath = bcgsfhs_path(/ancillary)
-    sersicpath = bcgsfhs_path(/sersic)
-    isedfit_dir = bcgsfhs_path(/isedfit)
+    qapath = bcgmstar_path()
+    ancpath = bcgmstar_path(/ancillary)
+    sersicpath = bcgmstar_path(/sersic)
+    isedfit_dir = bcgmstar_path(/isedfit)
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
 
 ; read the sample
-    sample = read_bcgsfhs_sample()
+    sample = read_bcgmstar_sample()
     ncl = n_elements(sample)
 
 ; --------------------------------------------------
@@ -23,7 +23,7 @@ pro qaplot_bcgsfhs_seds
     sdssweff = k_lambda_eff()
 
 ; WISE
-    wise = mrdfits(ancpath+'bcgsfhs_wise.fits.gz',1)
+    wise = mrdfits(ancpath+'bcgmstar_wise.fits.gz',1)
     wise_to_maggies, wise, wisemm, wiseii, /mpro
     wiseweff = k_lambda_eff(filterlist=wise_filterlist())
     

@@ -1,10 +1,10 @@
-pro bcgsfhs_get_ancillary
+pro bcgmstar_get_ancillary
 
-    path = bcgsfhs_path(/ancillary)
+    path = bcgmstar_path(/ancillary)
     
     dr9 = mrdfits('photoPosPlate-dr9.fits.gz',1)
     
-    ss = read_bcgsfhs_sample()
+    ss = read_bcgmstar_sample()
     spherematch, dr9.ra, dr9.dec, 15D*hms2dec(ss.ra), hms2dec(ss.dec), 30D/3600.0, m1, m2
     galex = mrdfits('sdss_dr9_galex_gr6.fits.gz',1,rows=m1)
 

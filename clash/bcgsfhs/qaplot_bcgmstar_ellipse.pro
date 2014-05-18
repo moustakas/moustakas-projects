@@ -1,10 +1,10 @@
-pro qaplot_bcgsfhs_ellipse
-; jm13oct22siena - generate a QAplot for the output of BCGSFHS_ELLIPSE
+pro qaplot_bcgmstar_ellipse
+; jm13oct22siena - generate a QAplot for the output of BCGMSTAR_ELLIPSE
 
-    ellpath = bcgsfhs_path(/ellipse)
+    ellpath = bcgmstar_path(/ellipse)
     qapath = ellpath+'qaplots/'
 
-    sample = read_bcgsfhs_sample()
+    sample = read_bcgmstar_sample()
     ncl = n_elements(sample)
 
     pixscale = 0.065

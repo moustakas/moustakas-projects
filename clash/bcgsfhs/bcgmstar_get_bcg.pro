@@ -1,14 +1,14 @@
-pro bcgsfhs_get_bcg, debug=debug
+pro bcgmstar_get_bcg, debug=debug
 ; jm13sep04siena - cut out the BCG
 
 ; note! images in units of [10^-12 erg/s/cm^2/Hz] (pico-maggies)
-    qapath = bcgsfhs_path(/bcg)+'qaplots/'
+    qapath = bcgmstar_path(/bcg)+'qaplots/'
 
 ;   splog, 'Update BCGMODELPATH! to the archive!'
 ;   bcgmodelpath = '/Users/ioannis/archive/bcg_models/'
 
 ; read the sample
-    sample = read_bcgsfhs_sample()
+    sample = read_bcgmstar_sample()
     ncl = n_elements(sample)
 
     pixscale = 0.065D ; [arcsec/pixel]
@@ -19,9 +19,9 @@ pro bcgsfhs_get_bcg, debug=debug
 ;   for ic = 8, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        splog, 'Working on cluster '+cluster
-       skypath = bcgsfhs_path(/skysub)+cluster+'/'
-       outpath = bcgsfhs_path(/bcg)+cluster+'/'
-       skyinfopath = bcgsfhs_path()+'skysub/'
+       skypath = bcgmstar_path(/skysub)+cluster+'/'
+       outpath = bcgmstar_path(/bcg)+cluster+'/'
+       skyinfopath = bcgmstar_path()+'skysub/'
        if file_test(outpath,/dir) eq 0 then file_mkdir, outpath
 
        bcgmodelpath = getenv('CLASH_ARCHIVE')+'/'+strtrim(sample[ic].dirname,2)+$
@@ -102,7 +102,7 @@ pro bcgsfhs_get_bcg, debug=debug
           hextract, invvar, ivarhdr, cutinvvar, cutivarhdr, x0, x1, y0, y1, /silent
 
 ; read the BCG model, sky-subtract, scale to picomaggies (which
-; includes dust correction: see BCGSFHS_SKYSUBTRACT), and finally crop
+; includes dust correction: see BCGMSTAR_SKYSUBTRACT), and finally crop
 ; to the same region
           bcgmodelfile = file_search(bcgmodelpath+cluster+$
             '_mosaic_065mas_*_'+short[ib]+'_drz_*_BCG.fits.gz')
@@ -134,7 +134,7 @@ pro bcgsfhs_get_bcg, debug=debug
           help, outinfo[ib], /str
 
 ; create an object mask so that we can do photometry on the data
-; itself in BCGSFHS_ELLIPSE; a smoothing scale larger than 3 is
+; itself in BCGMSTAR_ELLIPSE; a smoothing scale larger than 3 is
 ; usually too aggressive in the core of the BCG and increasing PLIM
 ; leaves too many faint sources undetected
           if cluster eq 'clj1226' then domask = 0 else domask = 1 ; come back to the mask

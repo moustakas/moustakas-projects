@@ -1,9 +1,9 @@
-pro bcgsfhs_skysubtract
-; jm13sep04siena - sky-subtract the CLASH clusters for the BCGs/SFHs
+pro bcgmstar_skysubtract
+; jm13sep04siena - sky-subtract the CLASH clusters for the BCGs/Mstar
 ; project 
 
 ; note! images are converted to [10^-12 erg/s/cm^2/Hz] (pico-maggies)
-    sample = read_bcgsfhs_sample()
+    sample = read_bcgmstar_sample()
     ncl = n_elements(sample) 
 
     pixscale = 0.065D ; [arcsec/pixel]
@@ -11,7 +11,7 @@ pro bcgsfhs_skysubtract
     ysize = 5000L
     
 ; specifiy the filters and some other handy info    
-    filt = bcgsfhs_filterlist(short=short,instr=instr,$
+    filt = bcgmstar_filterlist(short=short,instr=instr,$
       weff=weff,zpt=zpt)
     allfiltinfo = replicate({filt: '', short: '', instr: '', $
       weff: 0.0, zpt: 0.0},n_elements(filt))
@@ -31,9 +31,9 @@ pro bcgsfhs_skysubtract
     for ic = 0, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        splog, 'Working on cluster '+cluster
-       skypath = bcgsfhs_path(/skysub)
+       skypath = bcgmstar_path(/skysub)
        outpath = skypath+cluster+'/'
-       skyinfopath = bcgsfhs_path()+'skysub/'
+       skyinfopath = bcgmstar_path()+'skysub/'
        if file_test(outpath,/dir) eq 0 then file_mkdir, outpath
 
 ; not all clusters have all filters, so check for that case here

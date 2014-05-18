@@ -44,7 +44,7 @@ function get_sersic_variance, radius_kpc, sersic=sersic, debug=debug
 
     sb = fltarr(n_elements(radius_kpc),nran)
 
-    for ii = 0, nran-1 do sb[*,ii] = bcgsfhs_sersic_func(radius_kpc,$
+    for ii = 0, nran-1 do sb[*,ii] = bcgmstar_sersic_func(radius_kpc,$
       [rand[ii,0],rand[ii,1],rand[ii,2]])
 
     sb_var = radius_kpc*0.0
@@ -56,12 +56,12 @@ function get_sersic_variance, radius_kpc, sersic=sersic, debug=debug
        djs_plot, radius_kpc, sb[*,0], xsty=3, ysty=3, /xlog, $
          /ylog, xrange=[min(radius_kpc)>1E-4,max(radius_kpc)], yrange=minmax(sb)
        for jj = 1, nran-1 do djs_oplot, radius_kpc, sb[*,jj]
-       oploterror, radius_kpc, bcgsfhs_sersic_func(radius_kpc,params=sersic), $
+       oploterror, radius_kpc, bcgmstar_sersic_func(radius_kpc,params=sersic), $
          sqrt(sb_var), color='blue', errcolor='blue', psym=8
        cc = get_kbrd(1)
 
 ; S/N    
-       djs_plot, radius_kpc, bcgsfhs_sersic_func(radius_kpc,$
+       djs_plot, radius_kpc, bcgmstar_sersic_func(radius_kpc,$
          params=sersic)/sqrt(sb_var), xsty=3, ysty=3
        cc = get_kbrd(1)
     endif
@@ -69,7 +69,7 @@ function get_sersic_variance, radius_kpc, sersic=sersic, debug=debug
 return, sb_var
 end
 
-pro bcgsfhs_sersic2, rr, sb, scoeff, sb_ivar=sb_ivar, $
+pro bcgmstar_sersic2, rr, sb, scoeff, sb_ivar=sb_ivar, $
   init_params=init_params, fixed=fixed, sersicfit=sersicfit, $
   fixdevac=fixdevac, verbose=verbose
 ; fit a double Sersic function
@@ -116,7 +116,7 @@ pro bcgsfhs_sersic2, rr, sb, scoeff, sb_ivar=sb_ivar, $
        parinfo[5].fixed = 1
     endif
     
-    params = mpfitfun('bcgsfhs_sersic2_func',xx,xxsb,parinfo=parinfo,$
+    params = mpfitfun('bcgmstar_sersic2_func',xx,xxsb,parinfo=parinfo,$
       yfit=sersicfit,perror=perror,covar=covar,weights=xxsb_ivar,$
       dof=dof,bestnorm=chi2,status=status,quiet=keyword_set(verbose) eq 0,$
       functargs={parinfo: parinfo})
@@ -124,9 +124,9 @@ pro bcgsfhs_sersic2, rr, sb, scoeff, sb_ivar=sb_ivar, $
 ;   djs_plot, rr, -2.5*alog10(xxsb), /xlog, psym=8, xsty=3, ysty=3, $
 ;     yr=-2.5*alog10(minmax(xxsb))
 ;   djs_oplot, rr, -2.5*alog10(sersicfit), color='red'
-;   djs_oplot, rr, bcgsfhs_sersic_func(rr,[-2.5*alog10(params[0]),params[1],params[2]]), $
+;   djs_oplot, rr, bcgmstar_sersic_func(rr,[-2.5*alog10(params[0]),params[1],params[2]]), $
 ;     color='cyan', line=5
-;   djs_oplot, rr, bcgsfhs_sersic_func(rr,[-2.5*alog10(params[3]),params[4],params[5]]), $
+;   djs_oplot, rr, bcgmstar_sersic_func(rr,[-2.5*alog10(params[3]),params[4],params[5]]), $
 ;     color='orange', line=5
 ;   cc = get_kbrd(1)
     
@@ -158,7 +158,7 @@ pro bcgsfhs_sersic2, rr, sb, scoeff, sb_ivar=sb_ivar, $
 return
 end
 
-pro bcgsfhs_sersic, rr, sb, scoeff, sb_ivar=sb_ivar, $
+pro bcgmstar_sersic, rr, sb, scoeff, sb_ivar=sb_ivar, $
   init_params=init_params, fixed=fixed, sersicfit=sersicfit, $
   verbose=verbose
 ; fit a single Sersic function; RR should be in kpc; the model
@@ -192,7 +192,7 @@ pro bcgsfhs_sersic, rr, sb, scoeff, sb_ivar=sb_ivar, $
       parinfo.value = [median(xxsb), 10D, 4D]
     if n_elements(fixed) eq nparam then parinfo.fixed = fixed
     
-    params = mpfitfun('bcgsfhs_sersic_func',xx,xxsb,parinfo=parinfo,$
+    params = mpfitfun('bcgmstar_sersic_func',xx,xxsb,parinfo=parinfo,$
       perror=perror,covar=covar,weights=xxsb_ivar,bestnorm=chi2,dof=dof,$
       status=status,quiet=keyword_set(verbose) eq 0,yfit=sersicfit,functargs={parinfo: parinfo})
 
@@ -215,7 +215,7 @@ pro bcgsfhs_sersic, rr, sb, scoeff, sb_ivar=sb_ivar, $
 return
 end
 
-pro bcgsfhs_sersic2_multiband, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
+pro bcgmstar_sersic2_multiband, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
   init_params=init_params, fixed=fixed, sersicfit=sersicfit, $
   fixdevac=fixdevac, verbose=verbose
 ; fit a double-Sersic function to multiple bands simultaneously; solve
@@ -275,7 +275,7 @@ pro bcgsfhs_sersic2_multiband, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
     endif
 
 ;   struct_print, parinfo
-    params = mpfitfun('bcgsfhs_sersic2_multiband_func',xx,xxsb,parinfo=parinfo,$
+    params = mpfitfun('bcgmstar_sersic2_multiband_func',xx,xxsb,parinfo=parinfo,$
       yfit=sersicfit,perror=perror,covar=covar,weights=xxsb_ivar,dof=dof,$
       bestnorm=chi2,status=status,quiet=keyword_set(verbose) eq 0,$
       functargs={parinfo: parinfo, wave: wave})
@@ -313,7 +313,7 @@ pro bcgsfhs_sersic2_multiband, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
 return
 end
 
-pro bcgsfhs_sersic_multiband, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
+pro bcgmstar_sersic_multiband, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
   init_params=init_params, fixed=fixed, sersicfit=sersicfit, verbose=verbose
 ; fit multiple bands simultaneously; solve for the best-fit half-light
 ; radius and Sersic n parameter, but allow the surface brightness at
@@ -350,7 +350,7 @@ pro bcgsfhs_sersic_multiband, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
         parinfo.value = [10D, 4D, replicate(median(xxsb),nband)]
     if n_elements(fixed) eq nparam then parinfo.fixed = fixed
     
-    params = mpfitfun('bcgsfhs_sersic_multiband_func',xx,xxsb,parinfo=parinfo,$
+    params = mpfitfun('bcgmstar_sersic_multiband_func',xx,xxsb,parinfo=parinfo,$
       perror=perror,covar=covar,weights=xxsb_ivar,bestnorm=chi2,dof=dof,$
       status=status,quiet=keyword_set(verbose) eq 0,yfit=sersicfit,$
       functargs={parinfo: parinfo, wave: wave})
@@ -381,17 +381,17 @@ pro bcgsfhs_sersic_multiband, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
 return
 end
 
-pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
+pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
   qaplot_seds=qaplot_seds, qaplot_sbprofiles=qaplot_sbprofiles, $
   qaplot_colorradius=qaplot_colorradius, verbose=verbose
 ; jm13oct22siena - fit various Sersic models to the output of
-; BCGSFHS_ELLIPSE 
+; BCGMSTAR_ELLIPSE 
 
-    ellpath = bcgsfhs_path(/ellipse)
-    sersicpath = bcgsfhs_path(/sersic)
+    ellpath = bcgmstar_path(/ellipse)
+    sersicpath = bcgmstar_path(/sersic)
 
 ; read the sample
-    sample = read_bcgsfhs_sample()
+    sample = read_bcgmstar_sample()
 
     splog, 'Come back to A2261!'    
 ;   sample = sample[13]
@@ -566,7 +566,7 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
                 amin_kpc = min(modphot[nir[ib]].majora[modgood])*pixscale*arcsec2kpc
 
 ; the equivalent radius needs to be sorted (note: the ellipse
-; parameters in BCGSFHS_ELLIPSE are monotonic in *semi-major axis*,
+; parameters in BCGMSTAR_ELLIPSE are monotonic in *semi-major axis*,
 ; not equivalent radius!)  also add a minimum error floor to the
 ; surface brightnesses
                 sb = modphot[nir[ib]].sb0fit[modgood]*1D
@@ -588,8 +588,8 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
                 sb_ivar = sb_ivar[srt]
              
 ; fit with a single-Sersic and then a double-Sersic
-                bcgsfhs_sersic, radius_kpc, sb, sersic, sb_ivar=sb_ivar, verbose=verbose
-                if dosersic2 then bcgsfhs_sersic2, radius_kpc, sb, sersic2, $
+                bcgmstar_sersic, radius_kpc, sb, sersic, sb_ivar=sb_ivar, verbose=verbose
+                if dosersic2 then bcgmstar_sersic2, radius_kpc, sb, sersic2, $
                   sb_ivar=sb_ivar, fixdevac=fixdevac, verbose=verbose
 
 ; expand the output structure
@@ -645,7 +645,7 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
                 endelse
              endfor
              
-             bcgsfhs_sersic_multiband, fit_radius_kpc, fit_sb, fit_wave, $
+             bcgmstar_sersic_multiband, fit_radius_kpc, fit_sb, fit_wave, $
                multisersic, sb_ivar=fit_sb_ivar, verbose=verbose
              out = struct_addtags(out,im_empty_structure(multisersic[0],ncopies=nfilt))
              
@@ -656,7 +656,7 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
              endfor
              
              if dosersic2 then begin
-                bcgsfhs_sersic2_multiband, fit_radius_kpc, fit_sb, fit_wave, $
+                bcgmstar_sersic2_multiband, fit_radius_kpc, fit_sb, fit_wave, $
                   multisersic2, sb_ivar=fit_sb_ivar, sersicfit=sersicfit, $
                   fixdevac=fixdevac, verbose=verbose
                 out = struct_addtags(out,im_empty_structure(multisersic2[0],ncopies=nfilt))
@@ -710,7 +710,7 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
                 endelse
              endfor
              
-             bcgsfhs_sersic_multiband, fit_radius_kpc, fit_sb, fit_wave, $
+             bcgmstar_sersic_multiband, fit_radius_kpc, fit_sb, fit_wave, $
                multisersic, sb_ivar=fit_sb_ivar, verbose=verbose
              for ib = 0, nopt-1 do begin
                 out[opt[ib]] = im_struct_assign(multisersic[ib],out[opt[ib]],/nozero)
@@ -719,7 +719,7 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
              endfor
           
              if dosersic2 then begin
-                bcgsfhs_sersic2_multiband, fit_radius_kpc, fit_sb, fit_wave, $
+                bcgmstar_sersic2_multiband, fit_radius_kpc, fit_sb, fit_wave, $
                   multisersic2, sb_ivar=fit_sb_ivar, sersicfit=sersicfit, $
                   fixdevac=fixdevac, verbose=verbose
                 for ib = 0, nopt-1 do begin
@@ -772,7 +772,7 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
                 endelse
              endfor
              
-             bcgsfhs_sersic_multiband, fit_radius_kpc, fit_sb, fit_wave, $
+             bcgmstar_sersic_multiband, fit_radius_kpc, fit_sb, fit_wave, $
                multisersic, sb_ivar=fit_sb_ivar, verbose=verbose
              for ib = 0, nblue-1 do begin
                 out[blue[ib]] = im_struct_assign(multisersic[ib],out[blue[ib]],/nozero)
@@ -781,7 +781,7 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
              endfor
              
              if dosersic2 then begin
-                bcgsfhs_sersic2_multiband, fit_radius_kpc, fit_sb, fit_wave, $
+                bcgmstar_sersic2_multiband, fit_radius_kpc, fit_sb, fit_wave, $
                   multisersic2, sb_ivar=fit_sb_ivar, sersicfit=sersicfit, $
                   fixdevac=fixdevac, verbose=verbose
                 for ib = 0, nblue-1 do begin
@@ -904,10 +904,10 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
              yrange = [min(color-colorerr),max(color+colorerr)]
 ;            splog, band, yrange
              
-             sersiccolor = bcgsfhs_sersic_func(rr,params=sersic[ib])-$
-               bcgsfhs_sersic_func(rr,params=sersic[0])
-             if dosersic2 then sersic2color = -2.5*alog10(bcgsfhs_sersic2_func(rr,params=sersic[ib])/$
-               bcgsfhs_sersic2_func(rr,params=sersic[0]))
+             sersiccolor = bcgmstar_sersic_func(rr,params=sersic[ib])-$
+               bcgmstar_sersic_func(rr,params=sersic[0])
+             if dosersic2 then sersic2color = -2.5*alog10(bcgmstar_sersic2_func(rr,params=sersic[ib])/$
+               bcgmstar_sersic2_func(rr,params=sersic[0]))
              
              if ib-1 eq 1 then title = strupcase(cluster) else delvarx, title
              if ib-1 ge nfilt-4 then begin
@@ -1032,20 +1032,20 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
              
              im_legend, band, /right, /top, box=0, margin=0, charsize=1.0
              
-             djs_oplot, rr, bcgsfhs_sersic_func(rr,params=sersic[ib]), $
+             djs_oplot, rr, bcgmstar_sersic_func(rr,params=sersic[ib]), $
                color=cgcolor('firebrick')
-             if ib gt 0 then djs_oplot, rr, bcgsfhs_sersic_func(rr,$
+             if ib gt 0 then djs_oplot, rr, bcgmstar_sersic_func(rr,$
                params=sersic[0]), color=cgcolor('forest green')
              
              if dosersic2 then begin
-                djs_oplot, rr, -2.5*alog10(bcgsfhs_sersic2_func(rr,params=sersic[ib])), $
+                djs_oplot, rr, -2.5*alog10(bcgmstar_sersic2_func(rr,params=sersic[ib])), $
                   color=cgcolor('dodger blue')
                 if sersic[ib].sersic2_sbe1 eq 0.0 or sersic[ib].sersic2_sbe2 eq 0.0 then begin
                    splog, '  '+band+': second Sersic dropped!'
                 endif else begin
-                   djs_oplot, rr, bcgsfhs_sersic_func(rr,[-2.5*alog10(sersic[ib].sersic2_sbe1),$
+                   djs_oplot, rr, bcgmstar_sersic_func(rr,[-2.5*alog10(sersic[ib].sersic2_sbe1),$
                      sersic[ib].sersic2_re1,sersic[ib].sersic2_n1]), color=cgcolor('orange'), line=2
-                   djs_oplot, rr, bcgsfhs_sersic_func(rr,[-2.5*alog10(sersic[ib].sersic2_sbe2),$
+                   djs_oplot, rr, bcgmstar_sersic_func(rr,[-2.5*alog10(sersic[ib].sersic2_sbe2),$
                      sersic[ib].sersic2_re2,sersic[ib].sersic2_n2]), color=cgcolor('orange'), line=2
 ;                  if band eq 'F435W' then stop
                 endelse
@@ -1149,10 +1149,10 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
              int_radius_arcsec = [radius_arcsec_extrap_in,radius_arcsec,radius_arcsec_extrap_out]
 
 ; single and 2-component Sersic fluxes
-;            int_sb = [10.0^(-0.4*bcgsfhs_sersic_func(radius_arcsec_extrap_in*arcsec2kpc,params=sersic[ib])),$
-;              sb,10.0^(-0.4*bcgsfhs_sersic_func(radius_arcsec_extrap_out*arcsec2kpc,params=sersic[ib]))]
-             int_sb = [bcgsfhs_sersic2_func(radius_arcsec_extrap_in*arcsec2kpc,params=sersic[ib]),$
-               sb,bcgsfhs_sersic2_func(radius_arcsec_extrap_out*arcsec2kpc,params=sersic[ib])]
+;            int_sb = [10.0^(-0.4*bcgmstar_sersic_func(radius_arcsec_extrap_in*arcsec2kpc,params=sersic[ib])),$
+;              sb,10.0^(-0.4*bcgmstar_sersic_func(radius_arcsec_extrap_out*arcsec2kpc,params=sersic[ib]))]
+             int_sb = [bcgmstar_sersic2_func(radius_arcsec_extrap_in*arcsec2kpc,params=sersic[ib]),$
+               sb,bcgmstar_sersic2_func(radius_arcsec_extrap_out*arcsec2kpc,params=sersic[ib])]
 
 ; the code below is fancier because it takes into account the covariance in
 ; the Sersic parameters, but for now just extrapolate the last
@@ -1186,23 +1186,23 @@ pro bcgsfhs_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
 
 ;; single Sersic             
 ;             phot[ib].dabmag_in = -2.5*alog10(1+2.0*!pi*im_integral(radius_arcsec_extrap_in,$
-;               radius_arcsec_extrap_in*10.0^(-0.4*bcgsfhs_sersic_func($
+;               radius_arcsec_extrap_in*10.0^(-0.4*bcgmstar_sersic_func($
 ;               radius_arcsec_extrap_in*arcsec2kpc,params=sersic[ib])))/phot[ib].maggies_int_obs)
 ;             phot[ib].dabmag_out = -2.5*alog10(1+2.0*!pi*im_integral(radius_arcsec_extrap_out,$
-;               radius_arcsec_extrap_out*10.0^(-0.4*bcgsfhs_sersic_func($
+;               radius_arcsec_extrap_out*10.0^(-0.4*bcgmstar_sersic_func($
 ;               radius_arcsec_extrap_out*arcsec2kpc,params=sersic[ib])))/phot[ib].maggies_int_obs)
 ; double Sersic             
              phot[ib].dabmag_in = -2.5*alog10(1+2.0*!pi*im_integral(radius_arcsec_extrap_in,$
-               radius_arcsec_extrap_in*bcgsfhs_sersic2_func($
+               radius_arcsec_extrap_in*bcgmstar_sersic2_func($
                radius_arcsec_extrap_in*arcsec2kpc,params=sersic[ib]))/phot[ib].maggies_int_obs)
              phot[ib].dabmag_out = -2.5*alog10(1+2.0*!pi*im_integral(radius_arcsec_extrap_out,$
-               radius_arcsec_extrap_out*bcgsfhs_sersic2_func($
+               radius_arcsec_extrap_out*bcgmstar_sersic2_func($
                radius_arcsec_extrap_out*arcsec2kpc,params=sersic[ib]))/phot[ib].maggies_int_obs)
 
              phot[ib].dabmag_int = -2.5*alog10(phot[ib].maggies_int/phot[ib].maggies_int_obs)
 
 ;            print, phot[ib].band, 2.0*!pi*im_integral(radius_arcsec_extrap_out,$
-;              radius_arcsec_extrap_out*10.0^(-0.4*bcgsfhs_sersic_func($
+;              radius_arcsec_extrap_out*10.0^(-0.4*bcgmstar_sersic_func($
 ;              radius_arcsec_extrap_out*arcsec2kpc,params=sersic[ib])))
 
 ; now do photometry in each aperture
@@ -1241,10 +1241,10 @@ end
 ;; this (working) code is to use the F160W to constrain the free
 ;; parameters of the Sersic model
 ;          if ib gt 0 then begin
-;             bcgsfhs_sersic, radius_kpc, sb, sersic, sb_ivar=sb_ivar, $
+;             bcgmstar_sersic, radius_kpc, sb, sersic, sb_ivar=sb_ivar, $
 ;               init_params=[out[0].sersic_sb0,out[0].sersic_k,$
 ;               out[0].sersic_n], fixed=[0,1,1]
 ;          endif else begin
-;             bcgsfhs_sersic, radius_kpc, sb, sersic, sb_ivar=sb_ivar
+;             bcgmstar_sersic, radius_kpc, sb, sersic, sb_ivar=sb_ivar
 ;          endelse
 

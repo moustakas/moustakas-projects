@@ -55,19 +55,19 @@ function read_and_interpolate, files, Zmetal=Zmetal, age=age, $
 return, out
 end
 
-pro plotbcgsfhs_ssps, pdf=pdf, build_models=build_models, clobber=clobber
+pro plotbcgmstar_ssps, pdf=pdf, build_models=build_models, clobber=clobber
 ; jm13oct25siena - construct a grid of SSPs of varying metallicity and
 ; age; plot the model grids and the data on a plot for the paper
 
-    sample = read_bcgsfhs_sample()
+    sample = read_bcgmstar_sample()
     ncl = n_elements(sample)
     
-    bcgpath = bcgsfhs_path()
+    bcgpath = bcgmstar_path()
     if keyword_set(pdf) then begin
-       paperpath = bcgsfhs_path()
+       paperpath = bcgmstar_path()
        suffix = '.ps'
     endif else begin
-       paperpath = bcgsfhs_path(/paper)
+       paperpath = bcgmstar_path(/paper)
        suffix = '.eps'
     endelse
 

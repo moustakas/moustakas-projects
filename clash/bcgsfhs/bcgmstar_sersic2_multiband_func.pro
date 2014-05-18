@@ -1,4 +1,4 @@
-function bcgsfhs_sersic2_multiband_func, rr, pp, parinfo=parinfo, wave=wave
+function bcgmstar_sersic2_multiband_func, rr, pp, parinfo=parinfo, wave=wave
 ; fit multiple bands simultaneously 
 ; 
 ; pp = [sbe,re,n]

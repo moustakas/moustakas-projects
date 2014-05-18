@@ -1,4 +1,4 @@
-function bcgsfhs_sersic2_func, rr, pp, params=params, parinfo=parinfo
+function bcgmstar_sersic2_func, rr, pp, params=params, parinfo=parinfo
 ; pp = [sbe1,re1,n1,sbe2,re2,n2]
 
     if n_elements(params) ne 0 then pp = $

@@ -1,15 +1,15 @@
-pro plotbcgsfhs_sbprofiles, pdf=pdf
+pro plotbcgmstar_sbprofiles, pdf=pdf
 ; jm13oct19siena - plot the SB profiles
 
     if keyword_set(pdf) then begin
-       paperpath = bcgsfhs_path()
+       paperpath = bcgmstar_path()
        suffix = '.ps'
     endif else begin
-       paperpath = bcgsfhs_path(/paper)
+       paperpath = bcgmstar_path(/paper)
        suffix = '.eps'
     endelse
 
-    sample = read_bcgsfhs_sample()
+    sample = read_bcgmstar_sample()
     ncl = n_elements(sample)
 
     pixscale = 0.065
@@ -48,9 +48,9 @@ pro plotbcgsfhs_sbprofiles, pdf=pdf
     for ic = 0, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        print & splog, cluster, sample[ic].z
-       ellpath = bcgsfhs_path(/ellipse)
-       sersicpath = bcgsfhs_path(/sersic)
-;      datapath = bcgsfhs_path(/bcg)+cluster+'/'
+       ellpath = bcgmstar_path(/ellipse)
+       sersicpath = bcgmstar_path(/sersic)
+;      datapath = bcgmstar_path(/bcg)+cluster+'/'
 
        arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]
        
@@ -130,7 +130,7 @@ pro plotbcgsfhs_sbprofiles, pdf=pdf
 ; overplot the single Sersic function
           rrser = [0,range(1E-3,200.0,500,/log)]
 ;         rrser = [0,range(1E-3,max(rr),500,/log)]
-          djs_oplot, rrser, -2.5*alog10(bcgsfhs_sersic_func(rrser,params=sersic[this])), $
+          djs_oplot, rrser, -2.5*alog10(bcgmstar_sersic_func(rrser,params=sersic[this])), $
             color=cgcolor(color2[ii]), line=line[ii], thick=3
           
 ; overplot Marc's SB profile, as a consistency check

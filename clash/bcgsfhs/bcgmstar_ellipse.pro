@@ -58,14 +58,14 @@ pro convert_sb, ellipse, pixscale=pixscale
 return
 end    
 
-pro bcgsfhs_ellipse, debug=debug, clobber=clobber
+pro bcgmstar_ellipse, debug=debug, clobber=clobber
 ; jm13sep16siena - perform ellipse fitting on the BCG cutouts written
-; out by BCGSFHS_GET_BCGS
+; out by BCGMSTAR_GET_BCGS
 
 ; note! images in units of [10^-12 erg/s/cm^2/Hz] (pico-maggies)
 
 ; read the sample
-    sample = read_bcgsfhs_sample()
+    sample = read_bcgmstar_sample()
     ncl = n_elements(sample)
 
     fact = 1D-12                           ; conversion from picomaggies to maggies
@@ -73,14 +73,14 @@ pro bcgsfhs_ellipse, debug=debug, clobber=clobber
     pixarea = 5.0*alog10(pixscale)         ; 2.5*log10(pixscale^2)
     rmax = 200.0                           ; [kpc]
 
-    ellpath = bcgsfhs_path(/ellipse)
+    ellpath = bcgmstar_path(/ellipse)
 
 ; wrap on each cluster    
     for ic = 10, 10 do begin
 ;   for ic = 0, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        splog, 'Working on cluster '+cluster
-       datapath = bcgsfhs_path(/bcg)+cluster+'/'
+       datapath = bcgmstar_path(/bcg)+cluster+'/'
 
 ; read the info structure to get the filters
        info = mrdfits(datapath+cluster+'-mgeskyinfo.fits.gz',1,/silent)
@@ -224,7 +224,7 @@ end
 ;          oploterror, modellipse.radius_kpc, modellipse.sb0fit, $
 ;            1.0/sqrt(modellipse.sb0fit_ivar), psym=symcat(9), $
 ;            symsize=0.5, color=cgcolor('dodger blue')
-;          djs_oplot, imellipse.radius_kpc, bcgsfhs_sersic_func(imellipse), $
+;          djs_oplot, imellipse.radius_kpc, bcgmstar_sersic_func(imellipse), $
 ;            color=cgcolor('firebrick')
 ;          djs_oplot, modellipse.radius_kpc, -2.5*alog10(exp(sersic_func(modellipse.radius,$
 ;            [modellipse.sersic_lnsb0,modellipse.sersic_k,modellipse.sersic_n]))/alog(10)), $

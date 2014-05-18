@@ -29,7 +29,7 @@ pro get_colorcutout, image, outfile=outfile, cluster=cluster
 return
 end
 
-pro plotbcgsfhs_montage, cfirst, clast, dobcg=dobcg, donobcg=donobcg, $
+pro plotbcgmstar_montage, cfirst, clast, dobcg=dobcg, donobcg=donobcg, $
   doimage=doimage, onecluster_montage=onecluster_montage, final_montage=final_montage, $
   doitall=doitall
 ; jm13nov01siena - build a color montage of all the BCGs 
@@ -37,7 +37,7 @@ pro plotbcgsfhs_montage, cfirst, clast, dobcg=dobcg, donobcg=donobcg, $
 ; note that /DOIMAGE should be run first so that we can build a good
 ; 'levels.txt' file!
 
-;   echo "plotbcgsfhs_montage, /doitall" | idl > & plotbcgsfhs_montage.log &
+;   echo "plotbcgmstar_montage, /doitall" | idl > & plotbcgmstar_montage.log &
     
     if keyword_set(doitall) then begin
        doimage = 1
@@ -46,10 +46,10 @@ pro plotbcgsfhs_montage, cfirst, clast, dobcg=dobcg, donobcg=donobcg, $
 ;      onecluster_montage = 1
     endif
     
-    coloroutpath = bcgsfhs_path(/colormosaics)
-    paperpath = bcgsfhs_path(/paper)
+    coloroutpath = bcgmstar_path(/colormosaics)
+    paperpath = bcgmstar_path(/paper)
 
-    sample = read_bcgsfhs_sample()
+    sample = read_bcgmstar_sample()
     ncl = n_elements(sample)
 
 ; choose the red, blue, and green filters
@@ -273,7 +273,7 @@ pro plotbcgsfhs_montage, cfirst, clast, dobcg=dobcg, donobcg=donobcg, $
 ; ---------------------------------------------------------------------------
 ; build the final montage!  write a full-resolution 
     if keyword_set(final_montage) then begin
-       outfile = bcgsfhs_path()+'bcg-finalmontage.png'
+       outfile = bcgmstar_path()+'bcg-finalmontage.png'
        infile = strjoin(file_search(coloroutpath+'*-montage.png'),' ')
        
        cmd = 'montage -bordercolor white -borderwidth 1 '+ $

@@ -1,7 +1,7 @@
-function read_bcgsfhs_sample, zsort=zsort
+function read_bcgmstar_sample, zsort=zsort
 ; jm13oct19siena - read the sample
 ;   sample = rsex(getenv('CLASH_DIR')+'/clash_sample.sex')
-    sample = rsex(bcgsfhs_path(/propath)+'bcgsfhs_sample.sex')
+    sample = rsex(bcgmstar_path(/propath)+'bcgmstar_sample.sex')
     if keyword_set(zsort) then sample = sample[sort(sample.z)]
     
 ;   struct_print, sample

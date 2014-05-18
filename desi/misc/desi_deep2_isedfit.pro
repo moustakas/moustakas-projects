@@ -15,8 +15,9 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 ; fit everything in DR4 so that I can use the iSEDfit results for both
 ; targeting tests and template simulations
     cat = read_deep2_zcat(photo=phot)
-    deep2_to_maggies, phot, maggies, ivarmaggies, filterlist=filterlist
-
+    deep2_to_maggies, phot, maggies, ivarmaggies, /unwise, $
+      filterlist=filterlist, ratag='ra_deep', dectag='dec_deep'
+    
     zminmax = [0.7,1.5]
     index = where(cat.zbest ge zminmax[0] and cat.zbest le zminmax[1])
 
@@ -57,9 +58,13 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 ; --------------------------------------------------
 ; fit!
     if keyword_set(isedfit) then begin
+       outprefix = 'unwise'
+       index = where(phot.w1_nanomaggies_ivar ne 0 and cat.zbest ge zminmax[0] and $
+         cat.zbest le zminmax[1])
        isedfit, isedfit_paramfile, maggies, ivarmaggies, $
          cat.zbest, ra=cat.ra, dec=cat.dec, isedfit_dir=isedfit_dir, $
-         thissfhgrid=thissfhgrid, clobber=clobber, index=index
+         thissfhgrid=thissfhgrid, clobber=clobber, index=index, $
+         outprefix=outprefix
     endif 
 
 ; --------------------------------------------------
@@ -69,16 +74,20 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
        isedfit_kcorrect, isedfit_paramfile, isedfit_dir=isedfit_dir, $
          montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
          absmag_filterlist=sdss_filterlist(), band_shift=0.0, $
-         clobber=clobber, index=index
+         clobber=clobber, index=index, outprefix=outprefix
     endif 
 
 ; --------------------------------------------------
 ; generate spectral energy distribution (SED) QAplots
     if keyword_set(qaplot_sed) then begin
-       galaxy = strtrim(cat.objno,2)+'/'+strtrim(cat.source,2)
+       outprefix = 'unwise'
+       index = (where(phot.w1_nanomaggies_ivar ne 0 and cat.zbest ge zminmax[0] and $
+         cat.zbest le zminmax[1]))[0:30]
+       galaxy = strtrim(cat.objno,2);+'/'+strtrim(cat.source,2)
        isedfit_qaplot_sed, isedfit_paramfile, isedfit_dir=isedfit_dir, $
          montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
-         clobber=clobber, /xlog, nrandom=50, galaxy=galaxy, index=index
+         clobber=clobber, /xlog, nrandom=50, galaxy=galaxy, index=index, $
+         outprefix=outprefix;, yrange=[26,15]
     endif
 
 return

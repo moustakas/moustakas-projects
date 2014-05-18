@@ -4,7 +4,7 @@ pro hff_to_maggies, cat, maggies, ivar, filterlist=filterlist, $
 
     ngal = n_elements(cat)    
     if (ngal le 0L) then begin
-       doc_library, 'cat_to_maggies'
+       doc_library, 'hff_to_maggies'
        return
     endif
 

@@ -33,6 +33,7 @@ pro bcgsfhs_skysubtract
        splog, 'Working on cluster '+cluster
        skypath = bcgsfhs_path(/skysub)
        outpath = skypath+cluster+'/'
+       skyinfopath = bcgsfhs_path()+'skysub/'
        if file_test(outpath,/dir) eq 0 then file_mkdir, outpath
 
 ; not all clusters have all filters, so check for that case here
@@ -112,7 +113,7 @@ pro bcgsfhs_skysubtract
        skyinfo.sblimit = -2.5*alog10(skyinfo.sigma)+5*alog10(pixscale)-2.5*alog10(1D-12)
        struct_print, skyinfo
 
-       im_mwrfits, skyinfo, skypath+'skyinfo-'+cluster+'.fits', /clobber
+       im_mwrfits, skyinfo, skyinfopath+'skyinfo-'+cluster+'.fits', /clobber
 
 ; add the Poisson noise of the objects in quadrature to the
 ; 'intrinsic' inverse variance maps and convert to physical units

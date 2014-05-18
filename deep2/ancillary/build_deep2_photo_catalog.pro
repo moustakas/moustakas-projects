@@ -1,10 +1,13 @@
 pro build_deep2_photo_catalog
 ; jm13jul14siena - match the Matthews+13 extended photometric catalog
 ;   to my revised redshift catalog of objects with good spectra
-; jm13dec23siena - add WISE photometry
+; jm14may15siena - add unWISE photometry
 
     catpath = deep2_path(/catalogs)
-    
+
+; read the unwise catalog    
+    unwise = mrdfits(catpath+'deep2-egs-unwise.fits.gz',1)
+
 ; good objects
     phot = mrdfits(catpath+'zcat_ext.uniq.fits.gz',1)
     zcat = read_deep2_zcat() ; Q>=3
@@ -17,6 +20,7 @@ pro build_deep2_photo_catalog
     if n_elements(m1) ne n_elements(zcat) then message, 'Problem here!'
     zcat = zcat[m1]
     phot = phot[m2]
+    ngal = n_elements(phot)
     
 ; a small number of objects do not have matching photometry in the
 ; Matthews catalog but do in the original ZCAT catalog, so fix those
@@ -31,7 +35,14 @@ pro build_deep2_photo_catalog
     phot[fix].bestberr = zcat[fix].magberr
     phot[fix].bestrerr = zcat[fix].magrerr
     phot[fix].bestierr = zcat[fix].magierr
-    
+
+; add unwise
+    match, phot.objno, unwise.objno, m1, m2
+    phot = struct_addtags(temporary(phot),im_empty_structure($
+      struct_trimtags(unwise[0],select=['w1_*','w2_*']),$
+      ncopies=ngal))
+    phot[m1] = im_struct_assign(unwise[m2],phot[m1],/nozero)
+
     im_mwrfits, phot, catpath+'photo.dr4.goodspec1d.Q34.fits', /clobber
 
 ; ---------------------------------------------------------------------------
@@ -47,6 +58,7 @@ pro build_deep2_photo_catalog
     if n_elements(m1) ne n_elements(zcat) then message, 'Problem here!'
     zcat = zcat[m1]
     phot = phot[m2]
+    ngal = n_elements(phot)
 
 ; a small number of objects do not have matching photometry in the
 ; Matthews catalog but do in the original ZCAT catalog, so fix those
@@ -60,6 +72,13 @@ pro build_deep2_photo_catalog
     phot[fix].bestberr = zcat[fix].magberr
     phot[fix].bestrerr = zcat[fix].magrerr
     phot[fix].bestierr = zcat[fix].magierr
+
+; add unwise
+    match, phot.objno, unwise.objno, m1, m2
+    phot = struct_addtags(temporary(phot),im_empty_structure($
+      struct_trimtags(unwise[0],select=['w1_*','w2_*']),$
+      ncopies=ngal))
+    phot[m1] = im_struct_assign(unwise[m2],phot[m1],/nozero)
 
     im_mwrfits, phot, catpath+'photo.dr4.goodspec1d.fits', /clobber
 

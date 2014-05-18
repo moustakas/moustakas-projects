@@ -1,7 +1,7 @@
 pro a2744_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
   model_photometry=model_photometry, qaplot_models=qaplot_models, isedfit=isedfit, $
   kcorrect=kcorrect, qaplot_sed=qaplot_sed, thissfhgrid=thissfhgrid, $
-  clobber=clobber, photoz=photoz
+  clobber=clobber, photoz=photoz, quintet=quintet
 ; jm12sep17siena
 
     if keyword_set(photoz) then prefix = 'a2744_photoz' else prefix = 'a2744'
@@ -11,6 +11,10 @@ pro a2744_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
     
 ; gather the photometry
     cat = read_a2744(photoz=photoz)
+    if keyword_set(quintet) then begin
+       cat = rsex(isedfit_dir+'quintet.inp')
+       outprefix = 'quintet'
+    endif
 
     filterlist = hff_filterlist(/useirac)
     nfilt = n_elements(filterlist)
@@ -59,7 +63,9 @@ pro a2744_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
 ; do the fitting!
     if keyword_set(isedfit) then begin
        hff_to_maggies, cat, maggies, ivarmaggies, /nJy, filterlist=filt
-       if keyword_set(photoz) eq 0 then z = cat.z_b_1
+       if keyword_set(quintet) then z = cat.bpz else begin
+          if keyword_set(photoz) eq 0 then z = cat.z_b_1
+       endelse
        isedfit, isedfit_paramfile, maggies, ivarmaggies, z, thissfhgrid=thissfhgrid, $
          isedfit_dir=isedfit_dir, outprefix=outprefix, isedfit_results=ised, $
          isedfit_post=isedpost, clobber=clobber, photoz=photoz, index=index
@@ -80,7 +86,7 @@ pro a2744_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
        isedfit_qaplot_sed, isedfit_paramfile, isedfit_dir=isedfit_dir, $
          montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
          clobber=clobber, /xlog, galaxy=cat.galaxy, yrange=[30.5,23], $
-         xrange=[0.3,7.0]*1D4, nsigma=2.0, index=index
+         xrange=[0.3,7.0]*1D4, nsigma=2.0, index=index, outprefix=outprefix
     endif
     
 return

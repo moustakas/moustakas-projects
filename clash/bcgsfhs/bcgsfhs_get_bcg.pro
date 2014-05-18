@@ -4,8 +4,8 @@ pro bcgsfhs_get_bcg, debug=debug
 ; note! images in units of [10^-12 erg/s/cm^2/Hz] (pico-maggies)
     qapath = bcgsfhs_path(/bcg)+'qaplots/'
 
-    splog, 'Update BCGMODELPATH! to the archive!'
-    bcgmodelpath = '/Users/ioannis/archive/bcg_models/'
+;   splog, 'Update BCGMODELPATH! to the archive!'
+;   bcgmodelpath = '/Users/ioannis/archive/bcg_models/'
 
 ; read the sample
     sample = read_bcgsfhs_sample()
@@ -15,13 +15,17 @@ pro bcgsfhs_get_bcg, debug=debug
     rmaxkpc = 200D     ; [kpc]
 
 ; wrap on each cluster    
-    for ic = 10, 10 do begin
+    for ic = 12, 12 do begin
 ;   for ic = 8, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        splog, 'Working on cluster '+cluster
        skypath = bcgsfhs_path(/skysub)+cluster+'/'
        outpath = bcgsfhs_path(/bcg)+cluster+'/'
+       skyinfopath = bcgsfhs_path()+'skysub/'
        if file_test(outpath,/dir) eq 0 then file_mkdir, outpath
+
+       bcgmodelpath = getenv('CLASH_ARCHIVE')+'/'+strtrim(sample[ic].dirname,2)+$
+         '/HST/galaxy_subtracted_images/marc/'
 
        bcgqafile = qapath+cluster+'_bcg.ps'
 
@@ -32,8 +36,7 @@ pro bcgsfhs_get_bcg, debug=debug
 
 ; read the skyinfo structure and figure out which bands have
 ; Marc's BCG model photometry
-       skyinfo = mrdfits(bcgsfhs_path(/skysub)+'skyinfo-'+$
-         cluster+'.fits.gz',1,/silent)
+       skyinfo = mrdfits(skyinfopath+'skyinfo-'+cluster+'.fits.gz',1,/silent)
        short = strtrim(skyinfo.band,2)
        these = where(file_test(bcgmodelpath+cluster+'_mosaic_065mas_*_'+$
          short+'_drz_*_BCG.fits.gz'),nfilt,comp=missing)
@@ -172,7 +175,9 @@ pro bcgsfhs_get_bcg, debug=debug
           mwrfits, cutinvvar, outfile, cutivahdr, /silent
           mwrfits, mask, outfile, cuthdr, /silent
           spawn, 'gzip -f '+outfile
-       
+
+stop          
+          
           cgloadct, 0, /silent
           mx1 = weighted_quantile(cutimage,quant=0.9)
           cgimage, cutimage, clip=3, /negative, stretch=5, minvalue=0.0, maxvalue=mx1, $

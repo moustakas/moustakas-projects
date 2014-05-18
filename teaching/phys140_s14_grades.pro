@@ -3,7 +3,7 @@ pro phys140_s14_grades, alldata, test=test, sendit=sendit, final=final
 
     path = getenv('TEACHING_DIR')+'/Phys140/140-S14/grades/'
     
-    date = '14apr21' ; update this
+    date = '14may12' ; update this
     semester = 'Spring 2014'
     class = 'Physics 140 - General Physics II'
 

@@ -31,7 +31,7 @@ end
 
 pro plotbcgmstar_montage, cfirst, clast, dobcg=dobcg, donobcg=donobcg, $
   doimage=doimage, onecluster_montage=onecluster_montage, final_montage=final_montage, $
-  doitall=doitall
+  final_model_montage=final_model_montage, doitall=doitall
 ; jm13nov01siena - build a color montage of all the BCGs 
 
 ; note that /DOIMAGE should be run first so that we can build a good
@@ -50,6 +50,7 @@ pro plotbcgmstar_montage, cfirst, clast, dobcg=dobcg, donobcg=donobcg, $
     paperpath = bcgmstar_path(/paper)
 
     sample = read_bcgmstar_sample()
+    sample = sample[sort(sample.mvir)]
     ncl = n_elements(sample)
 
 ; choose the red, blue, and green filters
@@ -228,7 +229,8 @@ pro plotbcgmstar_montage, cfirst, clast, dobcg=dobcg, donobcg=donobcg, $
 
 ; ---------------------------------------------------------------------------
 ; get color cutouts of the original image, BCG model, and
-; BCG-subtracted images
+; BCG-subtracted images; this is a mini-montage that I'm
+; probably not going to use
     if keyword_set(onecluster_montage) then begin
        dd = 300D                ; extraction diameter [kpc]
        
@@ -271,9 +273,27 @@ pro plotbcgmstar_montage, cfirst, clast, dobcg=dobcg, donobcg=donobcg, $
     endif
 
 ; ---------------------------------------------------------------------------
-; build the final montage!  write a full-resolution 
+; build a couple final montages, one with the data, model, and
+; residuals (see /ONECLUSTER_MONTAGE), and one with just the observed
+; BCGs 
     if keyword_set(final_montage) then begin
-       outfile = bcgmstar_path()+'bcg-finalmontage.png'
+       outfile = bcgmstar_path()+'bcg-mstar-finalmontage.png'
+       infile = strjoin(file_search(coloroutpath+cluster+'/'+cluster+'-image-cutout.png'),' ')
+       cmd = 'montage -bordercolor white -borderwidth 1 '+ $
+         '-tile 5x3 -geometry +0+0 -quality 100 '+$ ; -resize 1024x1024 '+$
+         infile+' '+outfile
+;      cmd = 'montage '+infile+' '+outfile
+       splog, cmd
+;      spawn, cmd, /sh ; this doesn't work!
+
+       cmd = 'convert -scale 50% '+outfile+' '+paperpath+$
+         'bcg-mstar-finalmontage-small.png'
+       splog, cmd
+;      spawn, cmd ; this doesn't work!
+    endif
+
+    if keyword_set(final_model_montage) then begin
+       outfile = bcgmstar_path()+'bcg-model-finalmontage.png'
        infile = strjoin(file_search(coloroutpath+'*-montage.png'),' ')
        
        cmd = 'montage -bordercolor white -borderwidth 1 '+ $

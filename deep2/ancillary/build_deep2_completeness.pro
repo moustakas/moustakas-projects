@@ -1,8 +1,17 @@
+function deep2_colorcut, magb, magr, magi, mlim=mlim
+    if n_elements(mlim) eq 0 then mlim = 24.1
+    return, magr lt mlim and $
+      ((magb-magr lt 2.45*(magr-magi)-0.5) or $
+      (magr-magi gt 1.1) or (magb-magr lt 0.5))
+;   return, magr lt mlim and $
+;     ((magb-magr lt 2.45*(magr-magi)-0.311) or $
+;     (magr-magi gt 1.211) or (magb-magr lt 0.389))
+end
+
 pro build_deep2_completeness
-; jm14mar04siena - compute the statistical completeness for DEEP2/DR4
-; using the distributed window functions; for details see:
-;   http://deep.ps.uci.edu/dr4/completeness.html
-;   http://deep.ps.uci.edu/dr4/skycoverage.html
+; jm14may21siena - compute the targeting weights for DEEP2/DR4
+; for details see: Newman+13 and
+; http://deep.ps.uci.edu/dr4/completeness.html 
 
     catpath = deep2_path(/catalogs)
     winpath = deep2_path(/window)
@@ -12,44 +21,62 @@ pro build_deep2_completeness
     ngal = n_elements(zcat)
 
     out = struct_addtags(struct_trimtags(zcat,select=$
-      ['objno','objname','ra','dec']),replicate({weight: -1.0},ngal))
-
-    tot = 0 
+      ['objno','objname','ra','dec']),replicate({targ_weight: -1.0},ngal))
     
-; Field 1/EGS; note we select on OBJNO here (not OBJNAME) because
-; there are ~6 objects with a pointing prefactor of "6" that we would
-; otherwise miss 
-    win = mrdfits(winpath+'windowf.egs.fits.gz',0,hdr)
-    extast, hdr, astr
+; ####################
+; Field 1/EGS targeting weights: W = Wsg * WR; note we
+; select on OBJNO here (not OBJNAME) because there are ~6 objects with
+; a pointing prefactor of "6" that we would otherwise miss
+    field1 = where(strmid(strtrim(zcat.objno,2),0,1) eq '1',nobj)
+    zcat1 = zcat[field1]
+    magb = zcat1.magb
+    magr = zcat1.magr
+    magi = zcat1.magi
 
-    these = where(strmid(strtrim(zcat.objno,2),0,1) eq '1')
-    tot += n_elements(these)
-    ad2xy, zcat[these].ra, zcat[these].dec, astr, xgal, ygal
+    wsg = fltarr(nobj)          ; star-galaxy weight    
+    wsg[where(zcat1.pgal ge 2)] = 1.0
+    ww = where(zcat1.pgal lt 2 and zcat1.pgal gt 0.2)
+    wsg[ww] = zcat1[ww].pgal<1.0
 
-;   xim = findgen(astr.naxis[0])#(fltarr(astr.naxis[1])+1)
-;   yim = (fltarr(astr.naxis[0])+1)#reverse(findgen(astr.naxis[1]))
-    out[these].weight = interpolate(win,xgal,ygal,missing=0.0)
+    wc = deep2_colorcut(magb,magr,magi)        ; color weight
+    wr = (0.75*10^(-0.4*(magr-24.1)))<1        ; magnitude weight
 
-; Fields 2-4; note: no statistical weights for pointing 43, which is
-; severely incomplete; also note that we select on OBJNAME due to the
-; intricacies of how the masks were designed (see the footnote at this
-; site: http://deep.ps.uci.edu/dr4/ztags.html)
-    point = ['21','22','31','32','33','41','42']
-    for ii = 0, n_elements(point)-1 do begin
-       win = mrdfits(winpath+'windowf.'+point[ii]+'.fits.gz',0,hdr)
-       extast, hdr, astr
+    wr_final = fltarr(nobj)
+    w1 = where((magr le 21.5) or (wc eq 1),n1)
+    w2 = where((magr gt 21.5) and (wc eq 0),n1)
+    wr_final[w1] = wr[w1]
+    wr_final[w2] = (0.1*10^(-0.4*(magr[w2]-24.1)))<1
 
-       these = where(strmid(strtrim(zcat.objname,2),0,2) eq point[ii])
-       tot += n_elements(these)
-       ad2xy, zcat[these].ra, zcat[these].dec, astr, xgal, ygal
-       out[these].weight = interpolate(win,xgal,ygal,missing=0.0)
-    endfor
+; final weight
+    out[field1].targ_weight = wsg*wr_final
+;   djs_plot, magr, out[field1].targ_weight, psym=3, xsty=3, ysty=3
 
-; check to make sure all the missing weights are from pointing 43
-    ww = where(out.weight eq -1.0)
-;   splog, ngal, tot
-;   print, zcat[ww].objno
-    out[ww].weight = 0.0 ; replace
+; ####################
+; Fields 2-4 targeting weights: W = Wsg * Wc * WR * Wbc
+    fields24 = where(strmid(strtrim(zcat.objno,2),0,1) ne '1',nobj)
+    zcat24 = zcat[fields24]
+    magb = zcat24.magb
+    magr = zcat24.magr
+    magi = zcat24.magi
+
+    wsg = fltarr(nobj)          ; star-galaxy weight    
+    wsg[where(zcat24.pgal ge 2)] = 1.0
+    ww = where(zcat24.pgal lt 2 and zcat24.pgal gt 0.2)
+    wsg[ww] = zcat24[ww].pgal<1.0
+
+    wc = deep2_colorcut(magb,magr,magi)        ; color weight
+    wr = (0.75*10^(-0.4*(magr-24.1)))<1        ; magnitude weight
+    wbc = (poly(magr-magi,[0.0,2.2222])>0.1)<1 ; "blue color" weight
+
+;   djs_plot, magr-magi, magb-magr, psym=3
+;   ww = where(wc eq 0)
+;   djs_oplot, magr[ww]-magi[ww], magb[ww]-magr[ww], psym=3, color='red'
+
+; final weight; don't apply the color weight because it has already
+; been incorporated into the redshift catalog for these fields
+    out[fields24].targ_weight = wsg*wr*wbc
+;   out[fields24].targ_weight = wsg*wc*wr*wbc
+;   djs_plot, magr, out[fields24].targ_weight, psym=3, xsty=3, ysty=3
 
     im_mwrfits, out, catpath+'weight.zcat.deep2.dr4.uniq.fits', /clobber
     
@@ -58,14 +85,14 @@ pro build_deep2_completeness
     zcat = read_deep2_zcat(/all)
     match, zcat.objno, out.objno, m1, m2
     srt = sort(m1) & m1 = m1[srt] & m2 = m2[srt]
-    help, m2
+    help, zcat, m2
 
     im_mwrfits, out[m2], catpath+'weight.zcat.dr4.goodspec1d.fits', /clobber
     
     zcat = read_deep2_zcat()
     match, zcat.objno, out.objno, m1, m2
     srt = sort(m1) & m1 = m1[srt] & m2 = m2[srt]
-    help, m2
+    help, zcat, m2
 
     im_mwrfits, out[m2], catpath+'weight.zcat.dr4.goodspec1d.Q34.fits', /clobber
 

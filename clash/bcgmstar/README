@@ -1,40 +1,41 @@
-Define the sample in bcgsfhs_sample.sex.  Use read_bcgsfhs_sample() to
+Define the sample in bcgmstar_sample.sex.  Use read_bcgmstar_sample() to
 read it.
 
 Sky-subtract and pre-process the mosaics:
-  bcgsfhs_skysubtract
+  bcgmstar_skysubtract
 
 Cut out and write just the BCG image and model:
-  bcgsfhs_get_bcg, /debug
+  bcgmstar_get_bcg, /debug
 
 Ellipse-fit the BCGs; make QAplots
-  bcgsfhs_ellipse
-  qaplots_bcgsfhs_ellipse
+  bcgmstar_ellipse
+  qaplots_bcgmstar_ellipse
 
 Construct the radial surface brightness profiles of the sample and
 then fit both single and double Sersic models in order to extrapolate
 the data inward and outward.  Finally, measure aperture photometry in
 logarithmically spaced radial bins and the total magnitude in each
 band.
-  bcgsfhs_sersicfit, /dofit - Sersic fitting
-  bcgsfhs_sersicfit, /dophot - aperture photometry
-  bcgsfhs_sersicfit, /qaplot_sbprofiles, /qaplot_colorradius, /qaplot_seds - build some QAplots
+  bcgmstar_sersicfit, /dofit - Sersic fitting
+  bcgmstar_sersicfit, /dophot - aperture photometry
+  bcgmstar_sersicfit, /qaplot_sbprofiles, /qaplot_colorradius, /qaplot_seds - build some QAplots
 
 Do the SED-fitting and compute K-corrections
-  bcgsfhs_isedfit
+  bcgmstar_isedfit
 
 Get ancillary photometry for the sample
-  bcgsfhs_get_ancillary
+  bcgmstar_get_ancillary
     
   
 ### Paper plots ###
 
-* plotbcgsfhs_montage - build a nice color montage
+* plotbcgmstar_montage - build a nice color montage (Fig 1)
+* plotbcgmstar_sblimit - box-and-whisker plot of the SB limits in our data (Fig 2) 
+* plotbcgmstar_ellipse - show one example of ellipse-fitting 
 
-* plotbcgsfhs_sbprofiles - surface brightness profiles + Sersic
+* plotbcgmstar_sbprofiles - surface brightness profiles + Sersic
   function fits overlaid
-
-* plotbcgsfhs_ssps - build some simple SSPs; overlay the (K-corrected)
+* plotbcgmstar_ssps - build some simple SSPs; overlay the (K-corrected)
   BCG photometry and the models on a color-color plot
 
   

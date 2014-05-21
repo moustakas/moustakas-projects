@@ -9,6 +9,9 @@ pro bcgmstar_skysubtract
     pixscale = 0.065D ; [arcsec/pixel]
     xsize = 5000L
     ysize = 5000L
+
+; psf path (see BUILD_CLASH_PSFS)
+    psfpath = getenv('IM_ARCHIVE_DIR')+'/projects/clash/psfs/'
     
 ; specifiy the filters and some other handy info    
     filt = bcgmstar_filterlist(short=short,instr=instr,$
@@ -20,10 +23,14 @@ pro bcgmstar_skysubtract
     allfiltinfo.instr = instr
     allfiltinfo.weff = weff
     allfiltinfo.zpt = zpt
+
+    splog, 'HACK!!!'
+    allfiltinfo = allfiltinfo[[2,7,13]]
+    nfilt = n_elements(allfiltinfo)
     struct_print, allfiltinfo
 
 ; initialize the sky structure    
-    skyinfo1 = {file: '', band: '', weff: 0.0, factor: 0.0, $
+    skyinfo1 = {file: '', band: '', weff: 0.0, exptime: 0.0, factor: 0.0, $
       sblimit: 0.0, mode: 0.0, sigma: 0.0, skew: 0.0, nsky: 0L}
 
 ; wrap on each cluster    
@@ -37,10 +44,12 @@ pro bcgmstar_skysubtract
        if file_test(outpath,/dir) eq 0 then file_mkdir, outpath
 
 ; not all clusters have all filters, so check for that case here
+       bcgmodelpath = getenv('CLASH_ARCHIVE')+'/'+strtrim(sample[ic].dirname,2)+$
+         '/HST/galaxy_subtracted_images/marc/'
        mosaicpath = getenv('CLASH_ARCHIVE')+'/'+strtrim(sample[ic].dirname,2)+$
          '/HST/images/mosaicdrizzle_image_pipeline/scale_65mas/'
        these = where(file_test(mosaicpath+cluster+'_mosaic_065mas_'+$
-         instr+'_'+short+'_drz_????????.fits*'),nfilt)
+         strtrim(allfiltinfo.instr,2)+'_'+strtrim(allfiltinfo.short,2)+'_drz_????????.fits*'),nfilt)
        if nfilt gt n_elements(allfiltinfo) or nfilt eq 0 then message, 'Problem here!'
        filtinfo = allfiltinfo[these]
        reffilt = where(filtinfo.short eq 'f160w') ; reference filter
@@ -48,15 +57,30 @@ pro bcgmstar_skysubtract
        skyinfo = replicate(skyinfo1,nfilt)
        skyinfo.band = filtinfo.short
        skyinfo.weff = filtinfo.weff
+
+; read the PSF stars in the reference band; choosing a masking radius
+; that varies with magnitude
+; faint - 12 pixels
+; 17th magnitude - 60 pixels
+; 19th magnitude - 35 pixels
+       stars = mrdfits(psfpath+cluster+'/'+cluster+'-f160w-stars.fits.gz',1)
+       starrad = poly(stars.mag_auto,[308,-14.0])>15.0
+       nstar = n_elements(stars)
        
-; read the original mosaics and inverse variance maps
+; read the original mosaics and inverse variance maps in a datacube 
        splog, 'Reading the data...'
        drzfiles = file_search(mosaicpath+cluster+'_mosaic_065mas_'+$
          filtinfo.instr+'_'+filtinfo.short+'_drz_????????.fits*')
        whtfiles = file_search(mosaicpath+cluster+'_mosaic_065mas_'+$
          filtinfo.instr+'_'+filtinfo.short+'_wht_????????.fits*')
 
+       bcgmodelfiles = file_search(bcgmodelpath+cluster+$
+         '_mosaic_065mas_*_'+filtinfo.short+'_drz_*_model.fits.gz')
+;      bcgmodelfiles = file_search(bcgmodelpath+cluster+$
+;        '_mosaic_065mas_*_'+short+'_drz_*_BCG.fits.gz')
+       
        imagecube = fltarr(xsize,ysize,nfilt)
+       imagecube_nobcg = fltarr(xsize,ysize,nfilt)
        ivarcube = fltarr(xsize,ysize,nfilt)
        hdrcube = strarr(4000,nfilt)
        ivarhdrcube = strarr(4000,nfilt)
@@ -64,14 +88,39 @@ pro bcgmstar_skysubtract
        
        for ib = 0, nfilt-1 do begin
           imagecube[*,*,ib] = mrdfits(drzfiles[ib],0,hdr,/silent)
+          imagecube_nobcg[*,*,ib] = imagecube[*,*,ib]-mrdfits(bcgmodelfiles[ib],0,/silent)
           ivarcube[*,*,ib] = mrdfits(whtfiles[ib],0,ivarhdr,/silent)
-          exptime[ib] = sxpar(hdr,'EXPTIME')
+          skyinfo[ib].exptime = sxpar(hdr,'EXPTIME')
           hcrop = where(strcompress(hdr,/remove) ne '',nhdr)
           ihcrop = where(strcompress(ivarhdr,/remove) ne '',nihdr)
           hdrcube[0:nhdr-1,ib] = hdr[hcrop]
           ivarhdrcube[0:nihdr-1,ib] = ivarhdr[ihcrop]
        endfor
+
+stop       
        
+; aggresively build an object mask using all the bands 
+       splog, 'Building object mask'
+       dobjects, imagecube_nobcg, object=oimage, plim=10.0, fobject=fobj, dpsf=5.0, nlevel=1
+       simage = dsmooth(cutimage-model,3L)
+       sz = size(fobj,/dim)
+
+       
+       
+       
+stop       
+
+; mask the stars
+          adxy, hdr, stars.ra, stars.dec, xx, yy
+          mx1 = weighted_quantile(imagecube[*,*,ib],quant=0.9)
+          cgimage, imagecube[*,*,ib], clip=3, /negative, stretch=5, minvalue=0.0, maxvalue=mx1, $
+            margin=0, /keep_aspect, /save
+          for ii = 0, nstar-1 do tvcircle, starrad[ii], xx[ii], yy[ii], color='cyan', /data
+
+
+stop
+
+
 ; crop the mosaics to the reference band
        xcrop = minmax(where(total(imagecube[*,*,reffilt],2) ne 0))
        ycrop = minmax(where(total(imagecube[*,*,reffilt],1) ne 0))
@@ -82,8 +131,8 @@ pro bcgmstar_skysubtract
 
        xcrop = xcrop+(odd(xcrop) eq 0) ; force odd because hextract, below, adds a pixel
        ycrop = ycrop+(odd(ycrop) eq 0) ; force odd because hextract, below, adds a pixel
-       
-; aggresively build an object mask using all the bands
+
+; aggresively build an object mask using all the bands 
        splog, 'Building object mask'
        dobjects, imagecube[xcrop[0]:xcrop[1],ycrop[0]:ycrop[1],*], $
          object=oimage, plim=5.0, fobject=fobj, dpsf=dpsf
@@ -124,7 +173,7 @@ pro bcgmstar_skysubtract
 ; electrons/s then added in quadrature to INVVAR
           intvar = 1.0/(ivarcube[*,*,ib]+(ivarcube[*,*,ib] eq 0))*$ ; intrinsic var [electron/s]^2
             (ivarcube[*,*,ib] gt 0) 
-          objvar = (imagecube[*,*,ib]*exptime[ib])*mask/exptime[ib]^2 ; extrinsic var [electron/s]^2
+          objvar = (imagecube[*,*,ib]*skyinfo[ib].exptime)*mask/skyinfo[ib].exptime^2 ; extrinsic var [electron/s]^2
           var = intvar + objvar                                       ; quadrature sum [electron/s]^2
           ivarcube[*,*,ib] = 1.0/(var+(var eq 0))*(var gt 0)          ; final map [electron/s]^(-2)
 

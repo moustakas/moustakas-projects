@@ -6,7 +6,7 @@ pro build_deep2_photo_catalog
     catpath = deep2_path(/catalogs)
 
 ; read the unwise catalog    
-    unwise = mrdfits(catpath+'deep2-egs-unwise.fits.gz',1)
+    unwise = mrdfits(catpath+'deep2.dr4.unwise.fits.gz',1)
 
 ; good objects
     phot = mrdfits(catpath+'zcat_ext.uniq.fits.gz',1)

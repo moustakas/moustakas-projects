@@ -27,11 +27,12 @@ end
 
 function do_ellipse, image, invvar=invvar, ini_xcen=ini_xcen, $
   ini_ycen=ini_ycen, ini_e0=ini_e0, ini_pa0=ini_pa0, namax=namax, $
-  pixscale=pixscale, arcsec2kpc=arcsec2kpc  
+  pixscale=pixscale, arcsec2kpc=arcsec2kpc, fixcenter=fixcenter
 ; do the ellipse-fitting    
 
     bgt_ellipse, image, imivar=invvar, ini_xcen=ini_xcen, ini_ycen=ini_ycen, $
-      ini_e0=ini_e0, ini_pa0=ini_pa0, ellipse=ellipse1, namax=namax, /silent
+      ini_e0=ini_e0, ini_pa0=ini_pa0, ellipse=ellipse1, namax=namax, $
+      fixcenter=fixcenter, /silent
     if n_elements(ellipse1.xcen) ne namax then message, 'Generalize below...'
 
     radius = ellipse1.majora*sqrt(1.0-ellipse1.ellipticityfit)
@@ -71,19 +72,21 @@ pro bcgmstar_ellipse, debug=debug, clobber=clobber
     fact = 1D-12                           ; conversion from picomaggies to maggies
     pixscale = 0.065D                      ; [arcsec/pixel]
     pixarea = 5.0*alog10(pixscale)         ; 2.5*log10(pixscale^2)
-    rmax = 200.0                           ; [kpc]
+    rmax = 10.0                           ; [kpc]
+;   rmax = 200.0                           ; [kpc]
 
     ellpath = bcgmstar_path(/ellipse)
+    skyinfopath = bcgmstar_path()+'skyinfo/'
 
 ; wrap on each cluster    
-    for ic = 10, 10 do begin
-;   for ic = 0, ncl-1 do begin
+;   for ic = 10, 10 do begin
+    for ic = 0, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        splog, 'Working on cluster '+cluster
        datapath = bcgmstar_path(/bcg)+cluster+'/'
 
 ; read the info structure to get the filters
-       info = mrdfits(datapath+cluster+'-mgeskyinfo.fits.gz',1,/silent)
+       info = mrdfits(skyinfopath+cluster+'-mgeskyinfo.fits.gz',1,/silent)
        short = strtrim(info.band,2)
        reffilt = where(short eq 'f160w') ; reference filter
        nfilt = n_elements(info)
@@ -102,21 +105,39 @@ pro bcgmstar_ellipse, debug=debug, clobber=clobber
 ;         model = mrdfits(imfile,1,/silent)*1D-12     ; [maggies]
 ;         invvar = mrdfits(imfile,2,/silent)*1D24     ; [1/maggies^2]
           image = mrdfits(imfile,0,hdr,/silent)*1D-12/pixscale^2 ; [maggies/arcsec^2]
-          model = mrdfits(imfile,1,/silent)*1D-12/pixscale^2     ; [maggies/arcsec^2]
-          invvar = mrdfits(imfile,2,/silent)*(1D12*pixscale^2)^2
-          mask = mrdfits(imfile,3,/silent)
+          invvar = mrdfits(imfile,1,/silent)*(1D12*pixscale^2)^2
+          mask = mrdfits(imfile,2,/silent)
+          model = mrdfits(imfile,3,/silent)*1D-12/pixscale^2     ; [maggies/arcsec^2]
           var = 1.0/(invvar+(invvar eq 0))*(invvar ne 0)
           sz = size(image,/dim)
 
           adxy, hdr, info[reffilt].ra, info[reffilt].dec, xcen, ycen
 
-; ellipse-fit the model; note that the ellipse PA (in radians) in GZ's code is
-; measured positive from the X-axis, not the *Y-axis* as we assume
+; ellipse-fit the data and the model with all parameters free **in the
+; reference band (NFILT-1)**; then perform a *constrained* fit to all
+; the other bands; note that the ellipse PA (in radians) in GZ's code
+; is measured positive from the X-axis, not the *Y-axis* as we assume
 ; below
-          modellipse1 = do_ellipse(model,invvar=invvar,ini_xcen=xcen, $
+;         modellipse1 = do_ellipse(model,invvar=invvar,ini_xcen=xcen, $
+          mm = do_ellipse(model,invvar=invvar,ini_xcen=xcen, $
             ini_ycen=ycen,ini_e0=info[reffilt].mge_ellipticity,$
             ini_pa0=info[reffilt].mge_posangle,namax=namax,$
             pixscale=pixscale,arcsec2kpc=arcsec2kpc)
+          
+;         imellipse1 = do_ellipse(image,invvar=invvar*mask,ini_xcen=xcen,$
+          ii = do_ellipse(image,invvar=invvar*mask,ini_xcen=xcen,$
+            ini_ycen=ycen,ini_e0=info[reffilt].mge_ellipticity,$
+            ini_pa0=info[reffilt].mge_posangle,namax=namax,$
+            pixscale=pixscale,arcsec2kpc=arcsec2kpc) ; ,/fixcenter)
+
+;         djs_plot, mm.majora, mm.pafit
+;         djs_oplot, ii.majora, ii.pafit, color='red'
+;         djs_plot, mm.majora, mm.sb0fit
+;         djs_oplot, ii.majora, ii.sb0fit, color='red'
+          
+          
+          
+stop          
           
 ; optionally use the identical ellipse parameters to generate the
 ; surface-brightness profile from the data themselves
@@ -248,3 +269,40 @@ end
 ;;         splog, 'Time to fit ', t0-systime(1)
 ;;         bgt_ellipse_show, model, ellipse
 ;          
+
+
+
+
+
+;;; ellipse-fit the model; note that the ellipse PA (in radians) in GZ's code is
+;;; measured positive from the X-axis, not the *Y-axis* as we assume
+;;; below
+;;          modellipse1 = do_ellipse(model,invvar=invvar,ini_xcen=xcen, $
+;;            ini_ycen=ycen,ini_e0=info[reffilt].mge_ellipticity,$
+;;            ini_pa0=info[reffilt].mge_posangle,namax=namax,$
+;;            pixscale=pixscale,arcsec2kpc=arcsec2kpc)
+;;
+;;; optionally use the identical ellipse parameters to generate the
+;;; surface-brightness profile from the data themselves
+;;          constrained_fit = 0
+;;
+;;          if constrained_fit then begin
+;;             imellipse1 = modellipse1
+;;             for ia = 0, modellipse1.na-1 do begin
+;;                sbcoord = bgt_ellipse_sb(image,imivar=invvar,xcen=modellipse1.xcenfit[ia],$
+;;                  ycen=modellipse1.xcenfit[ia],pa=modellipse1.pafit[ia],$
+;;                  ee=modellipse1.ellipticityfit[ia],majora=modellipse1.majora[ia],$
+;;                  ea=ea,sbcoord_ivar=sbcoord_ivar)
+;;                bgt_ellipse_fit, ea, sbcoord, ecoeff, ini_value=ini_value, $
+;;                  sb_ivar=sbcoord_ivar, status=status, fixed=[0,1,1,1,1]
+;;                imellipse1.sb0[ia] = ecoeff.sb0 ; only free parameter is the SB
+;;                imellipse1.sb0_ivar[ia] = median(sbcoord_ivar)
+;;             endfor
+;;             bgt_ellipse_allfit, image, imellipse1, imivar=invvar
+;;          endif else begin
+;;             imellipse1 = do_ellipse(image,invvar=invvar*mask,ini_xcen=xcen,$
+;;               ini_ycen=ycen,ini_e0=info[reffilt].mge_ellipticity,$
+;;               ini_pa0=info[reffilt].mge_posangle,namax=namax,$
+;;               pixscale=pixscale,arcsec2kpc=arcsec2kpc)
+;;          endelse
+;;

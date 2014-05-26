@@ -1,20 +1,25 @@
-function get_ugriz, cat, bri=bri, errbri=brierr, ugrizerr=ugrizerr
+function get_ugriz, cat, bri=bri, errbri=brierr, ugrizerr=ugrizerr, $
+  wise=wise, errwise=errwise
 ; compute dust-corrected ugriz magnitudes
-    deep2_to_maggies, cat, mm, ii
+    deep2_to_maggies, cat, mm, ii, /unwise, ratag='ra_deep', dectag='dec_deep'
     mag = maggies2mag(mm,ivarmaggies=ii,magerr=magerr)
     bri = mag[0:2,*]
     brierr = magerr[0:2,*]
     ugriz = mag[3:7,*]
     ugrizerr = magerr[3:7,*]
+    wise = mag[8:9,*]
+    errwise = magerr[8:9,*]
 return, ugriz
 end
 
 pro build_desi_deep2_template_sample, out
 ; jm13dec18siena - build the sample of DEEP2 galaxies we will use to
-;   construct DESI templates
+;   construct DESI templates; DESI_DEEP2_ISEDFIT needs to have been
+;   run first!
 ; jm14mar11siena - major update
 
-    templatepath = getenv('IM_PROJECTS_DIR')+'/desi/templates/'
+    version = 'v1.1'
+    templatepath = getenv('IM_PROJECTS_DIR')+'/desi/templates/'+version+'/'
 
     snrcut = 3.0
     oiifluxcut = 8D-17
@@ -22,7 +27,8 @@ pro build_desi_deep2_template_sample, out
     zcat = read_deep2_zcat(photo=photo)
     kised = mrdfits(templatepath+'desi_deep2_fsps_v2.4_miles_'+$
       'chab_charlot_sfhgrid01_kcorr.z0.0.fits.gz',1)
-    ugriz = get_ugriz(photo,bri=bri,errbri=brierr,ugrizerr=ugrizerr)
+    ugriz = get_ugriz(photo,bri=bri,errbri=brierr,ugrizerr=ugrizerr,$
+      wise=wise,errwise=wiseerr)
     
 ; use the fixed-[OII] catalog; we'll add some jitter in the
 ; doublet-ratio in BUILD_DESI_DEEP2_TEMPLATES
@@ -65,21 +71,23 @@ pro build_desi_deep2_template_sample, out
 ; explicitly needed because of DESI_DEEP2_ISEDFIT
     these = where($
       zcat.zbest gt 0.7 and zcat.zbest lt 1.5 and $
-      total(ugriz gt 0,1) gt 3 and $
+      (total(ugriz gt 0,1) gt 3) and (total(wiseerr gt 0,1) ge 1) and $
       ugriz[2,*] gt 18 and ugriz[2,*] lt 24.0 and $
       oiisnr gt snrcut and ewoiisnr gt 1.0,ngal)
     splog, 'Sample ', ngal
-
+    
 ; build an output data structure with all the information we need
     out = im_struct_trimtags(zcat[these],select=['objno','ra','dec','zbest'],$
       newtags=['objno','ra','dec','z'])
     out = struct_addtags(temporary(out),replicate({bri: fltarr(3), $
       brierr: fltarr(3), ugriz: fltarr(5), ugrizerr: fltarr(5), $
-      cflux_3727_obs: 0.0},ngal))
+      wise: fltarr(2), wiseerr: fltarr(2), cflux_3727_obs: 0.0},ngal))
     out.bri = bri[*,these]
     out.brierr = brierr[*,these]
     out.ugriz = ugriz[*,these]
     out.ugrizerr = ugrizerr[*,these]
+    out.wise = wise[*,these]
+    out.wiseerr = wiseerr[*,these]
     out.cflux_3727_obs = cflux_3727_obs[these]
 
     out = struct_addtags(temporary(out),struct_trimtags(kised[these],$

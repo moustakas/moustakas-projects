@@ -4,8 +4,10 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 ; jm13dec18siena - fit the parent sample of DEEP2 galaxies for the
 ; DESI project
     
+    version = 'v1.1'
+
     prefix = 'desi_deep2'
-    isedfit_dir = getenv('IM_PROJECTS_DIR')+'/desi/templates/'
+    isedfit_dir = getenv('IM_PROJECTS_DIR')+'/desi/templates/'+version+'/'
     montegrids_dir = isedfit_dir+'montegrids/'
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
 
@@ -16,10 +18,11 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 ; targeting tests and template simulations
     cat = read_deep2_zcat(photo=phot)
     deep2_to_maggies, phot, maggies, ivarmaggies, /unwise, $
-      filterlist=filterlist, ratag='ra_deep', dectag='dec_deep'
+      filterlist=filterlist
     
     zminmax = [0.7,1.5]
     index = where(cat.zbest ge zminmax[0] and cat.zbest le zminmax[1])
+    ngal = n_elements(cat)
 
 ; --------------------------------------------------
 ; write the parameter file
@@ -58,9 +61,9 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 ; --------------------------------------------------
 ; fit!
     if keyword_set(isedfit) then begin
-       outprefix = 'unwise'
-       index = where(phot.w1_nanomaggies_ivar ne 0 and cat.zbest ge zminmax[0] and $
-         cat.zbest le zminmax[1])
+;      outprefix = 'unwise'
+;      index = where(phot.w1_nanomaggies_ivar ne 0 and cat.zbest ge zminmax[0] and $
+;        cat.zbest le zminmax[1])
        isedfit, isedfit_paramfile, maggies, ivarmaggies, $
          cat.zbest, ra=cat.ra, dec=cat.dec, isedfit_dir=isedfit_dir, $
          thissfhgrid=thissfhgrid, clobber=clobber, index=index, $
@@ -80,14 +83,19 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 ; --------------------------------------------------
 ; generate spectral energy distribution (SED) QAplots
     if keyword_set(qaplot_sed) then begin
-       outprefix = 'unwise'
-       index = (where(phot.w1_nanomaggies_ivar ne 0 and cat.zbest ge zminmax[0] and $
-         cat.zbest le zminmax[1]))[0:30]
-       galaxy = strtrim(cat.objno,2);+'/'+strtrim(cat.source,2)
+;      outprefix = 'unwise'
+;      index = (where(phot.w1_nanomaggies_ivar ne 0 and cat.zbest ge zminmax[0] and $
+;        cat.zbest le zminmax[1]))[0:30]
+       galaxy = 'DEEP2/'+strtrim(cat.objno,2);+'/'+strtrim(cat.source,2)
+       these = shuffle_indx(ngal,num=25)
+;      these = where(cat[index].objno eq 12024524) & yrange = [24,20]
+;      these = where(cat[index].objno eq 12024078)
+;      these = where(cat[index].objno eq 12101118)
+;      these = where(cat[index].objno eq 12015944)
        isedfit_qaplot_sed, isedfit_paramfile, isedfit_dir=isedfit_dir, $
          montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
-         clobber=clobber, /xlog, nrandom=50, galaxy=galaxy, index=index, $
-         outprefix=outprefix;, yrange=[26,15]
+         clobber=clobber, /xlog, galaxy=galaxy, index=index[these];, yrange=yrange
+;        yrange=[26,15] ;, outprefix=outprefix
     endif
 
 return

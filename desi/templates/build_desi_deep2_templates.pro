@@ -78,8 +78,8 @@ pro build_desi_deep2_templates, minwave=minwave, maxwave=maxwave, $
 ; jm13dec18siena - take the output of BUILD_DESI_DEEP2_TEMPLATE_SAMPLE
 ;   and generate the full-resolution spectra
 
-    version = 'v1.0'
-    templatepath = getenv('IM_PROJECTS_DIR')+'/desi/templates/'
+    version = 'v1.1'
+    templatepath = getenv('IM_PROJECTS_DIR')+'/desi/templates/'+version+'/'
     
     light = im_light(/kms)
     light_ang = im_light(/Ang)

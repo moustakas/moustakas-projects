@@ -8,7 +8,7 @@ function deep2_colorcut, magb, magr, magi, mlim=mlim
 ;     (magr-magi gt 1.211) or (magb-magr lt 0.389))
 end
 
-pro build_deep2_completeness
+pro build_deep2_targeting_weights
 ; jm14may21siena - compute the targeting weights for DEEP2/DR4
 ; for details see: Newman+13 and
 ; http://deep.ps.uci.edu/dr4/completeness.html 
@@ -20,8 +20,15 @@ pro build_deep2_completeness
     zcat = mrdfits(catpath+'zcat.deep2.dr4.uniq.fits.gz',1)
     ngal = n_elements(zcat)
 
+; obj_weight - object weight
+; targ_weight - probability of being selected for observation (final
+;   targeting weight) 
+    
     out = struct_addtags(struct_trimtags(zcat,select=$
-      ['objno','objname','ra','dec']),replicate({targ_weight: -1.0},ngal))
+      ['objno','objname','ra','dec','pgal','magr']),replicate({$
+      obj_weight: -1.0, targ_weight: -1.0, $
+      deep2_nmatch: 0, deep2_psel: -1.0, deep2_probcut: -1.0, $
+      deep2_weight: -1.0},ngal))
     
 ; ####################
 ; Field 1/EGS targeting weights: W = Wsg * WR; note we
@@ -47,8 +54,9 @@ pro build_deep2_completeness
     wr_final[w1] = wr[w1]
     wr_final[w2] = (0.1*10^(-0.4*(magr[w2]-24.1)))<1
 
-; final weight
-    out[field1].targ_weight = wsg*wr_final
+; object weight and final targeting weight
+    out[field1].obj_weight = wsg*wr_final
+    out[field1].targ_weight = 0.33398 + 0.42687*out[field1].obj_weight
 ;   djs_plot, magr, out[field1].targ_weight, psym=3, xsty=3, ysty=3
 
 ; ####################
@@ -74,12 +82,41 @@ pro build_deep2_completeness
 
 ; final weight; don't apply the color weight because it has already
 ; been incorporated into the redshift catalog for these fields
-    out[fields24].targ_weight = wsg*wr*wbc
-;   out[fields24].targ_weight = wsg*wc*wr*wbc
+    out[fields24].obj_weight = wsg*wr*wbc
+;   out[fields24].obj_weight = wsg*wc*wr*wbc
+    out[fields24].targ_weight = 0.27976 + 0.44717*out[fields24].obj_weight-$
+      0.09137*out[fields24].obj_weight^2
+
 ;   djs_plot, magr, out[fields24].targ_weight, psym=3, xsty=3, ysty=3
 
-    im_mwrfits, out, catpath+'weight.zcat.deep2.dr4.uniq.fits', /clobber
+;;; check!    
+;;    deep2 = rsex(catpath+'deep2_selection.dat')
+;;;   match, out.objno, deep2.objno, m1, m2
+;;;   out[m1].deep2_weight = deep2[m2].weight
+;;    mult = 0
+;;    for ii = 0, ngal-1 do begin
+;;       match = where(out[ii].objno eq deep2.objno,nmatch)
+;;       out[ii].deep2_nmatch = nmatch
+;;;      if nmatch eq 0 then splog, 'No match for ', out[ii].objno
+;;       if nmatch eq 1 then begin
+;;          out[ii].deep2_psel = deep2[match].psel
+;;          out[ii].deep2_probcut = deep2[match].prob_cut
+;;          out[ii].deep2_weight = deep2[match].weight
+;;       endif
+;;       if nmatch gt 1 then begin
+;;          splog, 'Multiple matches for ', out[ii].objno
+;;          mult++
+;;          struct_print, deep2[match]
+;;          this = where(deep2[match].weight gt 0)
+;;          out[ii].deep2_psel = deep2[match[this[0]]].psel
+;;          out[ii].deep2_probcut = deep2[match[this[0]]].prob_cut
+;;          out[ii].deep2_weight = deep2[match[this[0]]].weight
+;;       endif
+;;    endfor
     
+; write out
+    im_mwrfits, out, catpath+'weight.zcat.deep2.dr4.uniq.fits', /clobber
+
 ; also write out files that are line-matched to my catalogs which have
 ; been processed through deep2_check_spec1d_dr4:
     zcat = read_deep2_zcat(/all)

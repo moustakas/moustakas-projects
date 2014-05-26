@@ -1,12 +1,13 @@
 function bcgmstar_path, propath=propath, paper=paper, bcg=bcg, skysub=skysub, $
   sersic=sersic, ellipse=ellipse, colormosaics=colormosaics, isedfit=isedfit, $
-  ancillary=ancillary
+  ancillary=ancillary, objectmask=objectmask
 ; jm13oct19siena 
 
     datapath = getenv('IM_ARCHIVE_DIR')+'/projects/clash/bcgmstar/'
     if keyword_set(skysub) then path = datapath+'skysub/'
     if keyword_set(bcg) then path = datapath+'bcg/'
-    if keyword_set(skysub) or keyword_set(bcg) then return, path
+    if keyword_set(objectmask) then path = datapath+'objectmask/'
+    if keyword_set(skysub) or keyword_set(bcg) or keyword_set(objectmask) then return, path
 
     path = getenv('IM_PROJECTS_DIR')+'/clash/bcgmstar/' ; default
     if keyword_set(ellipse) then path = path+'ellipse/'

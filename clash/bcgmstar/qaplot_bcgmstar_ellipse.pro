@@ -2,7 +2,7 @@ pro qaplot_bcgmstar_ellipse
 ; jm13oct22siena - generate a QAplot for the output of BCGMSTAR_ELLIPSE
 
     ellpath = bcgmstar_path(/ellipse)
-    qapath = ellpath+'qaplots/'
+    qapath = bcgmstar_path()+'qaplots-ellipse/'
 
     sample = read_bcgmstar_sample()
     ncl = n_elements(sample)

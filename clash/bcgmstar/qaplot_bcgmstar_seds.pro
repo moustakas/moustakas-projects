@@ -1,11 +1,11 @@
 pro qaplot_bcgmstar_seds
-; jm14jan01siena - generate a QAplot of the SEDs
+; jm14jan01siena - generate a QAplot of the broadband SEDs
 
     showmodel = 1
     
     prefix = 'bcgmstar'
 
-    qapath = bcgmstar_path()
+    qapath = bcgmstar_path()+'qaplots-sersic/'
     ancpath = bcgmstar_path(/ancillary)
     sersicpath = bcgmstar_path(/sersic)
     isedfit_dir = bcgmstar_path(/isedfit)
@@ -28,7 +28,7 @@ pro qaplot_bcgmstar_seds
     wiseweff = k_lambda_eff(filterlist=wise_filterlist())
     
 ; make the plot    
-    psfile = qapath+'qa_seds.ps'
+    psfile = qapath+'qa_broadband_seds.ps'
     im_plotconfig, 0, pos, psfile=psfile, charsize=1.8, $
       height=5.0
     

@@ -2,7 +2,10 @@ pro bcgmstar_get_bcg, debug=debug
 ; jm13sep04siena - cut out the BCG
 
 ; note! images in units of [10^-12 erg/s/cm^2/Hz] (pico-maggies)
-    qapath = bcgmstar_path(/bcg)+'qaplots/'
+    getbcgpath = bcgmstar_path(/bcg)
+    skypath = bcgmstar_path(/skysub)
+    skyinfopath = bcgmstar_path()+'skyinfo/'
+    qapath = bcgmstar_path()+'qaplots-getbcg/'
 
 ;   splog, 'Update BCGMODELPATH! to the archive!'
 ;   bcgmodelpath = '/Users/ioannis/archive/bcg_models/'
@@ -15,19 +18,15 @@ pro bcgmstar_get_bcg, debug=debug
     rmaxkpc = 200D     ; [kpc]
 
 ; wrap on each cluster    
-    for ic = 12, 12 do begin
-;   for ic = 8, ncl-1 do begin
+    for ic = 0, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        splog, 'Working on cluster '+cluster
-       skypath = bcgmstar_path(/skysub)+cluster+'/'
-       outpath = bcgmstar_path(/bcg)+cluster+'/'
-       skyinfopath = bcgmstar_path()+'skysub/'
+       outpath = getbcgpath+cluster+'/'
        if file_test(outpath,/dir) eq 0 then file_mkdir, outpath
 
        bcgmodelpath = getenv('CLASH_ARCHIVE')+'/'+strtrim(sample[ic].dirname,2)+$
          '/HST/galaxy_subtracted_images/marc/'
-
-       bcgqafile = qapath+cluster+'_bcg.ps'
+       bcgqafile = qapath+'qa_'+cluster+'_getbcg.ps'
 
 ; get a fixed RMAXKPC cutout centered on the BCG
        ebv = sample[ic].ebv
@@ -49,7 +48,10 @@ pro bcgmstar_get_bcg, debug=debug
        endif
 
 ; the F435W model for MACS1149 is not reliable; get rid of it here
-       if cluster eq 'macs1149' then these = these[where(short[these] ne 'f435w',nfilt)]
+       if cluster eq 'macs1149' then begin
+          these = these[where(short[these] ne 'f435w',nfilt)]
+          splog, 'Unreliable model: MACS1149/F435W'
+       endif
 
        outinfo = struct_addtags(skyinfo[these],replicate({ra: 0D, dec: 0D, $
          mge_ellipticity: 0.0, mge_posangle: 0.0, mge_size: 0.0, mge_size_kpc: 0.0},nfilt))
@@ -82,14 +84,15 @@ pro bcgmstar_get_bcg, debug=debug
 
 ; now loop through each band, cut out the BCG, measure its properties,
 ; and write out
-;      for ib = nfilt-1, nfilt-3, -1 do begin
+;      for ib = nfilt-1, nfilt-2, -1 do begin
        for ib = nfilt-1, 0, -1 do begin
 
 ; read the full-cluster images and isolate the BCG          
-          imfile = skypath+cluster+'-'+short[ib]+'.fits.gz'
+          imfile = skypath+cluster+'/'+cluster+'-'+short[ib]+'.fits.gz'
           splog, 'Reading '+imfile
           image = gz_mrdfits(imfile,0,hdr,/silent)
           invvar = gz_mrdfits(imfile,1,ivarhdr,/silent)
+          mask = gz_mrdfits(imfile,2,maskhdr,/silent)
           sz = size(image,/dim)
 
           adxy, hdr, ra, dec, xcen, ycen
@@ -100,6 +103,7 @@ pro bcgmstar_get_bcg, debug=debug
 
           hextract, image, hdr, cutimage, cuthdr, x0, x1, y0, y1, /silent
           hextract, invvar, ivarhdr, cutinvvar, cutivarhdr, x0, x1, y0, y1, /silent
+          hextract, mask, maskhdr, cutmask, cutmaskhdr, x0, x1, y0, y1, /silent
 
 ; read the BCG model, sky-subtract, scale to picomaggies (which
 ; includes dust correction: see BCGMSTAR_SKYSUBTRACT), and finally crop
@@ -133,18 +137,18 @@ pro bcgmstar_get_bcg, debug=debug
           outinfo[ib].mge_ellipticity = ellipticity
           help, outinfo[ib], /str
 
-; create an object mask so that we can do photometry on the data
-; itself in BCGMSTAR_ELLIPSE; a smoothing scale larger than 3 is
-; usually too aggressive in the core of the BCG and increasing PLIM
-; leaves too many faint sources undetected
-          if cluster eq 'clj1226' then domask = 0 else domask = 1 ; come back to the mask
-          if domask then begin
-             simage = dsmooth(cutimage-model,3L)
-             plim = 30.0
-             delvarx, obj
-             dobjects, simage, objects=obj, plim=plim, nlevel=1L
-             mask = obj eq -1 ; 0 = masked, 1 = unmasked
-          endif else mask = cutimage*0+1 
+;; create an object mask so that we can do photometry on the data
+;; itself in BCGMSTAR_ELLIPSE; a smoothing scale larger than 3 is
+;; usually too aggressive in the core of the BCG and increasing PLIM
+;; leaves too many faint sources undetected
+;          if cluster eq 'clj1226' then domask = 0 else domask = 1 ; come back to the mask
+;          if domask then begin
+;             simage = dsmooth(cutimage-model,3L)
+;             plim = 30.0
+;             delvarx, obj
+;             dobjects, simage, objects=obj, plim=plim, nlevel=1L
+;             mask = obj eq -1 ; 0 = masked, 1 = unmasked
+;          endif else mask = cutimage*0+1 
 
 ;; find residual significant peaks and mask those, too, using a fixed
 ;; 4-pixel rectangular
@@ -171,12 +175,10 @@ pro bcgmstar_get_bcg, debug=debug
           splog, 'Writing '+outfile
 
           mwrfits, cutimage, outfile, cuthdr, /create, /silent
-          mwrfits, model, outfile, cuthdr, /silent
           mwrfits, cutinvvar, outfile, cutivahdr, /silent
-          mwrfits, mask, outfile, cuthdr, /silent
+          mwrfits, cutmask, outfile, cutmaskhdr, /silent
+          mwrfits, model, outfile, cuthdr, /silent
           spawn, 'gzip -f '+outfile
-
-stop          
           
           cgloadct, 0, /silent
           mx1 = weighted_quantile(cutimage,quant=0.9)
@@ -184,7 +186,7 @@ stop
             margin=0, /keep_aspect, position=pos[*,0], /save
           xyouts, pos[0,0]+0.02, pos[3,0]-0.05, strupcase(cluster)+'/'+$
             strupcase(short[ib]), /norm, charsize=1.5
-          cgimage, cutimage*mask, clip=5, /negative, /noerase, $
+          cgimage, cutimage*cutmask, clip=5, /negative, /noerase, $
             stretch=5, margin=0, /keep_aspect, position=pos[*,1], $
             minvalue=0.0, maxvalue=mx1
 ;         cgimage, cutinvvar, clip=3, /negative, /noerase, $
@@ -197,7 +199,7 @@ stop
        im_plotconfig, /psclose, psfile=bcgqafile, /pdf
 
 ; write out the info file       
-       outfile = outpath+cluster+'-mgeskyinfo.fits'
+       outfile = skyinfopath+cluster+'-mgeskyinfo.fits'
        im_mwrfits, outinfo, outfile, /clobber
     endfor                      ; close cluster loop
 
@@ -206,8 +208,6 @@ stop
        splog, 'Missing clusters/filters :'
        niceprint, misslist
     endif
-    
-stop    
     
 return
 end

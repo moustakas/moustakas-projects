@@ -389,6 +389,7 @@ pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
 
     ellpath = bcgmstar_path(/ellipse)
     sersicpath = bcgmstar_path(/sersic)
+    qapath = bcgmstar_path()+'qaplots-sersic/'
 
 ; read the sample
     sample = read_bcgmstar_sample()
@@ -805,7 +806,8 @@ pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
 ; -------------------------    
 ; QAplot: SEDs
     if keyword_set(qaplot_seds) then begin
-       psfile = sersicpath+'qa_seds.ps'
+       splog, 'This is a dumb QAplot'
+       psfile = qapath+'qa_seds.ps'
        im_plotconfig, 0, pos, psfile=psfile, charsize=1.8, $
          height=5.0
     
@@ -859,7 +861,7 @@ pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
 ; -------------------------    
 ; QAplot: color-radius plots, relative to F160W
     if keyword_set(qaplot_colorradius) then begin
-       psfile = sersicpath+'qa_color_sersic.ps'
+       psfile = qapath+'qa_color_sersic.ps'
        im_plotconfig, 0, pos, psfile=psfile, charsize=1.1
 
        for ic = 0, ncl-1 do begin
@@ -950,7 +952,7 @@ pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
 ; -------------------------    
 ; QAplot: SB profiles and the Sersic fits
     if keyword_set(qaplot_sbprofiles) then begin
-       psfile = sersicpath+'qa_sersic.ps'
+       psfile = qapath+'qa_sersic.ps'
        im_plotconfig, 0, pos, psfile=psfile, charsize=1.3
 
        for ic = 0, ncl-1 do begin

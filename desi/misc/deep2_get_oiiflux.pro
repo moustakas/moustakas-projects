@@ -1,4 +1,4 @@
-function deep2_get_oiiflux, ppxf, cflux_3727_obs=cflux_3727_obs, cflux_3727_rest=cflux_3727_rest
+function deep2_get_oiiflux, ppxf, cflux_3727_rest=cflux_3727_rest
 ; jm14mar11siena - given a pPXF-style emission-line catalog for DEEP2
 ; and the observed continuum flux at 3727 A, return a data structure
 ; which contains high-level [OII] stuff where, in particular, the
@@ -19,6 +19,9 @@ function deep2_get_oiiflux, ppxf, cflux_3727_obs=cflux_3727_obs, cflux_3727_rest
     oii = struct_addtags(im_struct_trimtags(ppxf,select='sigma_forbidden',$
       newtags='sigma_kms'),temporary(oii))
 
+    zobj = ppxf.z
+    cflux_3727_obs = cflux_3727_rest/(1.0+zobj) ; [erg/s/cm2/A]
+    
 ; [OII] 3726    
     good = where(oii.oii_3727_1[1] gt 0,ngood,comp=crap,ncomp=ncrap)
     if ngood ne 0L then begin
@@ -46,7 +49,7 @@ function deep2_get_oiiflux, ppxf, cflux_3727_obs=cflux_3727_obs, cflux_3727_rest
          rebin(reform(Fc_3727_obs,1,ngood),2,ngood)/$ 
          rebin(reform(ppxf[good].oii_3727_2_continuum[0],1,ngood),2,ngood)
     endif
-    
+
 ; [OII] 3726,3729
     good = where(oii.oii_3727[1] gt 0,ngood,comp=crap,ncomp=ncrap)
     if ngood ne 0L then begin
@@ -60,6 +63,6 @@ function deep2_get_oiiflux, ppxf, cflux_3727_obs=cflux_3727_obs, cflux_3727_rest
          rebin(reform(Fc_3727_obs,1,ngood),2,ngood)/$ 
          rebin(reform(ppxf[good].oii_3727_continuum[0],1,ngood),2,ngood)
     endif
-    
+
 return, oii
 end

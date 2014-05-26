@@ -8,7 +8,7 @@ catalogs for 35,781 galaxies with high-quality spectroscopic redshifts
 (Q>=3) and 1D spectra:
     zcat.dr4.goodspec1d.Q34.fits.gz - full redshift catalog
     weight.zcat.dr4.goodspec1d.Q34.fits.gz - statistical weights
-    photo.dr4.goodspec1d.Q34.fits.gz - ugriz/BRI photometric catalog from Matthews+13 
+    photo.dr4.goodspec1d.Q34.fits.gz - ugriz/BRI+WISE photometric catalog from Matthews+13 
     kcorr.dr4.goodspec1d.Q34.fits.gz - K-correct based K-corrections (for testing)
     deep2.ppxf.specdata.dr4_v1.0.fits.gz - pPXF/GANDALF-based
       emission-line catalog, particularly for [OII] 

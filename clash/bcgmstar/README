@@ -1,11 +1,14 @@
 Define the sample in bcgmstar_sample.sex.  Use read_bcgmstar_sample() to
 read it.
 
+Build the object masks for all the clusters using the F160W band:
+  bcgmstar_objectmask
+
 Sky-subtract and pre-process the mosaics:
   bcgmstar_skysubtract
 
 Cut out and write just the BCG image and model:
-  bcgmstar_get_bcg, /debug
+  bcgmstar_get_bcg
 
 Ellipse-fit the BCGs; make QAplots
   bcgmstar_ellipse

@@ -1,11 +1,11 @@
 ;+
 ; NAME:
-;   deep2_completeness
+;   deep2_zsuccess
 ; PURPOSE:
 ;   Build the completeness (redshift success rate) for each field as
 ;   a function of observed magnitude and color.
 ; CALLING SEQUENCE:
-;   deep2_completeness, /clobber
+;   deep2_zsuccess, /clobber
 ; INPUTS: 
 ; KEYWORDS:
 ;   clobber - overwrite an existing output file
@@ -14,7 +14,7 @@
 ; COMMENTS:
 ;   The completeness maps are tied to the 0d version. 
 ; MODIFICATION HISTORY:
-;   J. Moustakas, 2010 Aug 18, UCSD - based on older code
+;   J. Moustakas, 2014 May 26 - based on MF_COMPLETENESS
 ;-
 
 function get_poisson_error, array, nbins=nbins
@@ -43,17 +43,16 @@ end
 function smooth_map, zsuccess, zsuccess_err, attempt=attempt, got=got, $
   params=params, verbose=verbose, minsnr=minsnr, smooth_got=got_smooth, $
   smooth_zsuccess_err=zsuccess_smooth_err, smooth_attempt=attempt_smooth, $
-  color2=color2, ch1=ch1
+  color2=color2
 
-    magaxis = mf_grid_axis(params,0,ch1=ch1)
+    magaxis = mf_grid_axis(params,0)
     if keyword_set(color2) then begin
-       coloraxis = mf_grid_axis(params,2,ch1=ch1)
+       coloraxis = deep2_grid_axis(params,2)
        nb = params.nbins[[0,2]]
     endif else begin
-       coloraxis = mf_grid_axis(params,1,ch1=ch1)
+       coloraxis = deep2_grid_axis(params,1)
        nb = params.nbins[[0,1]]
     endelse
-    if keyword_set(ch1) then nb = params.ch1_nbins
 
     maxcount = 8 ; should be a multiple of 4 (one for each dimension)
     minsnr = 3.0 ; 5.0
@@ -159,8 +158,6 @@ function init_outmap, params
     arr3 = fltarr(params.nbins[[0,2]])-1.0
     arr4 = fltarr(params.nbins[0])-1.0
 
-    ch1_arr2 = fltarr(params.ch1_nbins)-1.0
-
     out1 = {$
       field:        strtrim(params.field,2),$
 ;     nall:                    0L,$ ; total number of objects
@@ -184,10 +181,16 @@ function init_outmap, params
 ; e.g., i vs r-i *and* g-i - unweighted
       attempt_color1_color2:         arr1,$ ; number attempted
       attempt_color1_color2_err:     arr1,$
+      attempt_color1_color2_smooth:         arr1,$ ; number attempted
+      attempt_color1_color2_smooth_err:     arr1,$
       got_color1_color2:             arr1,$ ; number got
       got_color1_color2_err:         arr1,$
+      got_color1_color2_smooth:             arr1,$ ; number got
+      got_color1_color2_smooth_err:         arr1,$
       zsuccess_color1_color2:        arr1,$ ; redshift success rate 
       zsuccess_color1_color2_err:    arr1,$
+      zsuccess_color1_color2_smooth:        arr1,$ ; redshift success rate 
+      zsuccess_color1_color2_smooth_err:    arr1,$
       fracobj_color1_color2:         arr1,$ ; cumulative fraction of objects (for mfplot_completeness)
 ; e.g., i vs r-i *and* g-i - weighted
       attempt_weighted_color1_color2:         arr1,$ ; number attempted
@@ -225,34 +228,6 @@ function init_outmap, params
       zsuccess_weighted_color1_smooth:     arr2,$
       zsuccess_weighted_color1_smooth_err: arr2,$
       fracobj_weighted_color1:             arr2,$ ; cumulative fraction of objects (for mfplot_completeness)
-; e.g., i vs i-[ch1] - unweighted
-      attempt_ch1color1:             ch1_arr2,$ ; number attempted
-      attempt_ch1color1_err:         ch1_arr2,$ 
-      attempt_ch1color1_smooth:      ch1_arr2,$
-      attempt_ch1color1_smooth_err:  ch1_arr2,$
-      got_ch1color1:                 ch1_arr2,$ ; number got
-      got_ch1color1_err:             ch1_arr2,$
-      got_ch1color1_smooth:          ch1_arr2,$
-      got_ch1color1_smooth_err:      ch1_arr2,$
-      zsuccess_ch1color1:            ch1_arr2,$ ; redshift success rate 
-      zsuccess_ch1color1_err:        ch1_arr2,$
-      zsuccess_ch1color1_smooth:     ch1_arr2,$
-      zsuccess_ch1color1_smooth_err: ch1_arr2,$
-      fracobj_ch1color1:             ch1_arr2,$ ; cumulative fraction of objects (for mfplot_completeness)
-; e.g., i vs i-[ch1] - weighted
-      attempt_weighted_ch1color1:             ch1_arr2,$ ; number attempted
-      attempt_weighted_ch1color1_err:         ch1_arr2,$ 
-      attempt_weighted_ch1color1_smooth:      ch1_arr2,$
-      attempt_weighted_ch1color1_smooth_err:  ch1_arr2,$
-;     got_weighted_ch1color1:                 ch1_arr2,$ ; number got
-;     got_weighted_ch1color1_err:             ch1_arr2,$
-;     got_weighted_ch1color1_smooth:          ch1_arr2,$
-;     got_weighted_ch1color1_smooth_err:      ch1_arr2,$
-      zsuccess_weighted_ch1color1:            ch1_arr2,$ ; redshift success rate 
-      zsuccess_weighted_ch1color1_err:        ch1_arr2,$
-      zsuccess_weighted_ch1color1_smooth:     ch1_arr2,$
-      zsuccess_weighted_ch1color1_smooth_err: ch1_arr2,$
-      fracobj_weighted_ch1color1:             ch1_arr2,$ ; cumulative fraction of objects (for mfplot_completeness)
 ; e.g., i vs g-i - unweighted
       attempt_color2:             arr3,$ ; number attempted
       attempt_color2_err:         arr3,$
@@ -285,71 +260,56 @@ function init_outmap, params
 return, out1
 end
 
-pro deep2_completeness, clobber=clobber
+pro deep2_zsuccess, clobber=clobber
 
-    mfpath = mf_path(zerodversion=zerodver)
-    compfile = mfpath+'deep2_completeness_'+zerodver+'.fits'
-    if im_file_test(compfile+'.gz',clobber=clobber) then return
+    catpath = deep2_path(/catalogs)
+    outfile = catpath+'deep2_zsuccess.fits'
+    if im_file_test(outfile+'.gz',clobber=clobber) then return
     
-; also include the test_cfhtls_xmm field so we can check the effect of
-; the [ch1] magnitude limit
-;   field = get_mf_fields()
-    field = [get_mf_fields(),'test_cfhtls_xmm']
-    realfield = [get_mf_fields(),'cfhtls_xmm']
+    field = ['EGS','Fields24']
     nfield = n_elements(field)
 
+    filters = deep2_filterlist()
+    
+; read the Q34 redshift catalog and the corresponding targeting
+; weights for all the fields
+    allzcat = read_deep2_zcat(photo=allphoto,weight=allweight,/all)
+    egs = where(strmid(strtrim(allzcat.objno,2),0,1) eq '1',$
+      negs,comp=fields24,ncomp=nfields24)
+    
 ; for the QAplot
     levels = [0.05,0.10,0.25,0.5,0.75,0.9,0.95,0.99,0.995]
     cannotation = string(levels,format='(F5.3)')
     mincol = 50
-    psfile = mf_path(/qaplots)+'completeness_allfields.ps'
+    psfile = catpath+'qa_deep2_zsuccess.ps'
     im_plotconfig, 0, pos, psfile=psfile, xmargin=[1.3,0.4], width=6.8, height=6.0
     loadct, 16, /silent
     
-; build the completeness maps for each field individually     
-;   for ifield = 3, 3 do begin
+; build the completeness maps for the EGS field and for fields 2-4
+; separately 
     for ifield = 0, nfield-1 do begin
        splog, 'Working on field '+field[ifield]
        params = get_deep2_completeness_params(field[ifield])
        out = init_outmap(params)
 
-; get the ch1 limits       
-       faint = mf_maglimit(field[ifield],bright=bright,$
-         ch1faint=ch1faint,ch1bright=ch1bright)
+       if ifield eq 0 then index = egs else index = fields24
+       nobj = n_elements(index)
+       zcat = allzcat[index]
+       photo = allphoto[index]
+       weight = allweight[index].targ_weight
+       deep2_to_maggies, photo, maggies, /unwise
        
-; read all primary galaxies, including those with crummy redshifts; do
-; this calculation just for the area overlapping the GALEX window
-       zerod = mf_read_zerod(realfield[ifield],/allredshifts,photo=photo)
-       windowfile = get_mf_window(realfield[ifield])
-       inwin = primus_is_in_window(windowfile,ra=zerod.ra,dec=zerod.dec) and $
-         (zerod.mask ne 'cosb0237')
-;      notstar = strtrim(zerod.zprimus_class,2) ne 'STAR'
-
-; due to a bug in the design code we have to restrict the cdfs, es1,
-; and test_cfhtls_xmm samples to be bright in [ch1]
-       if (field[ifield] eq 'cdfs') or (field[ifield] eq 'es1') or $
-         (field[ifield] eq 'test_cfhtls_xmm') then begin
-          ch1 = get_ch1(photo)
-          keep = where((ch1 ge ch1bright) and (ch1 le ch1faint) and inwin and isgal,nobj)
-       endif else keep = where(inwin and isgal,nobj)
-       zerod = zerod[keep]
-       photo = photo[keep]
-       weight = zerod.targ_weight
-
-; get the selection magnitude and color(s)       
+; get the selection magnitude and color(s)
        out.nobj = nobj
-       filters = strtrim(photo[0].filterlist,2)
-
-       colors = get_deep2_completeness_colors(photo.maggies,targ_mag=zerod.targ_mag,$
+       colors = get_deep2_completeness_colors(maggies,targ_mag=photo.r,$
          params=params,filterlist=filters)
 
 ; distribution of objects targeted in bins of, e.g., r-i, g-i, and i
-       nattempt_mag = n_elements(zerod)
+       nattempt_mag = nobj
        iattempt_mag = lindgen(nattempt_mag)
        iattempt_color1 = where(colors.good1)
        iattempt_color2 = where(colors.good2)
        iattempt_color1_color2 = where(colors.good1 and colors.good2)
-       iattempt_ch1color1 = where(colors.ch1good1)
 
 ; ...unweighted
        out.attempt_mag = hogg_histogram(colors[iattempt_mag].mag,$
@@ -363,15 +323,11 @@ pro deep2_completeness, clobber=clobber
        out.attempt_color1_color2 = hogg_histogram(transpose([[colors[iattempt_color1_color2].mag],$
          [colors[iattempt_color1_color2].color1],[colors[iattempt_color1_color2].color2]]),$
          transpose([[params.hmin],[params.hmax]]),params.nbins)
-       out.attempt_ch1color1 = hogg_histogram(transpose([[colors[iattempt_ch1color1].mag],$
-         [colors[iattempt_ch1color1].ch1color1]]),transpose([[params.ch1_hmin],[params.ch1_hmax]]),$
-         params.ch1_nbins)
 
        out.attempt_mag_err = get_poisson_error(out.attempt_mag,nbins=params.nbins[0])
        out.attempt_color1_err = get_poisson_error(out.attempt_color1,nbins=params.nbins[[0,1]])
        out.attempt_color2_err = get_poisson_error(out.attempt_color2,nbins=params.nbins[[0,2]])
        out.attempt_color1_color2_err = get_poisson_error(out.attempt_color1_color2,nbins=params.nbins[[0,1,2]])
-       out.attempt_ch1color1_err = get_poisson_error(out.attempt_ch1color1,nbins=params.ch1_nbins)
        
 ; ...weighted
        out.attempt_weighted_mag = hogg_histogram(colors[iattempt_mag].mag,$
@@ -385,24 +341,18 @@ pro deep2_completeness, clobber=clobber
        out.attempt_weighted_color1_color2 = hogg_histogram(transpose([[colors[iattempt_color1_color2].mag],$
          [colors[iattempt_color1_color2].color1],[colors[iattempt_color1_color2].color2]]),$
          transpose([[params.hmin],[params.hmax]]),params.nbins,weight=weight[iattempt_color1_color2])
-       out.attempt_weighted_ch1color1 = hogg_histogram(transpose([[colors[iattempt_ch1color1].mag],$
-         [colors[iattempt_ch1color1].ch1color1]]),transpose([[params.ch1_hmin],[params.ch1_hmax]]),$
-         params.ch1_nbins,weight=weight[iattempt_ch1color1])
 
        out.attempt_weighted_mag_err = get_poisson_error(out.attempt_weighted_mag,nbins=params.nbins[0])
        out.attempt_weighted_color1_err = get_poisson_error(out.attempt_weighted_color1,nbins=params.nbins[[0,1]])
        out.attempt_weighted_color2_err = get_poisson_error(out.attempt_weighted_color2,nbins=params.nbins[[0,2]])
        out.attempt_weighted_color1_color2_err = get_poisson_error(out.attempt_weighted_color1_color2,nbins=params.nbins[[0,1,2]])
-       out.attempt_weighted_ch1color1_err = get_poisson_error(out.attempt_weighted_ch1color1,nbins=params.ch1_nbins)
 
-; corresponding distribution of objects with good redshifts (isgood==1
-; and Q>=3) 
-       igot_mag = where(zerod.isgood and (zerod.zprimus_zconf ge 3),ngot_mag)
-       igot_color1 = where(colors.good1 and zerod.isgood and (zerod.zprimus_zconf ge 3))
-       igot_color2 = where(colors.good2 and zerod.isgood and (zerod.zprimus_zconf ge 3))
+; corresponding distribution of objects with good redshifts (Q>=3) 
+       igot_mag = where(zcat.zquality ge 3,ngot_mag)
+       igot_color1 = where(colors.good1 and zcat.zquality ge 3)
+       igot_color2 = where(colors.good2 and zcat.zquality ge 3)
        igot_color1_color2 = where(colors.good1 and colors.good2 and $
-         zerod.isgood and (zerod.zprimus_zconf ge 3))
-       igot_ch1color1 = where(colors.ch1good1 and zerod.isgood and (zerod.zprimus_zconf ge 3))
+         zcat.zquality ge 3)
 
 ; ...unweighted       
        out.got_mag = hogg_histogram(colors[igot_mag].mag,$
@@ -416,38 +366,12 @@ pro deep2_completeness, clobber=clobber
        out.got_color1_color2 = hogg_histogram(transpose([[colors[igot_color1_color2].mag],$
          [colors[igot_color1_color2].color1],[colors[igot_color1_color2].color2]]),$
          transpose([[params.hmin],[params.hmax]]),params.nbins)
-       out.got_ch1color1 = hogg_histogram(transpose([[colors[igot_ch1color1].mag],$
-         [colors[igot_ch1color1].ch1color1]]),transpose([[params.ch1_hmin],[params.ch1_hmax]]),$
-         params.ch1_nbins)
 
        out.got_mag_err = get_poisson_error(out.got_mag,nbins=params.nbins[0])
        out.got_color1_err = get_poisson_error(out.got_color1,nbins=params.nbins[[0,1]])
        out.got_color2_err = get_poisson_error(out.got_color2,nbins=params.nbins[[0,2]])
        out.got_color1_color2_err = get_poisson_error(out.got_color1_color2,nbins=params.nbins[[0,1,2]])
-       out.got_ch1color1_err = get_poisson_error(out.got_ch1color1,nbins=params.ch1_nbins)
        
-;; ...weighted       
-;       out.got_weighted_mag = hogg_histogram(colors[igot_mag].mag,$
-;         [params.hmin[0],params.hmax[0]],params.nbins[0],weight=weight[igot_mag])
-;       out.got_weighted_color1 = hogg_histogram(transpose([[colors[igot_color1].mag],$
-;         [colors[igot_color1].color1]]),transpose([[params.hmin[[0,1]]],[params.hmax[[0,1]]]]),$
-;         params.nbins[[0,1]],weight=weight[igot_color1])
-;       out.got_weighted_color2 = hogg_histogram(transpose([[colors[igot_color2].mag],$
-;         [colors[igot_color2].color2]]),transpose([[params.hmin[[0,2]]],[params.hmax[[0,2]]]]),$
-;         params.nbins[[0,2]],weight=weight[igot_color2])
-;       out.got_weighted_color1_color2 = hogg_histogram(transpose([[colors[igot_color1_color2].mag],$
-;         [colors[igot_color1_color2].color1],[colors[igot_color1_color2].color2]]),$
-;         transpose([[params.hmin],[params.hmax]]),params.nbins,weight=weight[igot_color1_color2])
-;       out.got_weighted_ch1color1 = hogg_histogram(transpose([[colors[igot_ch1color1].mag],$
-;         [colors[igot_ch1color1].ch1color1]]),transpose([[params.ch1_hmin],[params.ch1_hmax]]),$
-;         params.ch1_nbins,weight=weight[igot_ch1color1])
-;
-;       out.got_weighted_mag_err = get_poisson_error(out.got_weighted_mag,nbins=params.nbins[0])
-;       out.got_weighted_color1_err = get_poisson_error(out.got_weighted_color1,nbins=params.nbins[[0,1]])
-;       out.got_weighted_color2_err = get_poisson_error(out.got_weighted_color2,nbins=params.nbins[[0,2]])
-;       out.got_weighted_color1_color2_err = get_poisson_error(out.got_weighted_color1_color2,nbins=params.nbins[[0,1,2]])
-;       out.got_weighted_ch1color1_err = get_poisson_error(out.got_weighted_ch1color1,nbins=params.ch1_nbins)
-
 ; redshift success rate and error
 
 ; ...unweighted       
@@ -464,11 +388,8 @@ pro deep2_completeness, clobber=clobber
          out.attempt_color1_color2,zsuccess_error=err)
        out.zsuccess_color1_color2_err = err
 
-       out.zsuccess_ch1color1 = get_zsuccess_and_error(out.got_ch1color1,$
-         out.attempt_ch1color1,zsuccess_error=err)
-       out.zsuccess_ch1color1_err = err
-       
 ; ...weighted       
+
        out.zsuccess_weighted_mag = get_zsuccess_and_error(out.got_mag,out.attempt_weighted_mag,zsuccess_error=err)
        out.zsuccess_weighted_mag_err = err
 
@@ -484,21 +405,15 @@ pro deep2_completeness, clobber=clobber
          out.attempt_weighted_color1_color2,zsuccess_error=err)
        out.zsuccess_weighted_color1_color2_err = err
 
-       out.zsuccess_weighted_ch1color1 = get_zsuccess_and_error(out.got_ch1color1,out.$
-       attempt_weighted_ch1color1,zsuccess_error=err)
-       out.zsuccess_weighted_ch1color1_err = err
-       
 ; get the cumulative fraction of objects in each bin (for the contour
 ; plot in mfplot_completeness)
        out.fracobj_color1 = get_fracobj(out.attempt_color1,nbins=params.nbins[[0,1]])
        out.fracobj_color2 = get_fracobj(out.attempt_color2,nbins=params.nbins[[0,2]])
        out.fracobj_color1_color2 = get_fracobj(out.attempt_color1_color2,nbins=params.nbins)
-       out.fracobj_ch1color1 = get_fracobj(out.attempt_ch1color1,nbins=params.ch1_nbins)
 
        out.fracobj_weighted_color1 = get_fracobj(out.attempt_weighted_color1,nbins=params.nbins[[0,1]])
        out.fracobj_weighted_color2 = get_fracobj(out.attempt_weighted_color2,nbins=params.nbins[[0,2]])
        out.fracobj_weighted_color1_color2 = get_fracobj(out.attempt_weighted_color1_color2,nbins=params.nbins)
-       out.fracobj_weighted_ch1color1 = get_fracobj(out.attempt_weighted_ch1color1,nbins=params.ch1_nbins)
 
 ; adaptively smooth the completeness map; the idea here is to include
 ; galaxies from adjacent (high-resolution) pixels until we get a
@@ -520,12 +435,13 @@ pro deep2_completeness, clobber=clobber
        out.got_color2_smooth = got_smooth
        out.attempt_color2_smooth = attempt_smooth
 
-       out.zsuccess_ch1color1_smooth = smooth_map(out.zsuccess_ch1color1,out.zsuccess_ch1color1_err,$
-         attempt=out.attempt_ch1color1,got=out.got_ch1color1,smooth_zsuccess_err=zsuccess_smooth_err,$
-         params=params,verbose=0,minsnr=minsnr,smooth_attempt=attempt_smooth,smooth_got=got_smooth,/ch1)
-       out.zsuccess_ch1color1_smooth_err = zsuccess_smooth_err
-       out.got_ch1color1_smooth = got_smooth
-       out.attempt_ch1color1_smooth = attempt_smooth
+;; smooth_map() does not yet support a 3D grid       
+;       out.zsuccess_color1_color2_smooth = smooth_map(out.zsuccess_color1_color2,out.zsuccess_color1_color2_err,$
+;         attempt=out.attempt_color1_color2,got=out.got_color1_color2,smooth_zsuccess_err=zsuccess_smooth_err,$
+;         params=params,verbose=0,minsnr=minsnr,smooth_attempt=attempt_smooth,smooth_got=got_smooth)
+;       out.zsuccess_color1_color2_smooth_err = zsuccess_smooth_err
+;       out.got_color1_color2_smooth = got_smooth
+;       out.attempt_color1_color2_smooth = attempt_smooth
 
 ; ...weighted       
        out.zsuccess_weighted_color1_smooth = smooth_map(out.zsuccess_weighted_color1,out.zsuccess_weighted_color1_err,$
@@ -540,12 +456,6 @@ pro deep2_completeness, clobber=clobber
          /color2)
        out.zsuccess_weighted_color2_smooth_err = zsuccess_weighted_smooth_err
        out.attempt_weighted_color2_smooth = attempt_weighted_smooth
-
-       out.zsuccess_weighted_ch1color1_smooth = smooth_map(out.zsuccess_weighted_ch1color1,out.zsuccess_weighted_ch1color1_err,$
-         attempt=out.attempt_weighted_ch1color1,got=out.got_ch1color1,smooth_zsuccess_err=zsuccess_weighted_smooth_err,$
-         params=params,verbose=0,minsnr=minsnr,smooth_attempt=attempt_weighted_smooth,smooth_got=got_smooth,/ch1)
-       out.zsuccess_weighted_ch1color1_smooth_err = zsuccess_weighted_smooth_err
-       out.attempt_weighted_ch1color1_smooth = attempt_weighted_smooth
 
 ;; test the code -        
 ;;      wetry = where((colors.mag le 23.2) and (colors.mag ge bright) and $
@@ -597,13 +507,6 @@ pro deep2_completeness, clobber=clobber
        mag2daxis = magaxis#(coloraxis*0.0+1.0)
        color2daxis = transpose(coloraxis#(magaxis*0.0+1.0))
 
-       ch1magrange = [params.ch1_hmin[0],params.ch1_hmax[0]]
-       ch1colorrange = [params.ch1_hmin[1],params.ch1_hmax[1]]
-       ch1magaxis = mf_grid_axis(params,0,/midbin,/ch1)
-       ch1coloraxis = mf_grid_axis(params,1,/midbin,/ch1)
-       ch1mag2daxis = ch1magaxis#(ch1coloraxis*0.0+1.0)
-       ch1color2daxis = transpose(ch1coloraxis#(ch1magaxis*0.0+1.0))
-
 ; observed - all
        good = where(out.zsuccess_color1 ge 0.0)
        mf_hogg_scatterplot, mag2daxis[good], color2daxis[good], weight=out.zsuccess_color1[good], position=pos, $
@@ -612,7 +515,8 @@ pro deep2_completeness, clobber=clobber
          color=cgcolor('black',1), exp=2.0, darkest=mincol, /nocontour
        contour, out.fracobj_color1, mag2daxis, color2daxis, levels=levels, $
          /overplot, c_annotation=cannotation, color=cgcolor('black',1)
-       legend, field[ifield]+' - observed, all', /left, /top, box=0, charsize=1.3, margin=0, textcolor=cgcolor('black',0)
+       im_legend, field[ifield]+' - observed, all', /left, /top, box=0, $
+         charsize=1.3, margin=0, textcolor=cgcolor('black',0)
 ; smoothed - all
        good = where(out.zsuccess_color1_smooth ge 0.0)
        mf_hogg_scatterplot, mag2daxis[good], color2daxis[good], weight=out.zsuccess_color1_smooth[good], position=pos, $
@@ -621,7 +525,8 @@ pro deep2_completeness, clobber=clobber
          color=cgcolor('black',1), exp=2.0, darkest=mincol, /nocontour
        contour, out.fracobj_color1, mag2daxis, color2daxis, levels=levels, $
          /overplot, c_annotation=cannotation, color=cgcolor('black',1)
-       legend, field[ifield]+' - smoothed, all', /left, /top, box=0, charsize=1.3, margin=0, textcolor=cgcolor('black',0)
+       im_legend, field[ifield]+' - smoothed, all', /left, /top, box=0, $
+         charsize=1.3, margin=0, textcolor=cgcolor('black',0)
 ; observed - high S/N
        good = where(out.zsuccess_color1/out.zsuccess_color1_err gt 1.0) ; minsnr
        mf_hogg_scatterplot, mag2daxis[good], color2daxis[good], weight=out.zsuccess_color1[good], position=pos, $
@@ -630,7 +535,8 @@ pro deep2_completeness, clobber=clobber
          color=cgcolor('black',1), exp=2.0, darkest=mincol, /nocontour
        contour, out.fracobj_color1, mag2daxis, color2daxis, levels=levels, $
          /overplot, c_annotation=cannotation, color=cgcolor('black',1)
-       legend, field[ifield]+' - observed, S/N>1', /left, /top, box=0, charsize=1.3, margin=0, textcolor=cgcolor('black',0)
+       im_legend, field[ifield]+' - observed, S/N>1', /left, /top, box=0, $
+         charsize=1.3, margin=0, textcolor=cgcolor('black',0)
 ; smoothed - high S/N
        good = where(out.zsuccess_color1_smooth/out.zsuccess_color1_smooth_err gt 1.0) ; minsnr
        mf_hogg_scatterplot, mag2daxis[good], color2daxis[good], weight=out.zsuccess_color1_smooth[good], position=pos, $
@@ -639,18 +545,9 @@ pro deep2_completeness, clobber=clobber
          color=cgcolor('black',1), exp=2.0, darkest=mincol, /nocontour
        contour, out.fracobj_color1, mag2daxis, color2daxis, levels=levels, $
          /overplot, c_annotation=cannotation, color=cgcolor('black',1)
-       legend, field[ifield]+' - smoothed, S/N>1', /left, /top, box=0, charsize=1.3, margin=0, textcolor=cgcolor('black',0)
+       im_legend, field[ifield]+' - smoothed, S/N>1', /left, /top, box=0, $
+         charsize=1.3, margin=0, textcolor=cgcolor('black',0)
 
-; ch1 - observed - all
-       good = where(out.zsuccess_ch1color1 ge 0.0)
-       mf_hogg_scatterplot, ch1mag2daxis[good], ch1color2daxis[good], weight=out.zsuccess_ch1color1[good], position=pos, $
-         xstyle=1, ystyle=1, xrange=ch1magrange, yrange=ch1colorrange, xnpix=params.ch1_nbins[0], ynpix=params.ch1_nbins[1], $
-         xtitle=textoidl(params.nice_targ_filter+' (AB mag)'), ytitle=textoidl(params.nice_ch1color_filter), $
-         color=cgcolor('black',1), exp=2.0, darkest=mincol, /nocontour
-       contour, out.fracobj_ch1color1, ch1mag2daxis, ch1color2daxis, levels=levels, $
-         /overplot, c_annotation=cannotation, color=cgcolor('black',1)
-       legend, field[ifield]+' - ch1 - observed, all', /left, /top, box=0, charsize=1.3, margin=0, textcolor=cgcolor('black',0)
-       
 ;;; fit a 2D model - the bspline code below is fine, but the
 ;;; completeness maps don't lend themselves well to a simple model 
 ;;       magaxis = mf_grid_axis(params,0)
@@ -702,75 +599,11 @@ pro deep2_completeness, clobber=clobber
          allout = [temporary(allout),out]
     endfor ; close field loop
 
-    im_plotconfig, /psclose, psfile=psfile, /gzip
+    im_plotconfig, /psclose, psfile=psfile, /pdf
     loadct, 0, /silent
     
 ; write out
-    im_mwrfits, allout, compfile, clobber=clobber
+    im_mwrfits, allout, outfile, clobber=clobber
 
 return
 end
-
-
-;      irac_agn = mf_irac_agn(photo) eq 1 ; IRAC color-color cut
-;      keep = where((inwindow eq 1) and (irac_agn eq 0) and $
-;        strtrim(zerod.zprimus_class,2) eq 'GALAXY',nkeep)
-;      keep = where(inwindow eq 1)
-;      zerod = zerod[keep]
-;      photo = photo[keep]
-
-
-;; compute the mean targeting rate for MFPLOT_COMPLETENESS weighted by
-;; the number of objects
-;       tweight = 1.0/zerod.targ_weight
-;       thist = hist_nd(transpose([[colors.mag],[tweight]]),$
-;         nbins=[params.nbins[0],20],min=[params.hmin[0],0.0],$
-;         max=[params.hmax[0],1.01])
-;
-;       weightaxis = findgen(20)*(1.01-0.0)/(20.0-1.0)+0.0
-;       for jj = 0, params.nbins[0]-1 do out.targ_weight_mag[jj] = $
-;         im_weighted_mean(weightaxis,weight=thist[jj,*])
-
-;      utweight = tweight[uniq(tweight,sort(tweight))]
-;      thist = hist_nd(transpose([[colors.mag],[tweight]]),$
-;        nbins=[params.nbins[0],n_elements(utweight)],$
-;        min=[params.hmin[0],min(utweight)],max=[params.hmax[0],max(utweight)])
-       
-;      targ_weight = hogg_histogram(reform(colors.mag,1,out.nobj),$
-;        reform([params.hmin[0],params.hmax[0]],2,1),params.nbins[0],$
-;        weight=zerod.targ_weight)
-;      out.targ_weight_mag = out.attempt_mag/targ_weight ; weight-->[0-1]
-
-
-
-;; this code works fine, but it uses hist_nd instead of hogg_histogram
-;       out.attempt_mag = hist_nd(reform(colors[iattempt_mag].mag,1,nattempt_mag),$
-;         nbins=params.nbins[0],min=params.hmin[0],max=params.hmax[0])
-;       out.attempt_color1 = hist_nd(transpose([[colors[iattempt_color1].mag],$
-;         [colors[iattempt_color1].color1]]),nbins=params.nbins[[0,1]],$
-;         min=params.hmin[[0,1]],max=params.hmax[[0,1]])
-;       out.attempt_color2 = hist_nd(transpose([[colors[iattempt_color2].mag],$
-;         [colors[iattempt_color2].color2]]),nbins=params.nbins[[0,2]],$
-;         min=params.hmin[[0,2]],max=params.hmax[[0,2]])
-;       out.attempt_color1_color2 = hist_nd(transpose([[colors[iattempt_color1_color2].mag],$
-;         [colors[iattempt_color1_color2].color1],[colors[iattempt_color1_color2].color2]]),$
-;         nbins=params.nbins,min=params.hmin,max=params.hmax)
-;       out.attempt_ch1color1 = hist_nd(transpose([[colors[iattempt_ch1color1].mag],$
-;         [colors[iattempt_ch1color1].ch1color1]]),nbins=params.ch1_nbins,$
-;         min=params.ch1_hmin,max=params.ch1_hmax)
-;
-;       out.got_mag = hist_nd(reform(colors[igot_mag].mag,1,ngot_mag),$
-;         nbins=params.nbins[0],min=params.hmin[0],max=params.hmax[0])
-;       out.got_color1 = hist_nd(transpose([[colors[igot_color1].mag],$
-;         [colors[igot_color1].color1]]),nbins=params.nbins[[0,1]],$
-;         min=params.hmin[[0,1]],max=params.hmax[[0,1]])
-;       out.got_color2 = hist_nd(transpose([[colors[igot_color2].mag],$
-;         [colors[igot_color2].color2]]),nbins=params.nbins[[0,2]],$
-;         min=params.hmin[[0,2]],max=params.hmax[[0,2]])
-;       out.got_color1_color2 = hist_nd(transpose([[colors[igot_color1_color2].mag],$
-;         [colors[igot_color1_color2].color1],[colors[igot_color1_color2].color2]]),$
-;         nbins=params.nbins,min=params.hmin,max=params.hmax)
-;       out.got_ch1color1 = hist_nd(transpose([[colors[igot_ch1color1].mag],$
-;         [colors[igot_ch1color1].ch1color1]]),nbins=params.ch1_nbins,$
-;         min=params.ch1_hmin,max=params.ch1_hmax)
-

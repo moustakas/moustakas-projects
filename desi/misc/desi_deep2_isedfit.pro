@@ -19,8 +19,8 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
     cat = read_deep2_zcat(photo=phot)
     deep2_to_maggies, phot, maggies, ivarmaggies, /unwise, $
       filterlist=filterlist
-    
-    zminmax = [0.7,1.5]
+
+    zminmax = [0.1,2.0]
     index = where(cat.zbest ge zminmax[0] and cat.zbest le zminmax[1])
     ngal = n_elements(cat)
 
@@ -29,9 +29,9 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
     if keyword_set(write_paramfile) then begin
        write_isedfit_paramfile, params=params, isedfit_dir=isedfit_dir, $
          prefix=prefix, filterlist=filterlist, spsmodels='fsps_v2.4_miles', $
-         imf='chab', redcurve='charlot', /igm, zminmax=zminmax, nzz=30.0, $
-         nmodel=1000L, age=[0.1,7.2], tau=[0.01,7], Zmetal=[0.004,0.03], $
-         pburst=0.2, interval_pburst=2.0, clobber=clobber
+         imf='chab', redcurve='charlot', /igm, zminmax=zminmax, nzz=40.0, $
+         nmodel=10000L, age=[0.1,7.2], tau=[0.01,7], Zmetal=[0.004,0.03], $
+         pburst=0.2, interval_pburst=1.0, clobber=clobber
     endif
 
 ; --------------------------------------------------

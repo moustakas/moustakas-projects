@@ -1,8 +1,9 @@
 J. Moustakas - Siena College
 2013 July - original analysis
 2014 March - updated to include spectra from pointing 43 and the
-             statistical weights for the survey
-2014 May - building correct targeting weights
+  statistical weights for the survey
+2014 May - building correct targeting weights; also build the redshift
+  success maps
 
 First I downloaded all the DR4 catalogs and 1D and 2D spectra from
 http://deep.ps.uci.edu/dr4/home.html
@@ -40,7 +41,7 @@ using the 'read_deep2_zcat(all=all)' script.
 Next, generate a line-matched catalog of targeting weights for the
 sample based on the selection criteria described in Newman+13 and at
 http://deep.ps.uci.edu/dr4/completeness.html by running
-'build_deep2_targeting_weights' which produces the following catalogs:
+'deep2_targeting_weights' which produces the following catalogs:
     weight.zcat.deep2.dr4.uniq.fits.gz (N=50319)
     weight.zcat.dr4.goodspec1d.fits.gz (N=50241)
     weight.zcat.dr4.goodspec1d.Q34.fits.gz (N=35781)

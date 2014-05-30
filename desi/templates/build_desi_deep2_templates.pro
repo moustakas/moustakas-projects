@@ -84,9 +84,11 @@ pro build_desi_deep2_templates, minwave=minwave, maxwave=maxwave, $
     light = im_light(/kms)
     light_ang = im_light(/Ang)
 
-; simulation parameter defaults
-    if n_elements(minwave) eq 0 then minwave = 3000D  ; [A]
-    if n_elements(maxwave) eq 0 then maxwave = 1D4  ; [A]
+; simulation parameter defaults (rest-frame wavelengths!)
+    if n_elements(minwave) eq 0 then minwave = 1500D  ; [A]
+    if n_elements(maxwave) eq 0 then maxwave = 35000D ; [A]
+;   if n_elements(minwave) eq 0 then minwave = 3000D  ; [A]
+;   if n_elements(maxwave) eq 0 then maxwave = 1D4  ; [A]
     if n_elements(velpixsize) eq 0 then velpixsize = 20D ; [km/s]
 
     crval1 = alog10(minwave)           ; starting wavelength [log-10 A]
@@ -97,8 +99,9 @@ pro build_desi_deep2_templates, minwave=minwave, maxwave=maxwave, $
 ;   cdelt1 = velpixsize/light   ; [pixel size in log-10 A]
 ;   npix = round((alog(maxwave)-crval1)/cdelt1+1)
 
-    obswave = crval1+dindgen(npix)*cdelt1 ; log-10 spacing
-    obswave_edges = k_lambda_to_edges(10D^obswave)
+    restwave = crval1+dindgen(npix)*cdelt1 ; log-10 spacing
+;   obswave = crval1+dindgen(npix)*cdelt1 ; log-10 spacing
+;   obswave_edges = k_lambda_to_edges(10D^obswave)
 
     weff = k_lambda_eff(filterlist=deep2_filterlist())
     nband = n_elements(weff)
@@ -118,7 +121,7 @@ pro build_desi_deep2_templates, minwave=minwave, maxwave=maxwave, $
     outinfo = struct_addtags(struct_trimtags(info[keep],select=['OBJNO','RA','DEC',$
       'Z','SIGMA_KMS']),replicate({oii_3726: 0.0, $
       oii_3729: 0.0, oii: 0.0, oii_ew: 0.0, $ ; lineratio: fltarr(nline), $
-      mag_u: 0.0, mag_g: 0.0, mag_r: 0.0, mag_i: 0.0, mag_z: 0.0, $
+;     mag_u: 0.0, mag_g: 0.0, mag_r: 0.0, mag_i: 0.0, mag_z: 0.0, $
 ;     ugriz: fltarr(5), 
       logmstar: 0.0, logsfr: 0.0},ngal))
     outinfo.oii_3726 = info[keep].oii_3727_1[0]
@@ -127,9 +130,10 @@ pro build_desi_deep2_templates, minwave=minwave, maxwave=maxwave, $
     outinfo.oii_ew = info[keep].oii_3727_ew[0]
     
 ; divide the sample into chunks
-;   chunksize = 5L
+    splog, 'HACK!'
+    chunksize = 5L
 ;   chunksize = 500L
-    chunksize = ngal
+;   chunksize = ngal
     nchunk = ceil(ngal/float(chunksize))
     
 ;   for ichunk = 0, 0 do begin
@@ -151,7 +155,9 @@ pro build_desi_deep2_templates, minwave=minwave, maxwave=maxwave, $
 ; log10-lambda; note that we're ignoring the change in spectral 
 ; resolution of the underlying continuum spectrum 
           ised1 = ised[igal]
-          restwave = obswave-alog10(1+info[these[igal]].z)
+          ised1.wave = ised1.wave/(1+info[these[igal]].z) ; rest wavelength
+          ised1.flux = ised1.flux*(1+info[these[igal]].z) ; rest flux (kinda)
+;         restwave = obswave-alog10(1+info[these[igal]].z)
 
 ; observed [erg/s/cm2/A]                    
           continuum = im_log_rebin(im_double(ised1.wave),ised1.flux,/log10,$  
@@ -182,16 +188,18 @@ pro build_desi_deep2_templates, minwave=minwave, maxwave=maxwave, $
 ;         djs_oplot, [1,1]*3727*(1+info[igal].z), !y.crange, color='red'
 ;         djs_oplot, !x.crange, info[igal].cflux_3727*[1,1], color='red'
           
-; now do the other nebular lines
+; now add in the other nebular lines
           for ll = 0, nline-1 do emspectrum = build_emline(emspectrum,$
             logwave=restwave,zshift=zshift,lineflux=lineratio[ll]*reflineflux,$
             linesigma=linesigma,linewave=linewave[ll])
 
 ; shift to the observed frame and build the final spectrum
-          emspectrum = emspectrum/(1+info[these[igal]].z)
+;         emspectrum = emspectrum/(1+info[these[igal]].z)
           flux = continuum + emspectrum ; [erg/s/cm2/A]
           outflux[igal,*] = flux
 
+stop          
+          
 ; synthesize photometry and pack in the output structure
 ;         ugrizch12 = k_project_filters(obswave_edges,flux,$
 ;           filterlist=[sdss_filterlist(),wise_filterlist(/short)])
@@ -202,11 +210,11 @@ pro build_desi_deep2_templates, minwave=minwave, maxwave=maxwave, $
           outinfo[these[igal]].logmstar = ised[igal].mstar_50
           outinfo[these[igal]].logsfr = ised[igal].sfr_50
 ;         outinfo[these[igal]].ugriz = ugriz
-          outinfo[these[igal]].mag_u = reform(ugriz[0,*])
-          outinfo[these[igal]].mag_g = reform(ugriz[1,*])
-          outinfo[these[igal]].mag_r = reform(ugriz[2,*])
-          outinfo[these[igal]].mag_i = reform(ugriz[3,*])
-          outinfo[these[igal]].mag_z = reform(ugriz[4,*])
+;         outinfo[these[igal]].mag_u = reform(ugriz[0,*])
+;         outinfo[these[igal]].mag_g = reform(ugriz[1,*])
+;         outinfo[these[igal]].mag_r = reform(ugriz[2,*])
+;         outinfo[these[igal]].mag_i = reform(ugriz[3,*])
+;         outinfo[these[igal]].mag_z = reform(ugriz[4,*])
           
           if keyword_set(debug) then begin
              mag = maggies2mag(info[these[igal]].maggies,magerr=magerr,$

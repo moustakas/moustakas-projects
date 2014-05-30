@@ -8,10 +8,12 @@ function deep2_colorcut, magb, magr, magi, mlim=mlim
 ;     (magr-magi gt 1.211) or (magb-magr lt 0.389))
 end
 
-pro build_deep2_targeting_weights
+pro deep2_targeting_weights
 ; jm14may21siena - compute the targeting weights for DEEP2/DR4
 ; for details see: Newman+13 and
 ; http://deep.ps.uci.edu/dr4/completeness.html 
+
+; ** after running this code you should run DEEP2_ZSUCCESS **
 
     catpath = deep2_path(/catalogs)
     winpath = deep2_path(/window)
@@ -21,14 +23,15 @@ pro build_deep2_targeting_weights
     ngal = n_elements(zcat)
 
 ; obj_weight - object weight
-; targ_weight - probability of being selected for observation (final
-;   targeting weight) 
+; targ_weight - probability of being selected for observation
+; phot_weight - other random sources of incompleteness (assumed to be 5%)
+; final targeting weight - 
     
     out = struct_addtags(struct_trimtags(zcat,select=$
       ['objno','objname','ra','dec','pgal','magr']),replicate({$
-      obj_weight: -1.0, targ_weight: -1.0, $
-      deep2_nmatch: 0, deep2_psel: -1.0, deep2_probcut: -1.0, $
-      deep2_weight: -1.0},ngal))
+      obj_weight: -1.0, select_weight: -1.0, phot_weight: 1.05, $
+      targ_weight: -1.0, zsuccess_weight: -1.0, final_weight: -1.0},ngal))
+;     deep2_nmatch: 0, deep2_psel: -1.0, deep2_probcut: -1.0, deep2_weight: -1.0
     
 ; ####################
 ; Field 1/EGS targeting weights: W = Wsg * WR; note we
@@ -54,10 +57,10 @@ pro build_deep2_targeting_weights
     wr_final[w1] = wr[w1]
     wr_final[w2] = (0.1*10^(-0.4*(magr[w2]-24.1)))<1
 
-; object weight and final targeting weight
+; object weight and final selection weight
     out[field1].obj_weight = wsg*wr_final
-    out[field1].targ_weight = 0.33398 + 0.42687*out[field1].obj_weight
-;   djs_plot, magr, out[field1].targ_weight, psym=3, xsty=3, ysty=3
+    out[field1].select_weight = 0.33398 + 0.42687*out[field1].obj_weight
+;   djs_plot, magr, out[field1].select_weight, psym=3, xsty=3, ysty=3
 
 ; ####################
 ; Fields 2-4 targeting weights: W = Wsg * Wc * WR * Wbc
@@ -84,10 +87,10 @@ pro build_deep2_targeting_weights
 ; been incorporated into the redshift catalog for these fields
     out[fields24].obj_weight = wsg*wr*wbc
 ;   out[fields24].obj_weight = wsg*wc*wr*wbc
-    out[fields24].targ_weight = 0.27976 + 0.44717*out[fields24].obj_weight-$
+    out[fields24].select_weight = 0.27976 + 0.44717*out[fields24].obj_weight-$
       0.09137*out[fields24].obj_weight^2
 
-;   djs_plot, magr, out[fields24].targ_weight, psym=3, xsty=3, ysty=3
+;   djs_plot, magr, out[fields24].select_weight, psym=3, xsty=3, ysty=3
 
 ;;; check!    
 ;;    deep2 = rsex(catpath+'deep2_selection.dat')
@@ -113,6 +116,9 @@ pro build_deep2_targeting_weights
 ;;          out[ii].deep2_weight = deep2[match[this[0]]].weight
 ;;       endif
 ;;    endfor
+
+; final targeting weight is the (inverse!) product of everything
+    out.targ_weight = out.phot_weight/out.select_weight
     
 ; write out
     im_mwrfits, out, catpath+'weight.zcat.deep2.dr4.uniq.fits', /clobber

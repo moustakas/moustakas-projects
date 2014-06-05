@@ -830,7 +830,8 @@ if (n_elements(err) ne 0) then begin
                
                fluxes_i = ampls_i* sqrt(2*!pi) * sigmas_i * lambda0[i] * exp(vels_i/c)/c 
                esol_final[k+0]  = im_robust_sigma(fluxes_i)
-               if (esol_final[k+0] eq 0) then message, 'Error is zero!'
+               if (esol_final[k+0] le 0) then esol_final[k+0] = djsig(fluxes_i)
+               if (esol_final[k+0] le 0) then message, 'Flux error is zero or negative!'
             endif else begin
                sol_final[k+0] = 0.0
                sol_final[k+1] = 0.0

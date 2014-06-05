@@ -4,6 +4,10 @@ J. Moustakas - Siena College
   statistical weights for the survey
 2014 May - building correct targeting weights; also build the redshift
   success maps
+2014 June - all the catalogs were remade based on newly
+  flux-calibrated DEEP2 spectra; spectra that could not be
+  flux-calibrated (e.g., negative continuum) have been effectively
+  removed
 
 First I downloaded all the DR4 catalogs and 1D and 2D spectra from
 http://deep.ps.uci.edu/dr4/home.html
@@ -15,24 +19,26 @@ galaxies are called
 Among the unique galaxy sample, N=35781 have Q>=3.
 
 However, I found that the 1D/2D spectra of some of the objects in this
-redshift catalog are empty/junk.
+redshift catalog are empty/junk.  In addition, some spectra cannot be
+flux-calibrated.
 
 The code 'deep2_check_spec1d_dr4' runs through the full catalog of
-unique objects and checks the fidelity of the 1D spectra and produces
-the following files:
+unique objects and checks the fidelity of the 1D spectra and also
+determines which spectra can be flux-calibrated and produces the
+following files:
     zcat.dr4.nospec1d.fits.gz (N=0 - all accounted for!)
-    zcat.dr4.junkspec1d.fits.gz (N=78)
-    zcat.dr4.goodspec1d.fits.gz (N=50241)
-    zcat.dr4.goodspec1d.Q34.fits.gz (N=35781)
+    zcat.dr4.junkspec1d.fits.gz (N=530, N=99 with Q>=3)
+    zcat.dr4.goodspec1d.fits.gz (N=49789)
+    zcat.dr4.goodspec1d.Q34.fits.gz (N=35682)
 
 The first catalog contains objects in the redshift catalog without 1D
 spectra (i.e., none!); the second catalog has objects with 1D spectra
 that contain all zeros (or more specifically all the inverse variances
-are zero, although note that nearly all have Q<3); and the third
-catalog is my revised high-fidelity redshift catalog of (unique)
-objects with good spectra (contains 99.8% of the original objects).
-The last catalog also has the following cuts applied: ZBEST GT 0 &&
-ZQUALITY GE 3.
+are zero, although note that nearly all have Q<3, or contains spectra
+that could not be fluxed); and the third catalog is my revised
+high-fidelity redshift catalog of (unique) objects with good spectra
+(contains 99.8% of the original objects).  The last catalog also has
+the following cuts applied: ZBEST GT 0 && ZQUALITY GE 3.
 
 The 'zcat.dr4.goodspec1d.Q34.fits.gz' redshift catalog is used in all
 my subsequent analysis.  Note that these catalogs can be accessed
@@ -43,8 +49,8 @@ sample based on the selection criteria described in Newman+13 and at
 http://deep.ps.uci.edu/dr4/completeness.html by running
 'deep2_targeting_weights' which produces the following catalogs:
     weight.zcat.deep2.dr4.uniq.fits.gz (N=50319)
-    weight.zcat.dr4.goodspec1d.fits.gz (N=50241)
-    weight.zcat.dr4.goodspec1d.Q34.fits.gz (N=35781)
+    weight.zcat.dr4.goodspec1d.fits.gz (N=49789)
+    weight.zcat.dr4.goodspec1d.Q34.fits.gz (N=35682)
 
 Next, create a line-matched photometric catalog by running
 'build_deep2_photo_catalog', which matches the Matthews+13 extended
@@ -55,13 +61,24 @@ use the original BRI photometry contained in the redshift catalog.
 Among the full sample, four objects have valid photometry in just two
 bands, so those aren't very useful; the overwhelming majority (~74%)
 have 8-band photometry (BRI+ugriz), while the remainder (~25%) have
-3-band BRI photometry.  The output files produced are:
-photo.dr4.goodspec1d.fits.gz (N=50241)
-photo.dr4.goodspec1d.Q34.fits.gz (N=35781)
+3-band BRI photometry.  This routine also adds 'unwise' photometry to
+the sample, which is based on running The Tractor in force-photometry
+mode at the position of all the DEEP2 sources brighter than R=24.1.
+The output files produced are:
+    photo.dr4.goodspec1d.fits.gz (N=49789)
+    photo.dr4.goodspec1d.Q34.fits.gz (N=35682)
 
+Next, we build a redshift success map.  The basic idea is to compute
+the number of objects with successful redshifts measured relative to
+the number of objects targeted as a function of observed-frame color
+and magnitude.  Running 'deep2_zsuccess' produces an output
+completeness map (table) and a QAplot:
+    deep2_zsuccess.fits.gz
+    qa_deep2_zsuccess.pdf
+    
 Next, compute K-corrections for just the Q34 sample using
 'deep2_kcorrect', which creates the line-matched file:
-    kcorr.dr4.goodspec1d.Q34.fits.gz (N=35781)
+    kcorr.dr4.goodspec1d.Q34.fits.gz (N=35682)
 
 Next, model the nebular emission lines in the Q34 sample using
 'deep2_gandalf_specfit_dr4', which runs on each individual DEEP2 mask.
@@ -70,21 +87,25 @@ output files and to produce the final 'specdata' and 'specfit' files.
 Finally, all the masks are merged together using
 'deep2_merge_gandalf_specfit_dr4', producing an emission-line catalog
 that is line-matched to the parent Q34 redshift catalog:
-    deep2.ppxf.specdata.dr4_v1.0.fits.gz (N=35781)
+    deep2.ppxf.specdata.dr4_v1.0.fits.gz (N=35682)
 
 I also produce a catalog in which the [OII] 3726/3729 doublet ratio is
 fixed to be 0.73 (i.e., 3729/3726=1.35) which guarantees that [OII] is
 fitted with both components of the doublet.  The code sequence used is
-'deep2_gandalf_specfit_dr4, /fixoii' then
-'parse_deep2_gandalf_specfit_dr4, /fixoii' then
-'deep2_merge_gandalf_specfit_dr4, /fixoii', resulting in catalog
-below.  Note that in the merging step I use the catalog where the
-[OII] doublet ratio is allowed to vary and where [OII] is
-well-measured in place of the fixed-[OII] measurements.
-    deep2.ppxf.specdata.fixoii.dr4_v1.0.fits.gz (N=35781)
+the following:
+   deep2_gandalf_specfit_dr4, /fixoii
+   parse_deep2_gandalf_specfit_dr4, /fixoii
+   deep2_merge_gandalf_specfit_dr4, /fixoii
+Note that in the merging step I use the catalog where the [OII]
+doublet ratio is allowed to vary and where [OII] is well-measured in
+place of the fixed-[OII] measurements.  These commands produce the
+following catalog:
+    deep2.ppxf.specdata.fixoii.dr4_v1.0.fits.gz (N=35682)
 
-Finally, to create a tarball of all the 1D spectra for this sample of
-objects run the following command from the parent DR4 directory:
+Finally, to (optionally!) create a tarball of all the 1D spectra for
+this sample of objects run the following command from the parent DR4
+directory:
+
     find . -name "spec1d*.fits.gz" -type f -print | xargs tar -rvf deep2.dr4.spec1d.tar 
 
 

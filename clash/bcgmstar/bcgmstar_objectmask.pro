@@ -158,6 +158,11 @@ stop
           for ib = 0, nfilt-1 do begin
              segm = mrdfits(segmfile,0,hdr,/silent)
              bigmask = segm*0
+             sz = size(segm,/dim)
+
+; sometimes the residuals in the BCG subtraction get detected as
+; sources, which messes up our ellipse-fitting
+             segm[sz[0]/2-40:sz[0]/2+40,sz[1]/2-40:sz[1]/2+40] = 0
              
              cat = mrdfits(catfile[ib],2)
              big = where(cat.isoarea_image gt 1000,nbig,comp=small,ncomp=nsmall)
@@ -171,7 +176,8 @@ stop
              bigmask = dsmooth(bigmask,10)
 ;            bigmask = dsmooth(dsmooth(bigmask,10) gt 0,10) gt 0
 ;            bigmask = dsmooth(bigmask,10) gt 0
-             mask = (dsmooth(segm,5) + bigmask) gt 0
+             mask = (dsmooth(segm,2) + bigmask) gt 0
+;            mask = (dsmooth(segm,5) + bigmask) gt 0
              splog, 'Writing '+maskfile
              mwrfits, mask, maskfile, hdr, /create
 

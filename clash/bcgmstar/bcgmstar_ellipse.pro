@@ -72,7 +72,8 @@ pro bcgmstar_ellipse, debug=debug, clobber=clobber
     fact = 1D-12                           ; conversion from picomaggies to maggies
     pixscale = 0.065D                      ; [arcsec/pixel]
     pixarea = 5.0*alog10(pixscale)         ; 2.5*log10(pixscale^2)
-    rmax = 10.0                           ; [kpc]
+;   rmax = 10.0                            ; [kpc]
+    rmax = 25.0                            ; [kpc]
 ;   rmax = 200.0                           ; [kpc]
 
     ellpath = bcgmstar_path(/ellipse)
@@ -118,24 +119,26 @@ pro bcgmstar_ellipse, debug=debug, clobber=clobber
 ; the other bands; note that the ellipse PA (in radians) in GZ's code
 ; is measured positive from the X-axis, not the *Y-axis* as we assume
 ; below
+
+;         imellipse1 = do_ellipse(image,invvar=invvar*mask,ini_xcen=xcen,$
+          ii = do_ellipse(image,invvar=invvar*mask,ini_xcen=xcen,$
+            ini_ycen=ycen,ini_e0=info[reffilt].mge_ellipticity,$
+            ini_pa0=info[reffilt].mge_posangle,namax=namax,$
+            pixscale=pixscale,arcsec2kpc=arcsec2kpc);,/fixcenter)
+
 ;         modellipse1 = do_ellipse(model,invvar=invvar,ini_xcen=xcen, $
           mm = do_ellipse(model,invvar=invvar,ini_xcen=xcen, $
             ini_ycen=ycen,ini_e0=info[reffilt].mge_ellipticity,$
             ini_pa0=info[reffilt].mge_posangle,namax=namax,$
             pixscale=pixscale,arcsec2kpc=arcsec2kpc)
-          
-;         imellipse1 = do_ellipse(image,invvar=invvar*mask,ini_xcen=xcen,$
-          ii = do_ellipse(image,invvar=invvar*mask,ini_xcen=xcen,$
-            ini_ycen=ycen,ini_e0=info[reffilt].mge_ellipticity,$
-            ini_pa0=info[reffilt].mge_posangle,namax=namax,$
-            pixscale=pixscale,arcsec2kpc=arcsec2kpc) ; ,/fixcenter)
 
-;         djs_plot, mm.majora, mm.pafit
-;         djs_oplot, ii.majora, ii.pafit, color='red'
-;         djs_plot, mm.majora, mm.sb0fit
-;         djs_oplot, ii.majora, ii.sb0fit, color='red'
-          
-          
+          djs_plot, mm.majora, mm.pafit
+          djs_oplot, ii.majora, ii.pafit, color='red'
+          djs_plot, mm.majora, mm.ellipticityfit
+          djs_oplot, ii.majora, ii.ellipticityfit, color='red'
+          djs_plot, mm.majora, mm.sb0fit, xsty=3, ysty=3, /xlog, /ylog
+          djs_oplot, ii.majora, ii.sb0fit, color='red'
+
           
 stop          
           

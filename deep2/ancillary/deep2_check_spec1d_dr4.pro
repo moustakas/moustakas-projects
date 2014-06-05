@@ -67,7 +67,7 @@ pro deep2_check_spec1d_dr4, debug=debug
 
     ngalaxy = n_elements(allgoodindx)
     moreinfo = replicate({galaxy: '', file: '', zcatindx: -1L, minwave: 0.0, $
-      maxwave: 0.0, junkspec1d: 0},ngalaxy)
+      maxwave: 0.0, junkspec1d: 0, fluxflag: 0},ngalaxy)
 ;     maxwave: 0.0, junkspec1d: 0, extract_flag: 0},ngalaxy)
     zcat_out = struct_addtags(moreinfo,zcat[allgoodindx])
     zcat_out.file = strmid(spec1dfile_ondisk_good,strlen(datapath)) ; strip off DATAPATH (not FILE_BASENAME!)
@@ -76,14 +76,16 @@ pro deep2_check_spec1d_dr4, debug=debug
 
 ; loop through to check for empty spectra and to store the minimum and
 ; maximum wavelengths
-;   for ii = 43500, ngalaxy-1L do begin
-    for ii = 0L, ngalaxy-1L do begin
+;   for ii = 34614L, ngalaxy-1L do begin
+;   for ii = 15408, ngalaxy-1 do begin
+    for ii = 0L, ngalaxy-1 do begin
 
        if (ii mod 500) eq 0 then print, 'Object ', ii
        print, format='("DEEP2_CHECK_SPEC1D: ",I0,"/",I0,".",A1,$)', $
          ii+1, ngalaxy, string(13b)
+       print, ii
 
-       spec = fill_gap(datapath+zcat_out[ii].file,/silent)
+       spec1d = fill_gap(datapath+zcat_out[ii].file,/silent,header=hdr)
        
 ;      spec1 = mrdfits(datapath+zcat_out[ii].file,1,h1,/silent)
 ;      spec2 = mrdfits(datapath+zcat_out[ii].file,2,h2,/silent)
@@ -101,14 +103,26 @@ pro deep2_check_spec1d_dr4, debug=debug
 ;       ivar = [spec1.ivar,spec2.ivar]
 ;       wave = [spec1.lambda,spec2.lambda]
 
-       if size(spec,/type) eq 4 or size(spec,/type) eq 2 then begin ; no data
+       if size(spec1d,/type) eq 4 or size(spec1d,/type) eq 2 then begin ; no data
           zcat_out[ii].junkspec1d = 1
        endif else begin
-          flux = spec.spec
-          ivar = spec.ivar
+; make sure we can flux-calibrate
+          cspec = qe_correction2(spec1d,hdr,pars,paramsendr,lambda,$
+            throughtput_table,/telluric,ncorrect=7)
+          spec = specphot(cspec,hdr,rlambda,rresponse,ilambda,iresponse)
+
+          flux = spec.fluxl     ; [erg/s/cm2/A]
+          ivar = spec.ivar_fluxl
+
+;         flux = spec.spec
+;         ivar = spec.ivar
           wave = spec.lambda
           fgood = where((ivar gt 0.0),nfgood)
 
+          if total(finite(flux) eq 0) ne 0.0 or total(finite(ivar) eq 0) ne 0.0 then stop
+
+;         if spec.fluxflag eq 3 then stop
+          zcat_out[ii].fluxflag = spec.fluxflag
           if (nfgood eq 0L) then begin
 ;            zcat_out[ii].minwave = min(wave)
 ;            zcat_out[ii].maxwave = max(wave)
@@ -134,9 +148,9 @@ pro deep2_check_spec1d_dr4, debug=debug
 ;      print, zcat_out[ext[ie]].file, strtrim(sxpar(h1,'EXTNAME'),2), $
 ;        strtrim(sxpar(h2,'EXTNAME'),2)
 ;   endfor       
-    
+
 ; write out    
-    goodindx = where(zcat_out.junkspec1d eq 0)
+    goodindx = where(zcat_out.junkspec1d eq 0 and zcat_out.fluxflag lt 3)
 ;   goodindx = where((zcat_out.junkspec1d eq 0) and (zcat_out.extract_flag eq 0))
     if (goodindx[0] ne -1L) then begin
        zcat_good = zcat_out[goodindx]
@@ -153,7 +167,7 @@ pro deep2_check_spec1d_dr4, debug=debug
 
 ; among the junk spectra, all of them have ZQUALITY<3; among the
 ; extract-flag objects, all but 8 have ZQUALITY<3
-    junkindx = where(zcat_out.junkspec1d eq 1)
+    junkindx = where(zcat_out.junkspec1d eq 1 or zcat_out.fluxflag ge 3)
 ;   junkindx = where(zcat_out.junkspec1d or zcat_out.extract_flag) 
     if (junkindx[0] ne -1L) then begin
        zcat_junk = zcat_out[junkindx]

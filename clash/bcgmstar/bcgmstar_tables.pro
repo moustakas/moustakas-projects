@@ -13,7 +13,7 @@ pro bcgmstar_tables
     filesuffix = ''
     
 ; by default build emulateapj format tables    
-    sample = read_bcgsfhs_sample()
+    sample = read_bcgmstar_sample()
     sample = sample[sort(sample.mvir)]
     ncl = n_elements(sample) 
 
@@ -29,19 +29,22 @@ pro bcgmstar_tables
     info.cluster = repstr(repstr(strupcase(sample.dirname),'ABELL','Abell'),'_',' ')
     info.z = '$'+strtrim(string(sample.z,format='(F12.3)'),2)+'$'
     info.ra = sample.ra
-    info.dec = sample.dec
+    info.dec = repstr(sample.dec,'-','$-$')
     info.mvir = '$'+strtrim(string(sample.mvir/1D15,format='(F12.2)'),2)+'\pm'+$
       strtrim(string(sample.mvirerr/1D15,format='(F12.2)'),2)+'$'
     struct_print, info
     ntags = n_tags(info)
 
-    colhead1 = get_colhead(['','','','','$M_{\rm vir}$\tablenotemark{b}'])
-    colhead2 = get_colhead(['Cluster','z','$\alpha_{J2000}$','$\delta_{J2000}$','$(10^{15}~M_{\odot}/h)$'],/nobreak)
+    colhead1 = get_colhead(['','','R.~A.\tablenotemark{a}','Dec.\tablenotemark{a}',$
+      '$M_{\rm vir}$\tablenotemark{c}'])
+    colhead2 = get_colhead(['Cluster','Redshift','(J2000, deg)','(J2000, deg)',$
+      '$(10^{15}~M_{\odot}/h)$'],/nobreak) 
     texcenter = ['l','c','c','c','c']
 
     tablenotetext = [$
-      '{a}{Ancillary information for our sample of galaxy clusters.}',$
-      '{b}{Cluster virial mass adopted from \citet{merten14a} {\bf except for....}.}']
+;     '{a}{Ancillary information for our sample of galaxy clusters.}',$
+      '{a}{Cluster coordinates based on the position of the BCG.}',$
+      '{b}{Cluster virial mass adopted from \citet{merten14a}.}']
 
 ; write it out    
     openw, lun, texfile, /get_lun
@@ -49,7 +52,7 @@ pro bcgmstar_tables
 ;   printf, lun, '\begin{landscape}'
     printf, lun, '\begin{deluxetable}{'+strjoin(texcenter)+'}'
 ;   printf, lun, '\tabletypesize{\small}'
-    printf, lun, '\tablecaption{Cluster Sample\tablenotemark{a}\label{table:sample}}'  
+    printf, lun, '\tablecaption{Cluster Sample Properties\label{table:sample}}'  
     printf, lun, '\tablewidth{0pt}'
     printf, lun, '\tablehead{'
     niceprintf, lun, colhead1

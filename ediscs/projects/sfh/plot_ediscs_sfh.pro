@@ -24,11 +24,8 @@ pro oplot_hda_d4000, hda, d4000, hdaerr, d4000err, ewoii
 return
 end
     
-pro plot_ediscs_sfh, ps=ps
+pro plot_ediscs_sfh
 ; jm10may03ucsd - build plots for the EDisCS/SFH project with Greg 
-
-    ps = 1
-    if keyword_set(ps) then suffix = '.ps' else suffix = '.eps'
 
     sfhpath = ediscs_path()+'sfh/'
     paperpath = sfhpath
@@ -42,18 +39,77 @@ pro plot_ediscs_sfh, ps=ps
 ; for four objects
 ;    
 ;    EDCSNJ1301302-1138187 - old with emission:  EW(OII) = 6.30 +/- 0.80
-;    EDCSNJ1301302-1138187 - old with no emission
+;    EDCSNJ1018467-1211527
 ;    EDCSNJ1018454-1212235 or EDCSNJ1040337-1157231 - middle age bin 
 ;    EDCSNJ1018445-1208545 - young age bin
 
-    gal = ['EDCSNJ1018467-1211527','EDCSNJ1301302-1138187',$
-      'EDCSNJ1018454-1212235',$ ; or EDCSNJ1040337-1157231
-      'EDCSNJ1018445-1208545']
+    gal = [$
+      'EDCSNJ1018445-1208545',$ ; young
+      'EDCSNJ1018454-1212235',$ ; or EDCSNJ1040337-1157231 intermediate-age
+      'EDCSNJ1301302-1138187',$ ; old, with emission
+      'EDCSNJ1018467-1211527']  ; old, no emission
     match, strtrim(cluster.galaxy,2), gal, m1, m2
-    srt = sort(m1)
+    srt = sort(m2)
     m1 = m1[srt] & m2 = m2[srt]
+    nobj = n_elements(gal)
 
+    spec = read_ediscs_gandalf_specfit(cluster[m1])
+
+    psfile = paperpath+'sfh_examples.ps'
+    im_plotconfig, 5, pos, psfile=psfile, xmargin=[0.8,0.2], $
+;   im_plotconfig, 2, pos, psfile=psfile, xmargin=[1.1,0.2], $
+      height=[2.6,2.6], xspace=0.05, yspace=0.05
+
+    label = ['Young','Intermediate','Old (with [OII])','Old (no [OII])']
+    scale = 1D
+    for ii = 0, nobj-1 do begin
+       if odd(ii) then ytickname = replicate(' ',10) else delvarx, ytickname
+       if ii le 1 then xtickname = replicate(' ',10) else delvarx, xtickname
+       djs_plot, [0], [0], /nodata, xrange=[3420,4900], yrange=[-0.2,2], $
+         xsty=1, ysty=1, position=pos[*,ii], noerase=ii gt 0, $
+         ytickname=ytickname, xtickname=xtickname, xtickinterval=500, $
+         ytickinterval=1.0
+       im_legend, gal[ii], /right, /bottom, box=0, margin=0, charsize=1.0, $
+         charthick=3.0
+       im_legend, label[ii], /right, /top, box=0, margin=0, charsize=1.0, $
+         charthick=3.0, position=[pos[2,ii]-0.005,pos[3,ii]-0.03], /norm
+       good = where(spec[ii].wave ne 0,npix)
+       norm = interpol(spec[ii].flux[good]*scale,exp(spec[ii].wave[good]),4500)
+       splog, norm, minmax(exp(spec[ii].wave[good]))
+       djs_oplot, exp(spec[ii].wave[good]), spec[ii].flux[good]*scale/norm, $
+         color=cgcolor('grey'), psym=10, thick=3
+       djs_oplot, exp(spec[ii].wave[good]), (spec[ii].continuum[good]+$
+         spec[ii].smooth_continuum[good]+spec[ii].linefit[good])*scale/norm, $
+         color=cgcolor('dodger blue'), thick=3, psym=10
+       djs_oplot, exp(spec[ii].wave[good]), (spec[ii].continuum[good]+$
+         spec[ii].smooth_continuum[good])*scale/norm, $
+         color=cgcolor('firebrick'), thick=3, psym=10
+
+; make an inset focused on
+       pos2 = [pos[0,ii]+0.01,pos[1,ii]+0.25,pos[0,ii]+0.25,pos[3,ii]-0.01]
+       djs_plot, [0], [0], /nodata, /noerase, xsty=1, ysty=1, position=pos2, $
+         charsize=1.0, /norm, ytickname=replicate(' ',10), xrange=[3700,4150], $
+         yrange=[0,1.2], xtickinterval=200
+       djs_oplot, exp(spec[ii].wave[good]), spec[ii].flux[good]*scale/norm, $
+         color=cgcolor('grey'), psym=10, thick=3
+       djs_oplot, exp(spec[ii].wave[good]), (spec[ii].continuum[good]+$
+         spec[ii].smooth_continuum[good]+spec[ii].linefit[good])*scale/norm, $
+         color=cgcolor('dodger blue'), thick=3, psym=10
+       djs_oplot, exp(spec[ii].wave[good]), (spec[ii].continuum[good]+$
+         spec[ii].smooth_continuum[good])*scale/norm, $
+         color=cgcolor('firebrick'), thick=3, psym=10
+    endfor
+
+    xyouts, pos[0,0]-0.08, pos[1,0], 'Relative Flux', align=0.5, orientation=90, /normal
+    xyouts, pos[0,3], pos[1,3]-0.12, textoidl('Rest Wavelength (\AA)'), $
+      align=0.5, /normal
     
+    im_plotconfig, psfile=psfile, /psclose, /pdf
+    
+stop    
+    
+; --------------------------------------------------
+; S/N vs magnitude
     psfile = paperpath+'snr_vs_mag.eps'
     im_plotconfig, 6, pos, psfile=psfile
 
@@ -96,13 +152,13 @@ pro plot_ediscs_sfh, ps=ps
     djs_oplot, !x.crange, -19.0*[1,1], line=0, thick=4
     djs_oplot, 23*[1,1], !y.crange, line=0, thick=4
 
-    im_plotconfig, /psclose, /pdf, psfile=psfile, /pskeep
+    im_plotconfig, /psclose, /pdf, psfile=psfile
 
 stop    
     
 ; --------------------------------------------------
 ; S/N vs I-band magnitude and M_V
-    psfile = paperpath+'snr_vs_mag'+suffix
+    psfile = paperpath+'snr_vs_mag.ps'
     im_plotconfig, 6, pos, psfile=psfile
 
     xrange = [0.2,100]
@@ -156,7 +212,7 @@ stop
 
 ; #########################
 ; field
-    psfile = paperpath+'d4000_hda_field'+suffix
+    psfile = paperpath+'d4000_hda_field.ps'
     im_plotconfig, 0, pos, psfile=psfile
 ; raw
     djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
@@ -174,7 +230,7 @@ stop
 
 ; #########################
 ; cluster
-    psfile = paperpath+'d4000_hda_cluster'+suffix
+    psfile = paperpath+'d4000_hda_cluster.ps'
     im_plotconfig, 0, pos, psfile=psfile
 ; raw
     djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
@@ -199,7 +255,7 @@ end
 ;;; --------------------------------------------------
 ;;; test the emission-line corrections
 ;;
-;;    psfile = paperpath+'emline_cor'+suffix
+;;    psfile = paperpath+'emline_cor.ps'
 ;;    im_plotconfig, 6, pos, psfile=psfile, xmargin=[1.3,0.2]
 ;;
 ;;; ###############

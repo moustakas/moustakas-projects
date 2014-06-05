@@ -40,7 +40,8 @@
 ;-
 
 function deep2_fit_unfluxed_continuum, wave, flux, ferr, zabs=zabs, $
-  velscale=velscale, linefile=linefile, broad=broad, debug=debug
+  velscale=velscale, linefile=linefile, broad=broad, debug=debug, $
+  unfluxed=unfluxed
 
     light = 2.99792458D5 ; speed of light [km/s]
     vsys = alog(zabs+1.0D)*light ; systemic velocity
@@ -230,6 +231,7 @@ pro deep2_gandalf_specfit_dr4, zcat, debug=debug, fixoii=fixoii, broad=broad, $
     nfinalpix = 9000L
 ;   nfinalpix = 2*4096L+500L
     specdata_template = {$
+      fluxflag:                     -1, $ ; see specphot.pro
       z:                           0.0, $
       line_inst_vdisp: line_inst_vdisp, $
       continuum_snr:               0.0, $
@@ -263,12 +265,12 @@ pro deep2_gandalf_specfit_dr4, zcat, debug=debug, fixoii=fixoii, broad=broad, $
 
 ; fit each object using GANDALF/PPXF
        t0 = systime(1)
-;      for iobj = 71, 71 do begin
+;      for iobj = 67, 67 do begin
 ;      for iobj = 9, 9 do begin
-;      for iobj = 4, 4 do begin
+;      for iobj = 79, nobj-1 do begin
        for iobj = 0, nobj-1 do begin
           print, format='("Object ",I0,"/",I0,A10,$)', iobj, nobj, string(13b)
-
+;         print, iobj
           zabs = zcat_mask[iobj].z ; not zbest!
 
 ; some hacks to get things working for individual objects; not
@@ -283,10 +285,20 @@ pro deep2_gandalf_specfit_dr4, zcat, debug=debug, fixoii=fixoii, broad=broad, $
 
 ; combine the red and blue components using the home-grown DEEP2
 ; script           
-          spec = fill_gap(strtrim(spec1dpath+zcat_mask[iobj].file,2),/silent)
+          spec = fill_gap(strtrim(spec1dpath+zcat_mask[iobj].file,2),$
+            /silent,header=hdr)
+          if keyword_set(unfluxed) then begin
+             obsflux = spec.spec
+             obsinvvar = spec.ivar>0
+          endif else begin
+; flux-calibrate
+             spec = qe_correction2(spec,hdr,pars,paramsendr,lambda,$
+               throughtput_table,/telluric,ncorrect=7)
+             spec = specphot(spec,hdr,rlambda,rresponse,ilambda,iresponse)
+             obsflux = spec.fluxl ; [erg/s/cm2/A]
+             obsinvvar = spec.ivar_fluxl>0
+          endelse
           obswave = spec.lambda
-          obsflux = spec.spec
-          obsinvvar = spec.ivar
           obsvar = 1.0/(obsinvvar+(obsinvvar eq 0))*(obsinvvar ne 0)
 
 ; get the mean S/N
@@ -386,6 +398,7 @@ pro deep2_gandalf_specfit_dr4, zcat, debug=debug, fixoii=fixoii, broad=broad, $
           specdata1 = struct_addtags(struct_trimtags(zcat_mask[iobj],$
             select=['galaxy','file','zcatindx','minwave','maxwave','objno',$
             'ra','dec','mask','slit']),specdata_template)
+          if keyword_set(unfluxed) eq 0 then specdata1.fluxflag = spec.fluxflag
           specdata1.z = zabs
 
           restwave = wave - alog(zabs+1.0D)

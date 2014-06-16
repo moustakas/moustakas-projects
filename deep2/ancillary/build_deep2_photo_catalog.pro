@@ -8,6 +8,9 @@ pro build_deep2_photo_catalog
 ; read the unwise catalog    
     unwise = mrdfits(catpath+'deep2.dr4.unwise.fits.gz',1)
 
+; read the ACS-GC catalog from Griffith+13
+    acs = mrdfits(getenv('IM_DATA_DIR')+'/acs-gc/egs_v_i_public_catalog_V1.0.fits.gz',1)
+
 ; good objects
     phot = mrdfits(catpath+'zcat_ext.uniq.fits.gz',1)
     zcat = read_deep2_zcat() ; Q>=3
@@ -42,6 +45,22 @@ pro build_deep2_photo_catalog
       struct_trimtags(unwise[0],select=['w1_*','w2_*']),$
       ncopies=ngal))
     phot[m1] = im_struct_assign(unwise[m2],phot[m1],/nozero)
+
+; add the ACS-GC catalog; check that the missing objects are just
+; outside the footprint
+;   egs = where(strmid(strtrim(phot.objno,2),0,1) eq '1',negs)
+;   match, phot[egs].objno, acs.survey_id, m1, m2
+;   djs_plot, phot[egs].ra_deep, phot[egs].dec_deep, psym=3, xstsy=3, ysty=3
+;   djs_oplot, acs.ra, acs.dec, psym=3, color='orange'
+;   djs_oplot, phot[egs[m1]].ra_deep, phot[egs[m1]].dec_deep, psym=3, color='green'
+    
+    match, phot.objno, acs.survey_id, m1, m2
+    acs1 = struct_trimtags(acs,select=['*radius*','*galfit*',$
+      'vis_morph'],except=['x_*','y_*'])
+
+    phot = struct_addtags(temporary(phot),im_empty_structure($
+      struct_trimtags(acs1[0]),ncopies=ngal,empty_value=-999))
+    phot[m1] = im_struct_assign(acs1[m2],phot[m1],/nozero)
 
     im_mwrfits, phot, catpath+'photo.dr4.goodspec1d.Q34.fits', /clobber
 
@@ -79,6 +98,15 @@ pro build_deep2_photo_catalog
       struct_trimtags(unwise[0],select=['w1_*','w2_*']),$
       ncopies=ngal))
     phot[m1] = im_struct_assign(unwise[m2],phot[m1],/nozero)
+
+; add the ACS-GC catalog
+    match, phot.objno, acs.survey_id, m1, m2
+    acs1 = struct_trimtags(acs,select=['*radius*','*galfit*',$
+      'vis_morph'],except=['x_*','y_*'])
+
+    phot = struct_addtags(temporary(phot),im_empty_structure($
+      struct_trimtags(acs1[0]),ncopies=ngal,empty_value=-999))
+    phot[m1] = im_struct_assign(acs1[m2],phot[m1],/nozero)
 
     im_mwrfits, phot, catpath+'photo.dr4.goodspec1d.fits', /clobber
 

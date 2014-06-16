@@ -393,7 +393,6 @@ pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
 
 ; read the sample
     sample = read_bcgmstar_sample()
-
     splog, 'Come back to A2261!'    
 ;   sample = sample[13]
     ncl = n_elements(sample)
@@ -433,6 +432,7 @@ pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
           nir_multiband = 0 ; by default fit the near-IR bands individually
           case cluster of
              'a209': begin
+                opt = -1
                 blue = where(allband eq 'f475w' or allband eq 'f435w' or allband eq 'f390w')
                 nir = lindgen(nfilt) & remove, [blue], nir ; everything else
              end
@@ -1029,8 +1029,10 @@ pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
              endif
              im_legend, label, /left, /bottom, box=0, margin=0, charsize=0.7, charthick=1.8
 
-             djs_oplot, modphot[ib].radius_kpc[modbad], -2.5*alog10(modphot[ib].sb0fit[modbad]), $
-               psym=symcat(9), color=cgcolor('medium grey'), symsize=0.5
+             if modbad[0] ne -1 then begin
+                djs_oplot, modphot[ib].radius_kpc[modbad], -2.5*alog10(modphot[ib].sb0fit[modbad]), $
+                  psym=symcat(9), color=cgcolor('medium grey'), symsize=0.5
+             endif
              
              im_legend, band, /right, /top, box=0, margin=0, charsize=1.0
              

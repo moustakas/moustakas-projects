@@ -114,8 +114,9 @@ function gandalf_parse_elinefit, sol, esol, linepars, $
           cc_err = linepars[strong[ii]].continuum_err/sqrt(linepars[strong[ii]].continuum_npix)
           if (cc ne 0.0) and (cc_err ne 0.0) then begin
              ew = ff/cc
-             ew_err = sqrt(ff_err^2.0/cc^2.0 + cc_err^2.0*(ff/cc^2.0)^2.0)
+             ew_err = sqrt(ff_err^2D/cc^2D + cc_err^2D*(ff/cc^2D)^2D)
              out.(tag_ew) = [ew,ew_err]
+             if finite(ew_err) eq 0 then stop
           endif
        endif
     endfor

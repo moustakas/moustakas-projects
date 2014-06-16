@@ -32,6 +32,11 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
          imf='chab', redcurve='charlot', /igm, zminmax=zminmax, nzz=40.0, $
          nmodel=10000L, age=[0.1,7.2], tau=[0.01,7], Zmetal=[0.004,0.03], $
          pburst=0.2, interval_pburst=1.0, clobber=clobber
+       write_isedfit_paramfile, params=params, isedfit_dir=isedfit_dir, $
+         prefix=prefix, filterlist=filterlist, spsmodels='fsps_v2.4_miles', $
+         imf='chab', redcurve='charlot', /igm, zminmax=zminmax, nzz=40.0, $
+         nmodel=10000L, age=[0.1,7.2], tau=[0.01,7], Zmetal=[0.004,0.03], $
+         pburst=0.2, interval_pburst=1.0, /nebular, /append
     endif
 
 ; --------------------------------------------------

@@ -45,7 +45,7 @@ pro lcs_lir, clobber=clobber
     if n_elements(allwise) eq 0L then allwise = mrdfits(getenv('IM_DATA_DIR')+$
       '/nsa/nsa_v0_1_2_wise.fits.gz',1)
 
-    lcspath = getenv('LCS_DATA')
+    lcspath = getenv('LCS_DATA')+'/lir/'
     filters = [galex_filterlist(),sdss_filterlist(),wise_filterlist()]
     nfilters = n_elements(filters)
 

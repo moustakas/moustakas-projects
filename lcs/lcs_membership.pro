@@ -5,7 +5,7 @@ pro lcs_membership, clobber=clobber
     common lcs_nsa, nsa
     if n_elements(nsa) eq 0L then nsa = read_nsa()
 
-    lcspath = getenv('LCS_DATA')
+    lcspath = getenv('LCS_DATA')+'/membership/'
 
     light = im_light(/km)
     H0 = 70.0

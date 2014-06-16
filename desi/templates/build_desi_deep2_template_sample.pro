@@ -26,7 +26,7 @@ pro build_desi_deep2_template_sample, out
     
     zcat = read_deep2_zcat(photo=photo)
     kised = mrdfits(templatepath+'desi_deep2_fsps_v2.4_miles_'+$
-      'chab_charlot_sfhgrid01_kcorr.z0.0.fits.gz',1)
+      'chab_charlot_sfhgrid02_kcorr.z0.0.fits.gz',1)
     photo = deep2_get_ugriz(photo,/unwise)
     
 ; use the fixed-[OII] catalog; we'll add some jitter in the
@@ -46,17 +46,15 @@ pro build_desi_deep2_template_sample, out
 ; 3729, the stronger of the two lines
     oii = deep2_get_oiiflux(line,cflux_3727_rest=kised.cflux_3727) ; [erg/s/cm2/A]
     
-    ewoiisnr = oii.oii_3727_2_ew[0]/oii.oii_3727_2_ew[1]
-    oiisnr = oii.oii_3727_2_amp[0]/(oii.oii_3727_2_amp[1]+$
-      (oii.oii_3727_2_amp[1] eq 0))*(oii.oii_3727_2_amp[1] ne 0)
-    oiicontinuum = line.oii_3727_2_continuum[0]
+    ewoiisnr = (oii.oii_3727_2_ew[0]/oii.oii_3727_2_ew[1])*(oii.oii_3727_2[1] ne -2)
+    oiisnr = (oii.oii_3727_2_amp[0]/oii.oii_3727_2_amp[1])*(oii.oii_3727_2_amp[1] ne -2)
 ;   oiisnr = oii.oii_3727[0]/(oii.oii_3727[1]+(oii.oii_3727[1] eq 0))*(oii.oii_3727[1] ne 0)
 
-;    scale = 1D18
-;    djs_plot, scale*oii.oii_3727[0], oiisnr, psym=3, $
-;      xsty=1, ysty=1, /ylog, /xlog, xr=scale*[1D-18,1D-14], yr=[0.1,100]
-;    djs_oplot, 10^!x.crange, oiisnrcut*[1,1], color='red'
-;    djs_oplot, scale*oiifluxcut*[1,1], 10^!y.crange, color='red'
+    scale = 1D18
+    djs_plot, scale*oii.oii_3727[0], oiisnr, psym=3, $
+      xsty=1, ysty=1, /ylog, /xlog, xr=scale*[1D-18,1D-14], yr=[0.1,100]
+    djs_oplot, 10^!x.crange, oiisnrcut*[1,1], color='red'
+    djs_oplot, scale*oiifluxcut*[1,1], 10^!y.crange, color='red'
 
 ;   ww = where(oiisnr lt oiisnrcut and scale*oii.oii_3727[0] gt 500)
 ;   qaplot_deep2_gandalf_specfit_dr4, line[ww], psfile='~/junk.ps'
@@ -64,7 +62,8 @@ pro build_desi_deep2_template_sample, out
 ; apply the final sample cuts; note that the (soft) redshift cut is
 ; explicitly needed because of DESI_DEEP2_ISEDFIT
     these = where($
-      zcat.zbest gt 0.1 and zcat.zbest lt 2.0 and $
+      zcat.zbest gt 0.75 and zcat.zbest lt 1.45 and $
+;     zcat.zbest gt 0.1 and zcat.zbest lt 2.0 and $
       (total(photo.ugriz gt 0,1) gt 3) and $
       (total(photo.wise_err gt 0,1) ge 1) and $
       photo.ugriz[2] gt 18.5 and photo.ugriz[2] lt 24.0 and $
@@ -72,18 +71,18 @@ pro build_desi_deep2_template_sample, out
     splog, 'Sample ', ngal
 
 ; build an output data structure with all the information we need
-    out = im_struct_trimtags(zcat[these],select=['objno','ra','dec','zbest'],$
-      newtags=['objno','ra','dec','z'])
+    out = im_struct_trimtags(zcat[these],select=['objno','mask','ra','dec','zbest'],$
+      newtags=['objno','mask','ra','dec','z'])
     out = struct_addtags(struct_addtags(temporary(out),struct_trimtags(photo[these],$
-      select=['ugriz*','bri*','wise*'])),replicate({cflux_3727_obs: 0.0},ngal))
-    out.cflux_3727_obs = kised[these].cflux_3727/(1.0+kised[these].z)
+      select=['ugriz*','bri*','wise*'])),replicate({cflux_3727_rest: 0.0},ngal))
+    out.cflux_3727_rest = kised[these].cflux_3727
 
     out = struct_addtags(temporary(out),struct_trimtags(kised[these],$
       select=['isedfit_id','maggies','ivarmaggies','absmag']))
     out = struct_addtags(temporary(out),struct_trimtags(oii[these],$
       except='*limit*'))
 
-    im_mwrfits, out, templatepath+'desi_deep2_template_sample.fits', /clobber
+    im_mwrfits, out, templatepath+'desi_deep2elg_template_sample_'+version+'.fits', /clobber
     
 return
 end

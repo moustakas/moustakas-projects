@@ -31,8 +31,8 @@ function deep2_get_oiiflux, ppxf, cflux_3727_rest=cflux_3727_rest
        oii[good].oii_3727_1 = oii[good].oii_3727_1_ew*rebin(reform(Fc_3727_rest,1,ngood),2,ngood) ; [erg/s/cm2]
        oii[good].oii_3727_1_limit = oii[good].oii_3727_1_ew_limit*Fc_3727_rest
        
-       oii[good].oii_3727_1_amp = oii[good].oii_3727_1_amp*$ ; *observed* [erg/s/cm2/A]
-         rebin(reform(Fc_3727_obs,1,ngood),2,ngood)/$ 
+       oii[good].oii_3727_1_amp = oii[good].oii_3727_1_amp*$ ; *rest-frame* [erg/s/cm2/A]
+         rebin(reform(Fc_3727_rest,1,ngood),2,ngood)/$ 
          rebin(reform(ppxf[good].oii_3727_1_continuum[0],1,ngood),2,ngood)
     endif
 
@@ -45,8 +45,8 @@ function deep2_get_oiiflux, ppxf, cflux_3727_rest=cflux_3727_rest
        oii[good].oii_3727_2 = oii[good].oii_3727_2_ew*rebin(reform(Fc_3727_rest,1,ngood),2,ngood) ; [erg/s/cm2]
        oii[good].oii_3727_2_limit = oii[good].oii_3727_2_ew_limit*Fc_3727_rest
        
-       oii[good].oii_3727_2_amp = oii[good].oii_3727_2_amp*$ ; *observed* [erg/s/cm2/A]
-         rebin(reform(Fc_3727_obs,1,ngood),2,ngood)/$ 
+       oii[good].oii_3727_2_amp = oii[good].oii_3727_2_amp*$ ; *rest-frame* [erg/s/cm2/A]
+         rebin(reform(Fc_3727_rest,1,ngood),2,ngood)/$ 
          rebin(reform(ppxf[good].oii_3727_2_continuum[0],1,ngood),2,ngood)
     endif
 
@@ -59,8 +59,8 @@ function deep2_get_oiiflux, ppxf, cflux_3727_rest=cflux_3727_rest
        oii[good].oii_3727 = oii[good].oii_3727_ew*rebin(reform(Fc_3727_rest,1,ngood),2,ngood) ; [erg/s/cm2]
        oii[good].oii_3727_limit = oii[good].oii_3727_ew_limit*Fc_3727_rest
        
-       oii[good].oii_3727_amp = oii[good].oii_3727_amp*$ ; *observed* [erg/s/cm2/A]
-         rebin(reform(Fc_3727_obs,1,ngood),2,ngood)/$ 
+       oii[good].oii_3727_amp = oii[good].oii_3727_amp*$ ; *rest-frame* [erg/s/cm2/A]
+         rebin(reform(Fc_3727_rest,1,ngood),2,ngood)/$ 
          rebin(reform(ppxf[good].oii_3727_continuum[0],1,ngood),2,ngood)
     endif
 

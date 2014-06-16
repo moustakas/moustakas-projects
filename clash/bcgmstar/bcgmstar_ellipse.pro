@@ -73,8 +73,8 @@ pro bcgmstar_ellipse, debug=debug, clobber=clobber
     pixscale = 0.065D                      ; [arcsec/pixel]
     pixarea = 5.0*alog10(pixscale)         ; 2.5*log10(pixscale^2)
 ;   rmax = 10.0                            ; [kpc]
-    rmax = 25.0                            ; [kpc]
-;   rmax = 200.0                           ; [kpc]
+;   rmax = 25.0                            ; [kpc]
+    rmax = 200.0                           ; [kpc]
 
     ellpath = bcgmstar_path(/ellipse)
     skyinfopath = bcgmstar_path()+'skyinfo/'
@@ -95,9 +95,40 @@ pro bcgmstar_ellipse, debug=debug, clobber=clobber
        arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]
        namax = long(rmax/pixscale/arcsec2kpc)           ; [pixels]
 
+; ellipse-fit the data and the model with all parameters free **in the
+; reference band (NFILT-1)**; then perform a *constrained* fit to all
+; the other bands; note that the ellipse PA (in radians) in GZ's code
+; is measured positive from the X-axis, not the *Y-axis* as we assume
+; below
+       imfile = datapath+cluster+'-'+short[reffilt]+'.fits.gz'
+       splog, 'Reading '+file_basename(imfile)
+
+; read the data and convert to intensity (maggies surface brightness)
+;      image = mrdfits(imfile,0,hdr,/silent)*1D-12 ; [maggies]
+;      model = mrdfits(imfile,1,/silent)*1D-12     ; [maggies]
+;      invvar = mrdfits(imfile,2,/silent)*1D24     ; [1/maggies^2]
+       image = mrdfits(imfile,0,hdr,/silent)*1D-12/pixscale^2 ; [maggies/arcsec^2]
+       invvar = mrdfits(imfile,1,/silent)*(1D12*pixscale^2)^2
+       mask = mrdfits(imfile,2,/silent)
+       model = mrdfits(imfile,3,/silent)*1D-12/pixscale^2 ; [maggies/arcsec^2]
+       var = 1.0/(invvar+(invvar eq 0))*(invvar ne 0)
+       sz = size(image,/dim)
+       
+       adxy, hdr, info[reffilt].ra, info[reffilt].dec, xcen, ycen
+
+; fit in the reference band          
+       refmodellipse = do_ellipse(model,invvar=invvar,ini_xcen=xcen, $
+         ini_ycen=ycen,ini_e0=info[reffilt].mge_ellipticity,$
+         ini_pa0=info[reffilt].mge_posangle,namax=namax,$
+         pixscale=pixscale,arcsec2kpc=arcsec2kpc)
+       median_ellipse = get_median_ellipse(refmodellipse,sblimit=info[reffilt].sblimit)
+       refmodellipse = struct_addtags(refmodellipse,median_ellipse)
+       
+; now loop through and do a constrained fit in every other band
        delvarx, imellipse, modellipse, phot
        for ib = nfilt-1, 0, -1 do begin
-;      for ib = nfilt-1, nfilt-1 do begin
+;      for ib = nfilt-2, nfilt-1 do begin
+;      for ib = 0, nfilt-1 do begin
           imfile = datapath+cluster+'-'+short[ib]+'.fits.gz'
           splog, 'Reading '+file_basename(imfile)
 
@@ -120,125 +151,154 @@ pro bcgmstar_ellipse, debug=debug, clobber=clobber
 ; is measured positive from the X-axis, not the *Y-axis* as we assume
 ; below
 
-;         imellipse1 = do_ellipse(image,invvar=invvar*mask,ini_xcen=xcen,$
-          ii = do_ellipse(image,invvar=invvar*mask,ini_xcen=xcen,$
-            ini_ycen=ycen,ini_e0=info[reffilt].mge_ellipticity,$
-            ini_pa0=info[reffilt].mge_posangle,namax=namax,$
-            pixscale=pixscale,arcsec2kpc=arcsec2kpc);,/fixcenter)
+;;         imellipse1 = do_ellipse(image,invvar=invvar*mask,ini_xcen=xcen,$
+;          ii = do_ellipse(image,invvar=invvar*mask,ini_xcen=xcen,$
+;            ini_ycen=ycen,ini_e0=info[reffilt].mge_ellipticity,$
+;            ini_pa0=info[reffilt].mge_posangle,namax=namax,$
+;            pixscale=pixscale,arcsec2kpc=arcsec2kpc);,/fixcenter)
+;
+;;         modellipse1 = do_ellipse(model,invvar=invvar,ini_xcen=xcen, $
+;          mm = do_ellipse(model,invvar=invvar,ini_xcen=xcen, $
+;            ini_ycen=ycen,ini_e0=info[reffilt].mge_ellipticity,$
+;            ini_pa0=info[reffilt].mge_posangle,namax=namax,$
+;            pixscale=pixscale,arcsec2kpc=arcsec2kpc)
+;
+;          djs_plot, mm.majora, mm.pafit
+;          djs_oplot, ii.majora, ii.pafit, color='red'
+;          djs_plot, mm.majora, mm.ellipticityfit
+;          djs_oplot, ii.majora, ii.ellipticityfit, color='red'
+;          djs_plot, mm.majora, mm.sb0fit, xsty=3, ysty=3, /xlog, /ylog
+;          djs_oplot, ii.majora, ii.sb0fit, color='red'
 
-;         modellipse1 = do_ellipse(model,invvar=invvar,ini_xcen=xcen, $
-          mm = do_ellipse(model,invvar=invvar,ini_xcen=xcen, $
-            ini_ycen=ycen,ini_e0=info[reffilt].mge_ellipticity,$
-            ini_pa0=info[reffilt].mge_posangle,namax=namax,$
-            pixscale=pixscale,arcsec2kpc=arcsec2kpc)
-
-          djs_plot, mm.majora, mm.pafit
-          djs_oplot, ii.majora, ii.pafit, color='red'
-          djs_plot, mm.majora, mm.ellipticityfit
-          djs_oplot, ii.majora, ii.ellipticityfit, color='red'
-          djs_plot, mm.majora, mm.sb0fit, xsty=3, ysty=3, /xlog, /ylog
-          djs_oplot, ii.majora, ii.sb0fit, color='red'
-
-          
-stop          
-          
-; optionally use the identical ellipse parameters to generate the
-; surface-brightness profile from the data themselves
-          constrained_fit = 0
-
-          if constrained_fit then begin
-             imellipse1 = modellipse1
-             for ia = 0, modellipse1.na-1 do begin
-                sbcoord = bgt_ellipse_sb(image,imivar=invvar,xcen=modellipse1.xcenfit[ia],$
-                  ycen=modellipse1.xcenfit[ia],pa=modellipse1.pafit[ia],$
-                  ee=modellipse1.ellipticityfit[ia],majora=modellipse1.majora[ia],$
-                  ea=ea,sbcoord_ivar=sbcoord_ivar)
-                bgt_ellipse_fit, ea, sbcoord, ecoeff, ini_value=ini_value, $
-                  sb_ivar=sbcoord_ivar, status=status, fixed=[0,1,1,1,1]
-                imellipse1.sb0[ia] = ecoeff.sb0 ; only free parameter is the SB
-                imellipse1.sb0_ivar[ia] = median(sbcoord_ivar)
-             endfor
-             bgt_ellipse_allfit, image, imellipse1, imivar=invvar
-          endif else begin
-             imellipse1 = do_ellipse(image,invvar=invvar*mask,ini_xcen=xcen,$
-               ini_ycen=ycen,ini_e0=info[reffilt].mge_ellipticity,$
-               ini_pa0=info[reffilt].mge_posangle,namax=namax,$
-               pixscale=pixscale,arcsec2kpc=arcsec2kpc)
-          endelse
-
-; get the median ellipticity and position angle from the model 
-          median_ellipse = get_median_ellipse(modellipse1,sblimit=info[ib].sblimit)
-          modellipse1 = struct_addtags(struct_addtags(info[ib],modellipse1),median_ellipse)
-          imellipse1 = struct_addtags(struct_addtags(info[ib],imellipse1),median_ellipse)
-
+          modellipse1 = refmodellipse
+          for ia = 0, refmodellipse.na-1 do begin
+             print, format='("BGT_ELLIPSE: Major-axis pixel ",I0,"/",I0, A10,$)', $
+               ia+1, refmodellipse.na, string(13b)
+             sbcoord = bgt_ellipse_sb(model,imivar=invvar,xcen=refmodellipse.xcenfit[ia],$
+               ycen=refmodellipse.xcenfit[ia],pa=refmodellipse.pafit[ia],$
+               ee=refmodellipse.ellipticityfit[ia],majora=refmodellipse.majora[ia],$
+               ea=ea,sbcoord_ivar=sbcoord_ivar)
+             bgt_ellipse_fit, ea, sbcoord, ecoeff, ini_value=ini_value, $
+               sb_ivar=sbcoord_ivar, status=status, fixed=[0,1,1,1,1]
+             modellipse1.sb0[ia] = ecoeff.sb0 ; only free parameter is the SB
+             modellipse1.sb0_ivar[ia] = median(sbcoord_ivar)
+          endfor
+          bgt_ellipse_allfit, model, modellipse1, imivar=invvar
+          modellipse1 = struct_addtags(info[ib],modellipse1)
           if n_elements(modellipse) eq 0 then modellipse = modellipse1 else $
             modellipse = [modellipse,modellipse1]
-          if n_elements(imellipse) eq 0 then imellipse = imellipse1 else $
-            imellipse = [imellipse,imellipse1]
-          
-; now do elliptical-aperture photometry on the model images; build the
-; radial annuli and the output structure
-          if ib eq reffilt then begin ; not general!
-             radius = get_radius(rmin=min(imellipse1.radius_kpc/pixscale/arcsec2kpc)>5,$
-               rmax=max(imellipse1.radius_kpc/pixscale/arcsec2kpc),inrad=rin,$
-               outrad=rout)
-          endif
-          nrad = n_elements(radius)
 
-          phot1 = {$
-            radius_kpc:    radius*pixscale*arcsec2kpc, $
-            inradius_kpc:  rin*pixscale*arcsec2kpc, $
-            outradius_kpc: rout*pixscale*arcsec2kpc, $
-            npix:          fltarr(nrad), $
-            area:          fltarr(nrad), $
-;           abmag:         fltarr(nrad)-99.0, $
-;           abmag_err:     fltarr(nrad)-99.0, $
-            maggies:       fltarr(nrad), $
-            ivarmaggies:   fltarr(nrad)}
-          
-          dist_ellipse, ellrad, sz, xcen, ycen, $
-            1.0/(1.0-modellipse1.ellipticity_median), $
-            modellipse1.posangle_median
-;         atv, ellrad, /bl
+; debugging plot
+          djs_plot, refmodellipse.majora, refmodellipse.sb0fit, $
+            xsty=3, ysty=3, /xlog, /ylog, yrange=[min(refmodellipse.sb0fit)<$
+            min(modellipse.sb0fit),max(refmodellipse.sb0fit)>$
+            max(modellipse.sb0fit)]
+          djs_oplot, modellipse1.majora, modellipse1.sb0fit, color='green'
+          im_legend, short[ib], /right, /top, box=0
+;         cc = get_kbrd(1)
 
-          for ir = 0, nrad-1 do begin
-;            atv, model*pixscale^2*(ellrad ge rin[ir] and ellrad lt rout[ir]), /bl
-             pix = where(ellrad ge rin[ir] and ellrad lt rout[ir],npix)
-             totnpix = (npix-total(invvar[pix] eq 0))
-;            area = totnpix*pixscale^2 ; [arcsec^2]
-             area = !pi*(rout[ir]^2*(1-modellipse1.ellipticity_median)-$
-               rin[ir]^2*(1-modellipse1.ellipticity_median)) ; [pixel^2]
-             phot1.npix[ir] = totnpix
-             phot1.area[ir] = area*pixscale^2 ; [arcsec^2]
-             
-             maggies = total(model[pix]*pixscale^2*(invvar[pix] gt 0))
-             errmaggies = sqrt(total(var[pix]*pixscale^4*(invvar[pix] gt 0)))
-             if errmaggies le 0 then message, 'Problem here!'
-
-             print, rin[ir], rout[ir], maggies, errmaggies, totnpix, area
-                
-;            if maggies gt 0.0 then begin
-;               phot1.abmag[ir] = -2.5*alog10(maggies) ; [AB maggies]
-;               phot1.abmag_err[ir] = 2.5*errmaggies/maggies/alog(10)
-;            endif
-
-             phot1.maggies[ir] = maggies ; [AB maggies]
-             phot1.ivarmaggies[ir] = 1.0/errmaggies^2
-          endfor
-          if n_elements(phot) eq 0 then phot = phot1 else phot = [phot,phot1]
-;         djs_plot, phot1.radius_kpc, -2.5*alog10(phot1.maggies), ysty=3, psym=8, /xlog, xsty=3
        endfor                   ; close filter loop
 ; write everything out
-       im_mwrfits, imellipse, ellpath+cluster+'-ellipse-image.fits', clobber=clobber
+;      im_mwrfits, imellipse, ellpath+cluster+'-ellipse-image.fits', clobber=clobber
        im_mwrfits, modellipse, ellpath+cluster+'-ellipse-model.fits', clobber=clobber
-       im_mwrfits, phot, ellpath+cluster+'-ellipse-ellphot.fits', clobber=clobber
+;      im_mwrfits, phot, ellpath+cluster+'-ellipse-ellphot.fits', clobber=clobber
+
+stop       
     endfor                      ; close cluster loop
 
-stop    
-    
 return
 end
-
+    
+;;; optionally use the identical ellipse parameters to generate the
+;;; surface-brightness profile from the data themselves
+;;          constrained_fit = 0
+;;          if constrained_fit then begin
+;;             imellipse1 = modellipse1
+;;             for ia = 0, modellipse1.na-1 do begin
+;;                sbcoord = bgt_ellipse_sb(image,imivar=invvar,xcen=modellipse1.xcenfit[ia],$
+;;                  ycen=modellipse1.xcenfit[ia],pa=modellipse1.pafit[ia],$
+;;                  ee=modellipse1.ellipticityfit[ia],majora=modellipse1.majora[ia],$
+;;                  ea=ea,sbcoord_ivar=sbcoord_ivar)
+;;                bgt_ellipse_fit, ea, sbcoord, ecoeff, ini_value=ini_value, $
+;;                  sb_ivar=sbcoord_ivar, status=status, fixed=[0,1,1,1,1]
+;;                imellipse1.sb0[ia] = ecoeff.sb0 ; only free parameter is the SB
+;;                imellipse1.sb0_ivar[ia] = median(sbcoord_ivar)
+;;             endfor
+;;             bgt_ellipse_allfit, image, imellipse1, imivar=invvar
+;;          endif else begin
+;;             imellipse1 = do_ellipse(image,invvar=invvar*mask,ini_xcen=xcen,$
+;;               ini_ycen=ycen,ini_e0=info[reffilt].mge_ellipticity,$
+;;               ini_pa0=info[reffilt].mge_posangle,namax=namax,$
+;;               pixscale=pixscale,arcsec2kpc=arcsec2kpc)
+;;          endelse
+;
+;; get the median ellipticity and position angle from the model 
+;          median_ellipse = get_median_ellipse(modellipse1,sblimit=info[ib].sblimit)
+;          modellipse1 = struct_addtags(struct_addtags(info[ib],modellipse1),median_ellipse)
+;          imellipse1 = struct_addtags(struct_addtags(info[ib],imellipse1),median_ellipse)
+;
+;          if n_elements(modellipse) eq 0 then modellipse = modellipse1 else $
+;            modellipse = [modellipse,modellipse1]
+;          if n_elements(imellipse) eq 0 then imellipse = imellipse1 else $
+;            imellipse = [imellipse,imellipse1]
+;          
+;; now do elliptical-aperture photometry on the model images; build the
+;; radial annuli and the output structure
+;          if ib eq reffilt then begin ; not general!
+;             radius = get_radius(rmin=min(imellipse1.radius_kpc/pixscale/arcsec2kpc)>5,$
+;               rmax=max(imellipse1.radius_kpc/pixscale/arcsec2kpc),inrad=rin,$
+;               outrad=rout)
+;          endif
+;          nrad = n_elements(radius)
+;
+;          phot1 = {$
+;            radius_kpc:    radius*pixscale*arcsec2kpc, $
+;            inradius_kpc:  rin*pixscale*arcsec2kpc, $
+;            outradius_kpc: rout*pixscale*arcsec2kpc, $
+;            npix:          fltarr(nrad), $
+;            area:          fltarr(nrad), $
+;;           abmag:         fltarr(nrad)-99.0, $
+;;           abmag_err:     fltarr(nrad)-99.0, $
+;            maggies:       fltarr(nrad), $
+;            ivarmaggies:   fltarr(nrad)}
+;          
+;          dist_ellipse, ellrad, sz, xcen, ycen, $
+;            1.0/(1.0-modellipse1.ellipticity_median), $
+;            modellipse1.posangle_median
+;;         atv, ellrad, /bl
+;
+;          for ir = 0, nrad-1 do begin
+;;            atv, model*pixscale^2*(ellrad ge rin[ir] and ellrad lt rout[ir]), /bl
+;             pix = where(ellrad ge rin[ir] and ellrad lt rout[ir],npix)
+;             totnpix = (npix-total(invvar[pix] eq 0))
+;;            area = totnpix*pixscale^2 ; [arcsec^2]
+;             area = !pi*(rout[ir]^2*(1-modellipse1.ellipticity_median)-$
+;               rin[ir]^2*(1-modellipse1.ellipticity_median)) ; [pixel^2]
+;             phot1.npix[ir] = totnpix
+;             phot1.area[ir] = area*pixscale^2 ; [arcsec^2]
+;             
+;             maggies = total(model[pix]*pixscale^2*(invvar[pix] gt 0))
+;             errmaggies = sqrt(total(var[pix]*pixscale^4*(invvar[pix] gt 0)))
+;             if errmaggies le 0 then message, 'Problem here!'
+;
+;             print, rin[ir], rout[ir], maggies, errmaggies, totnpix, area
+;                
+;;            if maggies gt 0.0 then begin
+;;               phot1.abmag[ir] = -2.5*alog10(maggies) ; [AB maggies]
+;;               phot1.abmag_err[ir] = 2.5*errmaggies/maggies/alog(10)
+;;            endif
+;
+;             phot1.maggies[ir] = maggies ; [AB maggies]
+;             phot1.ivarmaggies[ir] = 1.0/errmaggies^2
+;          endfor
+;          if n_elements(phot) eq 0 then phot = phot1 else phot = [phot,phot1]
+;;         djs_plot, phot1.radius_kpc, -2.5*alog10(phot1.maggies), ysty=3, psym=8, /xlog, xsty=3
+;       endfor                   ; close filter loop
+;; write everything out
+;;      im_mwrfits, imellipse, ellpath+cluster+'-ellipse-image.fits', clobber=clobber
+;       im_mwrfits, modellipse, ellpath+cluster+'-ellipse-model.fits', clobber=clobber
+;       im_mwrfits, phot, ellpath+cluster+'-ellipse-ellphot.fits', clobber=clobber
+;    endfor                      ; close cluster loop
 
 ;          djs_plot, [0], [0], /nodata, /xlog, xsty=1, ysty=1, $
 ;            yr=[28,15], xrange=[pixscale*arcsec2kpc,300]

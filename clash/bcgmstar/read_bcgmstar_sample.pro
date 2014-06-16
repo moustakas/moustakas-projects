@@ -3,8 +3,8 @@ function read_bcgmstar_sample, zsort=zsort
 ;   sample = rsex(getenv('CLASH_DIR')+'/clash_sample.sex')
     sample = rsex(bcgmstar_path(/propath)+'bcgmstar_sample.sex')
 
-    splog, 'HACK!!!!!'
-    sample = sample[0]
+;   splog, 'HACK!!!!!'
+;   sample = sample[1]
     if keyword_set(zsort) then sample = sample[sort(sample.z)]
     
 ;   struct_print, sample

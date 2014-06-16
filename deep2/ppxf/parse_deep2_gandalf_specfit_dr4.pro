@@ -145,7 +145,7 @@ pro parse_deep2_gandalf_specfit_dr4, thismask=thismask, firstmask=firstmask, $
 
 ; remove undetected emission lines from both the matrix of
 ; best-fitting parameters *and* the emission-line templates; demand
-; S/N>3 on the amplitude of each line
+; S/N>SNRCUT1 on the amplitude of each line
           bestfit = continuum + linefit
           mask = ferr lt 1E5
           new_sol = gandalf_clean_emission(wave,flux,$
@@ -189,6 +189,8 @@ pro parse_deep2_gandalf_specfit_dr4, thismask=thismask, firstmask=firstmask, $
           endif
           specdata1 = struct_addtags(temporary(specdata1),elinefit)
 
+          if finite(specdata1.oii_3727_1_ew[1]) eq 0 then stop
+          
           if (n_elements(specdata) eq 0) then specdata = specdata1 else $
             specdata = [temporary(specdata),specdata1]
 

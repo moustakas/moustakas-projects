@@ -118,13 +118,13 @@ pro bcgmstar_objectmask, copyfiles=copyfiles, sextractor=sextractor, makemask=ma
 
           for ib = nfilt-1, 0, -1 do begin
              spawn, 'gunzip -c '+drzfiles[ib]+' > '+$
-               outpath+cluster+filtinfo[ib].short+'-image.fits', /sh
+               outpath+cluster+'-'+filtinfo[ib].short+'-image.fits', /sh
              spawn, 'gunzip -c '+whtfiles[ib]+' > '+$
-               outpath+cluster+filtinfo[ib].short+'-ivar.fits', /sh
+               outpath+cluster+'-'+filtinfo[ib].short+'-ivar.fits', /sh
 ;            spawn, 'gunzip -c '+bcgmodelfiles[ib]+' > '+$
 ;              outpath+cluster+'-nobcg-'+filtinfo[ib].short+'.fits', /sh
              mwrfits, mrdfits(drzfiles[ib],0,hdr,/silent)-$
-               mrdfits(bcgmodelfiles[ib],0,/silent), outpath+cluster+filtinfo[ib].short+$
+               mrdfits(bcgmodelfiles[ib],0,/silent), outpath+cluster+'-'+filtinfo[ib].short+$
                '-nobcg.fits', hdr, /create
           endfor
        endif
@@ -141,7 +141,6 @@ pro bcgmstar_objectmask, copyfiles=copyfiles, sextractor=sextractor, makemask=ma
              gain = sxpar(hdr,'ccdgain')*sxpar(hdr,'exptime')        
              objectmask_sex, imfile[ib], catalog_name=catalog_name[ib], $
                weightfile=weightfile, sexpath=rootpath, gain=gain
-stop
           endfor
        endif 
        
@@ -162,7 +161,10 @@ stop
 
 ; sometimes the residuals in the BCG subtraction get detected as
 ; sources, which messes up our ellipse-fitting
-             segm[sz[0]/2-40:sz[0]/2+40,sz[1]/2-40:sz[1]/2+40] = 0
+             case cluster of
+                'a209': segm[sz[0]/2-40:sz[0]/2+40,sz[1]/2-40:sz[1]/2+40] = 0
+                else:
+             endcase
              
              cat = mrdfits(catfile[ib],2)
              big = where(cat.isoarea_image gt 1000,nbig,comp=small,ncomp=nsmall)
@@ -184,7 +186,6 @@ stop
 ; test the mask here
              testim = mrdfits(imfile,0,/silent)*(mask eq 0)
              mwrfits, testim, testfile, hdr, /create 
-             
 stop             
           endfor 
        endif

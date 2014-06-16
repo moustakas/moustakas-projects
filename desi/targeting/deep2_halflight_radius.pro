@@ -1,41 +1,4 @@
-function get_dndm, rmag, weight=weight, faintcut=faintcut, $
-  brightcut=brightcut, magaxis=magaxis
-; get the number counts    
-    area = 0.4342 ; deg^2
-    binsize = 0.2
-    nbins = ceil((faintcut-brightcut)/binsize)
-    magaxis = lindgen(nbins)*binsize+brightcut+binsize/2.0
-    dndm = hogg_histogram(rmag,[brightcut,faintcut],$ ; #/0.2 mag/deg^2
-      nbins,weight=weight)/area
-;   dndm = im_hist1d(rmag,weight,min=brightcut,$ 
-;     max=faintcut,binsize=binsize)/area/binsize
-return, dndm
-end
-
-function get_hiz, ugriz, mostek=mostek, magcut=magcut
-; select high-redshift galaxies using a color-cut
-    rr = ugriz[2,*]
-    gr = ugriz[1,*]-ugriz[2,*]
-    rz = ugriz[2,*]-ugriz[4,*]
-    if n_elements(magcut) eq 0 then magcut = 99.0
-; fiducial cut    
-    hiz = where(rr lt magcut and rz gt 0.1 and rz lt 1.8 and $
-      gr lt poly(rz,[-0.08,1.0])<poly(1.1,[-0.08,1.0]))
-;   rzcut = 1.2
-;   blue = where(rz lt rzcut,comp=red,nblue,ncomp=nred)
-;   if nblue ne 0 then hiz_blue = where(gr[blue] lt (0.7*rz[blue]+0.05))
-;   if nred ne 0 then hiz_red = where(gr[red] lt (1.4*rz[red]-0.79))
-;   if nblue ne 0 and nred ne 0 then hiz = [blue[hiz_blue],red[hiz_red]]
-;   if nblue ne 0 and nred eq 0 then hiz = blue[hiz_blue]
-;   if nblue eq 0 and nred ne 0 then hiz = red[hiz_red]
-; Mostek's cut    
-    if keyword_set(mostek) then hiz = where(gr lt (0.68*rz-0.08) and $
-      (rz gt 0.2) and (rz lt 1.3) and rr lt magcut)
-return, hiz
-end
-
-pro deep2_desi_elg_targeting, build_parent=build_parent, $
-  qaplots_parent=qaplots_parent, qaplots_select=qaplots_select
+pro deep2_halflight_radius
 ; jm14mar01siena - optimize the DESI targeting using DEEP2
 ; spectroscopy of galaxies in the Groth Strip (Field 1)
 
@@ -121,7 +84,7 @@ pro deep2_desi_elg_targeting, build_parent=build_parent, $
        zcat = zcat_egs[keep]
        zcat_phot = zcat_phot_egs[keep]
        zcat = struct_addtags(zcat,struct_trimtags(zcat_phot,$
-         select=['ugriz','ugriz_err','bri','bri_err','wise','wise_err','*galfit*','*radius*']))
+         select=['ugriz','ugriz_err','bri','bri_err','wise','wise_err']))
 
        nspec_weighted = long(total(zcat.targ_weight))
        nmissing = total(zcat_phot.ugriz[2,*] eq 0) ; missing r-band photometry --> none!
@@ -173,48 +136,6 @@ pro deep2_desi_elg_targeting, build_parent=build_parent, $
 
        magcut1 = 23.0
        magcut2 = 23.5
-
-; Sersic index vs half-light radius
-       hiz_mostek = get_hiz(zcat.ugriz,/mostek)
-       these = where(zcat[hiz_mostek].n_galfit_hi gt 0 and zcat[hiz_mostek].ugriz[2] lt 23.0,ngal)
-;      these = where(zcat.n_galfit_hi gt 0 and zcat.z gt 1.0 and zcat.z lt 1.4,ngal)
-       splog, ngal, weighted_quantile(zcat[hiz_mostek[these]].z,zcat[hiz_mostek[these]].final_weight,quant=0.5)
-
-       requant = weighted_quantile(zcat[hiz_mostek[these]].re_galfit_hi*0.03,$
-         zcat[hiz_mostek[these]].final_weight,quant=[0.5,0.25,0.75])
-       nquant = weighted_quantile(zcat[hiz_mostek[these]].n_galfit_hi,$
-         zcat[hiz_mostek[these]].final_weight,quant=[0.5,0.25,0.75])
-       zmed = weighted_quantile(zcat[hiz_mostek[these]].z,$
-         zcat[hiz_mostek[these]].final_weight,quant=0.5)
-       
-       psfile = technotepath+'egs_halflight.ps'
-       im_plotconfig, 0, pos, psfile=psfile, height=5.0, width=6.7, $
-         xmargin=[1.4,0.4], charsize=1.7
-
-       djs_plot, [0], [0], /nodata, position=pos, /xlog, /ylog, xsty=1, ysty=1, $
-         xrange=[0.01,10], yrange=[0.1,20.0], xtitle='Half-light radius (arcsec)', $
-         ytitle='Sersic n'
-       im_legend, ['DEEP2/EGS','18.5<r<23','grz-selected'], /left, /top, box=0, margin=0
-;      im_legend, ['DEEP2/EGS','18.5<r<24','1.0<z<1.4'], /left, /top, box=0, margin=0
-       im_legend, ['<r_{e}>='+strtrim(string(requant[0],format='(F12.3)'),2)+'"',$
-         '<n>='+strtrim(string(nquant[0],format='(F12.3)'),2),$
-         '<z>='+strtrim(string(zmed,format='(F12.3)'),2)], /left, /bottom, box=0, $
-         margin=0, charsize=1.8
-       djs_oplot, zcat[hiz_mostek[these]].re_galfit_hi*0.03, zcat[hiz_mostek[these]].n_galfit_hi, $
-         psym=symcat(16), color=cgcolor('dark grey'), symsize=0.8
-       oploterror, requant[0], nquant[0], requant[1], nquant[1], psym=symcat(6,thick=5), $
-         color=cgcolor('dodger blue'), errcolor=cgcolor('dodger blue'), /lobar, symsize=3, $
-         errthick=8
-       oploterror, requant[0], nquant[0], requant[2], nquant[2], psym=symcat(6,thick=1), $
-         color=cgcolor('dodger blue'), errcolor=cgcolor('dodger blue'), /hibar, symsize=3, $
-         errthick=8
-       
-       im_plotconfig, psfile=psfile, /psclose, /pdf
-
-
-       
-stop
-       
        
 ; gr vs rz - stellar contamination
        stars = mrdfits(outpath+'deep2egs-photstars.fits.gz',1)

@@ -13,6 +13,7 @@ pro bcgmstar_skysubtract
     maskpath = bcgmstar_path(/objectmask)
     skypath = bcgmstar_path(/skysub)
     skyinfopath = bcgmstar_path()+'skyinfo/'
+    qapath = bcgmstar_path()+'qaplots-skyinfo/'
     
 ; specifiy the filters and some other handy info    
     filt = bcgmstar_filterlist(short=short,instr=instr,$
@@ -36,12 +37,11 @@ pro bcgmstar_skysubtract
 
 ; initialize the sky-subtraction QAplot
     ncol = 3 ; number of columns
-    psfile = skyinfopath+'qa_skyinfo.ps'
-    im_plotconfig, 0, pos, psfile=psfile, charsize=1.3
     
 ; wrap on each cluster    
 ;   for ic = ncl-1, ncl-1 do begin
     for ic = 0, ncl-1 do begin
+;   for ic = 1, 1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        splog, 'Working on cluster '+cluster
        outpath = skypath+cluster+'/'
@@ -123,12 +123,15 @@ pro bcgmstar_skysubtract
        skyinfo.factor = factor ; keep the conversion factor!
 
        nrow = ceil(nfilt/float(ncol))
+       qafile = qapath+'qa_'+cluster+'_skyinfo.ps'
+       im_plotconfig, 0, psfile=qafile, charsize=1.3
        pos = im_getposition(nx=ncol,ny=nrow,yspace=0.0,xspace=0.0,$
          xmargin=[0.9,0.4],width=2.4)
        xx = range(-0.05,0.05,1000)
        binsize = 0.001
        
        skyinfo.file = file_basename(drzfiles)
+
 ;      for ib = nfilt-1, nfilt-3, -1 do begin
        for ib = nfilt-1, 0, -1 do begin
 ;      for ib = 0, nfilt-1 do begin
@@ -172,12 +175,12 @@ pro bcgmstar_skysubtract
             'Mode='+strtrim(string(mode1,format='(F12.5)'),2),$
             'Sigma='+strtrim(string(sigma1,format='(F12.5)'),2)], $
             /left, /top, box=0, margin=0, charsize=0.8
-       endfor
+       endfor 
        xyouts, min(pos[0,*])-0.06, (max(pos[3,*])-min(pos[1,*]))/2.0+min(pos[1,*]), $
          textoidl('Fraction of Pixels'), orientation=90, align=0.5, charsize=1.3, /norm
        xyouts, (max(pos[2,*])-min(pos[0,*]))/2.0+min(pos[0,*]), min(pos[1,*])-0.06, $
          textoidl('Pixel Values after Masking (counts/s)'), align=0.5, charsize=1.3, /norm
-       im_plotconfig, psfile=psfile, /psclose, /pdf
+       im_plotconfig, psfile=qafile, /psclose, /pdf
        
 ; compute the 1-sigma surface brightness limit; to check, do:
 ; IDL> atv, im*(im gt 3*ss[12].sigma), /log

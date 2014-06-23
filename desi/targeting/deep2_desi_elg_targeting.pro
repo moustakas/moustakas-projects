@@ -12,28 +12,6 @@ function get_dndm, rmag, weight=weight, faintcut=faintcut, $
 return, dndm
 end
 
-function get_hiz, ugriz, mostek=mostek, magcut=magcut
-; select high-redshift galaxies using a color-cut
-    rr = ugriz[2,*]
-    gr = ugriz[1,*]-ugriz[2,*]
-    rz = ugriz[2,*]-ugriz[4,*]
-    if n_elements(magcut) eq 0 then magcut = 99.0
-; fiducial cut    
-    hiz = where(rr lt magcut and rz gt 0.1 and rz lt 1.8 and $
-      gr lt poly(rz,[-0.08,1.0])<poly(1.1,[-0.08,1.0]))
-;   rzcut = 1.2
-;   blue = where(rz lt rzcut,comp=red,nblue,ncomp=nred)
-;   if nblue ne 0 then hiz_blue = where(gr[blue] lt (0.7*rz[blue]+0.05))
-;   if nred ne 0 then hiz_red = where(gr[red] lt (1.4*rz[red]-0.79))
-;   if nblue ne 0 and nred ne 0 then hiz = [blue[hiz_blue],red[hiz_red]]
-;   if nblue ne 0 and nred eq 0 then hiz = blue[hiz_blue]
-;   if nblue eq 0 and nred ne 0 then hiz = red[hiz_red]
-; Mostek's cut    
-    if keyword_set(mostek) then hiz = where(gr lt (0.68*rz-0.08) and $
-      (rz gt 0.2) and (rz lt 1.3) and rr lt magcut)
-return, hiz
-end
-
 pro deep2_desi_elg_targeting, build_parent=build_parent, $
   qaplots_parent=qaplots_parent, qaplots_select=qaplots_select
 ; jm14mar01siena - optimize the DESI targeting using DEEP2
@@ -41,7 +19,7 @@ pro deep2_desi_elg_targeting, build_parent=build_parent, $
 
     templatepath = getenv('IM_PROJECTS_DIR')+'/desi/templates/v1.1/'
     isedfit_paramfile = templatepath+'desi_deep2_paramfile.par'
-    outpath = getenv('IM_PROJECTS_DIR')+'/desi/targeting/'
+    targpath = getenv('IM_PROJECTS_DIR')+'/desi/targeting/'
     technotepath = getenv('IM_SVNREPOS')+'/desi/technotes/targeting/elg-deep2/trunk/'
     winpath = deep2_path(/window)
     catpath = deep2_path(/cat)
@@ -90,20 +68,21 @@ pro deep2_desi_elg_targeting, build_parent=build_parent, $
        splog, 'Parent photometric sample = ', nphot, negs
        splog, 'Missing r-band photometry = ', nmissing
 
-       im_mwrfits, phot, outpath+'deep2egs-photparent.fits', /clobber
+       im_mwrfits, phot, targpath+'deep2egs-photparent.fits', /clobber
 
 ; also write out a sample of stars so we can investigate the stellar
 ; locus
        star = where(phot_egs.pgal lt 0.2 and phot_egs.badflag eq 0 and $
          phot_egs.ugriz[2,*] gt brightcut and phot_egs.ugriz[2,*] lt faintcut,nstar)
        splog, 'Sample of stars', nstar
-       im_mwrfits, phot_egs[star], outpath+'deep2egs-photstars.fits', /clobber
+       im_mwrfits, phot_egs[star], targpath+'deep2egs-photstars.fits', /clobber
        
 ; now build our parent spectroscopic sample of galaxies in the EGS
 ; field (apply the cut on Q>=3 below)
        allzcat = read_deep2_zcat(phot=allzcat_phot,weight=allzcat_weight,/all)
        allzcat = struct_addtags(struct_addtags(allzcat,struct_trimtags(allzcat_weight,select=$
-         ['*_weight'])),replicate({mask_weight: -1.0},n_elements(allzcat)))
+         ['*_weight'])),replicate({cfhtls_u: 0.0, cfhtls_g: 0.0, cfhtls_r: 0.0, cfhtls_i: 0.0, $
+         cfhtls_z: 0.0, mask_weight: -1.0},n_elements(allzcat)))
        egs = where(strmid(strtrim(allzcat.objno,2),0,1) eq '1',negs)
 
        zcat_egs = allzcat[egs]
@@ -122,14 +101,19 @@ pro deep2_desi_elg_targeting, build_parent=build_parent, $
        zcat_phot = zcat_phot_egs[keep]
        zcat = struct_addtags(zcat,struct_trimtags(zcat_phot,$
          select=['ugriz','ugriz_err','bri','bri_err','wise','wise_err','*galfit*','*radius*']))
+       zcat.cfhtls_u = zcat.ugriz[0]
+       zcat.cfhtls_g = zcat.ugriz[1]
+       zcat.cfhtls_r = zcat.ugriz[2]
+       zcat.cfhtls_i = zcat.ugriz[3]
+       zcat.cfhtls_z = zcat.ugriz[4]
 
        nspec_weighted = long(total(zcat.targ_weight))
        nmissing = total(zcat_phot.ugriz[2,*] eq 0) ; missing r-band photometry --> none!
        splog, 'Parent spectroscopic sample = ', negs, nspec, nspec_weighted
        splog, 'Missing r-band photometry = ', nmissing
 
-       im_mwrfits, zcat, outpath+'deep2egs-zcatparent.fits', /clobber
-       
+       im_mwrfits, zcat, targpath+'deep2egs-zcatparent.fits', /clobber
+
 ; also write out a Q>=3 sample with the corresponding [OII] fluxes and
 ; upper limits 
        ppxf = read_deep2(/ppxf,/fixoii)
@@ -150,22 +134,74 @@ pro deep2_desi_elg_targeting, build_parent=build_parent, $
        zcat_q34.zsuccess_weight = zweight
        zcat_q34.final_weight = 1/zweight
 
-; build the [OII] flux       
+; build the [OII] flux
        kised = mrdfits(templatepath+'desi_deep2_fsps_v2.4_miles_'+$
          'chab_charlot_sfhgrid01_kcorr.z0.0.fits.gz',1,$
          rows=m2)
        oii = deep2_get_oiiflux(ppxf_q34,cflux_3727_rest=kised.cflux_3727)
        zcat_q34 = struct_addtags(zcat_q34,oii)
+       zcat_q34 = struct_addtags(zcat_q34,replicate({oii: 0.0},n_elements(zcat_q34)))
+       zcat_q34.oii = oii.oii_3727[0] ; total flux so we can run ELGTUNE
        
-       im_mwrfits, zcat_q34, outpath+'deep2egs-zcatparent.Q34.fits', /clobber
+       im_mwrfits, zcat_q34, targpath+'deep2egs-zcatparent.Q34.fits', /clobber
     endif
 
 ; ###########################################################################
 ; build QAplots of our high-z target selection
     if keyword_set(qaplots_select) then begin
-       phot = mrdfits(outpath+'deep2egs-photparent.fits.gz',1)
-;      zcat = mrdfits(outpath+'deep2egs_parent_zcat.fits.gz',1)
-       zcat = mrdfits(outpath+'deep2egs-zcatparent.Q34.fits.gz',1)
+
+; -------------------------
+; plot the half-light radius       
+       phot = mrdfits(catpath+'deep2.pcat_ext.fits.gz',1)
+       acs = mrdfits(getenv('IM_DATA_DIR')+'/acs-gc/egs_v_i_public_catalog_V1.0.fits.gz',1)
+;      spherematch, phot.ra_deep, phot.dec_deep, acs.ra, acs.dec, 1D/3600.0, m1, m2
+       match, phot.objno, acs.objno, m1, m2
+       phot = deep2_get_ugriz(phot[m1])
+       acs = acs[m2]
+
+       hiz_mostek = desi_get_hizelg(phot.ugriz,/mostek)
+       these = where(acs[hiz_mostek].flag_galfit_hi eq 0 and $
+         phot[hiz_mostek].ugriz[2] lt 23.0,ngal)
+
+       requant = weighted_quantile(acs[hiz_mostek[these]].re_galfit_hi*0.03,quant=[0.5,0.25,0.75])
+       nquant = weighted_quantile(acs[hiz_mostek[these]].n_galfit_hi,quant=[0.5,0.25,0.75])
+;      zmed = weighted_quantile(zcat[hiz_mostek[these]].z,$
+;        zcat[hiz_mostek[these]].final_weight,quant=0.5)
+       
+       psfile = technotepath+'egs_halflight.ps'
+       im_plotconfig, 0, pos, psfile=psfile, height=5.0, width=6.7, $
+         xmargin=[1.4,0.4], charsize=1.7
+
+       djs_plot, [0], [0], /nodata, position=pos, /xlog, /ylog, xsty=1, ysty=1, $
+         xrange=[0.01,10], yrange=[0.1,20.0], xtitle='Half-light radius (arcsec)', $
+         ytitle='Sersic n'
+       im_legend, ['DEEP2/EGS','18.5<r<23','grz-selected'], /left, /top, box=0, margin=0
+;      im_legend, ['DEEP2/EGS','18.5<r<24','1.0<z<1.4'], /left, /top, box=0, margin=0
+       im_legend, ['<r_{e}>='+strtrim(string(requant[0],format='(F12.3)'),2)+'"',$
+         '<n>='+strtrim(string(nquant[0],format='(F12.3)'),2)], $
+;        '<z>='+strtrim(string(zmed,format='(F12.3)'),2)], 
+         /left, /bottom, box=0, margin=0, charsize=1.8
+       djs_oplot, acs[hiz_mostek[these]].re_galfit_hi*0.03, acs[hiz_mostek[these]].n_galfit_hi, $
+         psym=symcat(16), color=cgcolor('dark grey'), symsize=0.8
+       oploterror, requant[0], nquant[0], requant[1], nquant[1], psym=symcat(6,thick=5), $
+         color=cgcolor('dodger blue'), errcolor=cgcolor('dodger blue'), /lobar, symsize=3, $
+         errthick=8
+       oploterror, requant[0], nquant[0], requant[2], nquant[2], psym=symcat(6,thick=1), $
+         color=cgcolor('dodger blue'), errcolor=cgcolor('dodger blue'), /hibar, symsize=3, $
+         errthick=8
+       
+       im_plotconfig, psfile=psfile, /psclose, /pdf
+
+stop       
+       
+
+; -------------------------       
+
+stop       
+
+       phot = mrdfits(targpath+'deep2egs-photparent.fits.gz',1)
+;      zcat = mrdfits(targpath+'deep2egs_parent_zcat.fits.gz',1)
+       zcat = mrdfits(targpath+'deep2egs-zcatparent.Q34.fits.gz',1)
 
        ewoiisnr = zcat.oii_3727_2_ew[0]/zcat.oii_3727_2_ew[1]
        oiisnr = zcat.oii_3727_2_amp[0]/(zcat.oii_3727_2_amp[1]+$
@@ -175,8 +211,8 @@ pro deep2_desi_elg_targeting, build_parent=build_parent, $
        magcut2 = 23.5
 
 ; Sersic index vs half-light radius
-       hiz_mostek = get_hiz(zcat.ugriz,/mostek)
-       these = where(zcat[hiz_mostek].n_galfit_hi gt 0 and zcat[hiz_mostek].ugriz[2] lt 23.0,ngal)
+       hiz_mostek = desi_get_hizelg(zcat.ugriz,/mostek)
+       these = where(zcat[hiz_mostek].flag_galfit_hi eq 0 and zcat[hiz_mostek].ugriz[2] lt 23.0,ngal)
 ;      these = where(zcat.n_galfit_hi gt 0 and zcat.z gt 1.0 and zcat.z lt 1.4,ngal)
        splog, ngal, weighted_quantile(zcat[hiz_mostek[these]].z,zcat[hiz_mostek[these]].final_weight,quant=0.5)
 
@@ -217,7 +253,7 @@ stop
        
        
 ; gr vs rz - stellar contamination
-       stars = mrdfits(outpath+'deep2egs-photstars.fits.gz',1)
+       stars = mrdfits(targpath+'deep2egs-photstars.fits.gz',1)
        stars = stars[where(stars.ugriz[2] lt magcut1,nstar)]
 
        loz = where(zcat.zbest lt 0.6 and zcat.ugriz[2] lt magcut1,nloz)
@@ -228,9 +264,9 @@ stop
        
        w1 = where(zcat.zbest gt 0.6 and zcat.ugriz[2] lt magcut1,nw1)
        w2 = where(zcat.zbest gt 1.2 and zcat.ugriz[2] lt magcut1,nw2)
-       splog, 'Fraction of z>0.6 in grz box: ', n_elements(get_hiz(zcat[w1].ugriz,$
+       splog, 'Fraction of z>0.6 in grz box: ', n_elements(desi_get_hizelg(zcat[w1].ugriz,$
          magcut=magcut1))/float(nw1)
-       splog, 'Fraction of z>1.2 in grz box: ', n_elements(get_hiz(zcat[w2].ugriz,$
+       splog, 'Fraction of z>1.2 in grz box: ', n_elements(desi_get_hizelg(zcat[w2].ugriz,$
          magcut=magcut1))/float(nw2)
        
        psfile = technotepath+'egs_grz_stars.ps'
@@ -274,7 +310,7 @@ stop
        im_plotconfig, psfile=psfile, /psclose, /pdf
 
 ; gr vs rz - [OII] strength
-       hiz = get_hiz(zcat.ugriz)
+       hiz = desi_get_hizelg(zcat.ugriz)
        loz = where(zcat.zbest lt 0.6 and zcat.ugriz[2] lt magcut1,nloz)
        oiibright = where(zcat.zbest gt 0.6 and zcat.ugriz[2] lt magcut1 and $
          zcat.oii_3727_1[1] ne -2.0 and oiisnr gt oiisnrcut and $
@@ -288,7 +324,7 @@ stop
 ;      noiibright_cor = noiibright+1.0*noiibright/(noiifaint+noiibright)*noiinone
 ;      frac_oiinone = noiinone/total(zcat.zbest gt 0.6 and zcat.ugriz[2] lt magcut1)
 ;      splog, 'Fraction of z>0.6 with strong [OII] in grz box: ', $
-;        n_elements(get_hiz(zcat[oiibright].ugriz,magcut=magcut1))/float(n_elements(hiz))
+;        n_elements(desi_get_hizelg(zcat[oiibright].ugriz,magcut=magcut1))/float(n_elements(hiz))
 
        psfile = technotepath+'egs_grz_oii.ps'
        im_plotconfig, 0, pos, psfile=psfile, height=5.0, width=6.6, $
@@ -331,8 +367,8 @@ stop
        im_plotconfig, psfile=psfile, /psclose, /pdf
              
 ; [OII] flux vs redshift
-       hiz = get_hiz(zcat.ugriz)
-       hiz_mostek = get_hiz(zcat.ugriz,/mostek)
+       hiz = desi_get_hizelg(zcat.ugriz)
+       hiz_mostek = desi_get_hizelg(zcat.ugriz,/mostek)
 
        psfile = technotepath+'egs_oii_redshift.ps'
        im_plotconfig, 0, pos, psfile=psfile, height=5.0, width=6.6, $
@@ -373,7 +409,7 @@ stop
 
 ; assume that the objects with formal flux limits above our [OII] cut
 ; are detections (this is a small number of objects)    
-       hiz = get_hiz(zcat.ugriz)
+       hiz = desi_get_hizelg(zcat.ugriz)
        oiibright = where(zcat[hiz].oii_3727_1[1] ne -2.0 and oiisnr gt oiisnrcut and $
          ewoiisnr gt 1.0 and zcat[hiz].oii_3727[0] gt oiicut1,noiibright)
        oiifaint = where(zcat[hiz].oii_3727_1[1] ne -2.0 and oiisnr gt oiisnrcut and $
@@ -446,7 +482,7 @@ stop
        im_plotconfig, psfile=psfile, /psclose, /pdf
 
 ; redshift histogram of sources selected using my grz color-cuts 
-       hiz = get_hiz(zcat.ugriz)
+       hiz = desi_get_hizelg(zcat.ugriz)
        oiibright = where(zcat[hiz].oii_3727_1[1] ne -2.0 and oiisnr gt oiisnrcut and $
          ewoiisnr gt 1.0 and zcat[hiz].oii_3727[0] gt oiicut1,noiibright)
        oiifaint = where(zcat[hiz].oii_3727_1[1] ne -2.0 and oiisnr gt oiisnrcut and $
@@ -578,9 +614,9 @@ stop
        egs = where(strmid(strtrim(allzcat.objno,2),0,1) eq '1',negs)
        allzcat = allzcat[egs]
        
-       phot = mrdfits(outpath+'deep2egs-photparent.fits.gz',1)
-       zcat = mrdfits(outpath+'deep2egs-zcatparent.fits.gz',1)
-       zcat_q34 = mrdfits(outpath+'deep2egs-zcatparent.Q34.fits.gz',1)
+       phot = mrdfits(targpath+'deep2egs-photparent.fits.gz',1)
+       zcat = mrdfits(targpath+'deep2egs-zcatparent.fits.gz',1)
+       zcat_q34 = mrdfits(targpath+'deep2egs-zcatparent.Q34.fits.gz',1)
 
        weight = zcat.targ_weight
        weight_q34 = zcat_q34.final_weight

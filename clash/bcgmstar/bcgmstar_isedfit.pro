@@ -13,6 +13,7 @@ pro bcgmstar_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, 
     
 ; read the sample
     sample = read_bcgmstar_sample(/zsort)
+    sample = sample[11]
     struct_print, sample
     ncl = n_elements(sample)
 
@@ -27,7 +28,7 @@ pro bcgmstar_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, 
     if keyword_set(write_paramfile) then begin
        spsmodels = 'fsps_v2.4_miles'
        imf = 'salp'
-       nmodel = 5000L
+       nmodel = 10000L
 ; SFH, age, and metallicity are free
        write_isedfit_paramfile, params=params, isedfit_dir=isedfit_dir, $
          prefix=prefix, filterlist=filterlist, use_redshift=sample.z, $
@@ -88,7 +89,7 @@ pro bcgmstar_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, 
                 good = where(phot[this].photradius_kpc_in gt phot[this].rmin_kpc and $
                   phot[this].photradius_kpc_out lt phot[this].rmax_kpc,comp=extrap,ncomp=nextrap)
 
-; take the measure photometry at face-value, but don't give any
+; take the measured photometry at face-value, but don't give any
 ; weight to bands that have been extrapolated                
                 maggies[ii,*] = [phot[this].maggies_int,phot[this].maggies]
                 ivarmaggies[ii,*] = [phot[this].ivarmaggies_int,phot[this].ivarmaggies]
@@ -96,7 +97,6 @@ pro bcgmstar_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, 
 ;               if cluster eq 'a209' and short[ii] eq 'f390w' then maggies[ii,0] = 0.0 ; crap!
              endif
           endfor
-          
           isedfit, isedfit_paramfile, maggies, ivarmaggies, replicate(sample[ic].z,naper), $
             thissfhgrid=thissfhgrid, isedfit_dir=isedfit_dir, isedfit_results=ised, $
             isedfit_post=isedpost, clobber=clobber, outprefix=outprefix
@@ -106,10 +106,14 @@ pro bcgmstar_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, 
 ; --------------------------------------------------
 ; compute K-corrections
     if keyword_set(kcorrect) then begin
-       isedfit_kcorrect, isedfit_paramfile, isedfit_dir=isedfit_dir, $
-         montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
-         absmag_filterlist=bessell_filterlist(), band_shift=0.0, $
-         clobber=clobber
+       for ic = 0, ncl-1 do begin
+          cluster = strtrim(sample[ic].shortname,2)
+          outprefix = prefix+'_'+cluster
+          isedfit_kcorrect, isedfit_paramfile, isedfit_dir=isedfit_dir, $
+            montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
+            absmag_filterlist=bessell_filterlist(), band_shift=0.0, $
+            clobber=clobber, outprefix=outprefix
+       endfor
     endif 
 
 ; --------------------------------------------------

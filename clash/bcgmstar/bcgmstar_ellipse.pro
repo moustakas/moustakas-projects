@@ -65,6 +65,8 @@ pro bcgmstar_ellipse, debug=debug, clobber=clobber
 
 ; note! images in units of [10^-12 erg/s/cm^2/Hz] (pico-maggies)
 
+    clobber = 1
+    
 ; read the sample
     sample = read_bcgmstar_sample()
     ncl = n_elements(sample)
@@ -80,8 +82,9 @@ pro bcgmstar_ellipse, debug=debug, clobber=clobber
     skyinfopath = bcgmstar_path()+'skyinfo/'
 
 ; wrap on each cluster    
-;   for ic = 10, 10 do begin
-    for ic = 0, ncl-1 do begin
+    for ic = 4, 4 do begin
+;   for ic = 5, ncl-1 do begin
+;   for ic = 0, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        splog, 'Working on cluster '+cluster
        datapath = bcgmstar_path(/bcg)+cluster+'/'
@@ -121,10 +124,22 @@ pro bcgmstar_ellipse, debug=debug, clobber=clobber
          ini_ycen=ycen,ini_e0=info[reffilt].mge_ellipticity,$
          ini_pa0=info[reffilt].mge_posangle,namax=namax,$
          pixscale=pixscale,arcsec2kpc=arcsec2kpc)
-       median_ellipse = get_median_ellipse(refmodellipse,sblimit=info[reffilt].sblimit)
-       refmodellipse = struct_addtags(refmodellipse,median_ellipse)
-       
-; now loop through and do a constrained fit in every other band
+       mod_median_ellipse = get_median_ellipse(refmodellipse,sblimit=info[reffilt].sblimit)
+       refmodellipse = struct_addtags(refmodellipse,mod_median_ellipse)
+
+; also fit the actual data in the reference band
+       if cluster eq 'a611' then begin
+          refimellipse = do_ellipse(image,invvar=invvar*mask,ini_xcen=xcen, $
+            ini_ycen=ycen,ini_e0=info[reffilt].mge_ellipticity,$
+            ini_pa0=info[reffilt].mge_posangle,namax=namax,$
+            pixscale=pixscale,arcsec2kpc=arcsec2kpc)
+          im_median_ellipse = get_median_ellipse(refimellipse,sblimit=info[reffilt].sblimit)
+          refimellipse = struct_addtags(refimellipse,im_median_ellipse)
+          im_mwrfits, refimellipse, ellpath+cluster+'-ellipse-refimage.fits', clobber=clobber
+       endif
+
+; now loop through and do a constrained fit of the *model* images in
+; every other band 
        delvarx, imellipse, modellipse, phot
        for ib = nfilt-1, 0, -1 do begin
 ;      for ib = nfilt-2, nfilt-1 do begin
@@ -188,22 +203,20 @@ pro bcgmstar_ellipse, debug=debug, clobber=clobber
           if n_elements(modellipse) eq 0 then modellipse = modellipse1 else $
             modellipse = [modellipse,modellipse1]
 
-; debugging plot
-          djs_plot, refmodellipse.majora, refmodellipse.sb0fit, $
-            xsty=3, ysty=3, /xlog, /ylog, yrange=[min(refmodellipse.sb0fit)<$
-            min(modellipse.sb0fit),max(refmodellipse.sb0fit)>$
-            max(modellipse.sb0fit)]
-          djs_oplot, modellipse1.majora, modellipse1.sb0fit, color='green'
-          im_legend, short[ib], /right, /top, box=0
-;         cc = get_kbrd(1)
+;; debugging plot
+;          djs_plot, refmodellipse.majora, refmodellipse.sb0fit, $
+;            xsty=3, ysty=3, /xlog, /ylog, yrange=[min(refmodellipse.sb0fit)<$
+;            min(modellipse.sb0fit),max(refmodellipse.sb0fit)>$
+;            max(modellipse.sb0fit)]
+;          djs_oplot, modellipse1.majora, modellipse1.sb0fit, color='green'
+;          im_legend, short[ib], /right, /top, box=0
+;;         cc = get_kbrd(1)
 
        endfor                   ; close filter loop
 ; write everything out
 ;      im_mwrfits, imellipse, ellpath+cluster+'-ellipse-image.fits', clobber=clobber
        im_mwrfits, modellipse, ellpath+cluster+'-ellipse-model.fits', clobber=clobber
 ;      im_mwrfits, phot, ellpath+cluster+'-ellipse-ellphot.fits', clobber=clobber
-
-stop       
     endfor                      ; close cluster loop
 
 return

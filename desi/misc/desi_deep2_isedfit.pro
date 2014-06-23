@@ -4,7 +4,7 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 ; jm13dec18siena - fit the parent sample of DEEP2 galaxies for the
 ; DESI project
     
-    version = 'v1.1'
+    version = desi_deep2_template_version()
 
     prefix = 'desi_deep2'
     isedfit_dir = getenv('IM_PROJECTS_DIR')+'/desi/templates/'+version+'/'

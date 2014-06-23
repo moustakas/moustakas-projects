@@ -152,7 +152,7 @@ pro bcgmstar_objectmask, copyfiles=copyfiles, sextractor=sextractor, makemask=ma
           segmfile = repstr(catfile,'.cat','-segm.fits')
           imfile = repstr(catfile,'-nobcg.cat','-image.fits')
           maskfile = repstr(catfile,'-nobcg.cat','-objectmask.fits')
-          testfile = repstr(catfile,'-nobcg.cat','-test.fits')
+          testfile = repstr(catfile,'-nobcg.cat','-masked.fits')
 
           for ib = 0, nfilt-1 do begin
              segm = mrdfits(segmfile,0,hdr,/silent)
@@ -160,9 +160,26 @@ pro bcgmstar_objectmask, copyfiles=copyfiles, sextractor=sextractor, makemask=ma
              sz = size(segm,/dim)
 
 ; sometimes the residuals in the BCG subtraction get detected as
-; sources, which messes up our ellipse-fitting
+; sources, which messes up our ellipse-fitting; fix that here
              case cluster of
                 'a209': segm[sz[0]/2-40:sz[0]/2+40,sz[1]/2-40:sz[1]/2+40] = 0
+                'a383': segm[where(segm eq 290)] = 0 ; residuals
+                'a1423': segm[where(segm eq 155)] = 0 ; galaxy very close to the core!
+                'macs1206': segm[where(segm eq 282 or segm eq 285)] = 0 ; residuals
+; these are probably all real sources (esp 216), but the masking is
+; too aggressive
+                'clj1226': segm[where(segm eq 232 or segm eq 231 or segm eq 216)] = 0 
+                'macs1720': segm[where(segm eq 290 or segm eq 305)] = 0 
+                'a2261': segm[where(segm eq 160 or segm eq 196 or $
+                  segm eq 222 or segm eq 219)] = 0 ; residuals
+; these are probably all real sources, but the masking is too
+; aggressive 
+;               'macs2129': segm[where(segm eq 250 or segm eq 252)] = 0
+                'macs2129': segm[where(segm eq 252)] = 0 
+                'rxj2129': segm[where(segm eq 218 or segm eq 222 or segm eq 220)] = 0 
+                'ms2137': segm[sz[0]/2-20:sz[0]/2+20,sz[1]/2-20:sz[1]/2+20] = 0
+; 201 is a real galaxy, but it's smack in the center!
+                'rxj2248': segm[where(segm eq 201)] = 0 
                 else:
              endcase
              
@@ -183,7 +200,7 @@ pro bcgmstar_objectmask, copyfiles=copyfiles, sextractor=sextractor, makemask=ma
              splog, 'Writing '+maskfile
              mwrfits, mask, maskfile, hdr, /create
 
-; test the mask here
+; write out the masked original image so we can check it
              testim = mrdfits(imfile,0,/silent)*(mask eq 0)
              mwrfits, testim, testfile, hdr, /create 
 stop             

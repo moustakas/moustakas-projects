@@ -77,7 +77,7 @@ pro build_desi_deep2_templates, debug=debug
 ; jm13dec18siena - take the output of BUILD_DESI_DEEP2_TEMPLATE_SAMPLE
 ;   and generate the full-resolution spectra
 
-    version = 'v1.1'
+    version = desi_deep2_template_version()
     templatepath = getenv('IM_PROJECTS_DIR')+'/desi/templates/'+version+'/'
     
     light = im_light(/kms)
@@ -197,7 +197,7 @@ pro build_desi_deep2_templates, debug=debug
 ; ignoring IGM attenuation
        ised = read_isedfit(templatepath+'desi_deep2_paramfile.par',/getmodels,$
          isedfit_dir=templatepath,montegrids_dir=templatepath+'montegrids/',$
-         index=info[these].isedfit_id,/flam,/noigm,/restframe,thissfhgrid=2)
+         index=info[these].isedfit_id,/flam,/noigm,/restframe,thissfhgrid=1)
        outinfo[these].logmstar = ised.mstar_avg
        outinfo[these].logsfr = ised.sfr_avg
 ;      outinfo[these].logmstar = ised.mstar ; ised.mstar_50

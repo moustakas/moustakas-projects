@@ -18,7 +18,8 @@ pro bcgmstar_get_bcg, debug=debug
     rmaxkpc = 200D     ; [kpc]
 
 ; wrap on each cluster    
-    for ic = 0, ncl-1 do begin
+    for ic = 4, 4 do begin
+;   for ic = 0, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        splog, 'Working on cluster '+cluster
        outpath = getbcgpath+cluster+'/'
@@ -26,7 +27,7 @@ pro bcgmstar_get_bcg, debug=debug
 
        bcgmodelpath = getenv('CLASH_ARCHIVE')+'/'+strtrim(sample[ic].dirname,2)+$
          '/HST/galaxy_subtracted_images/marc/'
-       bcgqafile = qapath+'qa_'+cluster+'_getbcg.ps'
+       bcgqafile = qapath+'qa_getbcg_'+cluster+'.ps'
 
 ; get a fixed RMAXKPC cutout centered on the BCG
        ebv = sample[ic].ebv
@@ -47,10 +48,18 @@ pro bcgmstar_get_bcg, debug=debug
             strjoin(strupcase(short[missing]),', ')
        endif
 
-; the F435W model for MACS1149 is not reliable; get rid of it here
+; the F435W model for MACS1149 is not reliable (the galaxy is
+; basically invisible and the model fit is like a point source); get
+; rid of it here 
        if cluster eq 'macs1149' then begin
           these = these[where(short[these] ne 'f435w',nfilt)]
           splog, 'Unreliable model: MACS1149/F435W'
+       endif
+
+; temporarily drop the F390W image of RXJ2129       
+       if cluster eq 'rxj2129' then begin
+          these = these[where(short[these] ne 'f390w',nfilt)]
+          splog, 'Hack!!! Dropping RXJ2129/F390W!!'
        endif
 
        outinfo = struct_addtags(skyinfo[these],replicate({ra: 0D, dec: 0D, $

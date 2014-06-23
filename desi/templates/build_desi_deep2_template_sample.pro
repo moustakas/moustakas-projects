@@ -18,7 +18,7 @@ pro build_desi_deep2_template_sample, out
 ;   run first!
 ; jm14mar11siena - major update
 
-    version = 'v1.1'
+    version = desi_deep2_template_version()
     templatepath = getenv('IM_PROJECTS_DIR')+'/desi/templates/'+version+'/'
 
     oiisnrcut = 3.0

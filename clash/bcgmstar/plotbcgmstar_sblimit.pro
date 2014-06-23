@@ -3,14 +3,14 @@ pro plotbcgmstar_sblimit
 ; filter wavelength 
 
     paperpath = bcgmstar_path(/paper)
-    skyinfopath = bcgsfhs_path()+'skysub/'
+    skyinfopath = bcgmstar_path()+'skyinfo/'
 
-    sample = read_bcgsfhs_sample()
+    sample = read_bcgmstar_sample()
 ;   sample = sample[sort(sample.mvir)]
     cluster = strtrim(sample.shortname,2)
     ncl = n_elements(sample)
 
-    filt = bcgsfhs_filterlist(short=short,weff=weff,pivot=pivot)
+    filt = bcgmstar_filterlist(short=short,weff=weff,pivot=pivot)
     nfilt = n_elements(filt)
     
 ; gather the data for the box-and-whisker plot
@@ -33,10 +33,8 @@ pro plotbcgmstar_sblimit
       missing_data=-1.0, position=pos, yrange=[27,23], $ ; xrange=[0.3,1.6], 
       labels=strupcase(short), rotate=-45, width=0.6
 ;     output=paperpath+'bcgmstar_sblimit.pdf'
-    im_plotconfig, psfile=psfile, /psclose, /pdf, /pskeep
+    im_plotconfig, psfile=psfile, /psclose, /pdf
 
-stop    
-    
     struct_print, stats
 ;   print, weighted_quantile(data[0,*],quant=[0.25,0.5,0.75])
     niceprint, short, weff, pivot

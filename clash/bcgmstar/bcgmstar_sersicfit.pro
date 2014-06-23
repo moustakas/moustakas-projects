@@ -393,8 +393,7 @@ pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
 
 ; read the sample
     sample = read_bcgmstar_sample()
-    splog, 'Come back to A2261!'    
-;   sample = sample[13]
+    sample = sample[4]
     ncl = n_elements(sample)
 
     pixscale = 0.065D           ; [arcsec/pixel]
@@ -410,7 +409,7 @@ pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
 ; fit single and double Sersic models to every band
     if keyword_set(dofit) then begin
 ; wrap on each cluster    
-;      for ic = 2, 2 do begin
+;      for ic = 0, 0 do begin
        for ic = 0, ncl-1 do begin
           arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]
           
@@ -421,7 +420,7 @@ pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
 ; which the models are reliable
           modphot = mrdfits(ellpath+cluster+'-ellipse-model.fits.gz',1,/silent)
           allband = strtrim(modphot.band,2)
-          
+
           pp = read_bcg_profiles(cluster,these_filters=allband)
           nfilt = n_elements(modphot)
 
@@ -442,6 +441,7 @@ pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
                 nir = lindgen(nfilt) & remove, [opt,blue], nir ; everything else
              end
              'macs0744': begin
+                opt = -1
                 blue = where(allband eq 'f475w' or allband eq 'f555w')
                 nir = lindgen(nfilt) & remove, [blue], nir ; everything else
              end
@@ -540,8 +540,8 @@ pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
 ; output structure
           out = struct_addtags(struct_trimtags(modphot,$
             select=['file','band','weff','sblimit','ra','dec','mge_*']),$
-            replicate({amin_kpc: 0.0, amax_kpc: 0.0, rmin_kpc: 0.0, $
-            rmax_kpc: 0.0, $
+            replicate({amin_pixels: 0.0, amax_pixels: 0.0, amin_kpc: 0.0, amax_kpc: 0.0, $
+            rmin_kpc: 0.0, rmax_kpc: 0.0, $
             sersic_covar_nir:  fltarr(2+nnir,2+nnir),$
             sersic_covar_opt:  fltarr(2+nopt,2+nopt),$
             sersic_covar_blue: fltarr(2+nblue,2+nblue)},nfilt))
@@ -561,7 +561,7 @@ pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
                 amax_kpc = max(pp[nir[ib]].sma,mxindx) ; [kpc]
                 if pp[nir[ib]].mu[mxindx] gt modphot[nir[ib]].sblimit then $
                   amax_kpc = pp[nir[ib]].sma[mxindx-1]
-                
+
                 modgood = where(modphot[nir[ib]].majora*pixscale*arcsec2kpc le amax_kpc and $
                   modphot[nir[ib]].sb0fit gt 0 and modphot[nir[ib]].sb0fit_ivar gt 0,nmodgood)
                 amin_kpc = min(modphot[nir[ib]].majora[modgood])*pixscale*arcsec2kpc
@@ -578,6 +578,8 @@ pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
                 rmin_kpc = min(radius_kpc)
                 rmax_kpc = max(radius_kpc)
                 
+                out[nir[ib]].amin_pixels = amin_kpc/pixscale/arcsec2kpc
+                out[nir[ib]].amax_pixels = amax_kpc/pixscale/arcsec2kpc
                 out[nir[ib]].amin_kpc = amin_kpc
                 out[nir[ib]].amax_kpc = amax_kpc
                 out[nir[ib]].rmin_kpc = rmin_kpc
@@ -614,7 +616,7 @@ pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
                 modgood = where(modphot[nir[ib]].majora*pixscale*arcsec2kpc le amax_kpc and $
                   modphot[nir[ib]].sb0fit gt 0 and modphot[nir[ib]].sb0fit_ivar gt 0,nmodgood)
                 amin_kpc = min(modphot[nir[ib]].majora[modgood])*pixscale*arcsec2kpc
-                
+
                 sb = modphot[nir[ib]].sb0fit[modgood]*1D
                 sb_var_floor = (sb*errfloor)^2.0
                 sb_ivar = 1D/(1D/modphot[nir[ib]].sb0fit_ivar[modgood]+sb_var_floor)
@@ -623,6 +625,8 @@ pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
                 rmin_kpc = min(radius_kpc)
                 rmax_kpc = max(radius_kpc)
                 
+                out[nir[ib]].amin_pixels = amin_kpc/pixscale/arcsec2kpc
+                out[nir[ib]].amax_pixels = amax_kpc/pixscale/arcsec2kpc
                 out[nir[ib]].amin_kpc = amin_kpc
                 out[nir[ib]].amax_kpc = amax_kpc
                 out[nir[ib]].rmin_kpc = rmin_kpc
@@ -688,6 +692,8 @@ pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
                 rmin_kpc = min(radius_kpc)
                 rmax_kpc = max(radius_kpc)
 
+                out[opt[ib]].amin_pixels = amin_kpc/pixscale/arcsec2kpc
+                out[opt[ib]].amax_pixels = amax_kpc/pixscale/arcsec2kpc
                 out[opt[ib]].amin_kpc = amin_kpc
                 out[opt[ib]].amax_kpc = amax_kpc
                 out[opt[ib]].rmin_kpc = rmin_kpc
@@ -750,6 +756,8 @@ pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
                 rmin_kpc = min(radius_kpc)
                 rmax_kpc = max(radius_kpc)
 
+                out[blue[ib]].amin_pixels = amin_kpc/pixscale/arcsec2kpc
+                out[blue[ib]].amax_pixels = amax_kpc/pixscale/arcsec2kpc
                 out[blue[ib]].amin_kpc = amin_kpc
                 out[blue[ib]].amax_kpc = amax_kpc
                 out[blue[ib]].rmin_kpc = rmin_kpc
@@ -803,70 +811,69 @@ pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
     ncol = 3 ; number of columns
     rr = [0,range(0.01,200,500,/log)] ; equivalent radius [kpc]
 
-; -------------------------    
-; QAplot: SEDs
-    if keyword_set(qaplot_seds) then begin
-       splog, 'This is a dumb QAplot'
-       psfile = qapath+'qa_seds.ps'
-       im_plotconfig, 0, pos, psfile=psfile, charsize=1.8, $
-         height=5.0
-    
-       xrange = [0.3,2.0]
-       yrange = [26,10]
-    
-       for ic = 0, ncl-1 do begin
-          cluster = strtrim(sample[ic].shortname,2)
-          phot = mrdfits(sersicpath+cluster+'-phot.fits.gz',1,/silent)
-          nrad = n_elements(phot[0].photradius_kpc)
-          nfilt = n_elements(phot)
-
-          djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
-            xrange=xrange, yrange=yrange, xtitle='Wavelength \lambda (\mu'+'m)', $
-            ytitle='Magnitude (AB)', /xlog, title=strupcase(cluster)
-
-; integrated light       
-          mab = maggies2mag(phot.maggies_int,ivarmaggies=phot.ivarmaggies_int,$
-            magerr=maberr,lomagerr=mabloerr,himagerr=mabhierr,magnsigma=mabupper)
-          used = where(mab gt -90.0,nused)
-          upper = where(mab lt -90.0 and mabupper gt -90,nupper)
-          
-          oploterror, phot[used].weff/1D4, mab[used], mabhierr[used], $
-            psym=-symcat(16), symsize=1.5, color=cgcolor('firebrick'), $
-            /hibar, errcolor=cgcolor('firebrick')
-          oploterror, phot[used].weff/1D4, mab[used], mabloerr[used], psym=3, $
-            color=cgcolor('firebrick'), /lobar, errcolor=cgcolor('firebrick')
-
-; radial bins       
-          for ir = 0, nrad-1 do begin
-             mab = maggies2mag(phot.maggies[ir],ivarmaggies=phot.ivarmaggies[ir],$
-               magerr=maberr,lomagerr=mabloerr,himagerr=mabhierr,magnsigma=mabupper)
-             used = where(mab gt -90.0,nused)
-             upper = where(mab lt -90.0 and mabupper gt -90,nupper)
-             if (nused ne 0) then begin
-                oploterror, phot[used].weff/1D4, mab[used], mabhierr[used], $
-                  psym=-symcat(16), symsize=1.5, color=cgcolor('dodger blue'), $
-                  /hibar, errcolor=cgcolor('dodger blue')
-                oploterror, phot[used].weff/1D4, mab[used], mabloerr[used], psym=3, $
-                  color=cgcolor('dodger blue'), /lobar, errcolor=cgcolor('dodger blue')
-             endif
-             if (nupper ne 0) then begin
-                djs_oplot, [phot[upper].weff/1D4], [mabupper[upper]], $
-                  psym=symcat(11,thick=6), symsize=2.0, color=cgcolor('forest green')
-             endif
-          endfor 
-       endfor 
-       im_plotconfig, psfile=psfile, /psclose, /pdf
-    endif
+;; -------------------------    
+;; QAplot: SEDs
+;    if keyword_set(qaplot_seds) then begin
+;       splog, 'This is a dumb QAplot'
+;       psfile = qapath+'qa_seds.ps'
+;       im_plotconfig, 0, pos, psfile=psfile, charsize=1.8, $
+;         height=5.0
+;    
+;       xrange = [0.3,2.0]
+;       yrange = [26,10]
+;    
+;       for ic = 0, ncl-1 do begin
+;          cluster = strtrim(sample[ic].shortname,2)
+;          phot = mrdfits(sersicpath+cluster+'-phot.fits.gz',1,/silent)
+;          nrad = n_elements(phot[0].photradius_kpc)
+;          nfilt = n_elements(phot)
+;
+;          djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
+;            xrange=xrange, yrange=yrange, xtitle='Wavelength \lambda (\mu'+'m)', $
+;            ytitle='Magnitude (AB)', /xlog, title=strupcase(cluster)
+;
+;; integrated light       
+;          mab = maggies2mag(phot.maggies_int,ivarmaggies=phot.ivarmaggies_int,$
+;            magerr=maberr,lomagerr=mabloerr,himagerr=mabhierr,magnsigma=mabupper)
+;          used = where(mab gt -90.0,nused)
+;          upper = where(mab lt -90.0 and mabupper gt -90,nupper)
+;          
+;          oploterror, phot[used].weff/1D4, mab[used], mabhierr[used], $
+;            psym=-symcat(16), symsize=1.5, color=cgcolor('firebrick'), $
+;            /hibar, errcolor=cgcolor('firebrick')
+;          oploterror, phot[used].weff/1D4, mab[used], mabloerr[used], psym=3, $
+;            color=cgcolor('firebrick'), /lobar, errcolor=cgcolor('firebrick')
+;
+;; radial bins       
+;          for ir = 0, nrad-1 do begin
+;             mab = maggies2mag(phot.maggies[ir],ivarmaggies=phot.ivarmaggies[ir],$
+;               magerr=maberr,lomagerr=mabloerr,himagerr=mabhierr,magnsigma=mabupper)
+;             used = where(mab gt -90.0,nused)
+;             upper = where(mab lt -90.0 and mabupper gt -90,nupper)
+;             if (nused ne 0) then begin
+;                oploterror, phot[used].weff/1D4, mab[used], mabhierr[used], $
+;                  psym=-symcat(16), symsize=1.5, color=cgcolor('dodger blue'), $
+;                  /hibar, errcolor=cgcolor('dodger blue')
+;                oploterror, phot[used].weff/1D4, mab[used], mabloerr[used], psym=3, $
+;                  color=cgcolor('dodger blue'), /lobar, errcolor=cgcolor('dodger blue')
+;             endif
+;             if (nupper ne 0) then begin
+;                djs_oplot, [phot[upper].weff/1D4], [mabupper[upper]], $
+;                  psym=symcat(11,thick=6), symsize=2.0, color=cgcolor('forest green')
+;             endif
+;          endfor 
+;       endfor 
+;       im_plotconfig, psfile=psfile, /psclose, /pdf
+;    endif
 
 ; -------------------------    
 ; QAplot: color-radius plots, relative to F160W
     if keyword_set(qaplot_colorradius) then begin
-       psfile = qapath+'qa_color_sersic.ps'
-       im_plotconfig, 0, pos, psfile=psfile, charsize=1.1
-
        for ic = 0, ncl-1 do begin
           cluster = strtrim(sample[ic].shortname,2)
           splog, cluster
+          psfile = qapath+'qa_color_sersic_'+cluster+'.ps'
+          im_plotconfig, 0, pos, psfile=psfile, charsize=1.1
 
           arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]
           
@@ -945,19 +952,18 @@ pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
 ;           textoidl(''), orientation=90, align=0.5, charsize=1.4, /norm
 ;         xyouts, (max(pos[2,*])-min(pos[0,*]))/2.0+min(pos[0,*]), min(pos[1,*])-0.06, $
 ;           textoidl('Equivalent Radius (kpc)'), align=0.5, charsize=1.1, /norm
+          im_plotconfig, psfile=psfile, /psclose, /pdf
        endfor
-       im_plotconfig, psfile=psfile, /psclose, /pdf
     endif
 
 ; -------------------------    
 ; QAplot: SB profiles and the Sersic fits
     if keyword_set(qaplot_sbprofiles) then begin
-       psfile = qapath+'qa_sersic.ps'
-       im_plotconfig, 0, pos, psfile=psfile, charsize=1.3
-
        for ic = 0, ncl-1 do begin
           cluster = strtrim(sample[ic].shortname,2)
           splog, cluster
+          psfile = qapath+'qa_sersic_'+cluster+'.ps'
+          im_plotconfig, 0, pos, psfile=psfile, charsize=1.3
 
           arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]
 
@@ -1064,8 +1070,8 @@ pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
             textoidl('\mu (mag arcsec^{-2})'), orientation=90, align=0.5, charsize=1.4, /norm
           xyouts, (max(pos[2,*])-min(pos[0,*]))/2.0+min(pos[0,*]), min(pos[1,*])-0.06, $
             textoidl('Equivalent Radius (kpc)'), align=0.5, charsize=1.4, /norm
-       endfor
-       im_plotconfig, psfile=psfile, /psclose, /pdf
+          im_plotconfig, psfile=psfile, /psclose, /pdf
+       endfor 
 
     endif
        

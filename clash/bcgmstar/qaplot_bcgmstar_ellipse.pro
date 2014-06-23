@@ -28,8 +28,9 @@ pro qaplot_bcgmstar_ellipse
 
 ; overplot Marc's SB profiles?
     plotmarc = 1
+    plotgalphot = 0
     
-;   for ic = 0, 6 do begin
+;   for ic = 12, 12 do begin
     for ic = 0, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        print & splog, cluster, sample[ic].z
@@ -46,7 +47,7 @@ pro qaplot_bcgmstar_ellipse
        
        arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]
        
-       galphot = mrdfits(ellpath+cluster+'-ellipse-image.fits.gz',1,/silent)
+       if plotgalphot then galphot = mrdfits(ellpath+cluster+'-ellipse-image.fits.gz',1,/silent)
        modphot = mrdfits(ellpath+cluster+'-ellipse-model.fits.gz',1,/silent)
        nfilt = n_elements(modphot)
 
@@ -55,11 +56,12 @@ pro qaplot_bcgmstar_ellipse
        if n_elements(pp) ne nfilt then message, 'Missing SB profiles!'
           
        for ii = 0, nfilt-1 do begin
-          band = strtrim(strupcase(galphot[ii].band),2)
+          band = strtrim(strupcase(modphot[ii].band),2)
           
-          galgood = where(galphot[ii].sb0fit gt 0)
-          modgood = where(modphot[ii].sb0fit gt 0)
+          if plotgalphot then galgood = where(galphot[ii].sb0fit gt 0)
+          modgood = where(modphot[ii].sb0fit gt 0,nmodgood)
           refmodgood = where(modphot[0].sb0fit gt 0)
+          if nmodgood lt 3 then stop
 
           amax = max(pp[ii].sma)
           splog, '   ', band, amax
@@ -73,45 +75,65 @@ pro qaplot_bcgmstar_ellipse
 ;           modphot[ii].sb0fit[modgood],sbmin))
 
 ; SB profile (data + model + Sersic fit)
-          yrange = [min(modphot[ii].sb0fit[modgood])<min(modphot[0].sb0fit[refmodgood])<$
-            min(galphot[ii].sb0fit[galgood]),$
-            max(modphot[ii].sb0fit[modgood])>max(modphot[0].sb0fit[refmodgood])>$
-            max(galphot[ii].sb0fit[galgood])]
+          if plotgalphot then begin
+             yrange = [min(modphot[ii].sb0fit[modgood])<min(modphot[0].sb0fit[refmodgood])<$
+               min(galphot[ii].sb0fit[galgood]),$
+               max(modphot[ii].sb0fit[modgood])>max(modphot[0].sb0fit[refmodgood])>$
+               max(galphot[ii].sb0fit[galgood])]
+          endif else begin
+             yrange = [min(modphot[ii].sb0fit[modgood])<min(modphot[0].sb0fit[refmodgood]),$
+               max(modphot[ii].sb0fit[modgood])>max(modphot[0].sb0fit[refmodgood])]
+          endelse
           yrange = -2.5*alog10(yrange)
 
           djs_plot, [0], [0], /nodata, position=pos[*,0], xsty=1, ysty=3, $
             yrange=yrange, xrange=xrange, /xlog, xtickname=replicate(' ',10), $
-            title=strupcase(cluster)+'/'+band, yminor=3, ytickinterval=3, $
+            yminor=3, ytickinterval=3, $
             ytitle='\mu (mag arcsec^{-2})'
           djs_oplot, amax*[1,1], !y.crange, line=0, color=cgcolor('grey')
           djs_oplot, [3.0,10^!x.crange[1]], -2.5*alog10(sbmin)*[1,1], $
             line=0, color=cgcolor('grey')
+          im_legend, strupcase(cluster), /right, /top, box=0, margin=0
 
           if ii gt 0 then begin
              djs_oplot, modphot[0].majora[refmodgood]*pixscale*arcsec2kpc, $
                -2.5*alog10(modphot[0].sb0fit[refmodgood]), $
                color=cgcolor(refmodcolor), line=refmodline
-             im_legend, ['F160W/Model',band+'/Model',band+'/Data'], /left, $
-               /bottom, box=0, margin=0, line=[refmodline,modline,galline], pspacing=1.7, $
-               color=cgcolor([refmodcolor,modcolor,galcolor]), thick=8, charsize=1.0
+             if plotgalphot then begin
+                im_legend, ['F160W/Model',band+'/Model',band+'/Data'], /left, $
+                  /bottom, box=0, margin=0, line=[refmodline,modline,galline], pspacing=1.7, $
+                  color=cgcolor([refmodcolor,modcolor,galcolor]), thick=8, charsize=1.0
+             endif else begin
+                im_legend, ['Moustakas/F160W','Moustakas/'+band,'SNUC/'+band], /left, /bottom, box=0, $
+                  margin=0, pspacing=1.7, psym=[6,9,15], $
+                  color=cgcolor([refmodcolor,modcolor,'orange']), thick=8, charsize=1.0
+             endelse
           endif else begin
-             im_legend, ['F160W/Model','F160W/Data'], /left, /bottom, box=0, $
-               margin=0, line=[modline,galline], pspacing=1.7, $
-               color=cgcolor([modcolor,galcolor]), thick=8, charsize=1.0
+             if plotgalphot then begin
+                im_legend, ['F160W/Model','F160W/Data'], /left, /bottom, box=0, $
+                  margin=0, line=[modline,galline], pspacing=1.7, $
+                  color=cgcolor([modcolor,galcolor]), thick=8, charsize=1.0
+             endif else begin
+                im_legend, ['Moustakas/'+band,'SNUC/'+band], /left, /bottom, box=0, $
+                  margin=0, pspacing=1.7, psym=[9,15], $
+                  color=cgcolor([modcolor,'orange']), thick=8, charsize=1.0
+             endelse
           endelse
 
-          djs_oplot, galphot[ii].majora[galgood]*pixscale*arcsec2kpc, $
-            -2.5*alog10(galphot[ii].sb0fit[galgood]), $
-            color=cgcolor(galcolor), line=galline, psym=-symcat(16,thick=2), symsize=0.5
+          if plotgalphot then begin
+             djs_oplot, galphot[ii].majora[galgood]*pixscale*arcsec2kpc, $
+               -2.5*alog10(galphot[ii].sb0fit[galgood]), $
+               color=cgcolor(galcolor), line=galline, psym=-symcat(16,thick=2), symsize=0.5
+          endif
           djs_oplot, modphot[ii].majora[modgood]*pixscale*arcsec2kpc, $
             -2.5*alog10(modphot[ii].sb0fit[modgood]), $
-            color=cgcolor(modcolor), line=modline
+            color=cgcolor(modcolor), line=modline, psym=-symcat(9), symsize=0.3
 
 ; overplot Marc's measurements, as a consistency check
           if plotmarc then begin
              ww = where(pp[ii].sma gt -90)
-             djs_oplot, pp[ii].sma[ww], pp[ii].mu[ww], color=cgcolor('orange'), $
-               psym=symcat(15,thick=2), symsize=0.4
+             if ww[0] ne -1 then djs_oplot, pp[ii].sma[ww], pp[ii].mu[ww], $
+               color=cgcolor('orange'), psym=symcat(15,thick=2), symsize=1.0
           endif
           
 ; ellipticity (model)
@@ -126,16 +148,18 @@ pro qaplot_bcgmstar_ellipse
                color=cgcolor(refmodcolor), line=refmodline
           endif
 
-          djs_oplot, galphot[ii].majora[galgood]*pixscale*arcsec2kpc, galphot[ii].ellipticityfit[galgood], $
-            color=cgcolor(galcolor), line=galline, psym=-symcat(16,thick=2), symsize=0.5
+          if plotgalphot then begin
+             djs_oplot, galphot[ii].majora[galgood]*pixscale*arcsec2kpc, galphot[ii].ellipticityfit[galgood], $
+               color=cgcolor(galcolor), line=galline, psym=-symcat(16,thick=2), symsize=0.5
+          endif
           djs_oplot, modphot[ii].majora[modgood]*pixscale*arcsec2kpc, modphot[ii].ellipticityfit[modgood], $
-            color=cgcolor(modcolor), line=modline
+            color=cgcolor(modcolor), line=modline, psym=-symcat(9), symsize=0.3
 
 ; overplot Marc's measurements, as a consistency check
           if plotmarc then begin
              ww = where(pp[ii].sma gt -90)
-             djs_oplot, pp[ii].sma[ww], pp[ii].ell[ww], color=cgcolor('orange'), $
-               psym=symcat(15,thick=2), symsize=0.4
+             if ww[0] ne -1 then djs_oplot, pp[ii].sma[ww], pp[ii].ell[ww], $
+               color=cgcolor('orange'), psym=symcat(15,thick=2), symsize=1.0
           endif
           
 ; position angle (model)
@@ -158,16 +182,18 @@ pro qaplot_bcgmstar_ellipse
                color=cgcolor(refmodcolor), line=refmodline
           endif
 
-          djs_oplot, galphot[ii].majora[galgood]*pixscale*arcsec2kpc, galphot[ii].pafit[galgood]*!radeg+90, $
-            color=cgcolor(galcolor), line=galline, psym=-symcat(16,thick=2), symsize=0.5
+          if plotgalphot then begin
+             djs_oplot, galphot[ii].majora[galgood]*pixscale*arcsec2kpc, galphot[ii].pafit[galgood]*!radeg+90, $
+               color=cgcolor(galcolor), line=galline, psym=-symcat(16,thick=2), symsize=0.5
+          endif
           djs_oplot, modphot[ii].majora[modgood]*pixscale*arcsec2kpc, modphot[ii].pafit[modgood]*!radeg+90, $
-            color=cgcolor(modcolor), line=modline
+            color=cgcolor(modcolor), line=modline, psym=-symcat(9), symsize=0.3
 
 ; overplot Marc's measurements, as a consistency check
           if plotmarc then begin
              ww = where(pp[ii].sma gt -90)
-             djs_oplot, pp[ii].sma[ww], 180.0-pp[ii].pa[ww], color=cgcolor('orange'), $
-               psym=symcat(15,thick=2), symsize=0.4
+             if ww[0] ne -1 then djs_oplot, pp[ii].sma[ww], 180.0-pp[ii].pa[ww], $
+               color=cgcolor('orange'), psym=symcat(15,thick=2), symsize=1.0
           endif
           
           if showa3 then begin
@@ -183,12 +209,14 @@ pro qaplot_bcgmstar_ellipse
                   color=cgcolor(refmodcolor), line=refmodline
              endif
              
-             djs_oplot, galphot[ii].majora[galgood]*pixscale*arcsec2kpc, $
-               100*galphot[ii].a3fit[galgood]/galphot[ii].majora[galgood], $
-               color=cgcolor(galcolor), line=galline, psym=-symcat(16,thick=2), symsize=0.5
+             if plotgalphot then begin
+                djs_oplot, galphot[ii].majora[galgood]*pixscale*arcsec2kpc, $
+                  100*galphot[ii].a3fit[galgood]/galphot[ii].majora[galgood], $
+                  color=cgcolor(galcolor), line=galline, psym=-symcat(16,thick=2), symsize=0.5
+             endif
              djs_oplot, modphot[ii].majora[modgood]*pixscale*arcsec2kpc, $
                100*modphot[ii].a3fit[modgood]/modphot[ii].majora[modgood], $
-               color=cgcolor(modcolor), line=modline
+               color=cgcolor(modcolor), line=modline, psym=-symcat(9), symsize=0.3
              
 ; a4*100 (model)
              djs_plot, [0], [0], /nodata, position=pos[*,4], /noerase, xsty=1, ysty=1, $
@@ -202,12 +230,14 @@ pro qaplot_bcgmstar_ellipse
                   color=cgcolor(refmodcolor), line=refmodline
              endif
              
-             djs_oplot, galphot[ii].majora[galgood]*pixscale*arcsec2kpc, $
-               100*galphot[ii].a4fit[galgood]/galphot[ii].majora[galgood], $
-               color=cgcolor(galcolor), line=galline, psym=-symcat(16,thick=2), symsize=0.5
+             if plotgalphot then begin
+                djs_oplot, galphot[ii].majora[galgood]*pixscale*arcsec2kpc, $
+                  100*galphot[ii].a4fit[galgood]/galphot[ii].majora[galgood], $
+                  color=cgcolor(galcolor), line=galline, psym=-symcat(16,thick=2), symsize=0.5
+             endif
              djs_oplot, modphot[ii].majora[modgood]*pixscale*arcsec2kpc, $
                100*modphot[ii].a4fit[modgood]/modphot[ii].majora[modgood], $
-               color=cgcolor(modcolor), line=modline
+               color=cgcolor(modcolor), line=modline, psym=-symcat(9), symsize=0.3
           endif
 
        endfor

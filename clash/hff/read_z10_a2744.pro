@@ -6,16 +6,29 @@ function read_z10_a2744, photoz=photoz, bpz_dz=bpz_dz, bpz_redshift=bpz_redshift
     cat = rsex(path+'flx_ape.inp')
     ngal = n_elements(cat)
 
-    cat = struct_addtags(cat,replicate({galaxy: '', mu: 1.0, z: 0.0},ngal))
-    cat.galaxy = 'JD'+strtrim(cat.id,2)
+; add the "best" photometric redshift from iSEDfit 
+    zbest = 9.84
+    cat = struct_addtags(cat,replicate({galaxy: '', mu: 1.0, z: zbest},ngal))
+    cat.galaxy = 'JD1 '+strtrim(cat.id,2)
 
-; I know - you will be needing the magnifications at each point. For
-; now you can take 3.87 for image A, 3.65 for image B, and 1.63 for
-; image C. That's from Daniel's model.
-    cat.mu = [3.87,3.65]
+; these magnifications are from Adi
+;   cat.mu = [3.87,3.65,1.6,1.0,1.0]
+    cat.mu = [10.01,11.25,3.84,1.0,1.0]
     
-; my best redshift    
-    cat.z = 9.75
+; make a "Total"
+    these = [0,1] ; =A, B
+;   these = [0,1,2] ; =A, B, C
+    tags = tag_names(cat)
+    cat1 = im_empty_structure(cat[0],empty_value=-999.0)
+    cat1.galaxy = 'JD1 A+B'
+;   cat1.galaxy = 'JD1 A+B+C'
+    cat1.z = zbest
+    cat1.mu = 1.0
+    for ii = 0, n_elements(tags)-1 do begin
+       if strmatch(tags[ii],'*_FLUX') then cat1.(ii) = total(cat[these].(ii))
+       if strmatch(tags[ii],'*_FLUXERR') then cat1.(ii) = sqrt(total(cat[these].(ii)^2))
+    endfor
+    cat = [cat,cat1]
     
 return, cat
 end    

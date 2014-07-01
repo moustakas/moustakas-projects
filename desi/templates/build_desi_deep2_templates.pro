@@ -129,6 +129,9 @@ pro build_desi_deep2_templates, debug=debug
       version+'.fits.gz',1)
     keep = where(info.ugriz[2] lt faintmag,ngal)
     splog, 'Total number of templates', ngal
+
+; note the minimum floor!    
+    info[keep].sigma_kms = info[keep].sigma_kms > pixsize_hires*2.5 
     
 ; initialize the output data structure and header; the metadata header
 ; is written out below
@@ -152,7 +155,7 @@ pro build_desi_deep2_templates, debug=debug
     outinfo.ra = info[keep].ra
     outinfo.dec = info[keep].dec
     outinfo.z = info[keep].z
-    outinfo.sigma_kms = info[keep].sigma_kms > pixsize_hires*2.5 ; note the minimum floor!
+    outinfo.sigma_kms = info[keep].sigma_kms
     outinfo.oii_3726 = info[keep].oii_3727_1[0]
     outinfo.oii_3729 = info[keep].oii_3727_2[0]
     outinfo.oii_3727 = info[keep].oii_3727[0]
@@ -239,6 +242,8 @@ pro build_desi_deep2_templates, debug=debug
             oiidoubletratio=oiidoubletratio,flam_line=flam_line,flam_cont=flam_cont,$
             /vacuum)
 
+stop          
+          
 ; NEBFLUX is defined at a distance of 10 pc; scale by the luminosity
 ; distance but leave the factor of (1+z) off so that the flux vector
 ; is in the rest frame

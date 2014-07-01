@@ -139,6 +139,10 @@ pro deep2_desi_elg_targeting, build_parent=build_parent, $
          'chab_charlot_sfhgrid01_kcorr.z0.0.fits.gz',1,$
          rows=m2)
        oii = deep2_get_oiiflux(ppxf_q34,cflux_3727_rest=kised.cflux_3727)
+
+; possibly come up with an algorithm to assign an [OII] flux to an
+; object without one 
+       
        zcat_q34 = struct_addtags(zcat_q34,oii)
        zcat_q34 = struct_addtags(zcat_q34,replicate({oii: 0.0},n_elements(zcat_q34)))
        zcat_q34.oii = oii.oii_3727[0] ; total flux so we can run ELGTUNE
@@ -193,7 +197,6 @@ pro deep2_desi_elg_targeting, build_parent=build_parent, $
        im_plotconfig, psfile=psfile, /psclose, /pdf
 
 stop       
-       
 
 ; -------------------------       
 
@@ -246,11 +249,8 @@ stop
          errthick=8
        
        im_plotconfig, psfile=psfile, /psclose, /pdf
-
-
        
 stop
-       
        
 ; gr vs rz - stellar contamination
        stars = mrdfits(targpath+'deep2egs-photstars.fits.gz',1)
@@ -551,7 +551,6 @@ stop
 ;        charsize=1.4, spacing=2.0, margin=0, thick=6
 
        im_plotconfig, psfile=psfile, /psclose, /pdf
-
        
 ;; gr vs rz
 ;       psfile = technotepath+'egs_grz.ps'

@@ -8,6 +8,74 @@ pro z10_a2744_plots
     hwhm = hwhm/1D4
 
 ; --------------------------------------------------
+; paper plot: P(z)'s
+    isedfit_paramfile = isedfit_dir+'z10_a2744_photoz_paramfile.par'
+
+    rr = read_isedfit(isedfit_paramfile,params=pp,isedfit_post=post,index=index)
+    cat = read_z10_a2744(photoz=photoz)
+    ngal = n_elements(cat)
+    color = ['orange','tomato','powder blue','orchid']
+    lcolor = ['red','firebrick','blue','black']
+    lthick = [6,6,6,8]
+;   color = ['orange','tomato','dodger blue','orchid','tan']
+;   lcolor = ['red','firebrick','navy','purple','brown']
+    
+    for ii = 0, ngal-1 do post[ii].pofz = post[ii].pofz/total(post[ii].pofz)
+;   for ii = 0, ngal-1 do post[ii].pofz = post[ii].pofz/$
+;     im_integral(pp.redshift,post[ii].pofz)
+    pofz_final = post[0].pofz
+    for ii = 1, ngal-2 do pofz_final = pofz_final*post[ii].pofz
+    pofz_final = pofz_final/total(pofz_final)
+;   pofz_final = pofz_final/im_integral(pp.redshift,pofz_final)
+
+    zmin = isedfit_find_zmin(pp.redshift,-2.0*alog(pofz_final>1D-20),nmin=nmin)
+    struct_print, zmin
+    
+    xrange = [0,12]
+    yrange = [0.01,max(pofz_final)*1.01]
+;   yrange = [0,max(pofz_final)*1.05]
+;   yrange = [0,max(post.pofz)*1.05]
+    
+    psfile = isedfit_dir+'z10_a2744_pofz.eps'
+    im_plotconfig, 0, pos, psfile=psfile, charsize=2.0, height=4.5, $
+      xmargin=[1.3,0.4], width=6.8
+    djs_plot, [0], [0], /nodata, position=pos, xsty=5, ysty=5, $
+      xrange=xrange, yrange=yrange;, /ylog
+    
+;   for ii = ngal-1, 0, -1 do begin
+;   for ii = 0, ngal-1 do begin
+    for ii = 0, ngal-1 do begin
+       polyfill, [pp.redshift,reverse(pp.redshift)], $
+         [post[ii].pofz,post[ii].pofz*0], $
+         /fill, color=cgcolor(color[ii]), noclip=0
+    endfor
+; redraw JDC
+    ii = 2
+    polyfill, [pp.redshift,reverse(pp.redshift)], $
+      [post[ii].pofz,post[ii].pofz*0], $
+      /fill, color=cgcolor(color[ii]), noclip=0
+
+    for ii = 0, ngal-1 do djs_oplot, pp.redshift, post[ii].pofz, $
+      thick=lthick[ii], line=0, color=cgcolor(lcolor[ii]);, psym=10
+;   djs_oplot, pp.redshift, pofz_final, line=0, thick=8, $
+;     color=cgcolor('black')
+    
+    djs_plot, [0], [0], /nodata, position=pos, /noerase, $
+      xsty=1, ysty=1, xrange=xrange, yrange=yrange, $ ; /ylog, $
+      ytitle='Redshift Probability', xtitle='Redshift', $
+      ytickname=replicate(' ',10)
+
+    im_legend, cat.galaxy, /left, /top, box=0, charsize=1.5, $
+      margin=0, color=color, line=0, thick=8, pspacing=1.7
+;     margin=0, color=[color,'black'], line=0, thick=8, pspacing=1.7
+;   im_legend, ['JD1A','JD1B','JD1A x JD1B'], /left, /top, box=0, $
+;     margin=0, color=[color,'black'], line=0, thick=8, pspacing=1.7
+    
+    im_plotconfig, psfile=psfile, /psclose, /pdf
+
+stop    
+    
+; --------------------------------------------------
 ; paper SED + P(z) plot
     isedfit_paramfile = isedfit_dir+'z10_a2744_paramfile.par'
 
@@ -15,8 +83,11 @@ pro z10_a2744_plots
     rr = read_isedfit(isedfit_paramfile,index=these,/getmodels,$
       isedfit_dir=isedfit_dir,montegrids_dir=montegrids_dir)
 
-    ul_color = ['dodger blue','navy']
-    mag_color = ['tomato','firebrick']
+;   ul_color = ['powder blue','tomato','tan']
+    mag_color = ['navy','firebrick','brown']
+    sed_color = ['navy','firebrick','brown']
+    ul_color = ['navy','firebrick','brown']
+    mag_psym = [16,15,14]
     
     psfile = isedfit_dir+'z10_a2744_isedfit.ps'
     xrange = [0.3,6.0]
@@ -29,9 +100,13 @@ pro z10_a2744_plots
       xticks=n_elements(ticks)-1, ytickinterval=2, $
       xtitle='Observed-frame Wavelength (\mu'+'m)', $
       ytitle='AB Magnitude (demagnified)'
-    djs_oplot, rr[0].wave/1D4, rr[0].flux+2.5*alog10(cat[0].mu), psym=10, color=cgcolor('gray')
-    djs_oplot, rr[1].wave/1D4, rr[1].flux+2.5*alog10(cat[1].mu), psym=10, color=cgcolor('black')
+    for ii = 0, 2 do djs_oplot, rr[ii].wave/1D4, rr[ii].flux+2.5*alog10(cat[ii].mu), $
+      psym=10, color=cgcolor(sed_color[ii])
 
+    im_legend, cat[0:2].galaxy, /left, /top, box=0, charsize=1.5, $
+      margin=0, color=mag_color, pspacing=1.7, $
+      psym=mag_psym
+    
 ;; A
 ;    notzero = where(rr[0].bestmaggies gt 0.0)
 ;    bestmab = -2.5*alog10(rr[0].bestmaggies[notzero])
@@ -45,7 +120,7 @@ pro z10_a2744_plots
 ;      color=cgcolor('orange')
 
 ; overplot the data
-    for ii = 0, 1 do begin
+    for ii = 0, 2 do begin
        print, rr[ii].maggies*sqrt(rr[ii].ivarmaggies)
        nsigma = rr[ii].maggies*0+2.0
 ;      if ii eq 1 then nsigma[1] = 2.49
@@ -57,7 +132,7 @@ pro z10_a2744_plots
        upper = where(mab lt -90.0 and mabupper gt -90,nupper)
        if (nused ne 0L) then begin
           oploterror, weff[used], mab[used]+2.5*alog10(cat[ii].mu), hwhm[used]*0, $
-            mabhierr[used], psym=symcat(16), $
+            mabhierr[used], psym=symcat(mag_psym[ii]), $
             symsize=1.7, color=cgcolor(mag_color[ii]), /hibar, $
             errcolor=cgcolor(mag_color[ii]), errthick=!p.thick
           oploterror, weff[used], mab[used]+2.5*alog10(cat[ii].mu), hwhm[used]*0, $
@@ -69,49 +144,6 @@ pro z10_a2744_plots
             psym=symcat(11,thick=6), symsize=3.0, color=im_color(ul_color[ii])
        endif
     endfor
-
-    im_plotconfig, psfile=psfile, /psclose, /pdf
-
-stop    
-    
-    
-    
-    
-; --------------------------------------------------
-; paper plot: P(z)'s
-    isedfit_paramfile = isedfit_dir+'z10_a2744_photoz_paramfile.par'
-
-    rr = read_isedfit(isedfit_paramfile,params=pp,isedfit_post=post,index=index)
-    cat = read_z10_a2744(photoz=photoz)
-    ngal = n_elements(cat)
-    color = ['orange','tomato']
-    lcolor = ['black','firebrick']
-    
-    for ii = 0, ngal-1 do post[ii].pofz = post[ii].pofz/$
-      im_integral(pp.redshift,post[ii].pofz)
-    
-    xrange = [0,12]
-    yrange = [0,max(post.pofz)*1.05]
-    
-    psfile = isedfit_dir+'z10_a2744_pofz.eps'
-    im_plotconfig, 0, pos, psfile=psfile, charsize=2.0, height=4.5, $
-      xmargin=[1.3,0.4], width=6.8
-    djs_plot, [0], [0], /nodata, position=pos, xsty=5, ysty=5, $
-      xrange=xrange, yrange=yrange
-    
-;   for ii = ngal-1, 0, -1 do begin
-    for ii = 0, ngal-1 do begin
-       polyfill, [pp.redshift,reverse(pp.redshift)], $
-         [post[ii].pofz,post[ii].pofz*0], $
-         /fill, color=cgcolor(color[ii]), noclip=0
-    endfor
-    for ii = 0, ngal-1 do djs_oplot, pp.redshift, post[ii].pofz, $
-      thick=4, line=0, color=cgcolor(lcolor[ii]);, psym=10
-       
-    djs_plot, [0], [0], /nodata, position=pos, /noerase, $
-      xsty=1, ysty=1, xrange=xrange, yrange=yrange, $
-      ytitle='Redshift Probability', xtitle='Redshift', $
-      ytickname=replicate(' ',10)
 
     im_plotconfig, psfile=psfile, /psclose, /pdf
 

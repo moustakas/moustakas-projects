@@ -5,6 +5,9 @@ function read_bpz_probs, file, redshift=zz, dz=dz
     ngal = n_elements(txt)
 
     pofz1 = strsplit(txt[0],' ',/extract)
+;   if size(pofz1[0],/type) eq 7 then begin
+;      i1 = 
+;   endif
     pofz1 = pofz1[1:n_elements(pofz1)-1]
     nzz = n_elements(pofz1)
 
@@ -14,7 +17,7 @@ function read_bpz_probs, file, redshift=zz, dz=dz
     dz = zinfo[2]
     zz = range(zminmax[0],zminmax[1]-dz ,nzz)
 
-    data = replicate({id: 0L, pofz: fltarr(nzz)},ngal)
+    data = replicate({id: '', pofz: fltarr(nzz)},ngal)
     for ii = 0, ngal-1 do begin
        pofz1 = strsplit(txt[ii],' ',/extract)
        data[ii].id = pofz1[0]

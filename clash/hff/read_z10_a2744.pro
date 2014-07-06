@@ -7,20 +7,21 @@ function read_z10_a2744, photoz=photoz, bpz_dz=bpz_dz, bpz_redshift=bpz_redshift
     ngal = n_elements(cat)
 
 ; add the "best" photometric redshift from iSEDfit 
-    zbest = 9.84
+    zbest = 9.8
     cat = struct_addtags(cat,replicate({galaxy: '', mu: 1.0, z: zbest},ngal))
     cat.galaxy = 'JD1 '+strtrim(cat.id,2)
 
 ; these magnifications are from Adi
 ;   cat.mu = [3.87,3.65,1.6,1.0,1.0]
-    cat.mu = [10.01,11.25,3.84,1.0,1.0]
+    cat[0:2].mu = [10.01,11.25,3.84]
     
 ; make a "Total"
-    these = [0,1] ; =A, B
-;   these = [0,1,2] ; =A, B, C
+;   these = [0,1] ; =A, B
+    these = [0,1,2] ; =A, B, C
     tags = tag_names(cat)
     cat1 = im_empty_structure(cat[0],empty_value=-999.0)
-    cat1.galaxy = 'JD1 A+B'
+;   cat1.galaxy = 'JD1 A+B'
+    cat1.galaxy = 'JD1A+JD1B+JD1C'
 ;   cat1.galaxy = 'JD1 A+B+C'
     cat1.z = zbest
     cat1.mu = 1.0

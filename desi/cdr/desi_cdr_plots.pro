@@ -18,6 +18,7 @@ pro desi_cdr_plots
     catpath = deep2_path(/cat)
     cdrpath = getenv('IM_SVNREPOS')+'/desi/cdr/4_Targets/plots/'
     targpath = getenv('IM_PROJECTS_DIR')+'/desi/targeting/'
+    mbrownpath = getenv('IM_DATA_DIR')+'/mbrownatlas/'
 
     brightcut = 18.5
     faintcut = 24.0
@@ -67,6 +68,104 @@ pro desi_cdr_plots
        zcat[noneindx[ii]].oii_3727_2_ew = zcat[refindx[thisref]].oii_3727_2_ew ; EW
     endfor
 
+; --------------------------------------------------
+; check how our grz color box compares with M. Brown's
+; templates at z=0.6-2 
+    gal = [$
+      'NGC_0337',$
+      'NGC_0695',$
+      'NGC_3079',$
+      'Mrk_33',$
+      'UGCA_219',$
+      'NGC_3521',$ ; red
+      'NGC_3690',$
+      'NGC_4125',$ ; red
+      'NGC_4138',$
+      'NGC_4552',$ ; red
+      'NGC_4725',$ ; red
+      'NGC_5256',$
+      'CGCG_049-057',$ ; red
+      'NGC_5953',$
+      'IC_4553',$ ; red
+      'NGC_6090',$
+      'NGC_6240',$
+      'II_Zw_096']+'_spec.dat'
+    nuvmu = [0.96,1.17,1.31,0.59,0.01,2.02,0.72,3.44,$
+      1.83,3.01,2.52,1.35,3.17,1.89,2.35,0.82,1.69,0.49]
+    keep = where(nuvmu lt 1.5,ngal)
+    gal = gal[keep]
+
+;   gal = ['II_Zw_096','NGC_6090','NGC_3690','UGCA_219',$
+;     'Mrk_33','NGC_0337']+'_spec.dat'
+;   ngal = n_elements(gal)
+;   zvals = range(0.1,2,10)
+    zvals = range(0.1,2,20)
+    this = where(zvals eq 0.6)
+    loz = where(zvals lt 0.6,nloz)
+    hiz = where(zvals ge 0.6 and zvals le 1.6,nhiz)
+    vhiz = where(zvals gt 1.6,nvhiz)
+;   hiz = where(zvals ge 0.6,nhiz,comp=loz,ncomp=nloz)
+    
+    psfile = cdrpath+'deep2-grz-models.eps'
+    im_plotconfig, 0, pos, psfile=psfile, height=5.0, width=6.6, $
+      xmargin=[1.5,0.4], charsize=1.7
+    
+    djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
+      xtitle='r - z', ytitle='g - r', xrange=[-0.5,2.2], yrange=[-0.3,2]
+
+    stars = mrdfits(targpath+'deep2egs-photstars.fits.gz',1)
+    stars = stars[where(stars.ugriz[2] lt 23 and stars.ugriz[2] gt 18.5,nstar)]
+    djs_oplot, stars.ugriz[2]-stars.ugriz[4], symsize=0.1, $
+      stars.ugriz[1]-stars.ugriz[2], psym=6, $
+      color=cgcolor('grey')
+    
+    cgloadct, 27, ncolors=ngal+1, bottom=0, /brewer
+    for ii = 0, ngal-1 do begin
+       if file_test(mbrownpath+gal[ii]) eq 0 then message, 'Help!'
+       readcol, mbrownpath+gal[ii], wave, flux, $
+         format='F,F,X,X', comment='#', /silent
+       npix = n_elements(wave)
+       k_projection_table, rmatrix, reform(flux,npix,1), wave, $
+         zvals, cfhtls_filterlist()
+       gr = -2.5*alog10(rmatrix[*,0,1]/rmatrix[*,0,2])
+       rz = -2.5*alog10(rmatrix[*,0,2]/rmatrix[*,0,4])
+;      cgoplot, rz, gr, psym=-symcat(16), color=ii+1
+       cgoplot, rz[loz], gr[loz], psym=-symcat(16), color=ii+1
+       cgoplot, rz[hiz], gr[hiz], psym=-symcat(15), color=ii+1
+       cgoplot, rz[vhiz], gr[vhiz], psym=-symcat(17), color=ii+1
+       cgoplot, [rz[loz[nloz-1]],rz[hiz[0]]], [gr[loz[nloz-1]],gr[hiz[0]]], $
+         line=0, color=ii+1
+       cgoplot, [rz[hiz[nhiz-1]],rz[vhiz[0]]], [gr[hiz[nhiz-1]],gr[vhiz[0]]], $
+         line=0, color=ii+1
+       plots, rz[0], gr[0], psym=symcat(9), symsize=2, color=ii+1
+;      plots, rz[this], gr[this], psym=symcat(6), symsize=2, color=ii+1
+    endfor
+    cgloadct, 0
+
+; overplot the color box
+; proposed
+    rzaxis1 = range(0.2,0.9,100)
+    rzaxis2 = range(0.9,1.4,100)
+    int1 = -0.1 & slope1 = 1.0
+    int2 = 1.7 & slope2 = -1.0
+    djs_oplot, 0.2*[1,1], [!y.crange[0],poly(0.2,[int1,slope1])], thick=8
+    djs_oplot, rzaxis1, poly(rzaxis1,[int1,slope1]), thick=8
+    djs_oplot, rzaxis2, poly(rzaxis2,[int2,slope2]), thick=8
+    djs_oplot, 1.4*[1,1], [!y.crange[0],poly(1.4,[int2,slope2])], thick=8
+    djs_oplot, [0.0,0.0], [!y.crange[0],0.1], line=2, thick=8
+    djs_oplot, [0.0,0.2], [0.1,0.1], line=2, thick=8
+
+;   xyouts,
+    im_legend, ['z=0.1','z=0.1-0.5','z=0.6-1.6','z=1.7-2'], /left, /top, box=0, $
+      psym=[16,16,15,17], margin=0, spacing=2.5, symsize=[1.0,1.0,1.0,1.3]*1.6
+    plots, 0.228, 0.8723, psym=symcat(9,thick=6), symsize=3, /norm;, $
+;     color=cgcolor('grey'), 
+    
+    im_plotconfig, psfile=psfile, /psclose, /pdf
+
+    
+stop    
+    
 ; --------------------------------------------------
 ; gr vs rz coded by [OII] strength
     zmin = 0.6 ; 0.8
@@ -281,6 +380,10 @@ pro desi_cdr_plots
     djs_oplot, magaxis[ww], alog10((total(dndm_oiifaint,/cumu))[ww]), color=cgcolor('forest green'), $
       line=4, thick=8           ; psym=symcat(6,thick=4), symsize=1.3
 
+    readcol, '/Users/ioannis/research/projects/desi/targeting/counts.txt', skip=1, $
+      mag, num, numerr, /silent
+    oploterror, mag, alog10(num), numerr/num/alog(10), psym=8, color='blue', symsize=0.8
+    
 ;   ww = where(total(dndm_oiinone,/cumu) gt 0)
 ;   djs_oplot, magaxis[ww], alog10((total(dndm_oiinone,/cumu))[ww]), color=cgcolor('dark grey'), $
 ;     line=1, thick=6           ; psym=symcat(6,thick=4), symsize=1.3
@@ -325,7 +428,7 @@ pro desi_cdr_plots
 ; --------------------------------------------------
 ; redshift histogram of sources selected using my grz color-cuts;
 ; remove the 
-    magcut1 = 22.84
+    magcut1 = 22.8
     
     hiz = desi_get_hizelg(zcat.ugriz,magcut=magcut1,sigma_kms=zcat.sigma_kms)
     oiibright = where(zcat[hiz].oii_3727[1] ne -2.0 and $ ; oiisnr gt oiisnrcut and $
@@ -376,7 +479,28 @@ pro desi_cdr_plots
       zhist[anchor],zhist[extrap])>nz_oiifaint[extrap]
 ;   niceprint, zhist, nz_oiifaint_extrap, nz_oiifaint
 
+; renormalize the total to 3000/deg^2
+    norm = 3000.0/total(nz_hiz_extrap)
+    nz_hiz_extrap *= norm
+    nz_oiibright_extrap *= norm
+    nz_oiifaint_extrap *= norm
+    
     splog, total(nz_hiz_extrap), total(nz_oiibright_extrap)
+    
+; write out the data file
+    writeit = 0
+    if writeit then begin
+       outfile = getenv('DESIMODEL')+'/data/targets/nz_elg_deep2.dat'
+       openw, lun, outfile, /get_lun
+       printf, lun, '# ELG distribution from DEEP2/EGS '
+       printf, lun, '# 2014-Jul-01 version'
+       printf, lun, '# Total number per sq deg per dz=0.1 redshift bin'
+       printf, lun, '#'
+       printf, lun, '# z  N_elg'
+       niceprintf, lun, zhist, nz_oiibright_extrap
+       free_lun, lun
+    endif
+stop    
     
 ;; correct for the missing [OII] sources       
 ;   nz_oiinone = hogg_histogram(zcat[hiz[oiinone]].zbest,[zmin,zmax],$

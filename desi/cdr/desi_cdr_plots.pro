@@ -12,12 +12,13 @@ function get_dndm, rmag, weight=weight, faintcut=faintcut, $
 return, dndm
 end
 
-pro desi_cdr_plots
+pro desi_cdr_plots, write_dndz=write_dndz
 ; jm14jun16siena - build plots for the DESI/CDR section on ELGs
 
     catpath = deep2_path(/cat)
     cdrpath = getenv('IM_SVNREPOS')+'/desi/cdr/4_Targets/plots/'
     targpath = getenv('IM_PROJECTS_DIR')+'/desi/targeting/'
+    nzpath = getenv('DESIMODEL')+'/data/targets/'
     mbrownpath = getenv('IM_DATA_DIR')+'/mbrownatlas/'
 
     brightcut = 18.5
@@ -28,46 +29,327 @@ pro desi_cdr_plots
     oiicut1 = 8D-17 ; [erg/s/cm2]
     area = 0.4342 ; deg^2
 
-    phot = mrdfits(targpath+'deep2egs-photparent.fits.gz',1)
-    zcat = mrdfits(targpath+'deep2egs-zcatparent.Q34.fits.gz',1)
+    phot = mrdfits(targpath+'deep2egs-phot.fits.gz',1)
+    zcat = mrdfits(targpath+'deep2egs-oii.fits.gz',1)
 
-;   oiisnr = zcat.oii_3727_2_amp[0]/(zcat.oii_3727_2_amp[1]+$
-;     (zcat.oii_3727_2_amp[1] eq 0))*(zcat.oii_3727_2_amp[1] ne 0)
-
-; -------------------------
-; assign [OII] fluxes to galaxies with no [OII] measured, but only
-; between z=0.8-1.45    
-    zmin = 0.6                  ; 0.8
+; --------------------------------------------------
+; gr vs rz coded by [OII] strength
+    zmin = 0.6 ; 0.8
     zmax = 1.6
+    magcut1 = 23.0
+    
+    all = where(zcat.cfhtls_r lt magcut1,nall)
+    loz = where(zcat.zbest lt zmin and zcat.cfhtls_r lt magcut1,nloz)
+    oiibright = where(zcat.zbest ge zmin and $ ; zcat.zbest lt zmax and $
+      zcat.cfhtls_r lt magcut1 and zcat.oii_3727_err ne -2.0 and $
+      zcat.oii_3727 gt oiicut1,noiibright)
+    oiifaint = where(zcat.zbest ge zmin and $ ; zcat.zbest lt zmax and $
+      zcat.cfhtls_r lt magcut1 and zcat.oii_3727_err ne -2.0 and $
+      zcat.oii_3727 lt oiicut1,noiifaint)
+    oiinone = where(zcat.zbest ge zmin and $ ; zcat.zbest lt zmax and $ ; all at z>1.4
+      zcat.cfhtls_r lt magcut1 and zcat.oii_3727_err eq -2,noiinone)
 
-    refindx = where(zcat.zbest gt zmin and zcat.zbest lt zmax and $
-      zcat.oii_3727[1] ne -2 and $
-      zcat.oii_3727_2_ew[0]/zcat.oii_3727_2_ew[1] ge 1.0,nrefindx)
-    rref = zcat[refindx].ugriz[2]
-    rzref = zcat[refindx].ugriz[2]-zcat[refindx].ugriz[4]
-    grref = zcat[refindx].ugriz[1]-zcat[refindx].ugriz[2]
-    zref = zcat[refindx].zbest
-    oiiref = zcat[refindx].oii_3727
+; for testing
+    oiibright_vhiz = where(zcat.zbest ge 1.2 and $ ; zcat.zbest lt zmax and $
+      zcat.cfhtls_r lt magcut1 and zcat.oii_3727_err ne -2.0 and $
+      zcat.oii_3727[0] gt oiicut1)
+    splog, nall, nloz, noiibright, noiifaint, noiinone, $
+      nloz+noiibright+noiifaint+noiinone
 
-    noneindx = where(zcat.zbest gt zmin and zcat.zbest lt zmax and $
-      (zcat.oii_3727[1] eq -2 or $
-      zcat.oii_3727_2_ew[0]/zcat.oii_3727_2_ew[1] lt 1.0),nnoneindx)
-    rnone = zcat[noneindx].ugriz[2]
-    rznone = zcat[noneindx].ugriz[2]-zcat[noneindx].ugriz[4]
-    grnone = zcat[noneindx].ugriz[1]-zcat[noneindx].ugriz[2]
-    znone = zcat[noneindx].zbest
+    psfile = cdrpath+'deep2-elg-grz-oii.eps'
+    im_plotconfig, 0, pos, psfile=psfile, height=5.0, width=6.6, $
+      xmargin=[1.5,0.4], charsize=1.7
+    
+    djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
+      xtitle='r - z', ytitle='g - r', xrange=[-0.5,2.2], yrange=[-0.3,2]
+    djs_oplot, zcat[loz].cfhtls_r-zcat[loz].cfhtls_z, $
+      zcat[loz].cfhtls_g-zcat[loz].cfhtls_r, psym=symcat(16), symsize=0.3
+    djs_oplot, zcat[oiifaint].cfhtls_r-zcat[oiifaint].cfhtls_z, $
+      zcat[oiifaint].cfhtls_g-zcat[oiifaint].cfhtls_r, psym=symcat(6), $
+      color=cgcolor('forest green'), symsize=0.5
+    djs_oplot, zcat[oiibright].cfhtls_r-zcat[oiibright].cfhtls_z, $
+      zcat[oiibright].cfhtls_g-zcat[oiibright].cfhtls_r, psym=symcat(5), $
+      color=cgcolor('firebrick'), symsize=0.3
+    djs_oplot, zcat[oiibright_vhiz].cfhtls_r-zcat[oiibright_vhiz].cfhtls_z, $
+      zcat[oiibright_vhiz].cfhtls_g-zcat[oiibright_vhiz].cfhtls_r, psym=symcat(7), $
+      color=cgcolor('blue'), symsize=0.3
+;   djs_oplot, zcat[oiinone].cfhtls_r-zcat[oiinone].cfhtls_z, $
+;     zcat[oiinone].cfhtls_g-zcat[oiinone].cfhtls_r, psym=symcat(7), $
+;     color=cgcolor('blue'), symsize=0.3
 
-    for ii = 0, nnoneindx-1 do begin
-       dist = sqrt((rref-rnone[ii])^2+(rzref-rznone[ii])^2+$
-         (grref-grnone[ii])^2+(zref-znone[ii])^2)
-       mindist = min(dist,thisref)
-;      print, rref[thisref], rnone[ii], rzref[thisref], rznone[ii], $
-;        grref[thisref], grnone[ii], zref[thisref], znone[ii]
+    hiz_all = desi_get_hizelg(zcat,magcut=magcut1)
+    hiz_oiibright = desi_get_hizelg(zcat[oiibright]);,magcut=magcut1)
+    hiz_oiifaint = desi_get_hizelg(zcat[oiifaint]);,magcut=magcut1)
+;   hiz_oiinone = desi_get_hizelg(zcat[oiinone]);,magcut=magcut1)
+    hiz_loz = desi_get_hizelg(zcat[loz]);,magcut=magcut1)
+    splog, 'All ', n_elements(hiz_all), $
+      ' Bright ', n_elements(hiz_oiibright), 1.0*n_elements(hiz_oiibright)/n_elements(hiz_all), $
+      ' Faint ', n_elements(hiz_oiifaint), 1.0*n_elements(hiz_oiifaint)/n_elements(hiz_all), $
+;     ' None ', 1.0*n_elements(hiz_oiinone)/n_elements(hiz_all), $
+      ' Low-z ', n_elements(hiz_loz), 1.0*n_elements(hiz_loz)/n_elements(hiz_all)
+;   help, hiz_all, hiz_oiibright, hiz_oiifaint, hiz_oiinone, loz
+;   djs_oplot, zcat[hiz_all].cfhtls_r-zcat[hiz_all].cfhtls_z, $
+;     zcat[hiz_all].cfhtls_g-zcat[hiz_all].cfhtls_r, psym=7, symsize=0.2, $
+;     color='orange'
+;    djs_oplot, zcat[loz[hiz_loz]].cfhtls_r-zcat[loz[hiz_loz]].cfhtls_z, $
+;      zcat[loz[hiz_loz]].cfhtls_g-zcat[loz[hiz_loz]].cfhtls_r, psym=7, symsize=1.1, $
+;      color='blue'
+    
+;; Mostek       
+;    rzaxis = range(0.2,1.2,500)
+;    djs_oplot, rzaxis, poly(rzaxis,[-0.08,0.68]), line=5, thick=6
+;    djs_oplot, 0.2*[1,1], [!y.crange[0],poly(0.2,[-0.08,0.68])], line=5, thick=6
+;    djs_oplot, 1.3*[1,1], [!y.crange[0],poly(1.3,[-0.08,0.68])], line=5, thick=6
+    
+;; proposed
+;    rzaxis = range(0.1,1.1,500)
+;    int = 0.0 & slope = 0.9
+;    djs_oplot, [!x.crange[0],0.3], 0.1*[1,1], line=0, thick=6
+;    djs_oplot, [0.3,1.3], poly([0.3,1.3],[int,slope]), line=0, thick=6
+;    djs_oplot, 1.3*[1,1], [!y.crange[0],poly(1.3,[int,slope])], line=0, thick=6
 
-       zcat[noneindx[ii]].oii_3727 = zcat[refindx[thisref]].oii_3727           ; flux
-       zcat[noneindx[ii]].oii_3727_2_ew = zcat[refindx[thisref]].oii_3727_2_ew ; EW
-    endfor
+; proposed
+    rzaxis1 = range(0.2,0.9,100)
+;   rzaxis1 = range(0.2,1.4,100)
+    rzaxis2 = range(0.9,1.4,100)
+    int1 = -0.1 & slope1 = 1.0
+    int2 = 1.7 & slope2 = -1.0
+    djs_oplot, 0.2*[1,1], [!y.crange[0],poly(0.2,[int1,slope1])], thick=6
+;   djs_oplot, [!x.crange[0],0.2], poly(0.2,[int1,slope1])*[1,1], line=0, thick=6
+;   djs_oplot, [-0.2,0.3], poly(0.3,[int1,slope1])*[1,1], line=0, thick=6
+;   djs_oplot, 0.1*[1,1], [!y.crange[0],poly(0.1,[int1,slope1])], line=0, thick=6
+    djs_oplot, rzaxis1, poly(rzaxis1,[int1,slope1]), line=0, thick=6
+;   djs_oplot, rzaxis1, poly(rzaxis1,[int1,slope1])<poly(0.9,[int1,slope1]), line=0, thick=6
+    djs_oplot, rzaxis2, poly(rzaxis2,[int2,slope2]), line=0, thick=6
+;   djs_oplot, [0.9,!x.crange[1]], poly(0.9,[int1,slope1])*[1,1], line=0, thick=6
+;   djs_oplot, [0.9,1.4], poly(0.9,[int1,slope1])*[1,1], line=0, thick=6
+    djs_oplot, 1.4*[1,1], [!y.crange[0],poly(1.4,[int2,slope2])], line=0, thick=6
 
+;   djs_oplot, zcat[oiibright[hiz]].cfhtls_r-zcat[oiibright[hiz]].cfhtls_z, $
+;     zcat[oiibright[hiz]].cfhtls_g-zcat[oiibright[hiz]].cfhtls_r, psym=symcat(16), $
+;     symsize=2, color='green'
+    
+;; Johan's proposed cuts    
+;    rzaxis = range(0.2,1.25,500)
+;    int = 0.1 & slope = 0.55/1.25
+;    djs_oplot, rzaxis, slope*rzaxis+int, line=5, thick=6
+;    djs_oplot, 0.2*[1,1], [!y.crange[0],poly(0.2,[int,slope])], line=5, thick=6
+;    djs_oplot, 1.25*[1,1], [!y.crange[0],poly(1.25,[int,slope])], line=5, thick=6
+    
+;   rmag-zmag>0.2
+;   rmag-zmag<1.25
+;   gmag-rmag<0.55*(rmag-zmag)/1.25+0.1
+;   gmag-rmag>0
+
+    magstr = string(magcut1,format='(G0)')
+    im_legend, ['18.5<r<'+magstr], spacing=2.0, /left, /top, box=0, $
+      position=[0.17,0.92], /norm, charsize=1.7
+
+;   im_legend, ['0.75<z<1.45'], spacing=2.0, /left, /top, box=0, $
+;     position=[0.18,0.855], /norm, charsize=1.4
+;   im_legend, ['[OII]>8\times10^{-17}',$
+;     '[OII]<8\times10^{-17}','[OII] unmeasured'], /left, /top, $
+;     box=0, psym=[5,6,7], position=[0.21,0.8], /norm, $
+;     color=['firebrick','forest green','blue'], charsize=1.2
+;   im_oplot_box, 0.9, 0.5, 0.0, xoff=0.0, yoff=1.48
+
+    zstr = string(zmin,format='(F3.1)')
+    im_legend, ['z<'+zstr+'','z>'+zstr+'; [OII]>8\times10^{-17}',$
+      'z>'+zstr+'; [OII]<8\times10^{-17}'], /left, /top, $
+      box=0, psym=[16,5,6], position=[0.2,0.86], /norm, $
+      color=['','firebrick','forest green'], charsize=1.5
+;   im_legend, ['z<0.8','z>0.8; [OII]>8\times10^{-17}',$
+;     'z>0.8; [OII]<8\times10^{-17}',$
+;     'z>0.8; [OII] unmeasured'], $
+;     /left, /top, $
+;     box=0, psym=[16,5,6,7], position=[0.2,0.86], /norm, $
+;     color=['','firebrick','forest green','blue'], charsize=1.3
+;   im_legend, ['z<0.75','0.75<z<1.45; [OII]>8\times10^{-17}',$
+;     '0.75<z<1.45; [OII]<8\times10^{-17}',$
+;     '0.75<z<1.45; [OII] unmeasured'], /left, /top, $
+;     box=0, psym=[16,5,6,7], position=[0.2,0.86], /norm, $
+;     color=['','firebrick','forest green','blue'], charsize=1.4
+    
+    xyouts, 1.4, 0.35, 'In color box:', align=0.0, charsize=1.5, /data
+    im_legend, [$
+      'N='+strtrim(n_elements(hiz_loz),2)+' ('+$
+      string(round(100.0*n_elements(hiz_loz)/n_elements(hiz_all)),format='(I0)')+'%)',$
+      'N='+strtrim(n_elements(hiz_oiibright),2)+' ('+$
+      string(round(100.0*n_elements(hiz_oiibright)/n_elements(hiz_all)),format='(I0)')+'%)',$
+      'N='+strtrim(n_elements(hiz_oiifaint),2)+' ('+$
+      string(round(100.0*n_elements(hiz_oiifaint)/n_elements(hiz_all)),format='(I0)')+'%)'], $
+      /left, /bottom, box=0, psym=[16,5,6], position=[0.72,0.25], /norm, $
+      color=['','firebrick','forest green'], charsize=1.4
+
+    im_plotconfig, psfile=psfile, /psclose, /pdf
+
+stop    
+    
+; --------------------------------------------------
+; dN/dz of z>0.6 ELGs with bright [OII]; this segment of code also
+; writes out the "official" DEEP2/EGS dN/dz (see /write_dndz keyword) 
+    magcut1 = 23.0
+
+    hiz = desi_get_hizelg(zcat,magcut=magcut1,sigma_kms=zcat.sigma_kms)
+    nhiz = n_elements(hiz)
+    oiibright = where(zcat[hiz].oii_3727_err ne -2.0 and zcat[hiz].oii_3727 gt oiicut1,noiibright)
+    oiifaint = where(zcat[hiz].oii_3727_err ne -2.0 and zcat[hiz].oii_3727 lt oiicut1,noiifaint)
+
+;    oiibright = where(zcat[hiz].oii_3727[1] ne -2.0 and $ ; oiisnr gt oiisnrcut and $
+;      zcat[hiz].oii_3727_2_ew[0]/zcat[hiz].oii_3727_2_ew[1] gt 1.0 and $
+;      zcat[hiz].oii_3727[0] gt oiicut1,noiibright)
+;    oiifaint = where(zcat[hiz].oii_3727[1] ne -2.0 and $ ; oiisnr gt oiisnrcut and $
+;      zcat[hiz].oii_3727_2_ew[0]/zcat[hiz].oii_3727_2_ew[1] gt 1.0 and $
+;      zcat[hiz].oii_3727[0] lt oiicut1,noiifaint)
+;    oiinone = where(zcat[hiz].oii_3727[1] eq -2 or $
+;      zcat[hiz].oii_3727_2_ew[0]/zcat[hiz].oii_3727_2_ew[1] le 1.0,noiinone)
+    
+    zmin = 0.0
+    zmax = 2.0
+    zbin = 0.1
+    nzbin = ceil((zmax-zmin)/zbin)
+    zhist = lindgen(nzbin)*zbin+zmin+zbin/2.0
+    nz = hogg_histogram(zcat.zbest,[zmin,zmax],nzbin,$
+      weight=zcat.final_weight)/area
+    nz_hiz = hogg_histogram(zcat[hiz].zbest,[zmin,zmax],$
+      nzbin,weight=zcat[hiz].final_weight)/area
+    nz_oiibright = hogg_histogram(zcat[hiz[oiibright]].zbest,[zmin,zmax],$
+      nzbin,weight=zcat[hiz[oiibright]].final_weight)/area
+    nz_oiifaint = hogg_histogram(zcat[hiz[oiifaint]].zbest,[zmin,zmax],$
+      nzbin,weight=zcat[hiz[oiifaint]].final_weight)/area
+
+; extrapolate linearly
+    anchor = where(zhist gt 1.1 and zhist lt 1.4)
+    extrap = where(zhist gt 1.4 and zhist lt 1.8)
+
+;   plot, zhist, alog10(nz_hiz), psym=8, xr=[1.0,1.6], symsize=3
+    nz_hiz_extrap = nz_hiz
+;   nz_hiz_extrap[extrap] = interpol(nz_hiz[anchor],$
+;     zhist[anchor],zhist[extrap])>nz_hiz[extrap]
+    nz_hiz_extrap[extrap] = 10^poly(zhist[extrap],$
+      linfit(zhist[anchor],alog10(nz_hiz[anchor])))
+;   niceprint, zhist, nz_hiz_extrap, nz_hiz & print
+
+;   plot, zhist, alog10(nz_oiibright), psym=8, xr=[1.0,1.6], symsize=3
+    nz_oiibright_extrap = nz_oiibright
+;   nz_oiibright_extrap[extrap] = interpol(nz_oiibright[anchor],$
+;     zhist[anchor],zhist[extrap])>nz_oiibright[extrap]
+    nz_oiibright_extrap[extrap] = 10^poly(zhist[extrap],$
+      linfit(zhist[anchor],alog10(nz_oiibright[anchor])))
+;   niceprint, zhist, nz_oiibright_extrap, nz_oiibright & print
+    
+    nz_oiifaint_extrap = nz_oiifaint
+    nz_oiifaint_extrap[extrap] = interpol(nz_oiifaint[anchor],$
+      zhist[anchor],zhist[extrap])>nz_oiifaint[extrap]
+;   niceprint, zhist, nz_oiifaint_extrap, nz_oiifaint
+
+; renormalize to the number of targets from the CFHTLS-Wide survey
+; (should be ~3000/deg^2 to r~23)
+    readcol, targpath+'dndm-cfhtlswide.txt', rmag, dndm_true, dndmerr_true, $
+      dndm_degraded, dndmerr_degraded, fraction, /silent
+;   niceprint, rmag, dndm_true, dndm_degraded
+    counts = interpol(dndm_degraded,rmag,magcut1)
+  
+    norm = counts/total(nz_hiz_extrap)
+    nz_hiz_extrap *= norm
+    nz_oiibright_extrap *= norm
+    nz_oiifaint_extrap *= norm
+    
+    splog, total(nz_hiz_extrap), total(nz_oiibright_extrap), total(nz_oiibright_extrap)/total(nz_hiz_extrap)
+    
+; optionally write out dN/dz
+    if keyword_set(write_dndz) then begin
+       outfile = nzpath+'nz_elg_deep2.dat'
+       openw, lun, outfile, /get_lun
+       printf, lun, '# Distribution of ELG targets from DEEP2/EGS field'
+       printf, lun, '# Selection by John Moustakas on 2014 July 10:'
+       printf, lun, '#   r < 23.0'
+       printf, lun, '#   0.2 < (r-z) < 1.4'
+       printf, lun, '#   (g-r) < (r-z) - 0.1'
+       printf, lun, '#   (g-r) < 1.7 - (r-z)'
+       printf, lun, '#'
+       printf, lun, '# Total number per sq deg per dz=0.1 redshift bin'
+       printf, lun, '#'
+       printf, lun, '# z  N_elg'
+       niceprintf, lun, zhist, nz_oiibright_extrap
+       free_lun, lun
+    endif
+
+    psfile = cdrpath+'deep2-elg-dndz.eps'
+    im_plotconfig, 0, pos, psfile=psfile, height=5.0, width=6.6, $
+      xmargin=[1.5,0.4], charsize=1.7
+    djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
+      xtitle='Redshift', ytitle='dN/dz (gal / 0.1dz / deg^{2})', $
+      xrange=[zmin,zmax], yrange=[0.0,1100]
+;     xrange=[zmin,zmax], yrange=[0.0,6500]
+;   djs_oplot, [(zhist[0]-zbin/2.0),zhist,(zhist[nzbin-1]+zbin/2.0)], $
+;     [0,nz,0], psym=10, thick=6, line=0
+    djs_oplot, [(zhist[0]-zbin/2.0),zhist,(zhist[nzbin-1]+zbin/2.0)], $
+      [0,nz_hiz_extrap,0], psym=10, thick=8, line=0, color='black'
+    djs_oplot, [(zhist[0]-zbin/2.0),zhist,(zhist[nzbin-1]+zbin/2.0)], $
+      [0,nz_oiibright_extrap,0], psym=10, thick=6, line=5, color=cgcolor('firebrick')
+;   djs_oplot, [(zhist[0]-zbin/2.0),zhist,(zhist[nzbin-1]+zbin/2.0)], $
+;     [0,nz_oiibright_cor,0], psym=10, thick=8, line=5, color='blue'
+    djs_oplot, [(zhist[0]-zbin/2.0),zhist,(zhist[nzbin-1]+zbin/2.0)], $
+      [0,nz_oiifaint_extrap,0], psym=10, thick=6, line=4, color=cgcolor('forest green')
+
+    magstr = string(magcut1,format='(F4.1)')
+    im_legend, ['18.5<r<'+magstr], spacing=2.0, /left, /top, box=0, $
+      position=[0.17,0.92], /norm, charsize=1.7
+
+    xyouts, 0.63, 0.88, 'In grz color box:', /norm, align=0.0, charsize=1.3
+    im_legend, ['All galaxies','[OII]>8\times10^{-17}','[OII]<8\times10^{-17}'], $
+      color=['black','firebrick','forest green'], /left, /top, box=0, thick=6, $
+      charsize=1.3, spacing=2.0, margin=0, line=[0,5,4], pspacing=1.5, $
+      position=[0.65,0.85], /norm
+
+;   im_legend, ['zcatParent','grz Sample','grz & F([OII])>8\times10^{-17}'], $
+;     line=[0,3,5], pspacing=1.7, color=['','orange','blue'], /right, /top, box=0, $
+;     charsize=1.4, spacing=2.0, margin=0, thick=6
+    im_plotconfig, psfile=psfile, /psclose, /pdf
+
+; --------------------------------------------------
+; compare the DEEP2, VVDS, and COSMOS dN/dz distributions, normalized
+; to the same density 
+    zbin = 0.1
+    readcol, nzpath+'nz_elg_deep2.dat', zbinme, dndzme, /silent
+    readcol, nzpath+'nz_elg_vvds.dat', zbin1eric, zbin2eric, dndzeric, /silent
+    readcol, nzpath+'nz_elg_cosmos.dat', zbin1johan, zbin2johan, dndzjohan, /silent
+
+; shift the redshift bin and renormalize cosmos
+    zbineric = zbin1eric+zbin/2
+    zbinjohan = zbin1johan+zbin/2
+
+    dndzjohan *= 1800/total(dndzjohan)
+;   dndzjohan *= counts/total(dndzjohan)
+
+    psfile = cdrpath+'elg-dndz-compare.eps'
+    im_plotconfig, 0, pos, psfile=psfile, height=5.0, width=6.6, $
+      xmargin=[1.5,0.4], charsize=1.7
+    djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
+      xtitle='Redshift', ytitle='dN/dz (gal / 0.1dz / deg^{2})', $
+      xrange=[zmin,zmax], yrange=[0.0,800]
+    djs_oplot, [(zbinme[0]-zbin/2.0),zbinme,(zbinme[nzbin-1]+zbin/2.0)], $
+      [0,dndzme,0], psym=10, thick=10, line=0, color='black'
+    djs_oplot, [(zbinjohan[0]-zbin/2.0),zbinjohan,(zbinjohan[nzbin-1]+zbin/2.0)], $
+      [0,dndzjohan,0], psym=10, thick=8, line=5, color=cgcolor('orange')
+    djs_oplot, [(zbineric[0]-zbin/2.0),zbineric,(zbineric[nzbin-1]+zbin/2.0)], $
+      [0,dndzeric,0], psym=10, thick=8, line=3, color=cgcolor('forest green')
+
+    magstr = string(magcut1,format='(F4.1)')
+    im_legend, ['18.5<r<'+magstr], spacing=2.0, /left, /top, box=0, $
+      margin=0, /norm, charsize=1.7       ; position=[0.17,0.92], 
+
+    im_legend, ['DEEP2/EGS','COSMOS','VVDS'], /right, /top, box=0, $
+      line=[0,5,3], color=['black','orange','forest green'], $
+      pspacing=1.9, thick=8
+    
+    im_plotconfig, psfile=psfile, /psclose, /pdf
+
+    
+    
+    
+    
 ; --------------------------------------------------
 ; check how our grz color box compares with M. Brown's
 ; templates at z=0.6-2 
@@ -114,9 +396,9 @@ pro desi_cdr_plots
       xtitle='r - z', ytitle='g - r', xrange=[-0.5,2.2], yrange=[-0.3,2]
 
     stars = mrdfits(targpath+'deep2egs-photstars.fits.gz',1)
-    stars = stars[where(stars.ugriz[2] lt 23 and stars.ugriz[2] gt 18.5,nstar)]
-    djs_oplot, stars.ugriz[2]-stars.ugriz[4], symsize=0.1, $
-      stars.ugriz[1]-stars.ugriz[2], psym=6, $
+    stars = stars[where(stars.cfhtls_r lt 23 and stars.cfhtls_r gt 18.5,nstar)]
+    djs_oplot, stars.cfhtls_r-stars.cfhtls_z, symsize=0.1, $
+      stars.cfhtls_g-stars.cfhtls_r, psym=6, $
       color=cgcolor('grey')
     
     cgloadct, 27, ncolors=ngal+1, bottom=0, /brewer
@@ -167,159 +449,6 @@ pro desi_cdr_plots
 stop    
     
 ; --------------------------------------------------
-; gr vs rz coded by [OII] strength
-    zmin = 0.6 ; 0.8
-    zmax = 1.6
-    magcut1 = 23.2
-    
-    all = where(zcat.ugriz[2] lt magcut1,nall)
-    loz = where(zcat.zbest lt zmin and zcat.ugriz[2] lt magcut1,nloz)
-    oiibright = where(zcat.zbest ge zmin and $ ; zcat.zbest lt zmax and $
-      zcat.ugriz[2] lt magcut1 and zcat.oii_3727[1] ne -2.0 and $
-      zcat.oii_3727_2_ew[0]/zcat.oii_3727_2_ew[1] gt 1.0 and zcat.oii_3727[0] gt oiicut1,noiibright)
-    oiifaint = where(zcat.zbest ge zmin and $ ; zcat.zbest lt zmax and $
-      zcat.ugriz[2] lt magcut1 and zcat.oii_3727[1] ne -2.0 and $
-      zcat.oii_3727_2_ew[0]/zcat.oii_3727_2_ew[1] gt 1.0 and zcat.oii_3727[0] lt oiicut1,noiifaint)
-    oiinone = where(zcat.zbest ge zmin and $ ; zcat.zbest lt zmax and $
-      zcat.ugriz[2] lt magcut1 and (zcat.oii_3727[1] eq -2 or $
-      zcat.oii_3727_2_ew[0]/zcat.oii_3727_2_ew[1] le 1.0),noiinone)
-
-; for testing
-    oiibright_vhiz = where(zcat.zbest ge 1.2 and $ ; zcat.zbest lt zmax and $
-      zcat.ugriz[2] lt magcut1 and zcat.oii_3727[1] ne -2.0 and $
-      zcat.oii_3727_2_ew[0]/zcat.oii_3727_2_ew[1] gt 1.0 and zcat.oii_3727[0] gt oiicut1)
-    
-    splog, nall, nloz, noiibright, noiifaint, noiinone, $
-      nloz+noiibright+noiifaint+noiinone
-    
-    psfile = cdrpath+'deep2-elg-grz-oii.eps'
-    im_plotconfig, 0, pos, psfile=psfile, height=5.0, width=6.6, $
-      xmargin=[1.5,0.4], charsize=1.7
-    
-    djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
-      xtitle='r - z', ytitle='g - r', xrange=[-0.5,2.2], yrange=[-0.3,2]
-    djs_oplot, zcat[loz].ugriz[2]-zcat[loz].ugriz[4], $
-      zcat[loz].ugriz[1]-zcat[loz].ugriz[2], psym=symcat(16), symsize=0.3
-    djs_oplot, zcat[oiifaint].ugriz[2]-zcat[oiifaint].ugriz[4], $
-      zcat[oiifaint].ugriz[1]-zcat[oiifaint].ugriz[2], psym=symcat(6), $
-      color=cgcolor('forest green'), symsize=0.5
-    djs_oplot, zcat[oiibright].ugriz[2]-zcat[oiibright].ugriz[4], $
-      zcat[oiibright].ugriz[1]-zcat[oiibright].ugriz[2], psym=symcat(5), $
-      color=cgcolor('firebrick'), symsize=0.3
-    djs_oplot, zcat[oiibright_vhiz].ugriz[2]-zcat[oiibright_vhiz].ugriz[4], $
-      zcat[oiibright_vhiz].ugriz[1]-zcat[oiibright_vhiz].ugriz[2], psym=symcat(7), $
-      color=cgcolor('blue'), symsize=0.3
-;   djs_oplot, zcat[oiinone].ugriz[2]-zcat[oiinone].ugriz[4], $
-;     zcat[oiinone].ugriz[1]-zcat[oiinone].ugriz[2], psym=symcat(7), $
-;     color=cgcolor('blue'), symsize=0.3
-
-    hiz_all = desi_get_hizelg(zcat.ugriz,magcut=magcut1)
-    hiz_oiibright = desi_get_hizelg(zcat[oiibright].ugriz);,magcut=magcut1)
-    hiz_oiifaint = desi_get_hizelg(zcat[oiifaint].ugriz);,magcut=magcut1)
-;   hiz_oiinone = desi_get_hizelg(zcat[oiinone].ugriz);,magcut=magcut1)
-    hiz_loz = desi_get_hizelg(zcat[loz].ugriz);,magcut=magcut1)
-    splog, 'All ', n_elements(hiz_all), $
-      ' Bright ', n_elements(hiz_oiibright), 1.0*n_elements(hiz_oiibright)/n_elements(hiz_all), $
-      ' Faint ', n_elements(hiz_oiifaint), 1.0*n_elements(hiz_oiifaint)/n_elements(hiz_all), $
-;     ' None ', 1.0*n_elements(hiz_oiinone)/n_elements(hiz_all), $
-      ' Low-z ', n_elements(hiz_loz), 1.0*n_elements(hiz_loz)/n_elements(hiz_all)
-;   help, hiz_all, hiz_oiibright, hiz_oiifaint, hiz_oiinone, loz
-;   djs_oplot, zcat[hiz_all].ugriz[2]-zcat[hiz_all].ugriz[4], $
-;     zcat[hiz_all].ugriz[1]-zcat[hiz_all].ugriz[2], psym=7, symsize=0.2, $
-;     color='orange'
-;    djs_oplot, zcat[loz[hiz_loz]].ugriz[2]-zcat[loz[hiz_loz]].ugriz[4], $
-;      zcat[loz[hiz_loz]].ugriz[1]-zcat[loz[hiz_loz]].ugriz[2], psym=7, symsize=1.1, $
-;      color='blue'
-    
-;; Mostek       
-;    rzaxis = range(0.2,1.2,500)
-;    djs_oplot, rzaxis, poly(rzaxis,[-0.08,0.68]), line=5, thick=6
-;    djs_oplot, 0.2*[1,1], [!y.crange[0],poly(0.2,[-0.08,0.68])], line=5, thick=6
-;    djs_oplot, 1.3*[1,1], [!y.crange[0],poly(1.3,[-0.08,0.68])], line=5, thick=6
-    
-;; proposed
-;    rzaxis = range(0.1,1.1,500)
-;    int = 0.0 & slope = 0.9
-;    djs_oplot, [!x.crange[0],0.3], 0.1*[1,1], line=0, thick=6
-;    djs_oplot, [0.3,1.3], poly([0.3,1.3],[int,slope]), line=0, thick=6
-;    djs_oplot, 1.3*[1,1], [!y.crange[0],poly(1.3,[int,slope])], line=0, thick=6
-
-; proposed
-    rzaxis1 = range(0.2,0.9,100)
-;   rzaxis1 = range(0.2,1.4,100)
-    rzaxis2 = range(0.9,1.4,100)
-    int1 = -0.1 & slope1 = 1.0
-    int2 = 1.7 & slope2 = -1.0
-    djs_oplot, 0.2*[1,1], [!y.crange[0],poly(0.2,[int1,slope1])], thick=6
-;   djs_oplot, [!x.crange[0],0.2], poly(0.2,[int1,slope1])*[1,1], line=0, thick=6
-;   djs_oplot, [-0.2,0.3], poly(0.3,[int1,slope1])*[1,1], line=0, thick=6
-;   djs_oplot, 0.1*[1,1], [!y.crange[0],poly(0.1,[int1,slope1])], line=0, thick=6
-    djs_oplot, rzaxis1, poly(rzaxis1,[int1,slope1]), line=0, thick=6
-;   djs_oplot, rzaxis1, poly(rzaxis1,[int1,slope1])<poly(0.9,[int1,slope1]), line=0, thick=6
-    djs_oplot, rzaxis2, poly(rzaxis2,[int2,slope2]), line=0, thick=6
-;   djs_oplot, [0.9,!x.crange[1]], poly(0.9,[int1,slope1])*[1,1], line=0, thick=6
-;   djs_oplot, [0.9,1.4], poly(0.9,[int1,slope1])*[1,1], line=0, thick=6
-    djs_oplot, 1.4*[1,1], [!y.crange[0],poly(1.4,[int2,slope2])], line=0, thick=6
-
-;   djs_oplot, zcat[oiibright[hiz]].ugriz[2]-zcat[oiibright[hiz]].ugriz[4], $
-;     zcat[oiibright[hiz]].ugriz[1]-zcat[oiibright[hiz]].ugriz[2], psym=symcat(16), $
-;     symsize=2, color='green'
-    
-;; Johan's proposed cuts    
-;    rzaxis = range(0.2,1.25,500)
-;    int = 0.1 & slope = 0.55/1.25
-;    djs_oplot, rzaxis, slope*rzaxis+int, line=5, thick=6
-;    djs_oplot, 0.2*[1,1], [!y.crange[0],poly(0.2,[int,slope])], line=5, thick=6
-;    djs_oplot, 1.25*[1,1], [!y.crange[0],poly(1.25,[int,slope])], line=5, thick=6
-    
-;   rmag-zmag>0.2
-;   rmag-zmag<1.25
-;   gmag-rmag<0.55*(rmag-zmag)/1.25+0.1
-;   gmag-rmag>0
-
-    magstr = string(magcut1,format='(F4.1)')
-    im_legend, ['18.5<r<'+magstr], spacing=2.0, /left, /top, box=0, $
-      position=[0.17,0.92], /norm, charsize=1.7
-
-;   im_legend, ['0.75<z<1.45'], spacing=2.0, /left, /top, box=0, $
-;     position=[0.18,0.855], /norm, charsize=1.4
-;   im_legend, ['[OII]>8\times10^{-17}',$
-;     '[OII]<8\times10^{-17}','[OII] unmeasured'], /left, /top, $
-;     box=0, psym=[5,6,7], position=[0.21,0.8], /norm, $
-;     color=['firebrick','forest green','blue'], charsize=1.2
-;   im_oplot_box, 0.9, 0.5, 0.0, xoff=0.0, yoff=1.48
-
-    zstr = string(zmin,format='(F3.1)')
-    im_legend, ['z<'+zstr+'','z>'+zstr+'; [OII]>8\times10^{-17}',$
-      'z>'+zstr+'; [OII]<8\times10^{-17}'], /left, /top, $
-      box=0, psym=[16,5,6], position=[0.2,0.86], /norm, $
-      color=['','firebrick','forest green'], charsize=1.5
-;   im_legend, ['z<0.8','z>0.8; [OII]>8\times10^{-17}',$
-;     'z>0.8; [OII]<8\times10^{-17}',$
-;     'z>0.8; [OII] unmeasured'], $
-;     /left, /top, $
-;     box=0, psym=[16,5,6,7], position=[0.2,0.86], /norm, $
-;     color=['','firebrick','forest green','blue'], charsize=1.3
-;   im_legend, ['z<0.75','0.75<z<1.45; [OII]>8\times10^{-17}',$
-;     '0.75<z<1.45; [OII]<8\times10^{-17}',$
-;     '0.75<z<1.45; [OII] unmeasured'], /left, /top, $
-;     box=0, psym=[16,5,6,7], position=[0.2,0.86], /norm, $
-;     color=['','firebrick','forest green','blue'], charsize=1.4
-    
-    xyouts, 1.4, 0.35, 'In color box:', align=0.0, charsize=1.5, /data
-    im_legend, [$
-      'N='+strtrim(n_elements(hiz_loz),2)+' ('+$
-      string(round(100.0*n_elements(hiz_loz)/n_elements(hiz_all)),format='(I0)')+'%)',$
-      'N='+strtrim(n_elements(hiz_oiibright),2)+' ('+$
-      string(round(100.0*n_elements(hiz_oiibright)/n_elements(hiz_all)),format='(I0)')+'%)',$
-      'N='+strtrim(n_elements(hiz_oiifaint),2)+' ('+$
-      string(round(100.0*n_elements(hiz_oiifaint)/n_elements(hiz_all)),format='(I0)')+'%)'], $
-      /left, /bottom, box=0, psym=[16,5,6], position=[0.72,0.25], /norm, $
-      color=['','firebrick','forest green'], charsize=1.4
-
-    im_plotconfig, psfile=psfile, /psclose, /pdf
-
-; --------------------------------------------------
 ; cumulative number counts
 
 ; assume that the objects with formal flux limits above our [OII] cut
@@ -334,23 +463,23 @@ stop
     oiinone = where(zcat[hiz].oii_3727[1] eq -2 or $
       zcat[hiz].oii_3727_2_ew[0]/zcat[hiz].oii_3727_2_ew[1] le 1.0,noiinone)
 
-    dndm_phot = get_dndm(phot.ugriz[2],faintcut=faintcut,$
+    dndm_phot = get_dndm(phot.cfhtls_r,faintcut=faintcut,$
       brightcut=brightcut,magaxis=magaxis)
-    dndm = get_dndm(zcat.ugriz[2],weight=zcat.final_weight,$
+    dndm = get_dndm(zcat.cfhtls_r,weight=zcat.final_weight,$
       faintcut=faintcut,brightcut=brightcut,magaxis=magaxis)
-    dndm_hiz = get_dndm(zcat[hiz].ugriz[2],weight=zcat[hiz].final_weight,$
+    dndm_hiz = get_dndm(zcat[hiz].cfhtls_r,weight=zcat[hiz].final_weight,$
       faintcut=faintcut,brightcut=brightcut)
-    dndm_oiibright = get_dndm(zcat[hiz[oiibright]].ugriz[2],$
+    dndm_oiibright = get_dndm(zcat[hiz[oiibright]].cfhtls_r,$
       weight=zcat[hiz[oiibright]].final_weight,$
       faintcut=faintcut,brightcut=brightcut)
     
 ; get the *ratio* of the number of bright-to-faint [OII] sources so
 ; that we can correct for the objects with missing [OII] measurements
 ; (see plot below)     
-    dndm_oiifaint = get_dndm(zcat[hiz[oiifaint]].ugriz[2],$
+    dndm_oiifaint = get_dndm(zcat[hiz[oiifaint]].cfhtls_r,$
       weight=zcat[hiz[oiifaint]].final_weight,$
       faintcut=faintcut,brightcut=brightcut)
-    dndm_oiinone = get_dndm(zcat[hiz[oiinone]].ugriz[2],$
+    dndm_oiinone = get_dndm(zcat[hiz[oiinone]].cfhtls_r,$
       weight=zcat[hiz[oiinone]].final_weight,$
       faintcut=faintcut,brightcut=brightcut)
 
@@ -426,126 +555,6 @@ stop
     im_plotconfig, psfile=psfile, /psclose, /pdf
 
 ; --------------------------------------------------
-; redshift histogram of sources selected using my grz color-cuts;
-; remove the 
-    magcut1 = 22.8
-    
-    hiz = desi_get_hizelg(zcat.ugriz,magcut=magcut1,sigma_kms=zcat.sigma_kms)
-    oiibright = where(zcat[hiz].oii_3727[1] ne -2.0 and $ ; oiisnr gt oiisnrcut and $
-      zcat[hiz].oii_3727_2_ew[0]/zcat[hiz].oii_3727_2_ew[1] gt 1.0 and $
-      zcat[hiz].oii_3727[0] gt oiicut1,noiibright)
-    oiifaint = where(zcat[hiz].oii_3727[1] ne -2.0 and $ ; oiisnr gt oiisnrcut and $
-      zcat[hiz].oii_3727_2_ew[0]/zcat[hiz].oii_3727_2_ew[1] gt 1.0 and $
-      zcat[hiz].oii_3727[0] lt oiicut1,noiifaint)
-    oiinone = where(zcat[hiz].oii_3727[1] eq -2 or $
-      zcat[hiz].oii_3727_2_ew[0]/zcat[hiz].oii_3727_2_ew[1] le 1.0,noiinone)
-    
-    zmin = 0.0
-    zmax = 2.0
-    zbin = 0.1
-    nzbin = ceil((zmax-zmin)/zbin)
-    zhist = lindgen(nzbin)*zbin+zmin+zbin/2.0
-    nz = hogg_histogram(zcat.zbest,[zmin,zmax],nzbin,$
-      weight=zcat.final_weight)/area
-    nz_hiz = hogg_histogram(zcat[hiz].zbest,[zmin,zmax],$
-      nzbin,weight=zcat[hiz].final_weight)/area
-    nz_oiibright = hogg_histogram(zcat[hiz[oiibright]].zbest,[zmin,zmax],$
-      nzbin,weight=zcat[hiz[oiibright]].final_weight)/area
-    nz_oiifaint = hogg_histogram(zcat[hiz[oiifaint]].zbest,[zmin,zmax],$
-      nzbin,weight=zcat[hiz[oiifaint]].final_weight)/area
-
-; extrapolate linearly
-    anchor = where(zhist gt 1.1 and zhist lt 1.4)
-    extrap = where(zhist gt 1.4 and zhist lt 1.8)
-
-;   plot, zhist, alog10(nz_hiz), psym=8, xr=[1.0,1.6], symsize=3
-    nz_hiz_extrap = nz_hiz
-;   nz_hiz_extrap[extrap] = interpol(nz_hiz[anchor],$
-;     zhist[anchor],zhist[extrap])>nz_hiz[extrap]
-    nz_hiz_extrap[extrap] = 10^poly(zhist[extrap],$
-      linfit(zhist[anchor],alog10(nz_hiz[anchor])))
-    niceprint, zhist, nz_hiz_extrap, nz_hiz & print
-
-;   plot, zhist, alog10(nz_oiibright), psym=8, xr=[1.0,1.6], symsize=3
-    nz_oiibright_extrap = nz_oiibright
-;   nz_oiibright_extrap[extrap] = interpol(nz_oiibright[anchor],$
-;     zhist[anchor],zhist[extrap])>nz_oiibright[extrap]
-    nz_oiibright_extrap[extrap] = 10^poly(zhist[extrap],$
-      linfit(zhist[anchor],alog10(nz_oiibright[anchor])))
-    niceprint, zhist, nz_oiibright_extrap, nz_oiibright & print
-    
-    nz_oiifaint_extrap = nz_oiifaint
-    nz_oiifaint_extrap[extrap] = interpol(nz_oiifaint[anchor],$
-      zhist[anchor],zhist[extrap])>nz_oiifaint[extrap]
-;   niceprint, zhist, nz_oiifaint_extrap, nz_oiifaint
-
-; renormalize the total to 3000/deg^2
-    norm = 3000.0/total(nz_hiz_extrap)
-    nz_hiz_extrap *= norm
-    nz_oiibright_extrap *= norm
-    nz_oiifaint_extrap *= norm
-    
-    splog, total(nz_hiz_extrap), total(nz_oiibright_extrap)
-    
-; write out the data file
-    writeit = 0
-    if writeit then begin
-       outfile = getenv('DESIMODEL')+'/data/targets/nz_elg_deep2.dat'
-       openw, lun, outfile, /get_lun
-       printf, lun, '# ELG distribution from DEEP2/EGS '
-       printf, lun, '# 2014-Jul-01 version'
-       printf, lun, '# Total number per sq deg per dz=0.1 redshift bin'
-       printf, lun, '#'
-       printf, lun, '# z  N_elg'
-       niceprintf, lun, zhist, nz_oiibright_extrap
-       free_lun, lun
-    endif
-stop    
-    
-;; correct for the missing [OII] sources       
-;   nz_oiinone = hogg_histogram(zcat[hiz[oiinone]].zbest,[zmin,zmax],$
-;     nzbin,weight=zcat[hiz[oiinone]].final_weight)/area
-    
-;   denom = nz_oiibright+nz_oiifaint
-;   nz_oiicor = nz_oiinone*nz_oiibright/(denom+(denom eq 0))*(denom ne 0)
-;   nz_oiibright_cor = nz_oiibright + nz_oiicor    
-    
-    psfile = cdrpath+'deep2-elg-dndz.eps'
-    im_plotconfig, 0, pos, psfile=psfile, height=5.0, width=6.6, $
-      xmargin=[1.5,0.4], charsize=1.7
-    djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
-      xtitle='Redshift', ytitle='dN/dz (gal / 0.1dz / deg^{2})', $
-      xrange=[zmin,zmax], yrange=[0.0,1100]
-;     xrange=[zmin,zmax], yrange=[0.0,6500]
-;   djs_oplot, [(zhist[0]-zbin/2.0),zhist,(zhist[nzbin-1]+zbin/2.0)], $
-;     [0,nz,0], psym=10, thick=6, line=0
-    djs_oplot, [(zhist[0]-zbin/2.0),zhist,(zhist[nzbin-1]+zbin/2.0)], $
-      [0,nz_hiz_extrap,0], psym=10, thick=8, line=0, color='black'
-    djs_oplot, [(zhist[0]-zbin/2.0),zhist,(zhist[nzbin-1]+zbin/2.0)], $
-      [0,nz_oiibright_extrap,0], psym=10, thick=6, line=5, color=cgcolor('firebrick')
-;   djs_oplot, [(zhist[0]-zbin/2.0),zhist,(zhist[nzbin-1]+zbin/2.0)], $
-;     [0,nz_oiibright_cor,0], psym=10, thick=8, line=5, color='blue'
-    djs_oplot, [(zhist[0]-zbin/2.0),zhist,(zhist[nzbin-1]+zbin/2.0)], $
-      [0,nz_oiifaint_extrap,0], psym=10, thick=6, line=4, color=cgcolor('forest green')
-
-    magstr = string(magcut1,format='(F4.1)')
-    im_legend, ['18.5<r<'+magstr], spacing=2.0, /left, /top, box=0, $
-      position=[0.17,0.92], /norm, charsize=1.7
-
-    xyouts, 0.63, 0.88, 'In grz color box:', /norm, align=0.0, charsize=1.3
-    im_legend, ['All galaxies','[OII]>8\times10^{-17}','[OII]<8\times10^{-17}'], $
-      color=['black','firebrick','forest green'], /left, /top, box=0, thick=6, $
-      charsize=1.3, spacing=2.0, margin=0, line=[0,5,4], pspacing=1.5, $
-      position=[0.65,0.85], /norm
-
-;   im_legend, ['zcatParent','grz Sample','grz & F([OII])>8\times10^{-17}'], $
-;     line=[0,3,5], pspacing=1.7, color=['','orange','blue'], /right, /top, box=0, $
-;     charsize=1.4, spacing=2.0, margin=0, thick=6
-    im_plotconfig, psfile=psfile, /psclose, /pdf
-
-stop       
-       
-; --------------------------------------------------
 ; gr vs rz - stellar contamination
     allphot = mrdfits(catpath+'deep2.pcat_ext.fits.gz',1)
     keep = where(allphot.zquality ge 3 and allphot.g gt 0 and $
@@ -555,16 +564,16 @@ stop
     allphot = deep2_get_ugriz(allphot[keep])
 
     stars = mrdfits(targpath+'deep2egs-photstars.fits.gz',1)
-    stars = stars[where(stars.ugriz[2] lt magcut1,nstar)]
+    stars = stars[where(stars.cfhtls_r lt magcut1,nstar)]
     
-    loz = where(allphot.zhelio lt 0.6 and allphot.ugriz[2] lt magcut1,nloz)
+    loz = where(allphot.zhelio lt 0.6 and allphot.cfhtls_r lt magcut1,nloz)
     hiz = where(allphot.zhelio gt 0.6 and allphot.zhelio lt 1.2 and $
-      allphot.ugriz[2] lt magcut1,nhiz)
+      allphot.cfhtls_r lt magcut1,nhiz)
     vhiz = where(allphot.zhelio gt 1.2 and allphot.zhelio lt 1.5 and $
-      allphot.ugriz[2] lt magcut1,nvhiz)
+      allphot.cfhtls_r lt magcut1,nvhiz)
     
-    w1 = where(allphot.zhelio gt 0.6 and allphot.ugriz[2] lt magcut1,nw1)
-    w2 = where(allphot.zhelio gt 1.2 and allphot.ugriz[2] lt magcut1,nw2)
+    w1 = where(allphot.zhelio gt 0.6 and allphot.cfhtls_r lt magcut1,nw1)
+    w2 = where(allphot.zhelio gt 1.2 and allphot.cfhtls_r lt magcut1,nw2)
     splog, 'Fraction of z>0.6 in grz box: ', n_elements(desi_get_hizelg($
       allphot[w1].ugriz,magcut=magcut1))/float(nw1)
     splog, 'Fraction of z>1.2 in grz box: ', n_elements(desi_get_hizelg($
@@ -576,16 +585,16 @@ stop
     
     djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
       xtitle='r - z', ytitle='g - r', xrange=[-0.5,2.2], yrange=[-0.3,2]
-    djs_oplot, allphot[loz].ugriz[2]-allphot[loz].ugriz[4], $
-      allphot[loz].ugriz[1]-allphot[loz].ugriz[2], psym=symcat(16), symsize=0.3
-    djs_oplot, allphot[hiz].ugriz[2]-allphot[hiz].ugriz[4], $
-      allphot[hiz].ugriz[1]-allphot[hiz].ugriz[2], psym=symcat(9,thick=2), $
+    djs_oplot, allphot[loz].cfhtls_r-allphot[loz].cfhtls_z, $
+      allphot[loz].cfhtls_g-allphot[loz].cfhtls_r, psym=symcat(16), symsize=0.3
+    djs_oplot, allphot[hiz].cfhtls_r-allphot[hiz].cfhtls_z, $
+      allphot[hiz].cfhtls_g-allphot[hiz].cfhtls_r, psym=symcat(9,thick=2), $
       color=cgcolor('firebrick'), symsize=0.3
-    djs_oplot, allphot[vhiz].ugriz[2]-allphot[vhiz].ugriz[4], $
-      allphot[vhiz].ugriz[1]-allphot[vhiz].ugriz[2], psym=symcat(6), $
+    djs_oplot, allphot[vhiz].cfhtls_r-allphot[vhiz].cfhtls_z, $
+      allphot[vhiz].cfhtls_g-allphot[vhiz].cfhtls_r, psym=symcat(6), $
       color=cgcolor('forest green'), symsize=0.5
-    djs_oplot, stars.ugriz[2]-stars.ugriz[4], symsize=0.15, $
-      stars.ugriz[1]-stars.ugriz[2], psym=symcat(7), color='blue'
+    djs_oplot, stars.cfhtls_r-stars.cfhtls_z, symsize=0.15, $
+      stars.cfhtls_g-stars.cfhtls_r, psym=symcat(7), color='blue'
        
 ;; Mostek       
 ;    rzaxis = range(0.2,1.2,500)
@@ -670,8 +679,8 @@ stop
 ; --------------------------------------------------
 ; Figure 3.6 - grz color-color plot coded by redshift
 
-    gr = allphot.ugriz[1]-allphot.ugriz[2]
-    rz = allphot.ugriz[2]-allphot.ugriz[4]
+    gr = allphot.cfhtls_g-allphot.cfhtls_r
+    rz = allphot.cfhtls_r-allphot.cfhtls_z
 
     grrange = [-0.5,1.8]
     rzrange = [-0.5,2.2]
@@ -725,8 +734,8 @@ stop
     
     djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
       xtitle='r - z', ytitle='g - r', xrange=[-0.5,2.2], yrange=[-0.3,1.8]
-    djs_oplot, zcat[hiz].ugriz[2]-zcat[hiz].ugriz[4], $
-      zcat[hiz].ugriz[1]-zcat[hiz].ugriz[2], psym=symcat(5), $
+    djs_oplot, zcat[hiz].cfhtls_r-zcat[hiz].cfhtls_z, $
+      zcat[hiz].cfhtls_g-zcat[hiz].cfhtls_r, psym=symcat(5), $
       color=cgcolor('firebrick'), symsize=0.2
 
 
@@ -746,16 +755,16 @@ end
 ;;; --------------------------------------------------
 ;;; gr vs rz - stellar contamination
 ;;    stars = mrdfits(targpath+'deep2egs-photstars.fits.gz',1)
-;;    stars = stars[where(stars.ugriz[2] lt magcut1,nstar)]
+;;    stars = stars[where(stars.cfhtls_r lt magcut1,nstar)]
 ;;    
-;;    loz = where(zcat.zbest lt 0.6 and zcat.ugriz[2] lt magcut1,nloz)
+;;    loz = where(zcat.zbest lt 0.6 and zcat.cfhtls_r lt magcut1,nloz)
 ;;    hiz = where(zcat.zbest gt 0.6 and zcat.zbest lt 1.2 and $
-;;      zcat.ugriz[2] lt magcut1,nhiz)
+;;      zcat.cfhtls_r lt magcut1,nhiz)
 ;;    vhiz = where(zcat.zbest gt 1.2 and zcat.zbest lt 1.6 and $
-;;      zcat.ugriz[2] lt magcut1,nvhiz)
+;;      zcat.cfhtls_r lt magcut1,nvhiz)
 ;;    
-;;    w1 = where(zcat.zbest gt 0.6 and zcat.ugriz[2] lt magcut1,nw1)
-;;    w2 = where(zcat.zbest gt 1.2 and zcat.ugriz[2] lt magcut1,nw2)
+;;    w1 = where(zcat.zbest gt 0.6 and zcat.cfhtls_r lt magcut1,nw1)
+;;    w2 = where(zcat.zbest gt 1.2 and zcat.cfhtls_r lt magcut1,nw2)
 ;;    splog, 'Fraction of z>0.6 in grz box: ', n_elements(desi_get_hizelg($
 ;;      zcat[w1].ugriz,magcut=magcut1))/float(nw1)
 ;;    splog, 'Fraction of z>1.2 in grz box: ', n_elements(desi_get_hizelg($
@@ -767,16 +776,16 @@ end
 ;;    
 ;;    djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
 ;;      xtitle='r - z', ytitle='g - r', xrange=[-0.5,2.2], yrange=[-0.3,1.8]
-;;    djs_oplot, zcat[loz].ugriz[2]-zcat[loz].ugriz[4], $
-;;      zcat[loz].ugriz[1]-zcat[loz].ugriz[2], psym=symcat(16), symsize=0.3
-;;    djs_oplot, zcat[hiz].ugriz[2]-zcat[hiz].ugriz[4], $
-;;      zcat[hiz].ugriz[1]-zcat[hiz].ugriz[2], psym=symcat(5), $
+;;    djs_oplot, zcat[loz].cfhtls_r-zcat[loz].cfhtls_z, $
+;;      zcat[loz].cfhtls_g-zcat[loz].cfhtls_r, psym=symcat(16), symsize=0.3
+;;    djs_oplot, zcat[hiz].cfhtls_r-zcat[hiz].cfhtls_z, $
+;;      zcat[hiz].cfhtls_g-zcat[hiz].cfhtls_r, psym=symcat(5), $
 ;;      color=cgcolor('firebrick'), symsize=0.2
-;;    djs_oplot, zcat[vhiz].ugriz[2]-zcat[vhiz].ugriz[4], $
-;;      zcat[vhiz].ugriz[1]-zcat[vhiz].ugriz[2], psym=symcat(6), $
+;;    djs_oplot, zcat[vhiz].cfhtls_r-zcat[vhiz].cfhtls_z, $
+;;      zcat[vhiz].cfhtls_g-zcat[vhiz].cfhtls_r, psym=symcat(6), $
 ;;      color=cgcolor('forest green'), symsize=0.5
-;;    djs_oplot, stars.ugriz[2]-stars.ugriz[4], symsize=0.1, $
-;;      stars.ugriz[1]-stars.ugriz[2], psym=symcat(7), color='blue'
+;;    djs_oplot, stars.cfhtls_r-stars.cfhtls_z, symsize=0.1, $
+;;      stars.cfhtls_g-stars.cfhtls_r, psym=symcat(7), color='blue'
 ;;       
 ;;;; Mostek       
 ;;;    rzaxis = range(0.2,1.2,500)
@@ -828,17 +837,17 @@ end
 ;;    ewoiisnr = zcat.oii_3727_2_ew[0]/zcat.oii_3727_2_ew[1]
 ;;    refindx = where(zcat.zbest gt zmin and zcat.zbest lt zmax and $
 ;;      zcat.oii_3727[1] ne -2 and ewoiisnr ge 1.0,nrefindx)
-;;    rref = zcat[refindx].ugriz[2]
-;;    rzref = zcat[refindx].ugriz[2]-zcat[refindx].ugriz[4]
-;;    grref = zcat[refindx].ugriz[1]-zcat[refindx].ugriz[2]
+;;    rref = zcat[refindx].cfhtls_r
+;;    rzref = zcat[refindx].cfhtls_r-zcat[refindx].cfhtls_z
+;;    grref = zcat[refindx].cfhtls_g-zcat[refindx].cfhtls_r
 ;;    zref = zcat[refindx].zbest
 ;;    oiiref = zcat[refindx].oii_3727
 ;;
 ;;    noneindx = where(zcat.zbest gt zmin and zcat.zbest lt zmax and $
 ;;      (zcat.oii_3727[1] eq -2 or ewoiisnr lt 1.0),nnoneindx)
-;;    rnone = zcat[noneindx].ugriz[2]
-;;    rznone = zcat[noneindx].ugriz[2]-zcat[noneindx].ugriz[4]
-;;    grnone = zcat[noneindx].ugriz[1]-zcat[noneindx].ugriz[2]
+;;    rnone = zcat[noneindx].cfhtls_r
+;;    rznone = zcat[noneindx].cfhtls_r-zcat[noneindx].cfhtls_z
+;;    grnone = zcat[noneindx].cfhtls_g-zcat[noneindx].cfhtls_r
 ;;    znone = zcat[noneindx].zbest
 ;;    
 ;;    histref = hist_nd(transpose([$
@@ -943,7 +952,7 @@ end
 ;;;
 ;;;; print this as a diagnostic             
 ;;;             print, zcat[noneindx[thisnone]].zbest, zcat[refindx[thisref]].zbest, $
-;;;               zcat[noneindx[thisnone]].ugriz[2], zcat[refindx[thisref]].ugriz[2]
+;;;               zcat[noneindx[thisnone]].cfhtls_r, zcat[refindx[thisref]].cfhtls_r
 ;;;
 ;;;;            if thisnone eq 100 then stop
 ;;;;            if (rinone[rinone[ii]:rinone[ii+1]-1])[kk] eq 100 then stop

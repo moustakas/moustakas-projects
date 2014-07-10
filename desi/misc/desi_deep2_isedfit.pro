@@ -86,12 +86,17 @@ function deep2_get_oiiflux, ppxf, cflux_3727_rest=cflux_3727_rest
     oiicat[good].oii_3727_ew = oii[good].oii_3727_ew[0]
     oiicat[good].oii_3727_ew_err = oii[good].oii_3727_ew[1]
 
-; assign upper limits as if they were detections
-    limit = where(oiicat[good].oii_372
-    
-    
-stop    
-    
+; assign upper limits as if they were fluxes
+    limit = where(cflux_3727_rest gt 0.0 and oiicat.oii_3727 eq 0.0 and $
+      oii.oii_3727_limit gt 0,nlimit)
+    oiicat[limit].oii_3726 = oii[limit].oii_3727_1_limit
+    oiicat[limit].oii_3726_err = oii[limit].oii_3727_1_limit ; set uncertainty=flux
+    oiicat[limit].oii_3729 = oii[limit].oii_3727_2_limit
+    oiicat[limit].oii_3729_err = oii[limit].oii_3727_2_limit
+    oiicat[limit].oii_3727 = oii[limit].oii_3727_limit
+    oiicat[limit].oii_3727_err = oii[limit].oii_3727_limit
+    oiicat[limit].oii_3727_ew = oii[limit].oii_3727_ew_limit
+    oiicat[limit].oii_3727_ew_err = oii[limit].oii_3727_ew_limit
     
 return, oiicat
 end
@@ -219,10 +224,10 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
        oiicat[these].oii_3726_err = sqrt(factor[0])*oiicat[these].oii_3727_err
        oiicat[these].oii_3729_err = sqrt(factor[1])*oiicat[these].oii_3727_err
 
-; finally assign upper limits as if 
-       
-stop       
-       
+       ww = where(oiicat.oii_3727_err eq -2)
+       im_plothist, oiicat.z, bin=0.05
+       im_plothist, oiicat[ww].z, bin=0.05, /over, /fill
+
        im_mwrfits, oiicat, isedfit_dir+'deep2_oiicat_'+version+'.fits', clobber=clobber
     endif
 

@@ -85,13 +85,14 @@ pro build_desi_deep2egs, build_phot=build_phot, build_spec=build_spec
        zcat_phot_egs = deep2_get_ugriz(allzcat_phot[egs],/unwise,/degrade)
 
 ; this cut is to choose objects that are within the spectroscopic
-; footprint of Field 1       
+; footprint of Field 1 and which also have Q>=3
        pointing1 = strmid(strtrim(zcat_egs.objno,2),0,2)
        ad2xy, zcat_egs.ra, zcat_egs.dec, astr, xx, yy
        zcat_maskweight1 = interpolate(win,xx,yy,missing=0)
        
-       keep = where(zcat_maskweight1 gt 0 and zcat_egs.targ_weight gt 0 and $
-         zcat_phot_egs.cfhtls_r gt brightcut and zcat_phot_egs.cfhtls_r lt faintcut,nspec)
+       keep = where(zcat_maskweight1 gt 0 and zcat_egs.zquality ge 3 and $
+         zcat_egs.targ_weight gt 0 and zcat_phot_egs.cfhtls_r gt brightcut and $
+         zcat_phot_egs.cfhtls_r lt faintcut,nspec)
 
        zcat = zcat_egs[keep]
        zcat_phot = zcat_phot_egs[keep]
@@ -99,63 +100,70 @@ pro build_desi_deep2egs, build_phot=build_phot, build_spec=build_spec
          ['b','r','i','berr','rerr','ierr','cfhtls_*','w1*','w2*',$
          '*galfit*','*radius*']))
 
-; cut to Q>=3 and then cross-match with the [OII] flux catalog
-       zcat_q34 = zcat[where(zcat.zquality ge 3,ngal)]
-
+; cross-match with the [OII] flux catalog
+       kcorr = mrdfits(templatepath+'desi_deep2_fsps_v2.4_miles_'+$
+         'chab_charlot_sfhgrid01_kcorr.z0.0.fits.gz',1)
        oiicat = mrdfits(templatepath+'deep2_oiicat_'+version+'.fits.gz',1)
-       match, zcat_q34.objno, oiicat.objno, m1, m2
+       match, zcat.objno, oiicat.objno, m1, m2
        srt = sort(m1) & m1 = m1[srt] & m2 = m2[srt]
-       if total(zcat_q34.objno-oiicat[m2].objno) ne 0 then message, 'Problem!'
+       if total(zcat.objno-oiicat[m2].objno) ne 0 then message, 'Problem!'
 
-       zcat_q34 = struct_addtags(zcat_q34,struct_trimtags(oiicat[m2],$
+       zcat = struct_addtags(zcat,struct_trimtags(oiicat[m2],$
          select=['sigma_kms','oii_*']))
+       kcorr = kcorr[m2]
 
 ; assign [OII] fluxes to the missing objects by finding the nearest
 ; object in rest-frame color-magnitude space
-       
-       
-       
-stop       
+       zmin = 0.6               ; 0.8
+       zmax = 1.4
 
+       refindx = where(zcat.zbest gt zmin and zcat.zbest lt zmax and zcat.oii_3727_err gt 0,nrefindx)
+;      refindx = where(zcat.zbest gt zmin and zcat.zbest lt zmax and $
+;        zcat.oii_3727_err gt 0 and zcat.oii_3727_ew/zcat.oii_3727_ew_err gt 1.0,nrefindx)
+       mrref = kcorr[refindx].absmag[2]
+       umrref = kcorr[refindx].absmag[0]-mrref
+       oiiref = zcat[refindx].oii_3727
        
-;      nspec_weighted = long(total(zcat.targ_weight))
-;      splog, 'Parent spectroscopic sample = ', negs, nspec, nspec_weighted
+       needindx = where(zcat.zbest gt zmin and zcat.zbest lt zmax and zcat.oii_3727_err lt 0.0,nneedindx)
+;      needindx = where(zcat.zbest gt zmin and zcat.zbest lt zmax and $
+;        (zcat.oii_3727_err eq 0.0 or zcat.oii_3727_ew/zcat.oii_3727_ew_err le 1.0),nneedindx)
+       mrneed = kcorr[needindx].absmag[2]
+       umrneed = kcorr[needindx].absmag[0]-mrneed
+       oiineed = zcat[needindx].oii_3727
        
-       im_mwrfits, zcat, targpath+'deep2egs-zcatparent.fits', /clobber
+       for ii = 0, nneedindx-1 do begin
+          dist = sqrt((mrref-mrneed[ii])^2+(umrref-umrneed[ii])^2)
+          mindist = min(dist,thisref)
+;         print, rref[thisref], rneed[ii], rzref[thisref], rzneed[ii], $
+;           grref[thisref], grneed[ii], zref[thisref], zneed[ii]
+
+          junk = struct_trimtags(zcat[refindx[thisref]],select='oii_*')
+          zcat[needindx[ii]] = im_struct_assign(junk,zcat[needindx[ii]],/nozero)
+       endfor
+
+; here's some code to get the redshift success rate for this
+; sample, but J. Newmann suggests that we don't apply this 
+;       deep2_to_maggies, zcat_phot_q34, maggies, filterlist=filters, /unwise
+;       params = get_deep2_completeness_params('EGS')
+;       colors = get_deep2_completeness_colors(maggies,params=params,$
+;         targ_mag=zcat_phot_q34.r,filterlist=filters)
+;       zweight = get_deep2_zsuccess('EGS',mag=colors.mag,$
+;         color1=colors.color1,color2=colors.color2)
+;       zcat.zsuccess_weight = zweight
+
+; assign the final weight as the targeting weight
+       zcat.final_weight = zcat.targ_weight
+
+;; quick QAplots       
+;       djs_plot, mrref, umrref, psym=3, xsty=3, ysty=3
+;       djs_oplot, mrneed, umrneed, psym=7, symsize=0.2, color='green'
+;
+;       ww = where(zcat.oii_3727 gt 8D-17)
+;       im_plothist, zcat.z, bin=0.05
+;       im_plothist, zcat[ww].z, bin=0.05, /over, /fill
        
-; also write out a Q>=3 sample with the corresponding [OII] fluxes and
-; upper limits 
-       ppxf = read_deep2(/ppxf,/fixoii)
-       match, zcat.objno, ppxf.objno, m1, m2
-       srt = sort(m1) & m1 = m1[srt] & m2 = m2[srt]
-       zcat_phot_q34 = zcat_phot[m1]
-       zcat_q34 = zcat[m1]
-       ppxf_q34 = ppxf[m2]
+       im_mwrfits, zcat, targpath+'deep2egs-oii.fits', /clobber
        
-; get the redshift success rate for this sample       
-       deep2_to_maggies, zcat_phot_q34, maggies, filterlist=filters, /unwise
-       params = get_deep2_completeness_params('EGS')
-       colors = get_deep2_completeness_colors(maggies,params=params,$
-         targ_mag=zcat_phot_q34.r,filterlist=filters)
-       zweight = get_deep2_zsuccess('EGS',mag=colors.mag,$
-         color1=colors.color1,color2=colors.color2)
-       
-       zcat_q34.zsuccess_weight = zweight
-       zcat_q34.final_weight = 1/zweight
-       
-; build the [OII] flux
-       kised = mrdfits(templatepath+'desi_deep2_fsps_v2.4_miles_'+$
-         'chab_charlot_sfhgrid01_kcorr.z0.0.fits.gz',1,$
-         rows=m2)
-;   oii = deep2_get_oiiflux(ppxf_q34,cflux_3727_rest=kised.cflux_3727)
-    
-; possibly come up with an algorithm to assign an [OII] flux to an
-; object without one 
-       zcat_q34 = struct_addtags(zcat_q34,oii)
-       zcat_q34 = struct_addtags(zcat_q34,replicate({oii: 0.0},n_elements(zcat_q34)))
-       zcat_q34.oii = oii.oii_3727[0] ; total flux so we can run ELGTUNE
-       
-       im_mwrfits, zcat_q34, targpath+'deep2egs-zcatparent.Q34.fits', /clobber
     endif
     
 return

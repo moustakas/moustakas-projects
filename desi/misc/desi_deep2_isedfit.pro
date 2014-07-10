@@ -76,7 +76,7 @@ function deep2_get_oiiflux, ppxf, cflux_3727_rest=cflux_3727_rest
       oii_3727_ew:      0.0,$
       oii_3727_ew_err: -2.0},ngal))
 
-    good = where(cflux_3727_rest gt 0.0)
+    good = where(cflux_3727_rest gt 0.0,comp=bad)
     oiicat[good].oii_3726 = oii[good].oii_3727_1[0]
     oiicat[good].oii_3726_err = oii[good].oii_3727_1[1]
     oiicat[good].oii_3729 = oii[good].oii_3727_2[0]
@@ -85,6 +85,13 @@ function deep2_get_oiiflux, ppxf, cflux_3727_rest=cflux_3727_rest
     oiicat[good].oii_3727_err = oii[good].oii_3727[1]
     oiicat[good].oii_3727_ew = oii[good].oii_3727_ew[0]
     oiicat[good].oii_3727_ew_err = oii[good].oii_3727_ew[1]
+
+; assign upper limits as if they were detections
+    limit = where(oiicat[good].oii_372
+    
+    
+stop    
+    
     
 return, oiicat
 end
@@ -183,19 +190,41 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
     endif 
 
 ; --------------------------------------------------
-; build the [OII] flux catalog both with and without a fixed doublet
-; ratio 
+; build the [OII] flux catalog using the EWs from pPXF and the
+; continuum flux from iSEDfit based on the models which including
+; nebular emission (because they have slightly lower chi2)
     if keyword_set(build_oiiflux) then begin
+;      kised = mrdfits(isedfit_dir+'desi_deep2_fsps_v2.4_miles_'+$
+;        'chab_charlot_sfhgrid01_kcorr.z0.0.fits.gz',1)
        kised = mrdfits(isedfit_dir+'desi_deep2_fsps_v2.4_miles_'+$
          'chab_charlot_sfhgrid01_kcorr.z0.0.fits.gz',1)
+
+; assume a fixed doublet ratio       
        ppxf = read_deep2(/ppxf,/fixoii)
        oiicat = deep2_get_oiiflux(ppxf,cflux_3727_rest=kised.cflux_3727)
 
-       im_mwrfits, oiicat, isedfit_dir+'deep2_oiiflux_'+v
+; supplement with [OII] measurements where one line was dropped by
+; MPFIT...
+       ppxf = read_deep2(/ppxf)
+       oiicat1 = deep2_get_oiiflux(ppxf,cflux_3727_rest=kised.cflux_3727)
+
+       these = where(oiicat1.oii_3727 gt 0 and oiicat.oii_3727 eq 0,nthese)
+       oiicat[these] = oiicat1[these]
+
+; ...but distribute the flux according to the assumed ratio
+       doubletratio = 0.73      ; =3726/3729
+       factor = [doubletratio/(1.0+doubletratio),1.0/(1.0+doubletratio)]
+       oiicat[these].oii_3726 = factor[0]*oiicat[these].oii_3727
+       oiicat[these].oii_3729 = factor[1]*oiicat[these].oii_3727
+       oiicat[these].oii_3726_err = sqrt(factor[0])*oiicat[these].oii_3727_err
+       oiicat[these].oii_3729_err = sqrt(factor[1])*oiicat[these].oii_3727_err
+
+; finally assign upper limits as if 
        
 stop       
+       
+       im_mwrfits, oiicat, isedfit_dir+'deep2_oiicat_'+version+'.fits', clobber=clobber
     endif
-    
 
 ; --------------------------------------------------
 ; generate spectral energy distribution (SED) QAplots

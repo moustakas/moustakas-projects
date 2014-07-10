@@ -1,38 +1,79 @@
-J. Moustakas
+J. Moustakas, Siena College (jmoustakas@siena.edu)
   2014 March - original effort
   2014 June - updated to analysis of flux-calibrated spectra
+  2014 July - README rewritten to reflect many improvements 
 
-  
-  
-  
-The DEEP2/DESI targeting and template simulations both start from my
-spectral analysis of the DEEP2/DR4 dataset (see the related README).
-The results of this preliminary work are the following line-matched
-catalogs for 35682 galaxies with high-quality spectroscopic redshifts
-(Q>=3) and 1D spectra:
-    zcat.dr4.goodspec1d.Q34.fits.gz - full redshift catalog
-    weight.zcat.dr4.goodspec1d.Q34.fits.gz - statistical weights
-    photo.dr4.goodspec1d.Q34.fits.gz - ugriz/BRI+WISE photometric catalog from Matthews+13 
-    kcorr.dr4.goodspec1d.Q34.fits.gz - K-correct based K-corrections (for testing)
-    deep2.ppxf.specdata.dr4_v1.0.fits.gz - pPXF/GANDALF-based
-      emission-line catalog, particularly for [OII] 
+This README describes the construction of a sample of DEEP2 galaxies
+from the Extended Groth Strip (EGS=Field 1) with well-measured [OII]
+fluxes which will be used to optimize the DESI/ELG targeting strategy.
 
-Next, I fit broadband photometry using iSEDfit in order to determine
-K-corrections, estimate the continuum flux at 3727 A (around [OII]),
-and derive the stellar masses and SFRs (and other physical properties)
-for the galaxies in the sample.  Note that iSEDfit is run just on
-galaxies with z=0.1-2.0, where [OII] is measureable in DEEP2
-spectroscopy.  Specifically, running 
-  desi_deep2_isedfit, /isedfit,  /kcorrect, /qaplot_sed, /clobber
-produces the following iSEDfit catalogs, line-matched to all the
-preceding FITS tables:
-    desi_deep2_fsps_v2.4_miles_chab_charlot_sfhgrid01.fits.gz
-    desi_deep2_fsps_v2.4_miles_chab_charlot_sfhgrid01_kcorr.z0.0.fits.gz
+See also the DESI TechNote located here: technotes/targeting/elg-deep2
 
-The next step are to explore the color selection criteria for DESI.
+This analysis begins with my spectral analysis of the DEEP2/DR4
+dataset (for details see ${IM_PROJECTS_DIR}/deep2/README).  The
+results of this preliminary work are the following line-matched
+catalogs for N=35682 galaxies with high-quality spectroscopic
+redshifts (Q>=3) and 1D flux-calibrated spectra:
 
+  * zcat.dr4.goodspec1d.Q34.fits.gz - spectroscopic redshift catalog
+  * weight.zcat.dr4.goodspec1d.Q34.fits.gz - statistical weights
+  * photo.dr4.goodspec1d.Q34.fits.gz - ugriz/BRI+unWISE photometric catalog from Matthews+13 
+  * kcorr.dr4.goodspec1d.Q34.fits.gz - K-correct based K-corrections (for testing)
+  * deep2.ppxf.specdata.dr4_v1.0.fits.gz - pPXF/GANDALF-based emission-line catalog
+  * deep2.ppxf.specdata.fixoii.dr4_v1.0.fits.gz - same as above but with a fixed [OII] doublet ratio
 
+With these catalogs in hand, I construct the DEEP2/EGS sample using
+the following steps:
 
+  1. First, fit the broadband (ugriz+BRI+unWISE) photometry at the
+     spectroscopic redshift from DEEP2 using iSEDfit in order to
+     determine K-corrections, estimate the continuum flux at 3727 A
+     (around [OII]), and derive the stellar masses and SFRs (and other
+     physical properties) for the galaxies in the sample.  Note that
+     only galaxies at z=0.1-2 with photometry in at least 3 bandpasses
+     are fitted.
 
+       desi_deep2_isedfit, /write_param, /build_grids, /model_phot, $
+         /isedfit,  /kcorrect, /qaplot_sed, clobber=clobber
 
+     The fitting is carried out both with (sfhgrid02) and without
+     (sfhgrid01) nebular emission lines.  (Note that the DEEP2 spectra
+     are not used to constrain the fitting at this step.)
 
+     The command above produces the following iSEDfit catalogs and
+     best-fitting spectra of N=35682 galaxies (line-matched to the
+     input DEEP2 photometric and spectroscopic catalog):
+
+       desi_deep2_fsps_v2.4_miles_chab_charlot_sfhgrid01.fits.gz
+       desi_deep2_fsps_v2.4_miles_chab_charlot_sfhgrid02.fits.gz
+       desi_deep2_fsps_v2.4_miles_chab_charlot_sfhgrid01_kcorr.z0.0.fits.gz
+       desi_deep2_fsps_v2.4_miles_chab_charlot_sfhgrid02_kcorr.z0.0.fits.gz
+
+     Note that the current version of these models is given by the
+     output of desi_deep2_template_version(). 
+       
+  2. Next, combine the pPXF and K-correct catalogs to generate a
+     catalog of integrated [OII] fluxes.
+
+       desi_deep2_isedfit, /build_oiiflux, clobber=clobber
+
+     This code produces the following catalog, where VERSION is
+     discussed above:
+
+       deep2_oiicat_VERSION.fits.gz
+
+  3. Next, build a statistically complete (flux-limited) sample of
+     galaxies in DEEP2/EGS with a high-quality spectroscopic redshift
+     (and spectrum!) from DEEP2.
+
+       build_desi_deep2egs, /build_phot, /build_spec
+
+     This script generates three catalogs: (1) a parent photometric
+     catalog that contains BRI+ugriz+WISE photometry; (2) a
+     photometric sample of stars (selected using PGAL<0.2), for
+     comparison purposes; and (3) a parent spectroscopic catalog that
+     contains all the same photometry plus [OII] fluxes:
+
+       deep2egs-phot.fits.gz
+       deep2egs-stars.fits.gz
+       deep2egs-oii.fits.gz

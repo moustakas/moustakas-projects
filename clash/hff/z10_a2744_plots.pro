@@ -13,7 +13,7 @@ pro z10_a2744_plots
     isedfit_paramfile_photoz = isedfit_dir+'z10_a2744_photoz_paramfile.par'
 
     cat = read_z10_a2744()
-    these = [0,1,2,n_elements(cat)-1]
+    these = [0,1,5,n_elements(cat)-1]
     cat = cat[these]
     nobj = n_elements(cat)
 
@@ -33,8 +33,10 @@ pro z10_a2744_plots
     
     
 ; pre-process the photoz's
-    bpz = rsex(isedfit_dir+'bpz.out')
-    pbpz = read_bpz_probs(isedfit_dir+'bpz.probs',redshift=bpz_zz)
+    bpz = rsex(isedfit_dir+'triple.bpz')
+    pbpz = read_bpz_probs(isedfit_dir+'triple.probs',redshift=bpz_zz)
+;   bpz = rsex(isedfit_dir+'bpz.out')
+;   pbpz = read_bpz_probs(isedfit_dir+'bpz.probs',redshift=bpz_zz)
     pbpz = pbpz[these]
     bpz = bpz[these]
 

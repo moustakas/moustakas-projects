@@ -17,7 +17,7 @@ function read_z10_a2744, photoz=photoz, bpz_dz=bpz_dz, bpz_redshift=bpz_redshift
     
 ; make a "Total"
 ;   these = [0,1] ; =A, B
-    these = [0,1,2] ; =A, B, C
+    these = [0,1,5] ; =A, B, C
     tags = tag_names(cat)
     cat1 = im_empty_structure(cat[0],empty_value=-999.0)
 ;   cat1.galaxy = 'JD1 A+B'

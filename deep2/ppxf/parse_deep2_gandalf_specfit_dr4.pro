@@ -267,6 +267,20 @@ pro parse_deep2_gandalf_specfit_dr4, thismask=thismask, firstmask=firstmask, $
              specdata[iobj].oii_3727_limit = specdata[iobj].oii_3727_2_limit
              specdata[iobj].oii_3727_ew_limit = specdata[iobj].oii_3727_2_ew_limit
           endif
+; both are "bad" (can still get upper limits)
+          if specdata[iobj].oii_3727_1[1] eq -1.0 and specdata[iobj].oii_3727_2[1] eq -1.0 then begin
+             specdata[iobj].oii_3727 = specdata[iobj].oii_3727_2
+             specdata[iobj].oii_3727_ew = specdata[iobj].oii_3727_2_ew
+             specdata[iobj].oii_3727_amp = specdata[iobj].oii_3727_2_amp
+             specdata[iobj].oii_3727_linez = specdata[iobj].oii_3727_2_linez
+             specdata[iobj].oii_3727_sigma = specdata[iobj].oii_3727_2_sigma
+             specdata[iobj].oii_3727_continuum = specdata[iobj].oii_3727_2_continuum
+             specdata[iobj].oii_3727_limit = specdata[iobj].oii_3727_1_limit+specdata[iobj].oii_3727_2_limit
+             specdata[iobj].oii_3727_ew_limit = specdata[iobj].oii_3727_1_ew_limit+specdata[iobj].oii_3727_2_ew_limit
+;            if specdata[iobj].objno eq 31009132L then stop
+          endif
+;         if specdata[iobj].oii_3727_1[1] eq -2.0 and specdata[iobj].oii_3727_1_limit gt 0 then stop
+;         if specdata[iobj].oii_3727_limit eq -2.0 and specdata[iobj].oii_3727_1_limit eq -1 then stop
        endfor
 
        im_mwrfits, specdata, specdatafile[ii], /clobber

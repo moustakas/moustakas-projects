@@ -129,7 +129,8 @@ function gandalf_parse_elinefit, sol, esol, linepars, $
        tag_weak_flux = tag_indx(out,(linepars[weak[ii]].name)[0])
        tag_strong_flux = tag_indx(out,(linepars[jj].name)[0])
        if ((out.(tag_strong_flux))[1] gt 0.0) then $
-         out.(tag_weak_flux) = linepars[weak[ii]].a*out.(tag_strong_flux)
+         out.(tag_weak_flux) = linepars[weak[ii]].a*out.(tag_strong_flux) else $
+           out.(tag_weak_flux) = out.(tag_strong_flux)
 
        tag_weak_continuum = tag_indx(out,(linepars[weak[ii]].name)[0]+'_continuum')
        tag_strong_continuum = tag_indx(out,(linepars[jj].name)[0]+'_continuum')
@@ -139,7 +140,8 @@ function gandalf_parse_elinefit, sol, esol, linepars, $
        tag_weak_amp = tag_indx(out,(linepars[weak[ii]].name)[0]+'_amp')
        tag_strong_amp = tag_indx(out,(linepars[jj].name)[0]+'_amp')
        if ((out.(tag_strong_amp))[1] gt 0.0) then $
-         out.(tag_weak_amp) = linepars[weak[ii]].a*out.(tag_strong_amp)
+         out.(tag_weak_amp) = linepars[weak[ii]].a*out.(tag_strong_amp) else $
+           out.(tag_weak_amp) = out.(tag_strong_amp)
 
        tag_weak_limit = tag_indx(out,linepars[weak[ii]].name+'_limit')
        tag_strong_limit = tag_indx(out,linepars[jj].name+'_limit')
@@ -149,23 +151,24 @@ function gandalf_parse_elinefit, sol, esol, linepars, $
        tag_weak_ew = tag_indx(out,(linepars[weak[ii]].name+'_ew')[0])
        tag_strong_ew = tag_indx(out,(linepars[jj].name+'_ew')[0])
        if ((out.(tag_strong_ew))[1] gt 0.0) then $
-         out.(tag_weak_ew) = linepars[weak[ii]].a*out.(tag_strong_ew)
+         out.(tag_weak_ew) = linepars[weak[ii]].a*out.(tag_strong_ew) else $
+           out.(tag_weak_ew) = out.(tag_strong_ew)
 
 ; if the sigma *measurement* (not error) is >0 then store it
 ; (remember: if SIGMA hits the limit of what we allow then the error
 ; is set to zero by MPFIT in IM_GANDALF)       
        tag_weak_sigma = tag_indx(out,(linepars[weak[ii]].name)[0]+'_sigma')
        tag_strong_sigma = tag_indx(out,(linepars[jj].name)[0]+'_sigma')
-       if ((out.(tag_strong_sigma))[0] gt 0.0) then $
-         out.(tag_weak_sigma) = out.(tag_strong_sigma)
+;      if ((out.(tag_strong_sigma))[0] gt 0.0) then $
+       out.(tag_weak_sigma) = out.(tag_strong_sigma)
 
        tag_weak_linez = tag_indx(out,(linepars[weak[ii]].name)[0]+'_linez')
        tag_strong_linez = tag_indx(out,(linepars[jj].name)[0]+'_linez')
 ; sometimes the redshift can be defined, but the redshift *error* is
 ; zero; not sure why
-       if ((out.(tag_strong_linez))[0] gt 0.0) then $
+;      if ((out.(tag_strong_linez))[0] gt 0.0) then $
 ;      if ((out.(tag_strong_linez))[1] gt 0.0) then $
-         out.(tag_weak_linez) = out.(tag_strong_linez)
+       out.(tag_weak_linez) = out.(tag_strong_linez)
     endfor
 
 ;; combine the [OII] doublet
@@ -224,6 +227,7 @@ function gandalf_parse_elinefit, sol, esol, linepars, $
           out.(tag_limit) = sqrt(2.0*!pi)*(out.(tag_continuum))[1]*$
             out.(tag_wave)*sigma_limit/im_light()
           out.(tag_ew_limit) = out.(tag_limit)/(out.(tag_continuum))[0]
+;         if (out.(tag_flux))[1] eq -2 and strmatch(linename[ii],'*oii_*',/fold) then message, 'No!'
 ;         splog, out.(tag_limit), (out.(tag_flux))[0], out.(tag_ew_limit), (out.(tag_ew))[0]
        endif
     endfor 

@@ -41,7 +41,7 @@ pro build_desi_deep2egs, build_phot=build_phot, build_spec=build_spec
 ; finally, degrade the grz photometry to the anticipated depth of our
 ; DECam imaging 
        egs = where(strmid(strtrim(allphot.objno,2),0,1) eq '1',negs)
-       phot_egs = deep2_get_ugriz(allphot[egs],/unwise,/degrade)
+       phot_egs = deep2_get_ugriz(allphot[egs],/unwise,degrade=0)
        
 ; next, select objects in the spectroscopic footprint in a fiducial 
 ; magnitude range with PGAL>0.5
@@ -82,7 +82,7 @@ pro build_desi_deep2egs, build_phot=build_phot, build_spec=build_spec
        egs = where(strmid(strtrim(allzcat.objno,2),0,1) eq '1',negs)
        
        zcat_egs = allzcat[egs]
-       zcat_phot_egs = deep2_get_ugriz(allzcat_phot[egs],/unwise,/degrade)
+       zcat_phot_egs = deep2_get_ugriz(allzcat_phot[egs],/unwise,degrade=0)
 
 ; this cut is to choose objects that are within the spectroscopic
 ; footprint of Field 1 and which also have Q>=3
@@ -117,7 +117,8 @@ pro build_desi_deep2egs, build_phot=build_phot, build_spec=build_spec
        zmin = 0.6               ; 0.8
        zmax = 1.4
 
-       refindx = where(zcat.zbest gt zmin and zcat.zbest lt zmax and zcat.oii_3727_err gt 0,nrefindx)
+       refindx = where(zcat.zbest gt 0.8 and zcat.zbest lt 1.1 and zcat.oii_3727_err gt 0,nrefindx)
+;      refindx = where(zcat.zbest gt zmin and zcat.zbest lt zmax and zcat.oii_3727_err gt 0,nrefindx)
 ;      refindx = where(zcat.zbest gt zmin and zcat.zbest lt zmax and $
 ;        zcat.oii_3727_err gt 0 and zcat.oii_3727_ew/zcat.oii_3727_ew_err gt 1.0,nrefindx)
        mrref = kcorr[refindx].absmag[2]
@@ -130,12 +131,14 @@ pro build_desi_deep2egs, build_phot=build_phot, build_spec=build_spec
        mrneed = kcorr[needindx].absmag[2]
        umrneed = kcorr[needindx].absmag[0]-mrneed
        oiineed = zcat[needindx].oii_3727
-       
+
+       keep = lonarr(nneedindx)
        for ii = 0, nneedindx-1 do begin
           dist = sqrt((mrref-mrneed[ii])^2+(umrref-umrneed[ii])^2)
           mindist = min(dist,thisref)
 ;         print, rref[thisref], rneed[ii], rzref[thisref], rzneed[ii], $
 ;           grref[thisref], grneed[ii], zref[thisref], zneed[ii]
+          keep[ii] = thisref
 
           junk = struct_trimtags(zcat[refindx[thisref]],select='oii_*')
           zcat[needindx[ii]] = im_struct_assign(junk,zcat[needindx[ii]],/nozero)
@@ -154,10 +157,11 @@ pro build_desi_deep2egs, build_phot=build_phot, build_spec=build_spec
 ; assign the final weight as the targeting weight
        zcat.final_weight = zcat.targ_weight
 
-;; quick QAplots       
-;       djs_plot, mrref, umrref, psym=3, xsty=3, ysty=3
-;       djs_oplot, mrneed, umrneed, psym=7, symsize=0.2, color='green'
-;
+; quick QAplots       
+       djs_plot, mrref, umrref, psym=3, xsty=3, ysty=3, color='cyan', $
+         xrange=[-18,-24], yrange=[-0.3,2.7]
+       djs_oplot, mrneed, umrneed, psym=6, symsize=0.1, color='green'
+
 ;       ww = where(zcat.oii_3727 gt 8D-17)
 ;       im_plothist, zcat.z, bin=0.05
 ;       im_plothist, zcat[ww].z, bin=0.05, /over, /fill

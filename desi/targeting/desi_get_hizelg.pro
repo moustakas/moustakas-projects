@@ -1,18 +1,20 @@
 function desi_get_hizelg, cat, mostek=mostek, johan=johan, magcut=magcut, $
-  sigma_kms=sigma_kms
+  sigma_kms=sigma_kms, zbandlimit=zbandlimit
 ; jm14jun28siena - select high-redshift galaxies using grz color-cuts;
 ; note: this code expects a catalog that has been processed through
 ; DEEP2_GET_UGRIZ() 
 
     rr = cat.cfhtls_r
+    zz = cat.cfhtls_z
     gr = cat.cfhtls_g-cat.cfhtls_r
     rz = cat.cfhtls_r-cat.cfhtls_z
     if n_elements(magcut) eq 0 then magcut = 99.0
+    if keyword_set(zbandlimit) then mag = zz else mag = rr
 
 ; fiducial cut    
     int1 = -0.1 & slope1 = 1.0
     int2 = 1.7 & slope2 = -1.0
-    hiz = where(rr lt magcut and rz gt 0.2 and rz lt 1.4 and $
+    hiz = where(mag lt magcut and rz gt 0.2 and rz lt 1.4 and $
       ((rz le 0.9 and gr lt poly(rz,[int1,slope1])) or $
       (rz gt 0.9 and gr lt poly(rz,[int2,slope2]))))
 

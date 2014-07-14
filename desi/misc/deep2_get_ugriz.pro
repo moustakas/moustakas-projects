@@ -68,13 +68,17 @@ function deep2_get_ugriz, cat, unwise=unwise, degrade=degrade
          0.16*randomn(1234,ngood)*10^((22.5-grzdepth[0])/2.5)
        outcat[good].cfhtls_g = 22.5 - 2.5*alog10(gflux > 0.01)
 
+       good = where(outcat.cfhtls_rerr gt 0,ngood)
        rflux = 10^((22.5-outcat[good].cfhtls_r)/2.5) + $
          0.16*randomn(2345,ngood)*10^((22.5-grzdepth[1])/2.5)
        outcat[good].cfhtls_r = 22.5 - 2.5*alog10(rflux > 0.01)
 
+       good = where(outcat.cfhtls_zerr gt 0,ngood)
        zflux = 10^((22.5-outcat[good].cfhtls_z)/2.5) + $
          0.16*randomn(3456,ngood)*10^((22.5-grzdepth[2])/2.5)
        outcat[good].cfhtls_z = 22.5 - 2.5*alog10(zflux > 0.01)
+       ww = where(finite(outcat[good].cfhtls_z) eq 0)
+       if ww[0] ne -1 then stop
     endif
     
 return, outcat

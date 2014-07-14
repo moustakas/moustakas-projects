@@ -1,7 +1,8 @@
 function read_bcg_profiles, cluster, scale=scale, these_filters=these_filters
 ; jm13may20siena - read a M. Postman style BCG profile file 
 
-    profilepath = getenv('CLASH_DATA')+'/bcg_profiles/13oct29/'
+;   profilepath = getenv('CLASH_DATA')+'/bcg_profiles/13oct29/'
+    profilepath = getenv('CLASH_DATA')+'/bcg_profiles/14jul12/'
     if n_elements(cluster) eq 0 then begin
        splog, 'Need CLUSTER name.'
        return, -1
@@ -38,6 +39,7 @@ function read_bcg_profiles, cluster, scale=scale, these_filters=these_filters
     
     nrmax = 25
     data_template = {$
+      band:                        '',$
       sma:         fltarr(nrmax)-99.0,$
       mu:          fltarr(nrmax)-99.0,$
       mu_err:      fltarr(nrmax)-99.0,$
@@ -49,12 +51,15 @@ function read_bcg_profiles, cluster, scale=scale, these_filters=these_filters
       ell_err:     fltarr(nrmax)-99.0,$
       pa:          fltarr(nrmax)-99.0,$
       pa_err:      fltarr(nrmax)-99.0}
-    allfile = profilepath+cluster+'_mosaic_*'+scale+'*_*_'+short+'_*.txt'
+    allfile = profilepath+cluster+'_'+scale+'_'+short+'_drz_????????_bcg.txt'
+;   allfile = profilepath+cluster+'_mosaic_*'+scale+'*_*_'+short+'_*.txt'
+;   splog, allfile
 
     nrow = 9
     check = fltarr(nfilt)+1
     for ii = 0, nfilt-1 do begin
        data1 = data_template
+       data1.band = short[ii]
        file1 = file_search(allfile[ii],count=nfile)
 ; multiple files
        if nfile gt 1 then begin

@@ -7,30 +7,63 @@ pro z10_a2744_plots
     weff = weff/1D4
     hwhm = hwhm/1D4
 
+    zphot = 9.8
+    
 ; --------------------------------------------------
 ; paper plot: SED + P(z)
     isedfit_paramfile = isedfit_dir+'z10_a2744_paramfile.par'
     isedfit_paramfile_photoz = isedfit_dir+'z10_a2744_photoz_paramfile.par'
 
     cat = read_z10_a2744()
-    these = [0,1,5,n_elements(cat)-1]
+    these = [0,1,2,3]
+;   these = [0,1,5,n_elements(cat)-1]
     cat = cat[these]
     nobj = n_elements(cat)
 
-    common com_z10_a2744, rr, rr_photoz, post, pp, post1
+    common com_z10_a2744, rr, rr_photoz, photozpost, post, param
     if n_elements(rr) eq 0L then begin
        rr = read_isedfit(isedfit_paramfile,index=these,/getmodels,$
-         isedfit_dir=isedfit_dir,montegrids_dir=montegrids_dir)
+         isedfit_dir=isedfit_dir,montegrids_dir=montegrids_dir,$
+         isedfit_post=post)
        rr_photoz = read_isedfit(isedfit_paramfile_photoz,index=these,$
          isedfit_dir=isedfit_dir,montegrids_dir=montegrids_dir,$
-         params=pp,isedfit_post=post)
-       post1 = post
+         params=param,isedfit_post=photozpost)
     endif
     col = 'orange'
 
 ; print out the physical properties
+    splog, 'Mass ', 10.0^(rr.mstar_50-alog10(cat.mu))
+;   splog, 'Mass error ', rr.mstar_err*10^rr.mstar_50*alog(10)
+    splog, 'SFR ', 10.0^(rr.sfr_50-alog10(cat.mu))
+;   splog, 'SFR error ', rr.sfr_err*10.0^(rr.sfr_50-alog10(cat.mu))*alog(10)
+    splog, 'sSFR ', 10^(rr.sfr_50-rr.mstar_50)
+
+    allsfrage = fltarr(3)
+    for ii = 0, 2 do allsfrage[ii] = weighted_quantile(post[ii].sfrage,quant=0.95)
+    splog, 'SFR-Age (Myr)', allsfrage*1E3
+    splog, 'zf ', getredshift(getage(zphot)-allsfrage)
+
+    print & ww = [0,1,2]
+    splog, 'Final results!'
+    mass = mean(10.0^(rr[ww].mstar_50-alog10(cat[ww].mu)))
+    sfr = mean(10.0^(rr[ww].sfr_50-alog10(cat[ww].mu)))
+    sfrage = 220.0 ; [Myr]
+    
+    gasfactor = 1.0/(0.05*alog(1+sfrage/1.4)) ; see eq 14 in Behroozi+13
+    doubletime = gasfactor*mass/sfr/1D6
+
+    splog, 'Mass = ', mass
+    splog, 'SFR = ', sfr
+    splog, 'SFR-Age = ', sfrage
+    splog, 'Doubling time, age of Universe (Myr) = ', doubletime, $
+      getage(zphot,/Myr), doubletime/getage(zphot,/Myr)
+
+; using K98 gives SFRs of ~0.5 Msun/yr!!
+;   jj = mrdfits('z10_a2744_fsps_v2.4_miles_chab_none_sfhgrid01_kcorr.z0.0.fits.gz',1)
+;   print, jj[0:3].flam_1500*1500.0^2/light*4.0*!pi*dluminosity(9.8,/cm)^2*1.4D-28/cat.mu
     
     
+stop    
     
 ; pre-process the photoz's
     bpz = rsex(isedfit_dir+'triple.bpz')
@@ -42,8 +75,19 @@ pro z10_a2744_plots
 
     for ii = 0, nobj-1 do begin
        zmin = isedfit_find_zmin(bpz_zz,-2.0*alog(pbpz[ii].pofz>1D-20))
-       struct_print, zmin & print & help, bpz[ii], /str
+;      struct_print, zmin & print & help, bpz[ii], /str
     endfor
+
+; print out the final redshifts and uncertainties for the paper
+    zmin = isedfit_find_zmin(param.redshift,-2.0*alog(photozpost[3].pofz>1D-20))
+    splog, 'iSEDfit: '+strtrim(string(zmin[0].photoz,format='(F12.2)'),2)+$
+      '^{+'+strtrim(string(zmin[0].photoz_sigma[0],format='(F12.2)'),2)+'}'+$
+      '_{-'+strtrim(string(zmin[0].photoz_sigma[1],format='(F12.2)'),2)+'}'
+    
+    zmin = isedfit_find_zmin(bpz_zz,-2.0*alog(pbpz[3].pofz>1D-20))
+    splog, 'BPZ: '+strtrim(string(zmin[0].photoz,format='(F12.2)'),2)+$
+      '^{+'+strtrim(string(zmin[0].photoz_sigma[0],format='(F12.2)'),2)+'}'+$
+      '_{-'+strtrim(string(zmin[0].photoz_sigma[1],format='(F12.2)'),2)+'}'
 
 ; make the plot    
     xrange = [0.3,8.0]
@@ -74,8 +118,8 @@ pro z10_a2744_plots
 ; on the input photometry
        print, rr[ii].maggies*sqrt(rr[ii].ivarmaggies)
        nsigma = rr[ii].maggies*0+2.0
-;      if ii eq 1 then nsigma[1] = 2.49
-;      if ii eq 3 then nsigma[2] = 2.1
+       if ii eq 1 then nsigma[1] = 2.13
+       if ii eq 2 then nsigma[2] = 2.43
        mab = maggies2mag(rr[ii].maggies,nsigma=nsigma,$
          ivar=rr[ii].ivarmaggies,magerr=maberr,$
          lomagerr=mabloerr,himagerr=mabhierr,magnsigma=mabupper)
@@ -106,7 +150,7 @@ pro z10_a2744_plots
          strtrim(cat[ii].galaxy,2)
 
 ; P(z) inset
-       ipofz = post1[ii].pofz/im_integral(pp.redshift,post1[ii].pofz)
+       ipofz = photozpost[ii].pofz/im_integral(param.redshift,photozpost[ii].pofz)
        bpofz = pbpz[ii].pofz/im_integral(bpz_zz,pbpz[ii].pofz)
        yr = [0,max(ipofz)>max(bpofz)]*1.02
 
@@ -115,12 +159,12 @@ pro z10_a2744_plots
        djs_plot, [0], [0], /nodata, /noerase, xsty=5, ysty=5, /norm, $
          position=pos[*,2*ii+1], xrange=[0,12], yrange=yr
 
-       polyfill, [pp.redshift,reverse(pp.redshift)], [ipofz,ipofz*0+!y.crange[0]], $
+       polyfill, [param.redshift,reverse(param.redshift)], [ipofz,ipofz*0+!y.crange[0]], $
          /fill, color=cgcolor('tomato'), noclip=0
        polyfill, [bpz_zz,reverse(bpz_zz)], [bpofz,bpofz*0+!y.crange[0]], $
          /fill, color=cgcolor('dodger blue'), noclip=0
 
-       djs_oplot, pp.redshift, ipofz, line=0, color=cgcolor('firebrick')
+       djs_oplot, param.redshift, ipofz, line=0, color=cgcolor('firebrick')
        djs_oplot, bpz_zz, bpofz, line=0, color=cgcolor('navy')
 
        if ii eq 3 then xtitle = 'Redshift z'
@@ -367,14 +411,14 @@ end
 ;    cat = cat[these]
 ;    nobj = n_elements(cat)
 ;
-;    common com_z10_a2744, rr, rr_photoz, post, pp, post1
+;    common com_z10_a2744, rr, rr_photoz, post, pp, photozpost
 ;    if n_elements(rr) eq 0L then begin
 ;       rr = read_isedfit(isedfit_paramfile,index=these,/getmodels,$
 ;         isedfit_dir=isedfit_dir,montegrids_dir=montegrids_dir)
 ;       rr_photoz = read_isedfit(isedfit_paramfile_photoz,index=these,$
 ;         isedfit_dir=isedfit_dir,montegrids_dir=montegrids_dir,$
 ;         params=pp,isedfit_post=post)
-;       post1 = post
+;       photozpost = post
 ;    endif
 ;    col = 'orange'
 ;
@@ -453,7 +497,7 @@ end
 ;         strtrim(cat[ii].galaxy,2)
 ;
 ;; P(z) inset
-;       ipofz = post1[ii].pofz/im_integral(pp.redshift,post1[ii].pofz)
+;       ipofz = photozpost[ii].pofz/im_integral(pp.redshift,photozpost[ii].pofz)
 ;       bpofz = pbpz[ii].pofz/im_integral(bpz_zz,pbpz[ii].pofz)
 ;       yr = [0,max(ipofz)>max(bpofz)]*1.02
 ;

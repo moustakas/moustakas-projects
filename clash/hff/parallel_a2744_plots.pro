@@ -12,8 +12,11 @@ pro parallel_a2744_plots
 ; QAplot: P(z)'s
     isedfit_paramfile = isedfit_dir+'parallel_a2744_photoz_paramfile.par'
 
-    rr = read_isedfit(isedfit_paramfile,params=pp,isedfit_post=post)
     cat = read_parallel_a2744()
+    these = where(cat.id eq 3896 or cat.id eq 8281 or cat.id eq 1959)
+    cat = cat[these]
+    
+    rr = read_isedfit(isedfit_paramfile,params=pp,isedfit_post=post,index=these)
     ngal = n_elements(cat)
 
 ;   for ii = 0, ngal-1 do post[ii].pofz = alog(post[ii].pofz/total(post[ii].pofz))
@@ -30,7 +33,7 @@ pro parallel_a2744_plots
     
     psfile = isedfit_dir+'parallel_a2744_pofz.ps'
     im_plotconfig, 0, pos, psfile=psfile, charsize=2.0, height=4.5, $
-      xmargin=[1.4,0.4], width=6.7
+      xmargin=[1.6,0.4], width=6.5
     for ii = 0, ngal-1 do begin
 ;      yrange = [0,max(post[ii].pofz)*1.05]
        djs_plot, [0], [0], /nodata, position=pos, xsty=5, ysty=5, $

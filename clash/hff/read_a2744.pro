@@ -2,7 +2,8 @@ function read_a2744, photoz=photoz, bpz_dz=bpz_dz, bpz_redshift=bpz_redshift, $
   index=index
 ; jm14jan10siena - read the photometric catalog
 
-    date = 'feb24'
+    date = 'jul22'
+;   date = 'feb24'
 ;   date2 = 'jan03'
     
     path = getenv('CLASH_PROJECTS')+'/hff/a2744/'

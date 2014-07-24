@@ -24,7 +24,7 @@ pro parallel_a2744_isedfit, write_paramfile=write_paramfile, build_grids=build_g
           nmodel = 20000L
           redcurve = 'charlot'
           write_isedfit_paramfile, params=params, isedfit_dir=isedfit_dir, $
-            prefix=prefix, filterlist=filterlist, zminmax=[0.1,12.0], nzz=100, $
+            prefix=prefix, filterlist=filterlist, zminmax=[0.1,12.0], nzz=150, $
             spsmodels=spsmodels, imf=imf, redcurve=redcurve, /igm, pburst=0.2, $
             sfhgrid=1, nmodel=nmodel, age=[0.01,12.0], AV=[0.0,3.0], tau=[0.0,5.0], $
             Zmetal=[0.0008,0.03], oiiihb=[-0.3,1.0], /nebular, /delayed, /flatav, $

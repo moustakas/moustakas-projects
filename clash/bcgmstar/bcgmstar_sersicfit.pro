@@ -69,6 +69,172 @@ function get_sersic_variance, radius_kpc, sersic=sersic, debug=debug
 return, sb_var
 end
 
+pro bcgmstar_sersic2_allbands, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
+  init_params=init_params, fixed=fixed, sersicfit=sersicfit, $
+  fixdevac=fixdevac, verbose=verbose
+; fit a double-Sersic function to all the bands simultaneously by
+; allowing the half-light radius and Sersic n parameter to vary as a
+; power-law function of wavelength, while allowing the surface
+; brightness at re in each band to be free 
+
+; parse the data
+    good = where(sb_ivar gt 0.0 and finite(sb),nn)
+    xx = rr[good]
+    xxsb = sb[good]
+    xxsb_ivar = sb_ivar[good] 
+
+; figure out how many bands we need to fit and then set up the
+; parameters 
+    uwave = wave[uniq(wave,sort(wave))]
+    nband = n_elements(uwave)
+
+    get_element, uwave, 15326.0, this
+    wave_ref = uwave[this] ; =F160W
+    nparam = 2*nband+8
+
+    parinfo = replicate({value: 0D, fixed: 0, $
+      limited: [0,0], limits: [0D,0D]},nparam)
+
+; 1<n1_ref<10
+    parinfo[0].limited = [1,1]
+    parinfo[0].limits = alog10([0.1D,10D])
+; 1<n2_ref<10
+    parinfo[1].limited = [1,1]
+    parinfo[1].limits = alog10([0.1D,10D])
+; 0.01<re1_ref<500
+    parinfo[2].limited = [1,1]
+    parinfo[2].limits = alog10([0.01D,500D])
+; 0.01<re2_ref<500
+    parinfo[3].limited = [1,1]
+    parinfo[3].limits = alog10([0.01D,500D])
+
+; alpha1
+    parinfo[4].limited = [1,1]
+    parinfo[4].limits = [-1,3]
+; alpha2
+    parinfo[5].limited = [1,1]
+    parinfo[5].limits = [-1,3]
+; beta1
+    parinfo[6].limited = [1,1]
+    parinfo[6].limits = [-1,3]
+; beta2
+    parinfo[7].limited = [1,1]
+    parinfo[7].limits = [-1,3]
+    
+; sbe1 - surface brightness at re
+    for ib = 0, nband-1 do begin
+       parinfo[8+ib].limited = [1,0]
+       parinfo[8+ib].limits = [1D-12,0D]
+;      parinfo[8+ib].limits = [0D,0D]
+    endfor
+
+; sbe2 - surface brightness at re
+    for ib = 0, nband-1 do begin
+       parinfo[8+nband+ib].limited = [1,0]
+       parinfo[8+nband+ib].limits = [1D-12,0D]
+;      parinfo[8+nband+ib].limits = [0D,0D]
+    endfor
+
+    if n_elements(fixed) eq nparam then parinfo.fixed = fixed
+    if n_elements(init_params) eq nparam then parinfo.value = init_params else begin
+       parinfo.value = [$
+         alog10(1D),$           ; n1_ref
+         alog10(4D),$           ; n2_ref
+         alog10(200D),$         ; re1_ref
+         alog10(10D),$          ; re2_ref
+         0.1D,$                 ; alpha1
+         0.1D,$                 ; alpha2
+         0.5D,$                 ; beta1
+         0.5D,$                 ; beta2
+         replicate(median(xxsb),nband),$
+         0.1*replicate(median(xxsb),nband)]
+    endelse
+       
+;    if keyword_set(fixdevac) then begin
+;       parinfo[3].value = 4D
+;       parinfo[3].fixed = 1
+;    endif
+
+;   struct_print, parinfo
+    params = mpfitfun('bcgmstar_sersic2_allbands_func',xx,xxsb,parinfo=parinfo,$
+      yfit=sersicfit,perror=perror,covar=covar,weights=xxsb_ivar,dof=dof,$
+      bestnorm=chi2,status=status,quiet=0,$;keyword_set(verbose) eq 0,$
+      functargs={parinfo: parinfo, wave: wave})
+    factor = sqrt(chi2/dof)
+    
+; build two output structures: one that has the formal fitting results
+; (alpha, beta, etc.)...
+    results = {$
+      status: status,$
+      chi2:     chi2,$
+      dof:       dof,$
+      covar:   covar,$
+      params:  params,$
+      perror:  perror,$
+
+      wave:     uwave,$
+      wave_ref: wave_ref,$
+      
+      n1_ref:  10D^params[0],$
+      n2_ref:  10D^params[1],$
+      re1_ref: 10D^params[2],$
+      re2_ref: 10D^params[3],$
+      alpha1:  params[4],$
+      alpha2:  params[5],$
+      beta1:   params[6],$
+      beta2:   params[7],$
+      
+      n1_ref_err:  perror[0]*10D^params[0]*alog(10),$
+      n2_ref_err:  perror[1]*10D^params[1]*alog(10),$
+      re1_ref_err: perror[2]*10D^params[2]*alog(10),$
+      re2_ref_err: perror[3]*10D^params[3]*alog(10),$
+      alpha1_err:  perror[4],$
+      alpha2_err:  perror[5],$
+      beta1_err:   perror[6],$
+      beta2_err:   perror[7],$
+
+      sbe1:       params[8:8+nband-1],$
+      sbe2:       params[8+nband:8+2*nband-1],$
+      sbe1_err:   perror[8:8+nband-1],$
+      sbe2_err:   perror[8+nband:8+2*nband-1]}
+    
+; ...and a second one that has the model evaluated for each filter and
+; which takes into account all the covariances in the parameters
+    
+    for ib = 0, nband-1 do begin
+       n1 = results.n1_ref*(uwave[ib]/wave_ref)^results.alpha1
+       n2 = results.n2_ref*(uwave[ib]/wave_ref)^results.alpha2
+       re1 = results.re1_ref*(uwave[ib]/wave_ref)^results.beta1
+       re2 = results.re2_ref*(uwave[ib]/wave_ref)^results.beta2
+
+       sbe1 = params[8+ib]
+       sbe2 = params[8+nband+ib]
+       sbe1_err = perror[8+ib]
+       sbe2_err = perror[8+nband+ib]
+       
+       scoeff1 = {$
+         wave: uwave[ib], $
+         
+         sersic2_all_sbe1: params1[0],$
+
+         sersic2_all_re1:  params1[1],$
+         sersic2_all_n1:   params1[2],$
+         sersic2_all_sbe1_err: perror1[0],$ ; *factor,$
+         sersic2_all_re1_err:  perror1[1],$ ; *factor,$
+         sersic2_all_n1_err:   perror1[2],$ ; *factor,$
+
+         sersic2_all_sbe2: params2[0],$
+         sersic2_all_re2:  params2[1],$
+         sersic2_all_n2:   params2[2],$
+         sersic2_all_sbe2_err: perror2[0],$ ; *factor,$
+         sersic2_all_re2_err:  perror2[1],$ ; *factor,$
+         sersic2_all_n2_err:   perror2[2]}  ; *factor,$
+       if ib eq 0 then scoeff = scoeff1 else scoeff = [scoeff,scoeff1]
+    endfor
+
+return
+end
+
 pro bcgmstar_sersic2, rr, sb, scoeff, sb_ivar=sb_ivar, $
   init_params=init_params, fixed=fixed, sersicfit=sersicfit, $
   fixdevac=fixdevac, verbose=verbose
@@ -381,8 +547,8 @@ pro bcgmstar_sersic_multiband, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
 return
 end
 
-pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
-  qaplot_seds=qaplot_seds, qaplot_sbprofiles=qaplot_sbprofiles, $
+pro bcgmstar_sersicfit, doallfit=doallfit, dofit=dofit, dophot=dophot, $
+  clobber=clobber, qaplot_seds=qaplot_seds, qaplot_sbprofiles=qaplot_sbprofiles, $
   qaplot_colorradius=qaplot_colorradius, verbose=verbose
 ; jm13oct22siena - fit various Sersic models to the output of
 ; BCGMSTAR_ELLIPSE 
@@ -405,6 +571,101 @@ pro bcgmstar_sersicfit, dofit=dofit, dophot=dophot, clobber=clobber, $
     dosersic2 = 1
     fixdevac = 1 ; fix the 2nd Sersic model to n=4?
 
+; ##################################################
+; fit double Sersic models to all bands simultaneously 
+    if keyword_set(doallfit) then begin
+; wrap on each cluster    
+       for ic = 0, 0 do begin
+;      for ic = 0, ncl-1 do begin
+          arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]
+          
+          cluster = strtrim(sample[ic].shortname,2)
+          splog, 'Simultaneously Sersic fitting cluster '+cluster
+          
+; read the data and Marc's SB profiles to determine the last radius at
+; which the models are reliable
+          modphot = mrdfits(ellpath+cluster+'-ellipse-model.fits.gz',1,/silent)
+          allband = strtrim(modphot.band,2)
+
+          pp = read_bcg_profiles(cluster,these_filters=allband)
+          nfilt = n_elements(modphot)
+
+; output structure
+          out = struct_addtags(struct_trimtags(modphot,$
+            select=['file','band','weff','sblimit','ra','dec','mge_*']),$
+            replicate({amin_pixels: 0.0, amax_pixels: 0.0, amin_kpc: 0.0, amax_kpc: 0.0, $
+            rmin_kpc: 0.0, rmax_kpc: 0.0},nfilt))
+
+;            sersic_covar_nir:  fltarr(2+nfilt,2+nfilt),$
+;            sersic_covar_opt:  fltarr(2+nopt,2+nopt),$
+;            sersic_covar_blue: fltarr(2+nblue,2+nblue)},nfilt))
+;          if dosersic2 then begin
+;             out = struct_addtags(out,replicate({$
+;               sersic2_covar_nir:  fltarr(2*nfilt+4,2*nfilt+4),$
+;               sersic2_covar_opt:  fltarr(2*nopt+4,2*nopt+4),$
+;               sersic2_covar_blue: fltarr(2*nblue+4,2*nblue+4)},nfilt))
+;          endif
+
+          for ib = 0, nfilt-1 do begin
+             amax_kpc = max(pp[ib].sma,mxindx) ; [kpc]
+             if pp[ib].mu[mxindx] gt modphot[ib].sblimit then $
+               amax_kpc = pp[ib].sma[mxindx-1]
+             
+             modgood = where(modphot[ib].majora*pixscale*arcsec2kpc le amax_kpc and $
+               modphot[ib].sb0fit gt 0 and modphot[ib].sb0fit_ivar gt 0,nmodgood)
+             amin_kpc = min(modphot[ib].majora[modgood])*pixscale*arcsec2kpc
+             
+             sb = modphot[ib].sb0fit[modgood]*1D
+             sb_var_floor = (sb*errfloor)^2.0
+             sb_ivar = 1D/(1D/modphot[ib].sb0fit_ivar[modgood]+sb_var_floor)
+             radius_kpc = modphot[ib].radius_kpc[modgood] ; [kpc]
+
+             rmin_kpc = min(radius_kpc)
+             rmax_kpc = max(radius_kpc)
+                
+             out[ib].amin_pixels = amin_kpc/pixscale/arcsec2kpc
+             out[ib].amax_pixels = amax_kpc/pixscale/arcsec2kpc
+             out[ib].amin_kpc = amin_kpc
+             out[ib].amax_kpc = amax_kpc
+             out[ib].rmin_kpc = rmin_kpc
+             out[ib].rmax_kpc = rmax_kpc
+             
+             srt = sort(radius_kpc)
+             radius_kpc = radius_kpc[srt]
+             sb = sb[srt]
+             sb_ivar = sb_ivar[srt]
+             
+             if ib eq 0 then begin
+                fit_sb = sb
+                fit_sb_ivar = sb_ivar
+                fit_radius_kpc = radius_kpc
+                fit_wave = replicate(modphot[ib].weff,nmodgood)
+             endif else begin
+                fit_sb = [fit_sb,sb]
+                fit_sb_ivar = [fit_sb_ivar,sb_ivar]
+                fit_radius_kpc = [fit_radius_kpc,radius_kpc]
+                fit_wave = [fit_wave,replicate(modphot[ib].weff,nmodgood)]
+             endelse
+          endfor 
+
+          bcgmstar_sersic2_allbands, fit_radius_kpc, fit_sb, fit_wave, $
+            allsersic2, sb_ivar=fit_sb_ivar, sersicfit=sersicfit, $
+            fixdevac=fixdevac, verbose=verbose
+
+stop          
+          
+          out = struct_addtags(out,im_empty_structure(multisersic2[0],ncopies=nfilt))
+          for ib = 0, nnir-1 do begin
+             out[ib] = im_struct_assign(multisersic2[ib],out[ib],/nozero)
+             out[ib].sersic2_covar = 0
+             out[ib].sersic2_covar_nir = multisersic2[ib].sersic2_covar
+          endfor
+
+; write out
+          im_mwrfits, out, sersicpath+cluster+'-sersic.fits', clobber=clobber
+       endfor          
+    endif 
+    
 ; ##################################################
 ; fit single and double Sersic models to every band
     if keyword_set(dofit) then begin

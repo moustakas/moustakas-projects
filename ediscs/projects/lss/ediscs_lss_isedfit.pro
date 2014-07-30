@@ -1,23 +1,42 @@
 pro ediscs_lss_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
   model_photometry=model_photometry, isedfit=isedfit, kcorrect=kcorrect, $
   build_oiiflux=build_oiiflux, qaplot_sed=qaplot_sed, thissfhgrid=thissfhgrid, $
-  clobber=clobber
+  clobber=clobber, cfht=cfht
 ; jm14jul22siena - fit the EDisCS sample for Pascale
     
-    prefix = 'ediscs_lss'
     isedfit_dir = getenv('IM_PROJECTS_DIR')+'/ediscs/lss/'
     montegrids_dir = isedfit_dir+'montegrids/'
-    isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
-
-    phot = read_ediscs(/phot)
-    spec1d = read_ediscs(/spec1d)
-    ngal = n_elements(phot)
-    
-    ediscs_to_maggies, phot, maggies, ivarmaggies, filterlist=filterlist
 
     zminmax = [0.05,1.37]
     zbin = 0.05
 
+    if keyword_set(cfht) then begin
+       prefix = 'cfht_lss'
+       phot = mrdfits(isedfit_dir+'CFHT_photometry_all_spec.fits',1)
+
+       filterlist = cfhtls_filterlist()
+       maggies = transpose([[phot.u],[phot.g],[phot.r],[phot.i],[phot.z]])
+       ivarmaggies = transpose([[phot.u_ivar],[phot.g_ivar],[phot.r_ivar],[phot.i_ivar],[phot.z_ivar]])
+       fix = where(finite(ivarmaggies) eq 0)
+       ivarmaggies[fix] = 0
+       
+       zobj = phot.z_spec
+       ra = phot.ra
+       dec = phot.dec
+       index = where(zobj ge zminmax[0] and zobj le zminmax[1])
+    endif else begin
+       prefix = 'ediscs_lss'
+       phot = read_ediscs(/phot)
+       spec1d = read_ediscs(/spec1d)
+       zobj = spec1d.z
+       ra = spec1d.ra
+       dec = spec1d.dec
+       ediscs_to_maggies, phot, maggies, ivarmaggies, filterlist=filterlist
+    endelse
+    ngal = n_elements(phot)
+
+    isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
+    
 ; --------------------------------------------------
 ; write the parameter file
     if keyword_set(write_paramfile) then begin
@@ -42,7 +61,7 @@ pro ediscs_lss_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 ; build the Monte Carlo grids    
     if keyword_set(build_grids) then begin
        isedfit_montegrids, isedfit_paramfile, isedfit_dir=isedfit_dir, $
-         montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, clobber=clobber;, $
+         montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, clobber=clobber
     endif
 
 ; --------------------------------------------------
@@ -56,8 +75,8 @@ pro ediscs_lss_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 ; --------------------------------------------------
 ; fit!
     if keyword_set(isedfit) then begin
-       isedfit, isedfit_paramfile, maggies, ivarmaggies, spec1d.z, ra=spec1d.ra, $
-         dec=spec1d.dec, isedfit_dir=isedfit_dir, thissfhgrid=thissfhgrid, $
+       isedfit, isedfit_paramfile, maggies, ivarmaggies, zobj, ra=ra, $
+         dec=dec, isedfit_dir=isedfit_dir, thissfhgrid=thissfhgrid, $
          clobber=clobber, index=index, outprefix=outprefix
     endif 
 
@@ -73,10 +92,19 @@ pro ediscs_lss_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 ; --------------------------------------------------
 ; generate spectral energy distribution (SED) QAplots
     if keyword_set(qaplot_sed) then begin
-       these = shuffle_indx(ngal,num=20)
-       isedfit_qaplot_sed, isedfit_paramfile, isedfit_dir=isedfit_dir, $
-         montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
-         clobber=clobber, /xlog, galaxy=spec1d.galaxy, index=these
+       if keyword_set(cfht) then begin
+          these = shuffle_indx(ngal,num=20)
+          isedfit_qaplot_sed, isedfit_paramfile, isedfit_dir=isedfit_dir, $
+            montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
+            clobber=clobber, /xlog, galaxy='Obj'+strtrim(index[these],2), $
+            index=index[these], outprefix=outprefix
+       endif else begin
+          these = shuffle_indx(ngal,num=20)
+          isedfit_qaplot_sed, isedfit_paramfile, isedfit_dir=isedfit_dir, $
+            montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
+            clobber=clobber, /xlog, galaxy=spec1d.galaxy, index=these, $
+            outprefix=outprefix
+       endelse
     endif
 
 return

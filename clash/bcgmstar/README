@@ -23,21 +23,22 @@ band.
   bcgmstar_sersicfit, /dophot - aperture photometry
   bcgmstar_sersicfit, /qaplot_sbprofiles, /qaplot_colorradius, /qaplot_seds - build some QAplots
 
-Do the SED-fitting and compute K-corrections
+Do the SED-fitting, compute K-corrections, and build the average mass
+profiles (this code also collects the necessary strong-lensing mass
+profiles)
   bcgmstar_isedfit
 
 Get ancillary photometry for the sample
   bcgmstar_get_ancillary
-    
+
   
 ### Paper plots ###
 
 * plotbcgmstar_montage - build a nice color montage (Fig 1)
 * plotbcgmstar_sblimit - box-and-whisker plot of the SB limits in our data (Fig 2) 
 * plotbcgmstar_ellipse - show one example of ellipse-fitting 
+* plotbcgmstar_sbprofiles - example surface brightness profiles + Sersic function fits overlaid 
 
-* plotbcgmstar_sbprofiles - surface brightness profiles + Sersic
-  function fits overlaid
 * plotbcgmstar_ssps - build some simple SSPs; overlay the (K-corrected)
   BCG photometry and the models on a color-color plot
 

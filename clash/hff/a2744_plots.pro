@@ -21,8 +21,9 @@ pro a2744_plots
     cat = cat[these]
     rr = read_isedfit(isedfit_paramfile,index=these,isedfit_post=post,$
       isedfit_dir=isedfit_dir)
+    ngal = n_elements(rr)
     
-    srt = reverse(sort(cat.z_b_1))
+    srt = reverse(sort(cat.z_b))
     cat = cat[srt]
     rr = rr[srt]
     post = post[srt]
@@ -33,13 +34,13 @@ pro a2744_plots
     rr.sfr_50 = 10^rr.sfr_50-logmu
     rr.sfr_err = rr.sfr_err*rr.sfr_50*alog(10)
     sfrage95 = fltarr(nobj)
-    for ii = 0, nobj-1 do sfrage95[ii] = weighted_quantile(post[ii].sfrage,quant=95)
+    for ii = 0, nobj-1 do sfrage95[ii] = weighted_quantile(post[ii].sfrage*1E3,quant=95)
 
-    zform = getredshift(getage(cat.z_b_1)-sfrage95)
+    zform = getredshift(getage(cat.z_b)-sfrage95)
     
     splog, 'ID, mass, SFR, sSFR, age, age95, t(z), zform'
     niceprint, cat.id, rr.mstar_50, rr.sfr_50, 1D9*rr.sfr_50/10.0^rr.mstar, $
-      rr.sfrage_50*1E3, sfrage95*1E3, getage(cat.z_b_1)*1E3, zform
+      rr.sfrage_50*1E3, sfrage95, getage(cat.z_b)*1E3, zform
     print
 
     splog, 'Median, minmax mu', djs_median(logmu), minmax(logmu)
@@ -48,29 +49,35 @@ pro a2744_plots
     splog, 'Median, minmax SFR, median err ', djs_median(rr.sfr_50), $
       minmax(rr.sfr_50), djs_median(rr.sfr_err)
     splog, 'Median, minmax zform', djs_median(zform), minmax(zform)
-    splog, 'Median, minmax sfrage', djs_median(rr.sfrage), minmax(rr.sfrage)
+    splog, 'Median, minmax sfrage', djs_median(rr.sfrage*1E3), minmax(rr.sfrage*1E3)
     splog, 'Median, minmax sfrage95', djs_median(sfrage95), minmax(sfrage95)
     splog, 'Doubling time ', 2*djs_median(10^rr.mstar_50)/djs_median(rr.sfr_50)/1D6
-    splog, 'Median redshift, median age of Universe', djs_median(cat.z_b_1), $
-      getage(djs_median(cat.z_b_1))
-    splog, 'Median formation redshift ', getredshift(getage(djs_median(cat.z_b_1))-$
+    splog, 'Median redshift, median age of Universe', djs_median(cat.z_b), $
+      getage(djs_median(cat.z_b))
+    splog, 'Median formation redshift ', getredshift(getage(djs_median(cat.z_b))-$
       djs_median(sfrage95) )
-    djs_plot, 1E3*getage(cat.z_b_1), 2*10^rr.mstar_50/rr.sfr_50/1D6, $
+    djs_plot, 1E3*getage(cat.z_b), 2*10^rr.mstar_50/rr.sfr_50/1D6, $
       psym=8, xr=[0,1000], yr=[0,1000]
     djs_oplot, !x.crange, !y.crange
 
+stop    
+    
 ; ...but only make a plot for four representative objects
     cat = read_a2744()
-    these = where(cat.id eq 406 or cat.id eq 270 or $
-      cat.id eq 292 or cat.id eq 3903,nobj)
+    these = where(strmatch(cat.id,'*YD4*') or strmatch(cat.id,'*ZD2*') or $
+      strmatch(cat.id,'*ZD6*') or strmatch(cat.id,'*ZD9*'),nobj)
+;   these = where(cat.id eq 406 or cat.id eq 270 or $
+;     cat.id eq 292 or cat.id eq 3903,nobj)
     cat = cat[these]
+    niceprint, cat.id, cat.z_b
+    
     rr = read_isedfit(isedfit_paramfile,index=these,/getmodels,$
       isedfit_dir=isedfit_dir,montegrids_dir=montegrids_dir)
     
-    srt = reverse(sort(cat.z_b_1))
+    srt = reverse(sort(cat.z_b))
     cat = cat[srt]
     rr = rr[srt]
-;   newnames = ['YD4','YD9','ZD4','ZD9']
+    newnames = ['YD4','ZD2','ZD6','ZD9']
     
     col = 'dodger blue'
     psfile = isedfit_dir+'a2744_seds.ps'
@@ -120,10 +127,10 @@ pro a2744_plots
        endif
        im_legend, /left, /top, box=0, spacing=1.5, charsize=1.5, margin=0, $
          [$
-;        newnames[ii],$
-         strtrim(cat[ii].galaxy,2),$
+         newnames[ii],$
+;        strtrim(cat[ii].galaxy,2),$
 ;        'ID'+strtrim(cat[ii].id,2),$
-         'z = '+strtrim(string(cat[ii].z_b_1,format='(F12.1)'),2)]
+         'z = '+strtrim(string(cat[ii].z_b,format='(F12.1)'),2)]
     endfor 
     
     xyouts, pos[0,0]-0.08, pos[1,0], 'AB Magnitude', align=0.5, orientation=90, /normal
@@ -140,20 +147,21 @@ stop
 
     cat = read_a2744(/photoz,bpz_dz=bpz_dz,bpz_redshift=bpz_redshift)
     rr = read_isedfit(isedfit_paramfile,params=pp,isedfit_dir=isedfit_dir)
-;   keep = where(cat.group lt 3)
-;   cat = cat[keep]
-;   rr = rr[keep]
     ngal = n_elements(rr)
 
 ; print out some statistics    
-    niceprint, cat.id, cat.group, cat.z_b_1, rr.z, rr.z-cat.z_b_1
-    diff = rr.z-cat.z_b_1
+    niceprint, cat.z_b, rr.z, rr.z-cat.z_b, cat.id
+    diff = rr.z-cat.z_b
     good = where(abs(diff) lt 1.0,comp=bad)
     splog, djs_mean(diff[good]), djsig(diff[good])
-    niceprint, cat[bad].id, cat[bad].group, cat[bad].z_b_1, rr[bad].z, rr[bad].mstar_50, $
-      rr[bad].tau_50, rr[bad].av_50, rr[bad].age_50, rr[bad].sfr_50
-    niceprint, cat[bad].id, cat[bad].group, cat[bad].z_b_1, rr[bad].z
+    splog, djs_mean(diff[good]/(1+cat[good].z_b)), djsig(diff[good]/(1+cat[good].z_b))
 
+;   niceprint, cat[bad].id, cat[bad].group, cat[bad].z_b, rr[bad].z, rr[bad].mstar_50, $
+;     rr[bad].tau_50, rr[bad].av_50, rr[bad].age_50, rr[bad].sfr_50
+;   niceprint, cat[bad].id, cat[bad].group, cat[bad].z_b, rr[bad].z
+
+    
+    
 stop    
     
     psfile = isedfit_dir+'bpz_vs_isedfit.ps'
@@ -166,15 +174,15 @@ stop
       xtitle='BPZ Redshift', ytitle='iSEDfit Redshift', $
       xrange=xrange, yrange=yrange
     djs_oplot, !x.crange, !y.crange, line=0, color=cgcolor('grey')
-    oploterror, cat.z_b_1, rr.z, rr.z_err, psym=symcat(15)
+    oploterror, cat.z_b, rr.z, rr.z_err, psym=symcat(15)
 
-    ww = where(cat.z_b_1 gt 6 and rr.z lt 4.0,nww)
-    djs_oplot, cat[ww].z_b_1, max(rr[ww].photoz,dim=1), psym=symcat(6)
-    for ii = 0, nww-1 do djs_oplot, [cat[ww[ii]].z_b_1,cat[ww[ii]].z_b_1], $
+    ww = where(cat.z_b gt 6 and rr.z lt 4.0,nww)
+    djs_oplot, cat[ww].z_b, max(rr[ww].photoz,dim=1), psym=symcat(6)
+    for ii = 0, nww-1 do djs_oplot, [cat[ww[ii]].z_b,cat[ww[ii]].z_b], $
       [rr[ww[ii]].photoz[0],max(rr[ww[ii]].photoz)], color=cgcolor('grey'), line=0
     
     im_plotconfig, psfile=psfile, /psclose, /pdf
-
+    
 ; --------------------------------------------------
 ; QAplot: multi-panel SED plot adopting the BPZ redshifts
     isedfit_paramfile = isedfit_dir+'a2744_paramfile.par'
@@ -186,7 +194,7 @@ stop
     cat = cat[these]
     rr = read_isedfit(isedfit_paramfile,index=these,/getmodels)
     
-    srt = reverse(sort(cat.z_b_1))
+    srt = reverse(sort(cat.z_b))
     cat = cat[srt]
     rr = rr[srt]
 
@@ -235,7 +243,7 @@ stop
        endif
        im_legend, /left, /top, box=0, spacing=1.5, charsize=1.5, margin=0, $
          ['ID'+strtrim(cat[ii].id,2),'z = '+$
-         strtrim(string(cat[ii].z_b_1,format='(F12.2)'),2)]
+         strtrim(string(cat[ii].z_b,format='(F12.2)'),2)]
     endfor 
     
     xyouts, pos[0,0]-0.08, (pos[3,4]-pos[1,4])/2.0+pos[1,4], 'AB Magnitude', $
@@ -254,7 +262,7 @@ stop
 ; just show groups 1&2
     cat = read_a2744(bpz_dz=bpz_dz,bpz_redshift=bpz_redshift,index=index)
     rr = read_isedfit(isedfit_paramfile,params=pp,isedfit_post=post,index=index)
-    srt = reverse(sort(cat.z_b_1))
+    srt = reverse(sort(cat.z_b))
     cat = cat[srt]
     rr = rr[srt]
     
@@ -293,14 +301,14 @@ stop
          xtickname=xtickname, yticks=1
 
 ;      djs_oplot, rr[ii].z*[1,1], !y.crange, thick=6
-;      djs_oplot, cat[ii].z_b_1*[1,1], !y.crange, thick=6, line=5
+;      djs_oplot, cat[ii].z_b*[1,1], !y.crange, thick=6, line=5
 ;      djs_oplot, cat[ii].bpz*[1,1], !y.crange, thick=6, line=5, color='orange'
        if cat[ii].group eq 2 then ss = '^{*}' else ss = ''
        
        im_legend, [strtrim(cat[ii].id,2)+ss,$
 ;        'z_{iSEDfit}='+strtrim(string(rr[ii].z,format='(F12.1)'),2),$
-;        'z_{BPZ}='+strtrim(string(cat[ii].z_b_1,format='(F12.1)'),2)], /left, /top, $
-         'z='+strtrim(string(cat[ii].z_b_1,format='(F12.1)'),2)], /left, /top, $
+;        'z_{BPZ}='+strtrim(string(cat[ii].z_b,format='(F12.1)'),2)], /left, /top, $
+         'z='+strtrim(string(cat[ii].z_b,format='(F12.1)'),2)], /left, /top, $
          box=0, margin=-0.2, charsize=1.1; textcolor=cgcolor(['black','grey']), $
          
     endfor
@@ -343,14 +351,14 @@ stop
 ;      yrange = [0.0,max(post[ii].pofz)]
        yrange = [0.0,(max(pofz_ised)>max(pofz_bpz))*1.05]
        title = cat[ii].galaxy+', z_{iSEDfit}='+strtrim(string(rr[ii].z,format='(F12.3)'),2)+' '+$
-         'z_{BPZ}='+strtrim(string(cat[ii].z_b_1,format='(F12.3)'),2)
+         'z_{BPZ}='+strtrim(string(cat[ii].z_b,format='(F12.3)'),2)
        djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
          xtitle='Redshift', ytitle='Posterior Probability', $
          xrange=xrange, yrange=yrange, title=title
        djs_oplot, pp.redshift, pofz_ised, line=0, thick=8, psym=10, color=cgcolor('firebrick')
        djs_oplot, bpz_redshift, pofz_bpz, line=0, color=cgcolor('dodger blue'), thick=8, psym=10
        djs_oplot, rr[ii].z*[1,1], !y.crange, thick=6
-       djs_oplot, cat[ii].z_b_1*[1,1], !y.crange, thick=6, line=5
+       djs_oplot, cat[ii].z_b*[1,1], !y.crange, thick=6, line=5
        djs_oplot, cat[ii].bpz*[1,1], !y.crange, thick=6, line=5, color='orange'
 ;      im_legend, [galaxy[ii],'z_{iSEDfit}='+strtrim(string(rr[ii].z,format='(F12.3)'),2),$
 ;        'z_{BPZ}='+strtrim(string(zz[ii],format='(F12.3)'),2)], /left, /top, $

@@ -1,13 +1,9 @@
 pro plotbcgmstar_sbprofiles, pdf=pdf
 ; jm13oct19siena - plot the SB profiles
 
-    if keyword_set(pdf) then begin
-       paperpath = bcgmstar_path()
-       suffix = '.ps'
-    endif else begin
-       paperpath = bcgmstar_path(/paper)
-       suffix = '.eps'
-    endelse
+    paperpath = bcgmstar_path(/paper)
+    ellpath = bcgmstar_path(/ellipse)
+    sersicpath = bcgmstar_path(/sersic)
 
     sample = read_bcgmstar_sample()
     ncl = n_elements(sample)
@@ -39,7 +35,7 @@ pro plotbcgmstar_sbprofiles, pdf=pdf
 ;   xrange = [3*pixscale*arcsec2kpc,150]
     yrange = [28,16]
 
-    psfile = paperpath+'bcg_sbprofiles'+suffix
+    psfile = paperpath+'bcg_sbprofiles.eps'
     im_plotconfig, 1, pos, psfile=psfile, charsize=1.3
     pos = im_getposition(nx=5,ny=3,/landscape,yspace=0.1,xspace=0.1,$
       xmargin=[1.0,0.4])
@@ -48,14 +44,12 @@ pro plotbcgmstar_sbprofiles, pdf=pdf
     for ic = 0, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        print & splog, cluster, sample[ic].z
-       ellpath = bcgmstar_path(/ellipse)
-       sersicpath = bcgmstar_path(/sersic)
 ;      datapath = bcgmstar_path(/bcg)+cluster+'/'
 
        arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]
        
        sersic = mrdfits(sersicpath+cluster+'-sersic.fits.gz',1,/silent)
-       galphot = mrdfits(ellpath+cluster+'-ellipse-image.fits.gz',1,/silent)
+;      galphot = mrdfits(ellpath+cluster+'-ellipse-image.fits.gz',1,/silent)
        modphot = mrdfits(ellpath+cluster+'-ellipse-model.fits.gz',1,/silent)
        nfilt = n_elements(modphot)
 
@@ -83,7 +77,8 @@ pro plotbcgmstar_sbprofiles, pdf=pdf
 
        if ic eq 0 then begin
           im_legend, ['F475W','F814W','F160W'], /left, /bottom, box=0, $
-            line=line, color=color2, pspacing=1.8, margin=-0.2, charsize=0.8
+            line=line, color=color2, pspacing=1.8, margin=-0.2, charsize=0.8, $
+            charthick=3
        endif
        
 ;      for ii = 0, nfilt-1 do begin
@@ -93,21 +88,21 @@ pro plotbcgmstar_sbprofiles, pdf=pdf
 ;      endfor
 
        for ii = 0, nthese-1 do begin
-          this = where(thesefilt[ii] eq strtrim(galphot.band,2))
+          this = where(thesefilt[ii] eq strtrim(modphot.band,2))
 
-          if plotgal then begin
-             galgood = where(galphot[this].sb0fit gt 0)
-             djs_oplot, galphot[this].radius_kpc[galgood], $
-               -2.5*alog10(galphot[this].sb0fit[galgood]), $
-               line=0, color=cgcolor('medium gray') ; color=cgcolor(color2[ii])
-             oploterror, galphot[this].radius_kpc[notzero], galphot[this].sb0fit[notzero], $
-               1.0/sqrt(galphot[this].sb0fit_ivar[notzero]), color=cgcolor('dodger blue'), $
-               psym=symcat(16), symsize=0.4
-          endif
+;         if plotgal then begin
+;            modgood = where(modphot[this].majora*pixscale*arcsec2kpc le sersic[this].amax_kpc and $
+;              modphot[this].sb0fit gt 0 and modphot[this].sb0fit_ivar gt 0)
+;            djs_oplot, modphot[this].radius_kpc[modgood], $
+;              -2.5*alog10(modphot[this].sb0fit[modgood]), $
+;              line=0, color=cgcolor('medium gray') ; color=cgcolor(color2[ii])
+;            oploterror, modphot[this].radius_kpc[notzero], modphot[this].sb0fit[notzero], $
+;              1.0/sqrt(modphot[this].sb0fit_ivar[notzero]), color=cgcolor('dodger blue'), $
+;              psym=symcat(16), symsize=0.4
+;         endif
 
           modgood = where(modphot[this].majora*pixscale*arcsec2kpc le sersic[this].amax_kpc and $
             modphot[this].sb0fit gt 0 and modphot[this].sb0fit_ivar gt 0)
-
 ;         modgood = where(modphot[this].sb0fit gt 10^(-0.4*modphot[this].sblimit) and $
 ;           modphot[this].sb0fit_ivar gt 0 and modphot[this].radius_kpc lt 100.0) ; r<100 kpc
           splog, thesefilt[ii], max(modphot[this].radius_kpc[modgood])
@@ -124,13 +119,19 @@ pro plotbcgmstar_sbprofiles, pdf=pdf
             color=cgcolor(color1[ii]), noclip=0
 ;         oploterror, rr, sb, sberr, color=cgcolor(color[ii]), line=line[ii]
 ;         djs_oplot, rr, sb, color=cgcolor(color[ii]), line=line[ii]
-;         djs_oplot, 10^!x.crange, galphot[this].sblimit*[1,1], line=5, $
+;         djs_oplot, 10^!x.crange, modphot[this].sblimit*[1,1], line=5, $
 ;           color=cgcolor(color[ii])
 
-; overplot the single Sersic function
+;; overplot the single Sersic function
+;          rrser = [0,range(1E-3,200.0,500,/log)]
+;;         rrser = [0,range(1E-3,max(rr),500,/log)]
+;          djs_oplot, rrser, -2.5*alog10(bcgmstar_sersic_func(rrser,params=sersic[this])), $
+;            color=cgcolor(color2[ii]), line=line[ii], thick=3
+
+; overplot the Sersic+deVac function
           rrser = [0,range(1E-3,200.0,500,/log)]
 ;         rrser = [0,range(1E-3,max(rr),500,/log)]
-          djs_oplot, rrser, -2.5*alog10(bcgmstar_sersic_func(rrser,params=sersic[this])), $
+          djs_oplot, rrser, -2.5*alog10(bcgmstar_sersic2_func(rrser,params=sersic[this])), $
             color=cgcolor(color2[ii]), line=line[ii], thick=3
           
 ; overplot Marc's SB profile, as a consistency check
@@ -152,7 +153,7 @@ pro plotbcgmstar_sbprofiles, pdf=pdf
 ;     textoidl('Equivalent Radius r=a\sqrt{1-\epsilon} (kpc)'), $
       align=0.5, charsize=1.4, /norm
 
-    im_plotconfig, psfile=psfile, /psclose, pdf=pdf
+    im_plotconfig, psfile=psfile, /psclose, /pdf
 
 stop    
     

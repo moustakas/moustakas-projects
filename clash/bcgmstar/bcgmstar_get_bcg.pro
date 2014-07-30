@@ -18,7 +18,7 @@ pro bcgmstar_get_bcg, debug=debug
     rmaxkpc = 200D     ; [kpc]
 
 ; wrap on each cluster    
-    for ic = 4, 4 do begin
+    for ic = 11, 11 do begin
 ;   for ic = 0, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        splog, 'Working on cluster '+cluster

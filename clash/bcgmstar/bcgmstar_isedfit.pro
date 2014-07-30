@@ -1,7 +1,7 @@
 pro bcgmstar_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
   model_photometry=model_photometry, qaplot_models=qaplot_models, isedfit=isedfit, $
   kcorrect=kcorrect, qaplot_sed=qaplot_sed, thissfhgrid=thissfhgrid, $
-  qaplot_results=qaplot_results, clobber=clobber
+  qaplot_results=qaplot_results, clobber=clobber, parse_massprofiles=parse_massprofiles
 ; jm13dec29siena - do SED-fitting
 
     prefix = 'bcgmstar'
@@ -10,10 +10,13 @@ pro bcgmstar_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, 
     isedfit_dir = bcgmstar_path(/isedfit)
     montegrids_dir = isedfit_dir+'montegrids/'
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
+
+    massprofpath = bcgmstar_path(/massprofiles)
+    lensingpath = bcgmstar_path()+'lensing-profiles-adi/'
     
 ; read the sample
     sample = read_bcgmstar_sample(/zsort)
-    sample = sample[11]
+;   sample = sample[11]
     struct_print, sample
     ncl = n_elements(sample)
 
@@ -113,6 +116,81 @@ pro bcgmstar_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, 
             montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
             absmag_filterlist=bessell_filterlist(), band_shift=0.0, $
             clobber=clobber, outprefix=outprefix
+       endfor
+    endif 
+
+; --------------------------------------------------
+; parse the output
+    if keyword_set(parse_massprofiles) then begin
+       for ic = 0, ncl-1 do begin
+          cluster = strtrim(sample[ic].shortname,2)
+          arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]
+          outfile = massprofpath+cluster+'-massprofile.fits'
+
+          phot = mrdfits(sersicpath+cluster+'-phot.fits.gz',1,/silent)
+          ised = read_isedfit(isedfit_paramfile,outprefix=prefix+'_'+cluster,$
+            isedfit_dir=isedfit_dir,/silent)
+
+          nrad = n_elements(phot[0].photradius_kpc)
+          out = {$
+            photradius_kpc: phot[0].photradius_kpc, $
+            mstar_grid01: ised[1:nrad,0].mstar_50,$
+            mstar_grid02: ised[1:nrad,1].mstar_50,$
+            mstar_grid03: ised[1:nrad,2].mstar_50,$
+            mstar_grid04: ised[1:nrad,3].mstar_50,$
+            mstar_err_grid01: ised[1:nrad,0].mstar_err,$
+            mstar_err_grid02: ised[1:nrad,1].mstar_err,$
+            mstar_err_grid03: ised[1:nrad,2].mstar_err,$
+            mstar_err_grid04: ised[1:nrad,3].mstar_err,$
+
+            totmstar_grid01: ised[0,0].mstar_50,$
+            totmstar_grid02: ised[0,1].mstar_50,$
+            totmstar_grid03: ised[0,2].mstar_50,$
+            totmstar_grid04: ised[0,3].mstar_50,$
+            totmstar_err_grid01: ised[0,0].mstar_err,$
+            totmstar_err_grid02: ised[0,1].mstar_err,$
+            totmstar_err_grid03: ised[0,2].mstar_err,$
+            totmstar_err_grid04: ised[0,3].mstar_err,$
+
+            mstar:     fltarr(nrad),$ ; average profile
+            mstar_err: fltarr(nrad),$
+            totmstar:     0.0,$
+            totmstar_err: 0.0}
+
+          allmstar = [[out.mstar_grid01],[out.mstar_grid02],[out.mstar_grid03],[out.mstar_grid04]]
+          out.mstar = mean(allmstar,dim=2)
+          out.mstar_err = stddev(allmstar,dim=2)
+
+          alltotmstar = [out.totmstar_grid01,out.totmstar_grid02,out.totmstar_grid03,out.totmstar_grid04]
+          out.totmstar = mean(alltotmstar)
+          out.totmstar_err = stddev(alltotmstar)
+          
+; pack in the strong-lensing profiles
+          lensingprefix = strupcase(repstr(repstr(cluster,'macs','M'),'clj','cl'))
+          lensingfile = lensingpath+lensingprefix+'profile_ltm.txt'
+          if file_test(lensingfile) eq 0 then begin
+             splog, lensingfile+' not found!'
+             stop
+          endif
+
+; col 1: radius from center, in arcsec
+; col 2 =(surface_density);
+; col 3: log10(radius);
+; col 4: log10(surface_density);
+; col 5 irrelevant
+; col 6 : projected mass interior to r i.e. M_2D (<r)
+; col 7-8 surface density 68.3% range.
+; col 9-10 68.3% range on the projected enclosed mass of col 6.
+          readcol, lensingfile, radius_arcsec, density, log10radius, $
+            log10density, junk, mass_encl, density_lo, density_hi, $
+            mass_encl_lo, mass_encl_hi, /silent
+
+          keep = where(radius_arcsec*arcsec2kpc lt 300,nlens)
+          out = struct_addtags(out,{$
+            lens_radius_kpc: radius_arcsec[keep]*arcsec2kpc,$
+            lens_mass_encl:  mass_encl[keep]})
+
+          im_mwrfits, out, outfile, clobber=clobber
        endfor
     endif 
 

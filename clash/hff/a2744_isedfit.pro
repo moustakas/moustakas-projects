@@ -25,23 +25,42 @@ pro a2744_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
        spsmodels = 'fsps_v2.4_miles'
        imf = 'chab'
        if keyword_set(photoz) then begin
-          nmodel = 10000
+          nmodel = 20000L
           redcurve = 'charlot'
           write_isedfit_paramfile, params=params, isedfit_dir=isedfit_dir, $
-            prefix=prefix, filterlist=filterlist, zminmax=[0.1,10.0], nzz=75, $
+            prefix=prefix, filterlist=filterlist, zminmax=[0.1,12.0], nzz=150, $
             spsmodels=spsmodels, imf=imf, redcurve=redcurve, /igm, pburst=0.2, $
-            sfhgrid=1, nmodel=nmodel, age=[0.01,12.0], AV=[0.0,3.0], tau=[0.01,5.0], $
-            Zmetal=[0.0008,0.03], oiiihb=[0.0,1.0], /nebular, /delayed, /flatav, $
+            sfhgrid=1, nmodel=nmodel, age=[0.01,12.0], AV=[0.0,3.0], tau=[0.0,5.0], $
+            Zmetal=[0.0008,0.03], oiiihb=[-0.3,1.0], /nebular, /delayed, /flatav, $
             modelchunksize=1000L, clobber=clobber
        endif else begin
           nmodel = 20000L
           write_isedfit_paramfile, params=params, isedfit_dir=isedfit_dir, $
-            prefix=prefix, filterlist=filterlist, zminmax=[6.95,10.0], nzz=20, $
-            spsmodels=spsmodels, imf=imf, redcurve=redcurve, /igm, $
-            sfhgrid=1, nmodel=nmodel, age=[0.01,0.75], AV=[0.0,0.0], tau=[0.01,1.0], $
+            prefix=prefix, filterlist=filterlist, zminmax=[6.9,10.5], zbin=0.05, $
+            spsmodels=spsmodels, imf=imf, redcurve='none', /igm, $
+            sfhgrid=1, nmodel=nmodel, age=[0.01,0.75], AV=[0.0,0.0], tau=[0,1.0], $
             Zmetal=[0.0008,0.019], oiiihb=[0.0,1.0], /nebular, /delayed, $
             clobber=clobber
        endelse
+; 
+;      if keyword_set(photoz) then begin
+;         nmodel = 10000
+;         redcurve = 'charlot'
+;         write_isedfit_paramfile, params=params, isedfit_dir=isedfit_dir, $
+;           prefix=prefix, filterlist=filterlist, zminmax=[0.1,10.0], nzz=75, $
+;           spsmodels=spsmodels, imf=imf, redcurve=redcurve, /igm, pburst=0.2, $
+;           sfhgrid=1, nmodel=nmodel, age=[0.01,12.0], AV=[0.0,3.0], tau=[0.01,5.0], $
+;           Zmetal=[0.0008,0.03], oiiihb=[0.0,1.0], /nebular, /delayed, /flatav, $
+;           modelchunksize=1000L, clobber=clobber
+;      endif else begin
+;         nmodel = 20000L
+;         write_isedfit_paramfile, params=params, isedfit_dir=isedfit_dir, $
+;           prefix=prefix, filterlist=filterlist, zminmax=[6.95,10.0], nzz=20, $
+;           spsmodels=spsmodels, imf=imf, redcurve=redcurve, /igm, $
+;           sfhgrid=1, nmodel=nmodel, age=[0.01,0.75], AV=[0.0,0.0], tau=[0.01,1.0], $
+;           Zmetal=[0.0008,0.019], oiiihb=[0.0,1.0], /nebular, /delayed, $
+;           clobber=clobber
+;      endelse
     endif
 
 ; --------------------------------------------------
@@ -64,7 +83,8 @@ pro a2744_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
     if keyword_set(isedfit) then begin
        hff_to_maggies, cat, maggies, ivarmaggies, /nJy, filterlist=filt
        if keyword_set(quintet) then z = cat.bpz else begin
-          if keyword_set(photoz) eq 0 then z = cat.z_b_1
+          if keyword_set(photoz) eq 0 then z = cat.z_b
+;         if keyword_set(photoz) eq 0 then z = cat.z_b_1
        endelse
        isedfit, isedfit_paramfile, maggies, ivarmaggies, z, thissfhgrid=thissfhgrid, $
          isedfit_dir=isedfit_dir, outprefix=outprefix, isedfit_results=ised, $

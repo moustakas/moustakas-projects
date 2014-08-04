@@ -71,7 +71,7 @@ end
 
 pro bcgmstar_sersic2_allbands, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
   init_params=init_params, fixed=fixed, sersicfit=sersicfit, $
-  fixdevac=fixdevac, verbose=verbose
+  fixdevac=fixdevac, verbose=verbose, results=results
 ; fit a double-Sersic function to all the bands simultaneously by
 ; allowing the half-light radius and Sersic n parameter to vary as a
 ; power-law function of wavelength, while allowing the surface
@@ -85,7 +85,8 @@ pro bcgmstar_sersic2_allbands, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
 
 ; figure out how many bands we need to fit and then set up the
 ; parameters 
-    uwave = wave[uniq(wave,sort(wave))]
+    uwave = wave[uniq(wave,reverse(sort(wave)))] ; you must reverse!
+;   uwave = wave[uniq(wave,sort(wave))]
     nband = n_elements(uwave)
 
     get_element, uwave, 15326.0, this
@@ -124,14 +125,14 @@ pro bcgmstar_sersic2_allbands, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
 ; sbe1 - surface brightness at re
     for ib = 0, nband-1 do begin
        parinfo[8+ib].limited = [1,0]
-       parinfo[8+ib].limits = [1D-12,0D]
+       parinfo[8+ib].limits = [1D-13,0D]
 ;      parinfo[8+ib].limits = [0D,0D]
     endfor
 
 ; sbe2 - surface brightness at re
     for ib = 0, nband-1 do begin
        parinfo[8+nband+ib].limited = [1,0]
-       parinfo[8+nband+ib].limits = [1D-12,0D]
+       parinfo[8+nband+ib].limits = [1D-13,0D]
 ;      parinfo[8+nband+ib].limits = [0D,0D]
     endfor
 
@@ -140,31 +141,39 @@ pro bcgmstar_sersic2_allbands, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
        parinfo.value = [$
          alog10(1D),$           ; n1_ref
          alog10(4D),$           ; n2_ref
-         alog10(200D),$         ; re1_ref
-         alog10(10D),$          ; re2_ref
+         alog10(10D),$          ; re1_ref
+         alog10(200D),$         ; re2_ref
          0.1D,$                 ; alpha1
          0.1D,$                 ; alpha2
-         0.5D,$                 ; beta1
-         0.5D,$                 ; beta2
-         replicate(median(xxsb),nband),$
-         0.1*replicate(median(xxsb),nband)]
+         0.1D,$                 ; beta1
+         0.1D,$                 ; beta2
+         0.1*replicate(median(xxsb),nband),$
+         replicate(median(xxsb),nband)]
     endelse
-       
-;    if keyword_set(fixdevac) then begin
-;       parinfo[3].value = 4D
-;       parinfo[3].fixed = 1
-;    endif
+
+; fix the second Sersic model to be a de Vaucouleurs profile at all
+; wavelengths     
+    if keyword_set(fixdevac) then begin
+       parinfo[1].value = alog10(4D) ; n2_ref=4 is fixed
+       parinfo[5].value = 0D ; alpha2 is fixed (n2=constant)
+       parinfo[1].fixed = 1
+       parinfo[5].fixed = 1
+    endif
 
 ;   struct_print, parinfo
     params = mpfitfun('bcgmstar_sersic2_allbands_func',xx,xxsb,parinfo=parinfo,$
       yfit=sersicfit,perror=perror,covar=covar,weights=xxsb_ivar,dof=dof,$
-      bestnorm=chi2,status=status,quiet=0,$;keyword_set(verbose) eq 0,$
+      bestnorm=chi2,status=status,niter=niter,quiet=keyword_set(verbose) eq 0,$
       functargs={parinfo: parinfo, wave: wave})
     factor = sqrt(chi2/dof)
+
+;   djs_plot, xx, xxsb, psym=8, /xlog, /ylog
+;   djs_oplot, xx, sersicfit, psym=6, color='orange'
     
 ; build two output structures: one that has the formal fitting results
 ; (alpha, beta, etc.)...
     results = {$
+      niter:  niter,$
       status: status,$
       chi2:     chi2,$
       dof:       dof,$
@@ -200,38 +209,50 @@ pro bcgmstar_sersic2_allbands, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
     
 ; ...and a second one that has the model evaluated for each filter and
 ; which takes into account all the covariances in the parameters
-    
     for ib = 0, nband-1 do begin
        n1 = results.n1_ref*(uwave[ib]/wave_ref)^results.alpha1
        n2 = results.n2_ref*(uwave[ib]/wave_ref)^results.alpha2
        re1 = results.re1_ref*(uwave[ib]/wave_ref)^results.beta1
        re2 = results.re2_ref*(uwave[ib]/wave_ref)^results.beta2
 
+; these uncertainties are only approximate because they ignore the
+; covariance between the parameters (note that I can't use
+; MPRANDOMN because the covariance matrix is not positive-definite)
+       n1_err = sqrt((results.n1_ref_err/results.n1_ref/alog(10))^2 + $
+         (results.alpha1_err*(uwave[ib]/wave_ref))^2)*alog(10)*n1
+       n2_err = sqrt((results.n2_ref_err/results.n2_ref/alog(10))^2 + $
+         (results.alpha2_err*(uwave[ib]/wave_ref))^2)*alog(10)*n2
+
+       re1_err = sqrt((results.re1_ref_err/results.re1_ref/alog(10))^2 + $
+         (results.beta1_err*(uwave[ib]/wave_ref))^2)*alog(10)*re1
+       re2_err = sqrt((results.re2_ref_err/results.re2_ref/alog(10))^2 + $
+         (results.beta2_err*(uwave[ib]/wave_ref))^2)*alog(10)*re2
+       
        sbe1 = params[8+ib]
        sbe2 = params[8+nband+ib]
        sbe1_err = perror[8+ib]
        sbe2_err = perror[8+nband+ib]
-       
+
        scoeff1 = {$
          wave: uwave[ib], $
          
-         sersic2_all_sbe1: params1[0],$
+         sersic2_all_sbe1:     sbe1,$
+         sersic2_all_re1:      re1,$
+         sersic2_all_n1:       n1,$
+         sersic2_all_sbe1_err: sbe1_err,$
+         sersic2_all_re1_err:  re1_err,$
+         sersic2_all_n1_err:   n1_err,$
 
-         sersic2_all_re1:  params1[1],$
-         sersic2_all_n1:   params1[2],$
-         sersic2_all_sbe1_err: perror1[0],$ ; *factor,$
-         sersic2_all_re1_err:  perror1[1],$ ; *factor,$
-         sersic2_all_n1_err:   perror1[2],$ ; *factor,$
-
-         sersic2_all_sbe2: params2[0],$
-         sersic2_all_re2:  params2[1],$
-         sersic2_all_n2:   params2[2],$
-         sersic2_all_sbe2_err: perror2[0],$ ; *factor,$
-         sersic2_all_re2_err:  perror2[1],$ ; *factor,$
-         sersic2_all_n2_err:   perror2[2]}  ; *factor,$
+         sersic2_all_sbe2:     sbe2,$
+         sersic2_all_re2:      re2,$
+         sersic2_all_n2:       n2,$
+         sersic2_all_sbe2_err: sbe2_err,$
+         sersic2_all_re2_err:  re2_err,$
+         sersic2_all_n2_err:   n2_err}
        if ib eq 0 then scoeff = scoeff1 else scoeff = [scoeff,scoeff1]
     endfor
-
+    struct_print, scoeff
+    
 return
 end
 
@@ -559,7 +580,7 @@ pro bcgmstar_sersicfit, doallfit=doallfit, dofit=dofit, dophot=dophot, $
 
 ; read the sample
     sample = read_bcgmstar_sample()
-    sample = sample[4]
+;   sample = sample[4]
     ncl = n_elements(sample)
 
     pixscale = 0.065D           ; [arcsec/pixel]
@@ -575,8 +596,8 @@ pro bcgmstar_sersicfit, doallfit=doallfit, dofit=dofit, dophot=dophot, $
 ; fit double Sersic models to all bands simultaneously 
     if keyword_set(doallfit) then begin
 ; wrap on each cluster    
-       for ic = 0, 0 do begin
-;      for ic = 0, ncl-1 do begin
+;      for ic = 0, 0 do begin
+       for ic = 0, ncl-1 do begin
           arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]
           
           cluster = strtrim(sample[ic].shortname,2)
@@ -650,19 +671,12 @@ pro bcgmstar_sersicfit, doallfit=doallfit, dofit=dofit, dophot=dophot, $
 
           bcgmstar_sersic2_allbands, fit_radius_kpc, fit_sb, fit_wave, $
             allsersic2, sb_ivar=fit_sb_ivar, sersicfit=sersicfit, $
-            fixdevac=fixdevac, verbose=verbose
-
-stop          
-          
-          out = struct_addtags(out,im_empty_structure(multisersic2[0],ncopies=nfilt))
-          for ib = 0, nnir-1 do begin
-             out[ib] = im_struct_assign(multisersic2[ib],out[ib],/nozero)
-             out[ib].sersic2_covar = 0
-             out[ib].sersic2_covar_nir = multisersic2[ib].sersic2_covar
-          endfor
+            fixdevac=fixdevac, verbose=verbose, results=results
+          out = struct_addtags(out,allsersic2)
 
 ; write out
-          im_mwrfits, out, sersicpath+cluster+'-sersic.fits', clobber=clobber
+          im_mwrfits, out, sersicpath+cluster+'-allsersic.fits', clobber=clobber
+          im_mwrfits, results, sersicpath+cluster+'-allsersic-results.fits', clobber=clobber
        endfor          
     endif 
     
@@ -1220,21 +1234,33 @@ stop
 ; -------------------------    
 ; QAplot: SB profiles and the Sersic fits
     if keyword_set(qaplot_sbprofiles) then begin
+       allsersic = 1 ; show the multi-band fitting results
+
+;      for ic = 0, 0 do begin
        for ic = 0, ncl-1 do begin
           cluster = strtrim(sample[ic].shortname,2)
           splog, cluster
-          psfile = qapath+'qa_sersic_'+cluster+'.ps'
+          if allsersic then psfile = qapath+'qa_allsersic_'+cluster+'.ps' else $
+            psfile = qapath+'qa_sersic_'+cluster+'.ps'
           im_plotconfig, 0, pos, psfile=psfile, charsize=1.3
 
           arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]
 
-          sersic = mrdfits(sersicpath+cluster+'-sersic.fits.gz',1,/silent)
+          if allsersic then begin
+             sersic = mrdfits(sersicpath+cluster+'-allsersic.fits.gz',1,/silent)
+             sersic_results = mrdfits(sersicpath+cluster+'-allsersic-results.fits.gz',1,/silent)
+          endif else begin
+             sersic = mrdfits(sersicpath+cluster+'-sersic.fits.gz',1,/silent)
+          endelse
           modphot = mrdfits(ellpath+cluster+'-ellipse-model.fits.gz',1,/silent)
           nfilt = n_elements(modphot)
 
-          nrow = ceil(nfilt/float(ncol))
+          if allsersic then nrow = ceil((nfilt+1)/float(ncol)) else $
+            nrow = ceil(nfilt/float(ncol))
           pos = im_getposition(nx=ncol,ny=nrow,yspace=0.0,xspace=0.0,$
             xmargin=[0.9,0.4],width=2.4)
+          count = 0
+;         for ib = nfilt-1, 0, -1 do begin ; reverse order
           for ib = 0, nfilt-1 do begin
              band = strtrim(strupcase(modphot[ib].band),2)
 
@@ -1249,51 +1275,60 @@ stop
 
              radius_kpc = modphot[ib].radius_kpc[modgood]  ; [kpc]
 
-             if ib eq 1 then title = strupcase(cluster) else delvarx, title
-             if ib ge nfilt-3 then begin
+             if count eq 1 then title = strupcase(cluster) else delvarx, title
+             if count ge nfilt-3 then begin
                 delvarx, xtickname
              endif else begin
                 xtickname = replicate(' ',10)
              endelse
-             if (ib mod 3) eq 0 then begin
+             if (count mod 3) eq 0 then begin
                 delvarx, ytickname
              endif else begin
                 ytickname = replicate(' ',10)
              endelse
              
-             djs_plot, radius_kpc, -2.5*alog10(sb), psym=symcat(16), /xlog, noerase=ib gt 0, $
-               xrange=[0.3,200], xsty=1, yrange=[29,16], position=pos[*,ib], $
+             djs_plot, radius_kpc, -2.5*alog10(sb), psym=symcat(16), /xlog, noerase=count gt 0, $
+               xrange=[0.3,200], xsty=1, yrange=[29,16], position=pos[*,count], $
                xtickname=xtickname, ytickname=ytickname, title=title, $
                symsize=0.5, ytickinterval=3, ysty=1
 
-             label = [$
-               '\chi^{2}_{\nu, single}='+$
-               strtrim(string(sersic[ib].sersic_chi2/sersic[ib].sersic_dof,format='(F12.2)'),2),$
-               '\mu_{e}='+strtrim(string(sersic[ib].sersic_sbe,format='(F12.1)'),2)+','+$
-               'n='+strtrim(string(sersic[ib].sersic_n,format='(F12.2)'),2)+','+$
-               'r_{e}='+strtrim(string(sersic[ib].sersic_re,format='(F12.1)'),2)+' kpc']
-             
-;            label = [$
-;              '\mu_{e}='+strtrim(string(sersic[ib].sersic_sbe,format='(F12.1)'),2),$
-;              'r_{e}='+strtrim(string(sersic[ib].sersic_re,format='(F12.1)'),2)+' kpc',$
-;              'n='+strtrim(string(sersic[ib].sersic_n,format='(F12.2)'),2),$
-;              '\chi^{2}_{\nu, single}='+strtrim(string(sersic[ib].sersic_chi2/$
-;              sersic[ib].sersic_dof,format='(F12.2)'),2)]
-             if dosersic2 then begin
-                if sersic[ib].sersic2_sbe1 eq 0.0 or sersic[ib].sersic2_sbe2 eq 0.0 then begin
-                   label = [label,'Sersic-2 dropped']
-                endif else begin
-                   label = [label,$
-                     '\chi^{2}_{\nu, double}='+strtrim(string(sersic[ib].sersic2_chi2/$
-                     sersic[ib].sersic2_dof,format='(F12.2)'),2),$
-                     '\mu_{e1}='+strtrim(string(-2.5*alog10(sersic[ib].sersic2_sbe1),format='(F12.1)'),2)+','+$
-                     'n_{1}='+strtrim(string(sersic[ib].sersic2_n1,format='(F12.2)'),2)+','+$
-                     'r_{e1}='+strtrim(string(sersic[ib].sersic2_re1,format='(F12.2)'),2)+' kpc',$
-                     '\mu_{e2}='+strtrim(string(-2.5*alog10(sersic[ib].sersic2_sbe2),format='(F12.1)'),2)+','+$
-                     'n_{2}='+strtrim(string(sersic[ib].sersic2_n2,format='(F12.2)'),2)+','+$
-                     'r_{e2}='+strtrim(string(sersic[ib].sersic2_re2,format='(F12.1)'),2)+' kpc']
-                endelse
-             endif
+             if allsersic then begin
+                label = [$
+                  '\mu_{e1}='+strtrim(string(-2.5*alog10(sersic[ib].sersic2_all_sbe1),format='(F12.1)'),2)+','+$
+                  'n_{1}='+strtrim(string(sersic[ib].sersic2_all_n1,format='(F12.2)'),2)+','+$
+                  'r_{e1}='+strtrim(string(sersic[ib].sersic2_all_re1,format='(F12.2)'),2)+' kpc',$
+                  '\mu_{e2}='+strtrim(string(-2.5*alog10(sersic[ib].sersic2_all_sbe2),format='(F12.1)'),2)+','+$
+                  'n_{2}='+strtrim(string(sersic[ib].sersic2_all_n2,format='(F12.2)'),2)+','+$
+                  'r_{e2}='+strtrim(string(sersic[ib].sersic2_all_re2,format='(F12.2)'),2)+' kpc']
+             endif else begin
+                label = [$
+                  '\chi^{2}_{\nu, single}='+$
+                  strtrim(string(sersic[ib].sersic_chi2/sersic[ib].sersic_dof,format='(F12.2)'),2),$
+                  '\mu_{e}='+strtrim(string(sersic[ib].sersic_sbe,format='(F12.1)'),2)+','+$
+                  'n='+strtrim(string(sersic[ib].sersic_n,format='(F12.2)'),2)+','+$
+                  'r_{e}='+strtrim(string(sersic[ib].sersic_re,format='(F12.1)'),2)+' kpc']
+;               label = [$
+;                 '\mu_{e}='+strtrim(string(sersic[ib].sersic_sbe,format='(F12.1)'),2),$
+;                 'r_{e}='+strtrim(string(sersic[ib].sersic_re,format='(F12.1)'),2)+' kpc',$
+;                 'n='+strtrim(string(sersic[ib].sersic_n,format='(F12.2)'),2),$
+;                 '\chi^{2}_{\nu, single}='+strtrim(string(sersic[ib].sersic_chi2/$
+;                 sersic[ib].sersic_dof,format='(F12.2)'),2)]
+                if dosersic2 then begin
+                   if sersic[ib].sersic2_sbe1 eq 0.0 or sersic[ib].sersic2_sbe2 eq 0.0 then begin
+                      label = [label,'Sersic-2 dropped']
+                   endif else begin
+                      label = [label,$
+                        '\chi^{2}_{\nu, double}='+strtrim(string(sersic[ib].sersic2_chi2/$
+                        sersic[ib].sersic2_dof,format='(F12.2)'),2),$
+                        '\mu_{e1}='+strtrim(string(-2.5*alog10(sersic[ib].sersic2_sbe1),format='(F12.1)'),2)+','+$
+                        'n_{1}='+strtrim(string(sersic[ib].sersic2_n1,format='(F12.2)'),2)+','+$
+                        'r_{e1}='+strtrim(string(sersic[ib].sersic2_re1,format='(F12.2)'),2)+' kpc',$
+                        '\mu_{e2}='+strtrim(string(-2.5*alog10(sersic[ib].sersic2_sbe2),format='(F12.1)'),2)+','+$
+                        'n_{2}='+strtrim(string(sersic[ib].sersic2_n2,format='(F12.2)'),2)+','+$
+                        'r_{e2}='+strtrim(string(sersic[ib].sersic2_re2,format='(F12.2)'),2)+' kpc']
+                   endelse 
+                endif
+             endelse 
              im_legend, label, /left, /bottom, box=0, margin=0, charsize=0.7, charthick=1.8
 
              if modbad[0] ne -1 then begin
@@ -1302,30 +1337,62 @@ stop
              endif
              
              im_legend, band, /right, /top, box=0, margin=0, charsize=1.0
+
+             if allsersic then begin
+;               djs_oplot, rr, -2.5*alog10(bcgmstar_sersic2_allbands_func(rr,$
+;                 sersic_results.params,wave=rr*0+sersic[ib].wave)), color=cgcolor('forest green')
+                djs_oplot, rr, -2.5*alog10(bcgmstar_sersic2_func(rr,params=sersic[0],/allbands)), $
+                  color=cgcolor('forest green')
+                djs_oplot, rr, -2.5*alog10(bcgmstar_sersic2_func(rr,params=sersic[ib],/allbands)), $
+                  color=cgcolor('firebrick')
+                djs_oplot, rr, bcgmstar_sersic_func(rr,[-2.5*alog10(sersic[ib].sersic2_all_sbe1),$
+                  sersic[ib].sersic2_all_re1,sersic[ib].sersic2_all_n1]), color=cgcolor('orange'), line=2
+                djs_oplot, rr, bcgmstar_sersic_func(rr,[-2.5*alog10(sersic[ib].sersic2_all_sbe2),$
+                  sersic[ib].sersic2_all_re2,sersic[ib].sersic2_all_n2]), color=cgcolor('orange'), line=2
+             endif else begin
+                djs_oplot, rr, bcgmstar_sersic_func(rr,params=sersic[ib]), $
+                  color=cgcolor('firebrick')
+                if ib gt 0 then djs_oplot, rr, bcgmstar_sersic_func(rr,$
+                  params=sersic[0]), color=cgcolor('forest green')
              
-             djs_oplot, rr, bcgmstar_sersic_func(rr,params=sersic[ib]), $
-               color=cgcolor('firebrick')
-             if ib gt 0 then djs_oplot, rr, bcgmstar_sersic_func(rr,$
-               params=sersic[0]), color=cgcolor('forest green')
-             
-             if dosersic2 then begin
-                djs_oplot, rr, -2.5*alog10(bcgmstar_sersic2_func(rr,params=sersic[ib])), $
-                  color=cgcolor('dodger blue')
-                if sersic[ib].sersic2_sbe1 eq 0.0 or sersic[ib].sersic2_sbe2 eq 0.0 then begin
-                   splog, '  '+band+': second Sersic dropped!'
-                endif else begin
-                   djs_oplot, rr, bcgmstar_sersic_func(rr,[-2.5*alog10(sersic[ib].sersic2_sbe1),$
-                     sersic[ib].sersic2_re1,sersic[ib].sersic2_n1]), color=cgcolor('orange'), line=2
-                   djs_oplot, rr, bcgmstar_sersic_func(rr,[-2.5*alog10(sersic[ib].sersic2_sbe2),$
-                     sersic[ib].sersic2_re2,sersic[ib].sersic2_n2]), color=cgcolor('orange'), line=2
-;                  if band eq 'F435W' then stop
-                endelse
-             endif
+                if dosersic2 then begin
+                   djs_oplot, rr, -2.5*alog10(bcgmstar_sersic2_func(rr,params=sersic[ib])), $
+                     color=cgcolor('dodger blue')
+                   if sersic[ib].sersic2_sbe1 eq 0.0 or sersic[ib].sersic2_sbe2 eq 0.0 then begin
+                      splog, '  '+band+': second Sersic dropped!'
+                   endif else begin
+                      djs_oplot, rr, bcgmstar_sersic_func(rr,[-2.5*alog10(sersic[ib].sersic2_sbe1),$
+                        sersic[ib].sersic2_re1,sersic[ib].sersic2_n1]), color=cgcolor('orange'), line=2
+                      djs_oplot, rr, bcgmstar_sersic_func(rr,[-2.5*alog10(sersic[ib].sersic2_sbe2),$
+                        sersic[ib].sersic2_re2,sersic[ib].sersic2_n2]), color=cgcolor('orange'), line=2
+;                     if band eq 'F435W' then stop
+                   endelse
+                endif
+             endelse
 
              djs_oplot, [70.0,10^!x.crange[1]], modphot[ib].sblimit*[1,1], line=0
 ;            djs_oplot, [6.0,10^!x.crange[1]], modphot[ib].sblimit*[1,1], line=0
 ;            djs_oplot, sersic[ib].rmax_kpc*[1,1], [!y.crange[0]-0.2,!y.crange[0]-6], line=0
-          endfor
+             count++
+          endfor 
+
+          if allsersic then begin
+             label = ['\chi^{2}_{\nu}='+strtrim(string(sersic_results.chi2/$
+               sersic_results.dof,format='(F12.2)'),2),$
+               '\nu='+strtrim(string(sersic_results.dof,format='(I0)'),2),$
+               '\alpha_{1}='+strtrim(string(sersic_results.alpha1,format='(F12.3)'),2)+'\pm'+$
+               strtrim(string(sersic_results.alpha1_err,format='(F12.3)'),2),$
+               '\alpha_{2}='+strtrim(string(sersic_results.alpha2,format='(F12.3)'),2)+'\pm'+$
+               strtrim(string(sersic_results.alpha2_err,format='(F12.3)'),2),$
+               '\beta_{1}='+strtrim(string(sersic_results.beta1,format='(F12.3)'),2)+'\pm'+$
+               strtrim(string(sersic_results.beta1_err,format='(F12.3)'),2),$
+               '\beta_{2}='+strtrim(string(sersic_results.beta2,format='(F12.3)'),2)+'\pm'+$
+               strtrim(string(sersic_results.beta2_err,format='(F12.3)'),2)]
+             djs_plot, [0], [0], /nodata, /noerase, position=pos[*,count], $
+               xsty=5, ysty=5
+             im_legend, label, /left, /bottom, box=0, margin=0, charsize=1, charthick=1.8
+               
+          endif
           
           xyouts, min(pos[0,*])-0.06, (max(pos[3,*])-min(pos[1,*]))/2.0+min(pos[1,*]), $
             textoidl('\mu (mag arcsec^{-2})'), orientation=90, align=0.5, charsize=1.4, /norm

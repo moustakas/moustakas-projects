@@ -1,9 +1,17 @@
-function bcgmstar_sersic2_func, rr, pp, params=params, parinfo=parinfo
+function bcgmstar_sersic2_func, rr, pp, params=params, parinfo=parinfo, allbands=allbands
 ; pp = [sbe1,re1,n1,sbe2,re2,n2]
 
-    if n_elements(params) ne 0 then pp = $
-      [params.sersic2_sbe1,params.sersic2_re1,params.sersic2_n1,$
-      params.sersic2_sbe2,params.sersic2_re2,params.sersic2_n2]
+    if keyword_set(allbands) then begin
+; support input from the bcgmstar_sersic2_allbands_func function; see
+; bcgmstar_sersicfit, /qaplot_sbprofiles for proper usage
+       if n_elements(params) ne 0 then pp = $
+         [params.sersic2_all_sbe1,params.sersic2_all_re1,params.sersic2_all_n1,$
+         params.sersic2_all_sbe2,params.sersic2_all_re2,params.sersic2_all_n2]
+    endif else begin
+       if n_elements(params) ne 0 then pp = $
+         [params.sersic2_sbe1,params.sersic2_re1,params.sersic2_n1,$
+         params.sersic2_sbe2,params.sersic2_re2,params.sersic2_n2]
+    endelse
 
 ; make sure the parameters don't go outside the boundaries,
 ; since mpfit does not 

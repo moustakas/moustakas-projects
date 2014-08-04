@@ -1,7 +1,8 @@
 function redmapper_path, isedfit=isedfit, version=version, $
-  paper=paper, redbaryons=redbaryons, icl=icl, qaplots=qaplots
+  paper=paper, redbaryons=redbaryons, icl=icl, qaplots=qaplots, $
+  decamlegacy=decamlegacy
 ; jm13apr08siena
-    version = 'v5.2'
+    version = 'v5.10'
     redmapper_path = getenv('REDMAPPER_DATA')+'/'
     paperpath = getenv('IM_PAPERS_DIR')+'/projects/redmapper/'
 
@@ -20,6 +21,7 @@ function redmapper_path, isedfit=isedfit, version=version, $
 
     if keyword_set(icl) then return, redmapper_path+'icl/'
     if keyword_set(redbaryons) then return, redmapper_path+'redbaryons/'
+    if keyword_set(decamlegacy) then return, redmapper_path+'decamlegacy/'
 
 return, redmapper_path
 end

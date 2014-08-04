@@ -20,60 +20,12 @@ pro bcgmstar_tables
     sersicpath = bcgmstar_path(/sersic)
     
 ; by default build emulateapj format tables    
-    sample = read_bcgmstar_sample()
-    sample = sample[sort(sample.m500)]
+    sample = read_bcgmstar_sample(/zsort)
+;   sample = sample[sort(sample.m500)]
     ncl = n_elements(sample) 
 
     filt = bcgmstar_filterlist(short=short)
     nfilt = n_elements(filt)
-
-; ---------------------------------------------------------------------------    
-; Table: prior parameters
-    texfile = paperpath+'table_priors'+filesuffix+'.tex'
-    splog, 'Writing '+texfile
-
-    ngrid = 4
-    info = replicate({grid: '', age: '', tau: '', Zmetal: ''},ngrid)
-    info.grid = string(lindgen(ngrid)+1,format='(I2.2)')
-    info.age = '$1.0-11.2$'
-    info.tau = ['$0-2$','$0-2$','SSP','SSP']
-    info.Zmetal = ['$0.01-0.03$','$0.03$','$0.03$','$0.01-0.03$']
-    struct_print, info
-    ntags = n_tags(info)
-
-    colhead1 = get_colhead(['','Age','$\tau$',''])
-    colhead2 = get_colhead(['Grid','(Gyr)','(Gyr)','Metallicity'],/nobreak)
-    texcenter = ['l','c','c','c']
-
-    tablenotetext = [$
-      '{a}{Adopted prior parameters.  All grids are constructed using the FSPS \citep[v2.4;][]{'+$
-      'conroy09a, conroy10b} stellar population synthesis models an}']
-
-; write it out    
-    openw, lun, texfile, /get_lun
-    printf, lun, '\begin{deluxetable}{'+strjoin(texcenter)+'}'
-    printf, lun, '\tablecaption{Prior Parameters\tablenotemark{a}\label{table:priors}}'  
-    printf, lun, '\tablewidth{0pt}'
-    printf, lun, '\tablehead{'
-    niceprintf, lun, colhead1
-    niceprintf, lun, colhead2
-    printf, lun, '}'
-    printf, lun, '\startdata'
-    for ii = 0, ngrid-1 do begin
-       for jj = 0, ntags-1 do begin
-          if (jj eq ntags-1) then if (ii eq ngrid-1) then suffix = '' else $
-            suffix = ' \\' else suffix = ' & '
-          printf, lun, info[ii].(jj)+suffix
-       endfor
-    endfor
-    
-    printf, lun, '\enddata'
-;   printf, lun, '\tablecomments{'+tablecomments+'}'
-;   niceprintf, lun, '\tablenotetext'+tablenotetext
-    printf, lun, '\end{deluxetable}'
-    free_lun, lun
-
-stop    
 
 ; ---------------------------------------------------------------------------    
 ; Table 1: table summarizing the sample
@@ -137,6 +89,54 @@ stop
 
 stop    
     
+; ---------------------------------------------------------------------------    
+; Table: prior parameters
+    texfile = paperpath+'table_priors'+filesuffix+'.tex'
+    splog, 'Writing '+texfile
+
+    ngrid = 4
+    info = replicate({grid: '', age: '', tau: '', Zmetal: ''},ngrid)
+    info.grid = string(lindgen(ngrid)+1,format='(I2.2)')
+    info.age = '$1.0-11.2$'
+    info.tau = ['$0-2$','$0-2$','SSP','SSP']
+    info.Zmetal = ['$0.01-0.03$','$0.03$','$0.03$','$0.01-0.03$']
+    struct_print, info
+    ntags = n_tags(info)
+
+    colhead1 = get_colhead(['','Age','$\tau$',''])
+    colhead2 = get_colhead(['Grid','(Gyr)','(Gyr)','Metallicity'],/nobreak)
+    texcenter = ['l','c','c','c']
+
+    tablenotetext = [$
+      '{a}{Adopted prior parameters.  All grids are constructed using the FSPS \citep[v2.4;][]{'+$
+      'conroy09a, conroy10b} stellar population synthesis models an}']
+
+; write it out    
+    openw, lun, texfile, /get_lun
+    printf, lun, '\begin{deluxetable}{'+strjoin(texcenter)+'}'
+    printf, lun, '\tablecaption{Prior Parameters\tablenotemark{a}\label{table:priors}}'  
+    printf, lun, '\tablewidth{0pt}'
+    printf, lun, '\tablehead{'
+    niceprintf, lun, colhead1
+    niceprintf, lun, colhead2
+    printf, lun, '}'
+    printf, lun, '\startdata'
+    for ii = 0, ngrid-1 do begin
+       for jj = 0, ntags-1 do begin
+          if (jj eq ntags-1) then if (ii eq ngrid-1) then suffix = '' else $
+            suffix = ' \\' else suffix = ' & '
+          printf, lun, info[ii].(jj)+suffix
+       endfor
+    endfor
+    
+    printf, lun, '\enddata'
+;   printf, lun, '\tablecomments{'+tablecomments+'}'
+;   niceprintf, lun, '\tablenotetext'+tablenotetext
+    printf, lun, '\end{deluxetable}'
+    free_lun, lun
+
+stop    
+
 ; ---------------------------------------------------------------------------    
 ; Table: photometry
     texfile = paperpath+'table_phot'+filesuffix+'.tex'

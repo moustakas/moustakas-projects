@@ -1,7 +1,7 @@
 pro z10_a2744_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
   model_photometry=model_photometry, qaplot_models=qaplot_models, isedfit=isedfit, $
   kcorrect=kcorrect, qaplot_sed=qaplot_sed, thissfhgrid=thissfhgrid, $
-  clobber=clobber, photoz=photoz
+  clobber=clobber, photoz=photoz, noirac=noirac
 ; jm12sep17siena
 
     if keyword_set(photoz) then prefix = 'z10_a2744_photoz' else prefix = 'z10_a2744'
@@ -14,6 +14,10 @@ pro z10_a2744_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
 
     filterlist = hff_filterlist(/useirac)
     nfilt = n_elements(filterlist)
+
+; test the effect of not using IRAC on the physical parameters and
+; photometric redshifts     
+    if keyword_set(noirac) then outprefix = prefix+'_noirac'
 
 ; --------------------------------------------------
 ; build the parameter files
@@ -60,6 +64,10 @@ pro z10_a2744_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
     if keyword_set(isedfit) then begin
        hff_to_maggies, cat, maggies, ivarmaggies, /nJy, filterlist=filt
        if keyword_set(photoz) eq 0 then z = cat.z ; cat.bpz
+       if keyword_set(noirac) then begin
+          isirac = where(strmatch(filt,'*irac*'))
+          ivarmaggies[isirac,*] = 0
+       endif
        isedfit, isedfit_paramfile, maggies, ivarmaggies, z, thissfhgrid=thissfhgrid, $
          isedfit_dir=isedfit_dir, outprefix=outprefix, isedfit_results=ised, $
          isedfit_post=isedpost, clobber=clobber, photoz=photoz, index=index

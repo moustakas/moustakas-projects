@@ -12,12 +12,13 @@ pro redmapper_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
 
     prefix = 'redmapper'
     isedfit_dir = redmapper_path(/isedfit)
+    montegrids_dir = isedfit_dir+'montegrids/'
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
     redmapper_dir = redmapper_path(version=ver)
 
     filterlist = redmapper_filterlist()
 
-    nchunk = 8
+    nchunk = 10
     
 ; --------------------------------------------------
 ; write the iSEDfit parameter file 
@@ -25,9 +26,9 @@ pro redmapper_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
 ; having TBURST at [0.1,13.0] is intentional!
        write_isedfit_paramfile, params=params, isedfit_dir=isedfit_dir, $
          prefix=prefix, filterlist=filterlist, spsmodels='fsps_v2.4_miles', $
-         imf='chab', redcurve='charlot', /igm, zminmax=[0.05,0.6], zbin=0.02, $
-         nmodel=25000L, age=[0.5,13.0], tau=[0.01,5.0], Zmetal=[0.004,0.03], $
-         AV=[0.35,2.0], mu=[0.1,4.0], pburst=0.2, interval_pburst=2.0, $
+         imf='chab', redcurve='charlot', igm=0, zminmax=[0.05,0.6], zbin=0.01, $
+         nmodel=25000L, age=[0.1,13.0], tau=[0.0,5.0], Zmetal=[0.004,0.03], $
+         AV=[0.35,2.0], mu=[0.1,4.0], pburst=0.1, interval_pburst=2.0, $
          tburst=[0.1,13.0], /delayed, galchunksize=2000L, clobber=clobber
     endif
 
@@ -68,6 +69,7 @@ pro redmapper_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
        if keyword_set(bcgs) then begin
           outprefix = 'bcgs'
           phot = phot[where(phot.isbcg)]
+;         phot = phot[0:100]
 
           isedfit, isedfit_paramfile, phot.maggies, phot.ivarmaggies, $
             phot.z, ra=phot.ra, dec=phot.dec, isedfit_dir=isedfit_dir, $
@@ -124,6 +126,7 @@ pro redmapper_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
        if keyword_set(bcgs) then begin
           outprefix = 'bcgs'
           phot = phot[where(phot.isbcg)]
+;         phot = phot[0:100]
        endif else begin
           splog, 'Need to deal with the chunks!  Maybe add a /NOPOSTERIOR keyword?'
           return

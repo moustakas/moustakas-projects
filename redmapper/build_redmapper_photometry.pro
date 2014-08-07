@@ -1,5 +1,7 @@
 pro build_redmapper_photometry, out
-; jm13mar28siena - merge the GALEX, SDSS, and WISE photometry 
+; jm13mar28siena - merge the GALEX, SDSS, and WISE photometry
+; jm14aug06siena - updated to v5.10, which no longer includes GALEX
+;   photometry and now includes unWISE photometry 
 
 ; MEM_MATCH_ID: unique id
 ; RA, DEC: most likely central galaxy position
@@ -24,27 +26,34 @@ pro build_redmapper_photometry, out
 ;   bcgs = mrdfits(path+'dr8_run_redmapper_'+ver+$
 ;     '_lgt20_catalog.fits.gz',1)
     cat = mrdfits(path+'dr8_run_redmapper_'+ver+$
-      '_lgt20_catalog_members.fits.gz',1)
+      '_lgt5_catalog_members.fits.gz',1)
     ngal = n_elements(cat)
 
     sdss = mrdfits(path+'redmapper_'+ver+'_sdss.fits.gz',1)
-    galex = mrdfits(path+'redmapper_'+ver+'_galex_gr6.fits.gz',1)
-    wise = mrdfits(path+'redmapper_'+ver+'_wise.fits.gz',1)
+    unwise = mrdfits(path+'redmapper_'+ver+'_unwise.fits.gz',1)
+;   galex = mrdfits(path+'redmapper_'+ver+'_galex_gr6.fits.gz',1)
 
-    wise_to_maggies, wise, wmaggies, wivarmaggies, /mpro
-    im_galex_to_maggies, galex, gmaggies, givarmaggies
     sdss_to_maggies, smaggies, sivarmaggies, cas=sdss, flux='cmodel'
+    unwise_to_maggies, unwise, wmaggies, wivarmaggies
+;   wise_to_maggies, wise, wmaggies, wivarmaggies, /mpro
+;   im_galex_to_maggies, galex, gmaggies, givarmaggies
 
-    out = struct_trimtags(cat)
+;   out = struct_trimtags(cat)
 ;   out = struct_trimtags(cat,select=['mem_match_id','ra','dec','z',$
 ;     'r','p','photoid'])
-    out = struct_addtags(out,replicate({isbcg: 0, maggies: fltarr(nfilt), $
-      ivarmaggies: fltarr(nfilt), irmaggies: fltarr(2), $
-      irivarmaggies: fltarr(2)},ngal))
-    out.maggies = [gmaggies,smaggies,wmaggies[0:1,*]]
-    out.ivarmaggies = [givarmaggies,sivarmaggies,wivarmaggies[0:1,*]]
-    out.irmaggies = wmaggies[2:3,*]
-    out.irivarmaggies = wivarmaggies[2:3,*]
+    out = struct_addtags(cat,replicate({$
+      isbcg: 0,                   $
+      maggies: fltarr(nfilt),     $
+      ivarmaggies: fltarr(nfilt)},ngal))
+;     irmaggies: fltarr(2),       $
+;     irivarmaggies: fltarr(2)},ngal))
+
+    out.maggies = [smaggies,wmaggies]
+    out.ivarmaggies = [sivarmaggies,wivarmaggies]
+;   out.maggies = [gmaggies,smaggies,wmaggies[0:1,*]]
+;   out.ivarmaggies = [givarmaggies,sivarmaggies,wivarmaggies[0:1,*]]
+;   out.irmaggies = wmaggies[2:3,*]
+;   out.irivarmaggies = wivarmaggies[2:3,*]
 
 ; identify the centrals/BCGs
     out[where(cat.r eq 0)].isbcg = 1

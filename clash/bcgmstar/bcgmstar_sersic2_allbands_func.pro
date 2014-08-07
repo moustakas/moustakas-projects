@@ -31,10 +31,19 @@ function bcgmstar_sersic2_allbands_func, rr, pp, parinfo=parinfo, wave=wave
          use_pp[ii] = use_pp[ii] < parinfo[ii].limits[1]
     endif
 
-    use_n1_ref = 10D^use_pp[0]
-    use_n2_ref = 10D^use_pp[1]
-    use_re1_ref = 10D^use_pp[2]
-    use_re2_ref = 10D^use_pp[3]
+;    if use_pp[0] gt use_pp[1] then begin
+;       use_n1_ref = 10D^use_pp[0]
+;       use_n2_ref = 10D^use_pp[1]
+;    endif else begin
+;       use_n1_ref = 10D^use_pp[1]
+;       use_n2_ref = 10D^use_pp[0]
+;    endelse
+
+    use_n1_ref = use_pp[0]
+    use_n2_ref = use_pp[1]
+
+    use_re1_ref = use_pp[2]
+    use_re2_ref = use_pp[3]
 
     use_alpha1 = use_pp[4]
     use_alpha2 = use_pp[5]
@@ -46,8 +55,10 @@ function bcgmstar_sersic2_allbands_func, rr, pp, parinfo=parinfo, wave=wave
     use_re1 = use_re1_ref*(uwave/wave_ref)^use_beta1
     use_re2 = use_re2_ref*(uwave/wave_ref)^use_beta2
 
-    use_sbe1 = use_pp[8:8+nband-1]
-    use_sbe2 = use_pp[8+nband:8+2*nband-1]
+    use_sbe1 = 10D^(-0.4*use_pp[8:8+nband-1])
+    use_sbe2 = 10D^(-0.4*use_pp[8+nband:8+2*nband-1])
+;   use_sbe1 = use_pp[8:8+nband-1]
+;   use_sbe2 = use_pp[8+nband:8+2*nband-1]
 
 ; provide a simple look-up table of the Sersic b parameter on a grid
 ; of Sersic n (see Graham & Driver (2005), equations 1 and 4 and my
@@ -63,8 +74,8 @@ function bcgmstar_sersic2_allbands_func, rr, pp, parinfo=parinfo, wave=wave
 ;      plot, nlookup, blookup, /xlog, /ylog
     endif
 
-    use_b1 = interpol(blookup,nlookup,use_n1)
-    use_b2 = interpol(blookup,nlookup,use_n2)
+    use_b1 = interpol(blookup,nlookup,use_n1)>0
+    use_b2 = interpol(blookup,nlookup,use_n2)>0
 
 ; fit the sum of two Sersic models     
     for ib = 0, nband-1 do begin
@@ -73,7 +84,9 @@ function bcgmstar_sersic2_allbands_func, rr, pp, parinfo=parinfo, wave=wave
          use_sbe2[ib]*exp(-use_b2[ib]*((rr[ww]/use_re2[ib])^(1D/use_n2[ib])-1D))
 ;      model1 = use_sbe1[ib]*exp(-get_sersicb(use_n1[ib])*((rr[ww]/use_re1[ib])^(1D/use_n1[ib])-1D)) + $
 ;        use_sbe2[ib]*exp(-get_sersicb(use_n2[ib])*((rr[ww]/use_re2[ib])^(1D/use_n2[ib])-1D))
+       model1 = -2.5*alog10(model1)
        if ib eq 0 then model = model1 else model = [model,model1]
+       if total(finite(model) eq 0) ne 0 then stop
     endfor
 
 return, model

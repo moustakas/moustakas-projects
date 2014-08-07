@@ -1,20 +1,23 @@
-function bcgmstar_sersic_func, rr, pp, params=params, parinfo=parinfo, allbands=allbands
-; pp = [sbe,re,n]
+function bcgmstar_sersic_allbands_func, rr, pp, parinfo=parinfo, wave=wave
+; fit all the bands simultaneously 
+
+    common com_sersic_allbands, nlookup, blookup
+    
+; pp = [n_ref,re_ref,alpha1,beta1,sbe]
 ; sbe - surface brightness at re
 ; re - effective (half-light) radius
 ; n - Sersic index
 
-    common com_sersic, nlookup, blookup
+; n(wave) = n_ref(wave/wave_ref)^alpha1
+; re(wave) = re_ref(wave/wave_ref)^beta1
 
-; support input from the bcgmstar_sersic_allbands_func function; see
-; bcgmstar_sersicfit, /qaplot_sbprofiles for proper usage
-    if keyword_set(allbands) then begin
-       if n_elements(params) ne 0 then pp = $
-         [params.sersic_all_sbe,params.sersic_all_re,params.sersic_all_n]
-    endif else begin
-       if n_elements(params) ne 0 then pp = $
-         [params.sersic_sbe,params.sersic_re,params.sersic_n]
-    endelse
+; figure out how many bands we're fitting
+    uwave = wave[uniq(wave,reverse(sort(wave)))] 
+;   uwave = wave[uniq(wave,sort(wave))]
+    nband = n_elements(uwave)
+
+    get_element, uwave, 15326.0, this
+    wave_ref = uwave[this] ; =F160W
 
 ; make sure the parameters don't go outside the boundaries,
 ; since mpfit does not 
@@ -26,9 +29,17 @@ function bcgmstar_sersic_func, rr, pp, params=params, parinfo=parinfo, allbands=
          use_pp[ii] = use_pp[ii] < parinfo[ii].limits[1]
     endif
 
-    use_sbe = use_pp[0]
-    use_re = use_pp[1] ; = 1.0/Re (see Graham & Driver 2005)
-    use_n = use_pp[2]
+    use_n_ref = use_pp[0]
+    use_re_ref = use_pp[1]
+;   use_n_ref = 10D^use_pp[0]
+;   use_re_ref = 10D^use_pp[1]
+
+    use_alpha1 = use_pp[2]
+    use_beta1 = use_pp[3]
+
+    use_n = use_n_ref*(uwave/wave_ref)^use_alpha1
+    use_re = use_re_ref*(uwave/wave_ref)^use_beta1
+    use_sbe = use_pp[4:4+nband-1]
 
 ; provide a simple look-up table of the Sersic b parameter on a grid
 ; of Sersic n (see Graham & Driver (2005), equations 1 and 4 and my
@@ -44,17 +55,19 @@ function bcgmstar_sersic_func, rr, pp, params=params, parinfo=parinfo, allbands=
 ;      plot, nlookup, blookup, /xlog, /ylog
     endif
 
-    use_b = interpol(blookup,nlookup,use_n)
+    use_b = interpol(blookup,nlookup,use_n)>0
 
 ; see equation 6 in Graham & Driver 2005; this expression is
 ; -2.5*alog10() of the Sersic model
-    model = use_sbe + (2.5/alog(10))*use_b*((rr/use_re)^(1D/use_n)-1D)
-;   model = use_sbe + (2.5/alog(10))*get_sersicb(use_n)*((rr/use_re)^(1D/use_n)-1D)
-    
-;   model = alog(use_sb0)-use_k*rr^(1D/use_n)
-;   model = use_sb0*exp(-(use_k*rr)^(1D/use_n))
-;   model = use_sb0*exp(-get_sersicb(use_n)*((rr/use_k)^(1D/use_n)-1))
-;   model = alog(use_sb0)-get_sersicb(use_n)*((rr/use_k)^(1D/use_n)-1D)
+    for ib = 0, nband-1 do begin
+       ww = where(uwave[ib] eq wave)
+
+;      model1 = use_sbe[ib]*exp(-use_b[ib]*((rr[ww]/use_re[ib])^(1D/use_n[ib])-1D))
+       model1 = use_sbe[ib] + (2.5/alog(10))*use_b[ib]*((rr[ww]/use_re[ib])^(1D/use_n[ib])-1D)
+
+       if ib eq 0 then model = model1 else model = [model,model1]
+       if total(finite(model) eq 0) ne 0 then stop
+    endfor
 
 return, model
 end

@@ -6,7 +6,7 @@ function redmapper_path, isedfit=isedfit, version=version, $
     redmapper_path = getenv('REDMAPPER_DATA')+'/'
     paperpath = getenv('IM_PAPERS_DIR')+'/projects/redmapper/'
 
-    if keyword_set(isedfit) then return, getenv('IM_ARCHIVE_DIR')+'/projects/redmapper/'
+    if keyword_set(isedfit) then return, getenv('IM_ARCHIVE_DIR')+'/projects/redmapper/'+version+'/'
 ;   if keyword_set(isedfit) then return, getenv('REDMAPPER_DATA')+'/'
 
     if keyword_set(paper) then begin

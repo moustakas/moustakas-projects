@@ -10,7 +10,7 @@ pro plotbcgmstar_sbprofiles, pdf=pdf
 
     pixscale = 0.065
     errfloor = 0.0D ; 0.02      ; magnitude error floor on my SB measurements 
-    ncol = 3 ; number of columns
+    ncol = 4 ; number of columns
     
     nicecluster = repstr(repstr(strupcase(sample.dirname),'ABELL','Abell'),'_',' ')
 
@@ -29,7 +29,7 @@ pro plotbcgmstar_sbprofiles, pdf=pdf
        cluster = strtrim(sample[ic].shortname,2)
 
        psfile = paperpath+'bcg_all_sbprofiles_'+cluster+'.ps'
-       im_plotconfig, 0, pos, psfile=psfile, charsize=1.3
+       im_plotconfig, 0, pos, psfile=psfile, charsize=1.2
 
        arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]
 
@@ -42,18 +42,27 @@ pro plotbcgmstar_sbprofiles, pdf=pdf
        modphot = mrdfits(ellpath+cluster+'-ellipse-model.fits.gz',1,/silent)
        nfilt = n_elements(modphot)
 
-       nrow = ceil(nfilt/float(ncol))
+       nrow = 2*ceil(nfilt/float(ncol))
 ;      if allsersic then nrow = ceil((nfilt+1)/float(ncol)) else $
 ;        nrow = ceil(nfilt/float(ncol))
-       wid = 2.4
-       hei = 3
        ym = [0.2,1.1]
-       xm = [0.9,0.4]
-       xpage = total(xm)+total(replicate(wid,ncol))
-       ypage = total(ym)+total(replicate(hei,nrow))
-       pos = im_getposition(nx=ncol,ny=nrow,yspace=0.0,xspace=0.0,$
+       xm = [1.1,0.4]
+       wid = replicate(2.4,ncol)
+       hei = reform(cmreplicate([2.0,1.0],nrow/2),nrow)
+       xsp = replicate(0.05,ncol-1)
+       ysp = [reform(cmreplicate([0.0,0.05],(nrow-2)/2),nrow-2),0.0]
+       
+       xpage = total(xm)+total(wid)+total(xsp)
+       ypage = total(ym)+total(hei)+total(ysp)
+;      ypage = total(ym)+total(replicate(hei,nrow))
+
+       pos = im_getposition(nx=ncol,ny=nrow,yspace=ysp,xspace=xsp,$
          xmargin=xm,ymargin=ym,width=wid,height=hei,xpage=xpage,$
          ypage=ypage)
+       pos = reform(pos,4,ncol,nrow)
+       plotpos = reform(pos[*,*,2*lindgen(nrow/2)],4,ncol*nrow/2)
+       residpos = reform(pos[*,*,2*lindgen(nrow/2)+1],4,ncol*nrow/2)
+
        count = 0
 
 ;      for ib = nfilt-1, 0, -1 do begin ; reverse order
@@ -74,38 +83,42 @@ pro plotbcgmstar_sbprofiles, pdf=pdf
           sberr = sberr>0.1
           
 ;         if count eq 1 then title = strupcase(cluster) else delvarx, title
-          if count ge nfilt-3 then begin
+          if count ge nfilt-ncol then begin
              delvarx, xtickname
           endif else begin
              xtickname = replicate(' ',10)
           endelse
-          if (count mod 3) eq 0 then begin
+          if (count mod ncol) eq 0 then begin
              delvarx, ytickname
+             plottitle = '\mu' ; 
+             residtitle = '\Delta'+'\mu'
           endif else begin
              ytickname = replicate(' ',10)
+             delvarx, plottitle, residtitle
           endelse
           
           djs_plot, [0], [0], /nodata, /xlog, noerase=count gt 0, $
-            xrange=xrange, xsty=1, yrange=[28,16], position=pos[*,count], $
-            xtickname=xtickname, ytickname=ytickname, $ ; title=title, $
-            symsize=0.5, ytickinterval=3, ysty=1
+            xrange=xrange, xsty=1, yrange=[26,16], position=plotpos[*,count], $
+            xtickname=replicate(' ',10), ytickname=ytickname, $ ; title=title, $
+            symsize=0.5, ytickinterval=3, ysty=1, ytitle=plottitle
+
 ;         djs_oplot, rr, sb, color=cgcolor('dark grey'), thick=10
 ;         djs_oplot, rr, sb, psym=symcat(15), symsize=0.5
           polyfill, [rr,reverse(rr)], [sb-sberr,reverse(sb+sberr)], /fill, $
-            color=cgcolor('medium grey'), noclip=0
-          djs_oplot, rr, sb+sberr, line=0, color=cgcolor('dark grey')
-          djs_oplot, rr, sb-sberr, line=0, color=cgcolor('dark grey')
+            color=cgcolor('dark grey'), noclip=0
+;         djs_oplot, rr, sb+sberr, line=0, color=cgcolor('dark grey')
+;         djs_oplot, rr, sb-sberr, line=0, color=cgcolor('dark grey')
 
-          if count eq 0 then im_legend, nicecluster[ic], /right, $
-            /top, box=0, charsize=1.5, margin=0, position=[pos[2,count]+0.005,pos[3,count]-0.02], /norm
+          if count eq 0 then im_legend, nicecluster[ic], /left, $
+            /bottom, box=0, charsize=1.5, margin=0;, position=[pos[2,count]+0.005,pos[3,count]-0.02], /norm
 ;         if count eq 0 then im_legend, nicecluster[ic], /left, /bottom, box=0, charsize=1.5, margin=0
           
           if allsersic then begin
              label = [$
-               '\mu_{e1}='+strtrim(string(-2.5*alog10(sersic[ib].sersic2_all_sbe1),format='(F12.1)'),2)+','+$
+               '\mu_{e1}='+strtrim(string(sersic[ib].sersic2_all_sbe1,format='(F12.1)'),2)+','+$
                'n_{1}='+strtrim(string(sersic[ib].sersic2_all_n1,format='(F12.2)'),2)+','+$
                'r_{e1}='+strtrim(string(sersic[ib].sersic2_all_re1,format='(F12.2)'),2)+' kpc',$
-               '\mu_{e2}='+strtrim(string(-2.5*alog10(sersic[ib].sersic2_all_sbe2),format='(F12.1)'),2)+','+$
+               '\mu_{e2}='+strtrim(string(sersic[ib].sersic2_all_sbe2,format='(F12.1)'),2)+','+$
                'n_{2}='+strtrim(string(sersic[ib].sersic2_all_n2,format='(F12.2)'),2)+','+$
                'r_{e2}='+strtrim(string(sersic[ib].sersic2_all_re2,format='(F12.2)'),2)+' kpc']
           endif else begin
@@ -122,10 +135,10 @@ pro plotbcgmstar_sbprofiles, pdf=pdf
                    label = [label,$
                      '\chi^{2}_{\nu, double}='+strtrim(string(sersic[ib].sersic2_chi2/$
                      sersic[ib].sersic2_dof,format='(F12.2)'),2),$
-                     '\mu_{e1}='+strtrim(string(-2.5*alog10(sersic[ib].sersic2_sbe1),format='(F12.1)'),2)+','+$
+                     '\mu_{e1}='+strtrim(string(sersic[ib].sersic2_sbe1,format='(F12.1)'),2)+','+$
                      'n_{1}='+strtrim(string(sersic[ib].sersic2_n1,format='(F12.2)'),2)+','+$
                      'r_{e1}='+strtrim(string(sersic[ib].sersic2_re1,format='(F12.2)'),2)+' kpc',$
-                     '\mu_{e2}='+strtrim(string(-2.5*alog10(sersic[ib].sersic2_sbe2),format='(F12.1)'),2)+','+$
+                     '\mu_{e2}='+strtrim(string(sersic[ib].sersic2_sbe2,format='(F12.1)'),2)+','+$
                      'n_{2}='+strtrim(string(sersic[ib].sersic2_n2,format='(F12.2)'),2)+','+$
                      'r_{e2}='+strtrim(string(sersic[ib].sersic2_re2,format='(F12.2)'),2)+' kpc']
                 endelse 
@@ -138,18 +151,19 @@ pro plotbcgmstar_sbprofiles, pdf=pdf
 ;               psym=symcat(9), color=cgcolor('medium grey'), symsize=0.5
 ;          endif
           
-          im_legend, band, /left, /bottom, box=0, margin=0, charsize=1.2;, charthick=1.8
-;         im_legend, band, /right, /top, box=0, margin=0, charsize=1.2;, charthick=1.8
-          
           if allsersic then begin
 ;            djs_oplot, modelrr, -2.5*alog10(bcgmstar_sersic2_func(modelrr,params=sersic[0],/allbands)), $
 ;              color=cgcolor('forest green')
-             djs_oplot, modelrr, -2.5*alog10(bcgmstar_sersic2_func(modelrr,params=sersic[ib],/allbands)), $
-               color=cgcolor('tomato'), thick=6
-             djs_oplot, modelrr, bcgmstar_sersic_func(modelrr,[-2.5*alog10(sersic[ib].sersic2_all_sbe1),$
-               sersic[ib].sersic2_all_re1,sersic[ib].sersic2_all_n1]), color=cgcolor('forest green'), line=2
-             djs_oplot, modelrr, bcgmstar_sersic_func(modelrr,[-2.5*alog10(sersic[ib].sersic2_all_sbe2),$
-               sersic[ib].sersic2_all_re2,sersic[ib].sersic2_all_n2]), color=cgcolor('forest green'), line=2
+             djs_oplot, modelrr, bcgmstar_sersic_func(modelrr,params=sersic[ib],/allbands), line=0
+;              color=cgcolor('tomato'), thick=6
+;              color=cgcolor('tomato'), thick=6
+
+;             djs_oplot, modelrr, bcgmstar_sersic2_func(modelrr,params=sersic[ib],/allbands), $
+;               color=cgcolor('tomato'), thick=6
+;             djs_oplot, modelrr, bcgmstar_sersic_func(modelrr,[sersic[ib].sersic2_all_sbe1,$
+;               sersic[ib].sersic2_all_re1,sersic[ib].sersic2_all_n1]), color=cgcolor('forest green'), line=2
+;             djs_oplot, modelrr, bcgmstar_sersic_func(modelrr,[sersic[ib].sersic2_all_sbe2,$
+;               sersic[ib].sersic2_all_re2,sersic[ib].sersic2_all_n2]), color=cgcolor('forest green'), line=2
           endif else begin
              djs_oplot, modelrr, bcgmstar_sersic_func(modelrr,params=sersic[ib]), $
                color=cgcolor('firebrick')
@@ -157,21 +171,41 @@ pro plotbcgmstar_sbprofiles, pdf=pdf
                params=sersic[0]), color=cgcolor('forest green')
              
              if dosersic2 then begin
-                djs_oplot, modelrr, -2.5*alog10(bcgmstar_sersic2_func(modelrr,params=sersic[ib])), $
+                djs_oplot, modelrr, bcgmstar_sersic2_func(modelrr,params=sersic[ib]), $
                   color=cgcolor('dodger blue')
                 if sersic[ib].sersic2_sbe1 eq 0.0 or sersic[ib].sersic2_sbe2 eq 0.0 then begin
                    splog, '  '+band+': second Sersic dropped!'
                 endif else begin
-                   djs_oplot, modelrr, bcgmstar_sersic_func(modelrr,[-2.5*alog10(sersic[ib].sersic2_sbe1),$
+                   djs_oplot, modelrr, bcgmstar_sersic_func(modelrr,[sersic[ib].sersic2_sbe1,$
                      sersic[ib].sersic2_re1,sersic[ib].sersic2_n1]), color=cgcolor('orange'), line=2
-                   djs_oplot, modelrr, bcgmstar_sersic_func(modelrr,[-2.5*alog10(sersic[ib].sersic2_sbe2),$
+                   djs_oplot, modelrr, bcgmstar_sersic_func(modelrr,[sersic[ib].sersic2_sbe2,$
                      sersic[ib].sersic2_re2,sersic[ib].sersic2_n2]), color=cgcolor('orange'), line=2
                 endelse
              endif
           endelse
-          
+
+          im_legend, band, /right, /top, box=0, margin=0, charsize=1.1;, charthick=1.8
+;         im_legend, band, /right, /top, box=0, margin=0, charsize=1.2;, charthick=1.8
+                    
           djs_oplot, 10^!x.crange, (modphot[ib].sblimit-2.5*alog10(3.0))*[1,1], line=1 ; 3-sigma
 ;         djs_oplot, [70.0,10^!x.crange[1]], modphot[ib].sblimit*[1,1], line=0
+
+; residuals
+          resid = sb-bcgmstar_sersic_func(rr,params=sersic[ib],/allbands)
+
+          djs_plot, [0], [0], /nodata, /xlog, /noerase, $
+            xrange=xrange, xsty=1, yrange=0.99*[-1,1], position=residpos[*,count], $
+            xtickname=xtickname, ytickname=ytickname, $ ; title=title, $
+            ytickinterval=0.7, ysty=1, ytitle=residtitle
+
+          polyfill, [rr,reverse(rr)], [resid-sberr,reverse(resid+sberr)], /fill, $
+            color=cgcolor('medium grey'), noclip=0
+;         djs_oplot, rr, resid+sberr, line=0, color=cgcolor('dark grey')
+;         djs_oplot, rr, resid-sberr, line=0, color=cgcolor('dark grey')
+;         djs_oplot, rr, resid, psym=symcat(16), symsize=0.3
+
+          djs_oplot, 10^!x.crange, [0,0], line=0, thick=2
+          
           count++
        endfor 
 
@@ -192,14 +226,15 @@ pro plotbcgmstar_sbprofiles, pdf=pdf
 ;         im_legend, label, /left, /bottom, box=0, margin=0, charsize=1, charthick=1.8
 ;      endif
           
-       xyouts, min(pos[0,*])-0.06, (max(pos[3,*])-min(pos[1,*]))/2.0+min(pos[1,*]), $
-         textoidl('\mu (mag arcsec^{-2})'), orientation=90, align=0.5, charsize=1.6, /norm
-       xyouts, (max(pos[2,*])-min(pos[0,*]))/2.0+min(pos[0,*]), min(pos[1,*])-0.07, $
+;       xyouts, min(pos[0,*])-0.06, (max(pos[3,*])-min(pos[1,*]))/2.0+min(pos[1,*]), $
+;         textoidl('\mu (mag arcsec^{-2})'), orientation=90, align=0.5, charsize=1.6, /norm
+       xyouts, (max(residpos[2,*])-min(residpos[0,*]))/2.0+min(residpos[0,*]), min(residpos[1,*])-0.07, $
          textoidl('Equivalent Radius (kpc)'), align=0.5, charsize=1.6, /norm
        im_plotconfig, psfile=psfile, /psclose, /pdf
     endfor 
 
 stop    
+
 
 ; ---------------------------------------------------------------------------
 ; make a plot for the main body of the paper which shows the surface
@@ -208,9 +243,11 @@ stop
     
 ; plot these bands    
     thesefilt = ['f475w','f814w','f160w']
-    color1 = ['medium grey','powder blue','tomato']
+    thesefilt2 = ['f555w','f814w','f160w']
+    color1 = ['dark grey','dodger blue','tomato']
+;   color2 = ['black','black','black']
     color2 = ['black','navy','firebrick']
-    line = [2,3,0]
+    line = [5,3,0]
 
 ;   thesefilt = ['f160w','f814w','f475w']
 ;   color1 = ['tomato','powder blue','medium grey']
@@ -224,12 +261,15 @@ stop
     plotgal = 0
     plotmarc = 0
     
+    rrser = [0,range(1E-3,200.0,500,/log)]
+;   rrser = [0,range(1E-3,max(rr),500,/log)]
+
 ; make the plot
 ;   xtitle = 'Semi-Major Axis (kpc)'    
 ;   ytitle = '\mu (mag arcsec^{-2})'
-    xrange = [0.5,100]
+    xrange = [0.2,120]
 ;   xrange = [3*pixscale*arcsec2kpc,150]
-    yrange = [28,16]
+    yrange = [26,16]
 
     psfile = paperpath+'bcg_example_sbprofiles.eps'
     im_plotconfig, 1, pos, psfile=psfile, charsize=1.3
@@ -285,7 +325,12 @@ stop
 ;      endfor
 
        for ii = 0, nthese-1 do begin
-          this = where(thesefilt[ii] eq strtrim(modphot.band,2))
+          case cluster of
+             'macs0744': this = where(thesefilt2[ii] eq strtrim(modphot.band,2))
+             'macs1149': this = where(thesefilt2[ii] eq strtrim(modphot.band,2))
+             'macs2129': this = where(thesefilt2[ii] eq strtrim(modphot.band,2))
+             else: this = where(thesefilt[ii] eq strtrim(modphot.band,2))
+          endcase
 
 ;         if plotgal then begin
 ;            modgood = where(modphot[this].majora*pixscale*arcsec2kpc le sersic[this].amax_kpc and $
@@ -308,6 +353,12 @@ stop
           sb = -2.5*alog10(modphot[this].sb0fit[modgood])
           sberr = 2.5/(modphot[this].sb0fit[modgood]*sqrt(modphot[this].sb0fit_ivar[modgood])*alog(10))
 
+; overplot the model fit
+          djs_oplot, rrser, bcgmstar_sersic_func(rrser,params=sersic[this],/allbands), $
+            color=cgcolor(color2[ii]), line=line[ii], thick=3
+;         djs_oplot, rrser, -2.5*alog10(bcgmstar_sersic2_func(rrser,params=sersic[this])), $
+;           color=cgcolor(color2[ii]), line=line[ii], thick=3
+          
 ; just for the plot make the uncertainty have a minimum floor so that
 ; the SB profile shows up!          
           sberr = sberr>0.1
@@ -316,8 +367,9 @@ stop
             color=cgcolor(color1[ii]), noclip=0
 ;         oploterror, rr, sb, sberr, color=cgcolor(color[ii]), line=line[ii]
 ;         djs_oplot, rr, sb, color=cgcolor(color[ii]), line=line[ii]
-;         djs_oplot, 10^!x.crange, modphot[this].sblimit*[1,1], line=5, $
-;           color=cgcolor(color[ii])
+
+;          djs_oplot, 10^!x.crange, (modphot[this].sblimit-2.5*alog10(2.0))*[1,1], $
+;            line=2, thick=2, color=cgcolor(color1[ii])     ; 3-sigma
 
 ;; overplot the single Sersic function
 ;          rrser = [0,range(1E-3,200.0,500,/log)]
@@ -325,15 +377,6 @@ stop
 ;          djs_oplot, rrser, -2.5*alog10(bcgmstar_sersic_func(rrser,params=sersic[this])), $
 ;            color=cgcolor(color2[ii]), line=line[ii], thick=3
 
-; overplot the Sersic+deVac function
-          rrser = [0,range(1E-3,200.0,500,/log)]
-;         rrser = [0,range(1E-3,max(rr),500,/log)]
-
-          djs_oplot, rrser, -2.5*alog10(bcgmstar_sersic2_func(rrser,params=sersic[this],/allbands)), $
-            color=cgcolor(color2[ii]), line=line[ii], thick=3
-;         djs_oplot, rrser, -2.5*alog10(bcgmstar_sersic2_func(rrser,params=sersic[this])), $
-;           color=cgcolor(color2[ii]), line=line[ii], thick=3
-          
 ; overplot Marc's SB profile, as a consistency check
           if plotmarc then begin
              pp = read_bcg_profiles(cluster,these_filters=thesefilt[ii])
@@ -355,8 +398,6 @@ stop
 
     im_plotconfig, psfile=psfile, /psclose, /pdf
 
-stop    
-    
 return
 end
     

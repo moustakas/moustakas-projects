@@ -89,8 +89,17 @@ pro bcgmstar_ellipse, debug=debug, clobber=clobber
        splog, 'Working on cluster '+cluster
        datapath = bcgmstar_path(/bcg)+cluster+'/'
 
-; read the info structure to get the filters
+; read the info structure to get the filters; exclude certain
+; bandpasses here
        info = mrdfits(skyinfopath+cluster+'-mgeskyinfo.fits.gz',1,/silent)
+       case cluster of
+          'macs1311': info = info[where(strtrim(info.band,2) ne 'f435w')]
+          'macs0744': info = info[where(strtrim(info.band,2) ne 'f475w')]
+          'macs1149': info = info[where(strtrim(info.band,2) ne 'f475w')]
+          'macs2129': info = info[where(strtrim(info.band,2) ne 'f435w' and strtrim(info.band,2) ne 'f475w')]
+          else:
+       endcase
+
        short = strtrim(info.band,2)
        reffilt = where(short eq 'f160w') ; reference filter
        nfilt = n_elements(info)

@@ -7,8 +7,8 @@ function bcgmstar_sersic2_func, rr, pp, params=params, parinfo=parinfo, allbands
 ; bcgmstar_sersicfit, /qaplot_sbprofiles for proper usage
     if keyword_set(allbands) then begin
        if n_elements(params) ne 0 then pp = $
-         [10D^(-0.4*params.sersic2_all_sbe1),params.sersic2_all_re1,params.sersic2_all_n1,$
-         10D^(-0.4*params.sersic2_all_sbe2),params.sersic2_all_re2,params.sersic2_all_n2]
+         [params.sersic2_all_sbe1,params.sersic2_all_re1,params.sersic2_all_n1,$
+         params.sersic2_all_sbe2,params.sersic2_all_re2,params.sersic2_all_n2]
     endif else begin
        if n_elements(params) ne 0 then pp = $
          [params.sersic2_sbe1,params.sersic2_re1,params.sersic2_n1,$

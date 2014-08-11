@@ -1,4 +1,4 @@
-function bcgmstar_sersic_allbands_func, rr, pp, parinfo=parinfo, wave=wave
+function bcgmstar_sersic_allbands_func, rr, pp, parinfo=parinfo, wave=wave, lambda_ref=lambda_ref
 ; fit all the bands simultaneously 
 
     common com_sersic_allbands, nlookup, blookup
@@ -16,7 +16,7 @@ function bcgmstar_sersic_allbands_func, rr, pp, parinfo=parinfo, wave=wave
 ;   uwave = wave[uniq(wave,sort(wave))]
     nband = n_elements(uwave)
 
-    get_element, uwave, 15326.0, this
+    get_element, uwave, lambda_ref, this
     wave_ref = uwave[this] ; =F160W
 
 ; make sure the parameters don't go outside the boundaries,

@@ -26,14 +26,25 @@ pro build_redmapper_photometry, out
 ;   bcgs = mrdfits(path+'dr8_run_redmapper_'+ver+$
 ;     '_lgt20_catalog.fits.gz',1)
     cat = mrdfits(path+'dr8_run_redmapper_'+ver+$
-      '_lgt5_catalog_members.fits.gz',1)
+      '_lgt5_catalog_members.fits.gz',1);,range=[0,1000])
     ngal = n_elements(cat)
 
-    sdss = mrdfits(path+'redmapper_'+ver+'_sdss.fits.gz',1)
-    unwise = mrdfits(path+'redmapper_'+ver+'_unwise.fits.gz',1)
+    sdss = mrdfits(path+'redmapper_'+ver+'_sdss.fits.gz',1);,range=[0,1000])
+    unwise = mrdfits(path+'redmapper_'+ver+'_unwise.fits.gz',1);,range=[0,1000])
 ;   galex = mrdfits(path+'redmapper_'+ver+'_galex_gr6.fits.gz',1)
 
-    sdss_to_maggies, smaggies, sivarmaggies, cas=sdss, flux='cmodel'
+;   sdss_to_maggies, smaggies, sivarmaggies, cas=sdss, flux='cmodel'
+    sdss_to_maggies, modelmaggies, modelivarmaggies, cas=sdss, flux='model'
+    sdss_to_maggies, cmodelmaggies, cmodelivarmaggies, cas=sdss, flux='cmodel'
+    ratio = cmodelmaggies[2,*]/modelmaggies[2,*]
+    neg = where(modelmaggies[2,*] le 0)
+;   if (neg[0] ne -1L) then message, 'Bad!'
+    if (neg[0] ne -1L) then ratio[neg] = 1.0
+
+    factor = rebin(ratio,5,ngal)
+    smaggies = modelmaggies*factor
+    sivarmaggies = modelivarmaggies/factor^2
+
     unwise_to_maggies, unwise, wmaggies, wivarmaggies
 ;   wise_to_maggies, wise, wmaggies, wivarmaggies, /mpro
 ;   im_galex_to_maggies, galex, gmaggies, givarmaggies

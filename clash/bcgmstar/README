@@ -19,9 +19,9 @@ then fit both single and double Sersic models in order to extrapolate
 the data inward and outward.  Finally, measure aperture photometry in
 logarithmically spaced radial bins and the total magnitude in each
 band.
-  bcgmstar_sersicfit, /dofit - Sersic fitting
+  bcgmstar_sersicfit, /dofit_allbands, /qaplot_oneband - Sersic fitting
   bcgmstar_sersicfit, /dophot - aperture photometry
-  bcgmstar_sersicfit, /qaplot_sbprofiles, /qaplot_colorradius, /qaplot_seds - build some QAplots
+  bcgmstar_sersicfit, /qaplot_allbands, /qaplot_oneband - build some QAplots
 
 Do the SED-fitting, compute K-corrections, and build the average mass
 profiles (this code also collects the necessary strong-lensing mass
@@ -38,6 +38,7 @@ Get ancillary photometry for the sample
 * plotbcgmstar_sblimit - box-and-whisker plot of the SB limits in our data (Fig 2) 
 * plotbcgmstar_ellipse - show one example of ellipse-fitting 
 * plotbcgmstar_sbprofiles - example surface brightness profiles + Sersic function fits overlaid 
+* plotbcgmstar_sersic - build some plots with our Sersic-fitting results
 
 * plotbcgmstar_ssps - build some simple SSPs; overlay the (K-corrected)
   BCG photometry and the models on a color-color plot

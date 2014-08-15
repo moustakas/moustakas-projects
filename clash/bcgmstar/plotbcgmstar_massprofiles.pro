@@ -21,22 +21,20 @@ pro plotbcgmstar_massprofiles
     for ic = 0, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        prof = mrdfits(massprofpath+cluster+'-massprofile.fits.gz',1,/silent)
-       mbcg[ic] = prof.totmstar
-       mbcg_err[ic] = prof.totmstar_err
+       mbcg[ic] = prof.mstar_int-0.25
+       mbcg_err[ic] = prof.mstar_int_err-0.25
     endfor
 
 ; make the plot    
     xrange = alog10([3D13,3D15])
-    yrange = [11.3,13.2]
+    yrange = [11.0,13.2]
     
     psfile = paperpath+'mstar_vs_mvir.eps'
     im_plotconfig, 0, pos, psfile=psfile, height=5.0, xmargin=[1.3,0.4], $
       width=6.8
 
-    djs_plot, [0], [0], /nodata, position=pos, xsty=1, ysty=1, $
-      xrange=xrange, yrange=yrange, $
-      xtitle='log_{10} (M_{500} / M_{\odot})', $
-      ytitle='log_{10} (M_{*,BCG} / M_{\odot})'
+    djs_plot, [0], [0], /nodata, position=pos, xsty=5, ysty=5, $
+      xrange=xrange, yrange=yrange
       
 ; overplot the power-law fit from Kravtsov (Table 2)    
     scat = 0.17
@@ -71,16 +69,21 @@ pro plotbcgmstar_massprofiles
 ; make a legend
     im_legend, ['CLASH','Kravtsov+14'], /right, /bottom, box=0, $
       psym=[16,15], color=['black','tomato'], spacing=2.5
+
+; redraw the axes
+    djs_plot, [0], [0], /nodata, /noerase, position=pos, xsty=1, ysty=1, $
+      xrange=xrange, yrange=yrange, $
+      xtitle='log_{10} (M_{500} / M_{\odot})', $
+      ytitle='log_{10} (M_{*,BCG} / M_{\odot})'
     
     im_plotconfig, psfile=psfile, /psclose, /pdf
 
-stop    
-    
 ; --------------------------------------------------    
 ; plot the mass profiles
-    xrange = [0.6,100]
+    xrange = [0.6,130]
 ;   yrange = [9.8,11.8]
-    yrange = [10,13]
+    yrange = [9.8,11.7]
+;   yrange = [10,13]
 
     psfile = paperpath+'bcg_massprofiles.eps'
     im_plotconfig, 1, pos, psfile=psfile, charsize=1.3
@@ -92,7 +95,7 @@ stop
 
        prof = mrdfits(massprofpath+cluster+'-massprofile.fits.gz',1,/silent)
        rad = prof.photradius_kpc
-       splog, cluster, prof.totmstar, prof.totmstar_err
+       splog, cluster, prof.mstar_int, prof.mstar_int_err
 
        good = where(prof.mstar gt 0)
        good1 = where(prof.mstar_grid01 gt 0)
@@ -130,8 +133,8 @@ stop
        
        djs_plot, [0], [0], /nodata, position=pos[*,ic], noerase=ic gt 0, $
          xsty=1, ysty=1, yrange=yrange, xrange=xrange, /xlog, $
-         xtitle=xtitle, ytitle=ytitle, ytickname=ytickname, xtickname=xtickname, $
-         ytickinterval=1
+         xtitle=xtitle, ytitle=ytitle, ytickname=ytickname, xtickname=xtickname;, $
+;        ytickinterval=0.5
        im_legend, strupcase(cluster), /left, /top, box=0, margin=0, charsize=1.0
 
        oploterror, rad[good], prof.mstar[good], prof.mstar_err[good], $
@@ -144,19 +147,23 @@ stop
 
 ;      splog, ised1[intindx].mstar_50, ised2[intindx].mstar_50, ised3[intindx].mstar_50, $
 ;        ised4[intindx].mstar_50
-       djs_oplot, 10^!x.crange, prof.totmstar*[1,1], line=0, color='grey'
+;      djs_oplot, 10^!x.crange, prof.mstar_int*[1,1], line=0, color='grey'
        
 ;      cumumass = alog10(total(10.0^ised4[good4].mstar_50,/cumu))
 ;      polyfill, [rad[good],reverse(rad[good])], [cumumass+0.06,reverse(cumumass-0.06)], $
 ;        /fill, color=cgcolor('dodger blue')
+
+;      djs_oplot, prof.lens_radius_kpc, alog10(prof.lens_mass_encl), color='orange'
+       
     endfor
 
     xyouts, min(pos[0,*])-0.05, (max(pos[3,*])-min(pos[1,*]))/2.0+min(pos[1,*]), $
+;     textoidl('log_{10} (M_{*,BCG} / M_{\odot})'), orientation=90, align=0.5, charsize=1.4, /norm
       textoidl('log(Stellar Mass) (M_{\odot})'), orientation=90, align=0.5, charsize=1.4, /norm
 ;   xyouts, min(pos[0,*])-0.05, (max(pos[3,*])-min(pos[1,*]))/2.0+min(pos[1,*]), $
 ;     textoidl('log(Cumulative Stellar Mass) (M_{\odot})'), orientation=90, align=0.5, charsize=1.4, /norm
     xyouts, (max(pos[2,*])-min(pos[0,*]))/2.0+min(pos[0,*]), min(pos[1,*])-0.09, $
-      textoidl('Equivalent Radius (kpc)'), $
+      textoidl('Galactocentric Radius (kpc)'), $
 ;     textoidl('Equivalent Radius r=a\sqrt{1-\epsilon} (kpc)'), $
       align=0.5, charsize=1.4, /norm
 

@@ -17,7 +17,7 @@ pro bcgmstar_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, 
 ; read the sample
     sample = read_bcgmstar_sample(/zsort)
 ;   sample = sample[11]
-    struct_print, sample
+;   struct_print, sample
     ncl = n_elements(sample)
 
     filterlist = bcgmstar_filterlist(short=short)
@@ -81,25 +81,20 @@ pro bcgmstar_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, 
           outprefix = prefix+'_'+cluster
 
           phot = mrdfits(sersicpath+cluster+'-phot.fits.gz',1,/silent)
-          naper = n_elements(phot[0].photradius_kpc)+1 ; radial bins + integrated
+          naper = n_elements(phot[0].photradius_kpc)+4 ; integrated,30,50,70 + radial bins
           nband = n_elements(phot)
-
+          
           maggies = fltarr(nfilt,naper)
           ivarmaggies = fltarr(nfilt,naper)
           for ii = 0, nfilt-1 do begin
              this = where(short[ii] eq strtrim(phot.band,2))
              if this[0] ne -1 then begin
-                good = where(phot[this].photradius_kpc_in gt phot[this].rmin_kpc and $
-                  phot[this].photradius_kpc_out lt phot[this].rmax_kpc,comp=extrap,ncomp=nextrap)
-
-; take the measured photometry at face-value, but don't give any
-; weight to bands that have been extrapolated                
-                maggies[ii,*] = [phot[this].maggies_int,phot[this].maggies]
-                ivarmaggies[ii,*] = [phot[this].ivarmaggies_int,phot[this].ivarmaggies]
-                if nextrap ne 0 then ivarmaggies[ii,1+extrap] = 0.0 ; offset from integrated
-;               if cluster eq 'a209' and short[ii] eq 'f390w' then maggies[ii,0] = 0.0 ; crap!
+                maggies[ii,*] = [phot[this].maggies_int,phot[this].maggies_30,$
+                  phot[this].maggies_50,phot[this].maggies_70,phot[this].maggies]
+                ivarmaggies[ii,*] = [phot[this].ivarmaggies_int,phot[this].ivarmaggies_30,$
+                  phot[this].ivarmaggies_50,phot[this].ivarmaggies_70,phot[this].ivarmaggies]
              endif
-          endfor
+          endfor 
           isedfit, isedfit_paramfile, maggies, ivarmaggies, replicate(sample[ic].z,naper), $
             thissfhgrid=thissfhgrid, isedfit_dir=isedfit_dir, isedfit_results=ised, $
             isedfit_post=isedpost, clobber=clobber, outprefix=outprefix
@@ -130,40 +125,74 @@ pro bcgmstar_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, 
           phot = mrdfits(sersicpath+cluster+'-phot.fits.gz',1,/silent)
           ised = read_isedfit(isedfit_paramfile,outprefix=prefix+'_'+cluster,$
             isedfit_dir=isedfit_dir,/silent)
-
           nrad = n_elements(phot[0].photradius_kpc)
-          out = {$
-            photradius_kpc: phot[0].photradius_kpc, $
-            mstar_grid01: ised[1:nrad,0].mstar_50,$
-            mstar_grid02: ised[1:nrad,1].mstar_50,$
-            mstar_grid03: ised[1:nrad,2].mstar_50,$
-            mstar_grid04: ised[1:nrad,3].mstar_50,$
-            mstar_err_grid01: ised[1:nrad,0].mstar_err,$
-            mstar_err_grid02: ised[1:nrad,1].mstar_err,$
-            mstar_err_grid03: ised[1:nrad,2].mstar_err,$
-            mstar_err_grid04: ised[1:nrad,3].mstar_err,$
+          noff = 4 ; offset
 
-            totmstar_grid01: ised[0,0].mstar_50,$
-            totmstar_grid02: ised[0,1].mstar_50,$
-            totmstar_grid03: ised[0,2].mstar_50,$
-            totmstar_grid04: ised[0,3].mstar_50,$
-            totmstar_err_grid01: ised[0,0].mstar_err,$
-            totmstar_err_grid02: ised[0,1].mstar_err,$
-            totmstar_err_grid03: ised[0,2].mstar_err,$
-            totmstar_err_grid04: ised[0,3].mstar_err,$
+          out = {$
+            cluster:        cluster,$
+            photradius_kpc: phot[0].photradius_kpc, $
+
+            mstar_grid01:     ised[noff:nrad+noff-1,0].mstar_50,$
+            mstar_grid02:     ised[noff:nrad+noff-1,1].mstar_50,$
+            mstar_grid03:     ised[noff:nrad+noff-1,2].mstar_50,$
+            mstar_grid04:     ised[noff:nrad+noff-1,3].mstar_50,$
+            mstar_err_grid01: ised[noff:nrad+noff-1,0].mstar_err,$
+            mstar_err_grid02: ised[noff:nrad+noff-1,1].mstar_err,$
+            mstar_err_grid03: ised[noff:nrad+noff-1,2].mstar_err,$
+            mstar_err_grid04: ised[noff:nrad+noff-1,3].mstar_err,$
+
+;           mstar_int_grid01:     ised[0,0].mstar_50,$
+;           mstar_int_grid02:     ised[0,1].mstar_50,$
+;           mstar_int_grid03:     ised[0,2].mstar_50,$
+;           mstar_int_grid04:     ised[0,3].mstar_50,$
+;           mstar_int_err_grid01: ised[0,0].mstar_err,$
+;           mstar_int_err_grid02: ised[0,1].mstar_err,$
+;           mstar_int_err_grid03: ised[0,2].mstar_err,$
+;           mstar_int_err_grid04: ised[0,3].mstar_err,$
 
             mstar:     fltarr(nrad),$ ; average profile
             mstar_err: fltarr(nrad),$
-            totmstar:     0.0,$
-            totmstar_err: 0.0}
+
+            mstar_30:      0.0,$
+            mstar_30_err:  0.0,$
+            mstar_50:      0.0,$
+            mstar_50_err:  0.0,$
+            mstar_70:      0.0,$
+            mstar_70_err:  0.0,$
+            mstar_int:     0.0,$
+            mstar_int_err: 0.0}
 
           allmstar = [[out.mstar_grid01],[out.mstar_grid02],[out.mstar_grid03],[out.mstar_grid04]]
-          out.mstar = mean(allmstar,dim=2)
-          out.mstar_err = stddev(allmstar,dim=2)
+          allmstar_err = [[out.mstar_err_grid01],[out.mstar_err_grid02],$
+            [out.mstar_err_grid03],[out.mstar_err_grid04]]
 
-          alltotmstar = [out.totmstar_grid01,out.totmstar_grid02,out.totmstar_grid03,out.totmstar_grid04]
-          out.totmstar = mean(alltotmstar)
-          out.totmstar_err = stddev(alltotmstar)
+          out.mstar = mean(allmstar,dim=2)
+          out.mstar_err = mean(allmstar_err,dim=2)
+;         out.mstar_err = stddev(allmstar,dim=2)
+
+          allmstar_int = [ised[0,0].mstar_50,ised[0,1].mstar_50,ised[0,2].mstar_50,ised[0,3].mstar_50]
+          allmstar_30  = [ised[1,0].mstar_50,ised[1,1].mstar_50,ised[1,2].mstar_50,ised[1,3].mstar_50]
+          allmstar_50  = [ised[2,0].mstar_50,ised[2,1].mstar_50,ised[2,2].mstar_50,ised[2,3].mstar_50]
+          allmstar_70  = [ised[3,0].mstar_50,ised[3,1].mstar_50,ised[3,2].mstar_50,ised[3,3].mstar_50]
+
+          allmstar_int_err = [ised[0,0].mstar_err,ised[0,1].mstar_err,ised[0,2].mstar_err,ised[0,3].mstar_err]
+          allmstar_30_err  = [ised[1,0].mstar_err,ised[1,1].mstar_err,ised[1,2].mstar_err,ised[1,3].mstar_err]
+          allmstar_50_err  = [ised[2,0].mstar_err,ised[2,1].mstar_err,ised[2,2].mstar_err,ised[2,3].mstar_err]
+          allmstar_70_err  = [ised[3,0].mstar_err,ised[3,1].mstar_err,ised[3,2].mstar_err,ised[3,3].mstar_err]
+
+          out.mstar_int = mean(allmstar_int)
+          out.mstar_30  = mean(allmstar_30)
+          out.mstar_50  = mean(allmstar_50)
+          out.mstar_70  = mean(allmstar_70)
+
+          out.mstar_int_err = mean(allmstar_int_err)
+          out.mstar_30_err  = mean(allmstar_30_err)
+          out.mstar_50_err  = mean(allmstar_50_err)
+          out.mstar_70_err  = mean(allmstar_70_err)
+;         out.mstar_int_err = stddev(allmstar_int)
+;         out.mstar_30_err  = stddev(allmstar_30)
+;         out.mstar_50_err  = stddev(allmstar_50)
+;         out.mstar_70_err  = stddev(allmstar_70)
           
 ; pack in the strong-lensing profiles
           lensingprefix = strupcase(repstr(repstr(cluster,'macs','M'),'clj','cl'))
@@ -317,3 +346,20 @@ pro bcgmstar_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, 
     
 return
 end
+
+;          maggies = fltarr(nfilt,naper)
+;          ivarmaggies = fltarr(nfilt,naper)
+;          for ii = 0, nfilt-1 do begin
+;             this = where(short[ii] eq strtrim(phot.band,2))
+;             if this[0] ne -1 then begin
+;                good = where(phot[this].photradius_kpc_in gt phot[this].rmin_kpc and $
+;                  phot[this].photradius_kpc_out lt phot[this].rmax_kpc,comp=extrap,ncomp=nextrap)
+;
+;; take the measured photometry at face-value, but don't give any
+;; weight to bands that have been extrapolated                
+;                maggies[ii,*] = [phot[this].maggies_int,phot[this].maggies]
+;                ivarmaggies[ii,*] = [phot[this].ivarmaggies_int,phot[this].ivarmaggies]
+;                if nextrap ne 0 then ivarmaggies[ii,1+extrap] = 0.0 ; offset from integrated
+;;               if cluster eq 'a209' and short[ii] eq 'f390w' then maggies[ii,0] = 0.0 ; crap!
+;             endif
+;          endfor

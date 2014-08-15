@@ -16,13 +16,17 @@ Ellipse-fit the BCGs; make QAplots
 
 Construct the radial surface brightness profiles of the sample and
 then fit both single and double Sersic models in order to extrapolate
-the data inward and outward.  Finally, measure aperture photometry in
-logarithmically spaced radial bins and the total magnitude in each
-band.
+the data inward and outward.  
   bcgmstar_sersicfit, /dofit_allbands, /qaplot_oneband - Sersic fitting
-  bcgmstar_sersicfit, /dophot - aperture photometry
-  bcgmstar_sersicfit, /qaplot_allbands, /qaplot_oneband - build some QAplots
+  bcgmstar_sersicfit, /qaplot_allbands, /qaplot_oneband - build QAplots
 
+To read the cluster-specific Sersic-fitting results use:
+  read_bcgmstar_sersic()
+  
+Measure aperture photometry in logarithmically spaced radial bins and
+the total magnitude in each band.
+  bcgmstar_photometry
+  
 Do the SED-fitting, compute K-corrections, and build the average mass
 profiles (this code also collects the necessary strong-lensing mass
 profiles)
@@ -31,6 +35,8 @@ profiles)
 Get ancillary photometry for the sample
   bcgmstar_get_ancillary
 
+Build the tables:
+  bcgmstar_tables  
   
 ### Paper plots ###
 

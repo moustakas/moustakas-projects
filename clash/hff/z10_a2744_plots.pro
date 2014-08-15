@@ -62,9 +62,6 @@ pro z10_a2744_plots
 ;   jj = mrdfits('z10_a2744_fsps_v2.4_miles_chab_none_sfhgrid01_kcorr.z0.0.fits.gz',1)
 ;   print, jj[0:3].flam_1500*1500.0^2/light*4.0*!pi*dluminosity(9.8,/cm)^2*1.4D-28/cat.mu
     
-    
-stop    
-    
 ; pre-process the photoz's
     bpz = rsex(isedfit_dir+'triple.bpz')
     pbpz = read_bpz_probs(isedfit_dir+'triple.probs',redshift=bpz_zz)
@@ -119,7 +116,7 @@ stop
        print, rr[ii].maggies*sqrt(rr[ii].ivarmaggies)
        nsigma = rr[ii].maggies*0+2.0
        if ii eq 1 then nsigma[1] = 2.13
-       if ii eq 2 then nsigma[2] = 2.43
+;      if ii eq 2 then nsigma[2] = 2.43
        mab = maggies2mag(rr[ii].maggies,nsigma=nsigma,$
          ivar=rr[ii].ivarmaggies,magerr=maberr,$
          lomagerr=mabloerr,himagerr=mabhierr,magnsigma=mabupper)
@@ -201,6 +198,8 @@ stop
     im_plotconfig, psfile=psfile, /psclose, /pdf
 
 stop    
+
+
     
 ; --------------------------------------------------
 ; paper plot: P(z)'s

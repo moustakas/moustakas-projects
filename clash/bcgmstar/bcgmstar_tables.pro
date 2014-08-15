@@ -28,22 +28,433 @@ pro bcgmstar_tables
     nfilt = n_elements(filt)
 
 ; ---------------------------------------------------------------------------    
-; Table: Sersic fitting results
-    texfile = paperpath+'table_sersic'+filesuffix+'.tex'
+; Table: principle Sersic fitting results split into four sub-tables
+
+; #########################
+; sub-Table 3 - nref, reref, for double Sersic clusters
+    sample1 = sample[where(strtrim(sample.shortname,2) eq 'a209' or $
+      strtrim(sample.shortname,2) eq 'a2261')]
+    ncl1 = n_elements(sample1)
+    
+    texfile = paperpath+'table_doublesersic1'+filesuffix+'.tex'
+    splog, 'Writing '+texfile
+    
+    colhead1 = get_colhead([$
+      '','','','$r_{\rm e,ref}^{1}$','$r_{\rm e,ref}^{2}$','',''])
+    colhead2 = get_colhead([$
+      'Cluster','$n_{\rm ref}^{1}$','$n_{\rm ref}^{2}$','(kpc)','(kpc)',$
+      '$\chi^{2}_{\nu}$\tablenotemark{b}','$\nu$\tablenotemark{b}'],/nobreak)
+    texcenter = ['l',replicate('c',6)]
+
+    tablenotetext = [$
+      '{a}{Together with Table~\ref{table:sersic2}, this table lists the best-fitting '+$
+      'parameters for the parametric surface-brightness fitting model '+$
+      'described in \S\ref{sec:sersic}.}',$
+      '{b}{$\chi^{2}_{\nu}$ is the reduced $\chi^{2}$ value and '+$
+      '$\nu$ is the number of degrees of freedom (number of photometric data points fitted '+$
+      'minus the number of free parameters).}']
+    
+; write it out    
+    openw, lun, texfile, /get_lun
+;   if (keyword_set(preprint) eq 0) then printf, lun, '\LongTables'
+;   printf, lun, '\clearpage'
+;   printf, lun, '\setlength{\tabcolsep}{0.02in}'
+;   printf, lun, '\LongTables'
+;   printf, lun, '\begin{turnpage}'
+;   printf, lun, '\begin{landscape}'
+;   printf, lun, '\tabletypesize{\tiny}'
+    printf, lun, '\begin{deluxetable*}{'+strjoin(texcenter)+'}'
+;   printf, lun, '\setlength{\tabcolsep}{0.005in}'
+    printf, lun, '\tablecaption{Double-\sersic{} Surface-Brightness Profile Fitting '+$
+      'Results\tablenotemark{a}\label{table:doublesersic1}}'
+;   printf, lun, '\tableenum{\ref{fig:allsb1} \emph{continued}}'
+    printf, lun, '\tablewidth{0pt}'
+    printf, lun, '\tablehead{'
+    niceprintf, lun, colhead1
+    niceprintf, lun, colhead2
+    printf, lun, '}'
+    printf, lun, '\startdata'
+    for ic = 0, ncl1-1 do begin
+       cluster = strtrim(sample1[ic].shortname,2)
+       nicecluster = get_nicecluster(sample1[ic])
+       if (ic eq ncl1-1) then suffix = '' else suffix = ' \\'
+       sersic = read_bcgmstar_sersic(cluster,results=results)
+       
+       n1 = '$'+strtrim(string(results.sersic2_n1_ref,format='(F5.2)'),2)+'\pm'+$
+         strtrim(string(results.sersic2_n1_ref_err,format='(F5.2)'),2)+'$'
+       n2 = '$'+strtrim(string(results.sersic2_n2_ref,format='(F5.2)'),2)+'\pm'+$
+         strtrim(string(results.sersic2_n2_ref_err,format='(F5.2)'),2)+'$'
+       re1 = '$'+strtrim(string(results.sersic2_re1_ref,format='(F12.1)'),2)+'\pm'+$
+         strtrim(string(results.sersic2_re1_ref_err,format='(F12.1)'),2)+'$'
+       re2 = '$'+strtrim(string(results.sersic2_re2_ref,format='(F12.1)'),2)+'\pm'+$
+         strtrim(string(results.sersic2_re2_ref_err,format='(F12.1)'),2)+'$'
+
+       line = nicecluster+' & '+n1+' & '+n2+' & '+re1+' & '+re2+' & '+$
+         '$'+strtrim(string(results.sersic2_chi2/results.sersic2_dof,format='(F5.2)'),2)+'$ & '+$
+         '$'+strtrim(string(results.sersic2_dof,format='(I0)'),2)+'$'
+       printf, lun, line+suffix
+    endfor 
+    
+    printf, lun, '\enddata'
+;   printf, lun, '\tablecomments{'+tablecomments+'}'
+    niceprintf, lun, '\tablenotetext'+tablenotetext
+    printf, lun, '\end{deluxetable*}'
+;   printf, lun, '\clearpage'
+;   printf, lun, '\end{landscape}'
+;   printf, lun, '\end{turnpage}'
+    free_lun, lun
+
+; #########################
+; sub-Table 4 - double-Sersic surface brightnesses
+    sample1 = sample[where(strtrim(sample.shortname,2) eq 'a209' or $
+      strtrim(sample.shortname,2) eq 'a2261')]
+    ncl1 = n_elements(sample1)
+
+    texfile = paperpath+'table_doublesersic2'+filesuffix+'.tex'
+    splog, 'Writing '+texfile
+    
+    colhead1 = get_colhead([$
+      '','\multicolumn{5}{c}{$\mu_{\rm e}^{1}$}','','\multicolumn{5}{c}{$\mu_{\rm e}^{2}$}'])
+    colhead2 = get_colhead([$
+      'Cluster','\multicolumn{5}{c}{(mag arcsec$^{-2}$)}','','\multicolumn{5}{c}{(mag arcsec$^{-2}$)}'],/nobreak)
+    texcenter = ['l',replicate('c',5),'c',replicate('c',5)]
+
+    tablenotetext = [$
+      '{a}{Together with Table~\ref{table:sersic1}, this table lists the best-fitting '+$
+      'parameters for the parametric surface-brightness fitting model '+$
+      'described in \S\ref{sec:sersic}.}']
+
+; write it out    
+    openw, lun, texfile, /get_lun
+;   if (keyword_set(preprint) eq 0) then printf, lun, '\LongTables'
+;   printf, lun, '\clearpage'
+;   printf, lun, '\setlength{\tabcolsep}{0.02in}'
+;   printf, lun, '\LongTables'
+;   printf, lun, '\begin{turnpage}'
+;   printf, lun, '\begin{landscape}'
+    printf, lun, '\tabletypesize{\tiny}'
+    printf, lun, '\begin{deluxetable*}{'+strjoin(texcenter)+'}'
+;   printf, lun, '\setlength{\tabcolsep}{0.005in}'
+    printf, lun, '\tablecaption{Double-\sersic{} Surface-Brightness Profile Fitting '+$
+      'Results\tablenotemark{a}\label{table:doublesersic2}}'
+    printf, lun, '\tablewidth{0pt}'
+    printf, lun, '\tablehead{'
+    niceprintf, lun, colhead1
+    niceprintf, lun, colhead2
+    printf, lun, '}'
+    printf, lun, '\startdata'
+
+; first five filters for each Sersic model 
+    printf, lun, '\cline{2-6}'
+    printf, lun, '\cline{8-12}'
+    printf, lun, get_colhead(['','F390W','F435W','F475W','F606W','F625W','','F390W','F435W','F475W','F606W','F625W'])
+    printf, lun, '\cline{2-6}'
+    printf, lun, '\cline{8-12}'
+    for ic = 0, ncl1-1 do begin
+       cluster = strtrim(sample1[ic].shortname,2)
+       nicecluster = get_nicecluster(sample1[ic])
+       sersic = read_bcgmstar_sersic(cluster,results=results)
+       nfilt1 = n_elements(sersic)
+
+       line = nicecluster+' & '
+; Sersic 1       
+       for ff = nfilt1-1, nfilt1-5, -1 do begin
+          line = line+'$'+strtrim(string(sersic[ff].sersic2_all_sbe1,format='(F12.2)'),2)+'\pm'+$
+            strtrim(string(sersic[ff].sersic2_all_sbe1_err,format='(F12.2)'),2)+'$'+' & '
+       endfor
+       line = line+' & '        ; empty column
+; Sersic 2
+       for ff = nfilt1-1, nfilt1-5, -1 do begin
+          if ff eq nfilt1-5 then suffix = ' \\' else suffix = ' & '
+          line = line+'$'+strtrim(string(sersic[ff].sersic2_all_sbe2,format='(F12.2)'),2)+'\pm'+$
+            strtrim(string(sersic[ff].sersic2_all_sbe2_err,format='(F12.2)'),2)+'$'+suffix
+       endfor 
+       printf, lun, line
+    endfor 
+
+; next five filters for each Sersic model 
+    printf, lun, '\cline{2-6}'
+    printf, lun, '\cline{8-12}'
+    printf, lun, get_colhead(['','F775W','F814W','F850LP','F105W','F110W','',$
+      'F775W','F814W','F850LP','F105W','F110W'])
+    printf, lun, '\cline{2-6}'
+    printf, lun, '\cline{8-12}'
+    for ic = 0, ncl1-1 do begin
+       cluster = strtrim(sample1[ic].shortname,2)
+       nicecluster = get_nicecluster(sample1[ic])
+       sersic = read_bcgmstar_sersic(cluster,results=results)
+       nfilt1 = n_elements(sersic)
+
+       line = nicecluster+' & '
+; Sersic 1       
+       for ff = nfilt1-6, nfilt1-10, -1 do begin
+          line = line+'$'+strtrim(string(sersic[ff].sersic2_all_sbe1,format='(F12.2)'),2)+'\pm'+$
+            strtrim(string(sersic[ff].sersic2_all_sbe1_err,format='(F12.2)'),2)+'$'+' & '
+       endfor
+       line = line+' & '        ; empty column
+; Sersic 2
+       for ff = nfilt1-6, nfilt1-10, -1 do begin
+          if ff eq nfilt1-10 then suffix = ' \\' else suffix = ' & '
+          line = line+'$'+strtrim(string(sersic[ff].sersic2_all_sbe2,format='(F12.2)'),2)+'\pm'+$
+            strtrim(string(sersic[ff].sersic2_all_sbe2_err,format='(F12.2)'),2)+'$'+suffix
+       endfor 
+       printf, lun, line
+    endfor 
+
+; last three filters for each Sersic model 
+    printf, lun, '\cline{2-6}'
+    printf, lun, '\cline{8-12}'
+    printf, lun, get_colhead(['','F125W','F140W','F160W','','','',$
+      'F125W','F140W','F160W','',''])
+    printf, lun, '\cline{2-6}'
+    printf, lun, '\cline{8-12}'
+    for ic = 0, ncl1-1 do begin
+       cluster = strtrim(sample1[ic].shortname,2)
+       nicecluster = get_nicecluster(sample1[ic])
+       sersic = read_bcgmstar_sersic(cluster,results=results)
+       nfilt1 = n_elements(sersic)
+
+       line = nicecluster+' & '
+; Sersic 1       
+       for ff = nfilt1-11, nfilt1-13, -1 do begin
+          line = line+'$'+strtrim(string(sersic[ff].sersic2_all_sbe1,format='(F12.2)'),2)+'\pm'+$
+            strtrim(string(sersic[ff].sersic2_all_sbe1_err,format='(F12.2)'),2)+'$'+' & '
+       endfor
+       line = line+' & & & '    ; two empty filters plus one empty column
+; Sersic 2
+       for ff = nfilt1-11, nfilt1-13, -1 do begin
+          line = line+'$'+strtrim(string(sersic[ff].sersic2_all_sbe2,format='(F12.2)'),2)+'\pm'+$
+            strtrim(string(sersic[ff].sersic2_all_sbe2_err,format='(F12.2)'),2)+'$ & '
+       endfor 
+       if (ic eq ncl1-1) then line = line+' & ' else $ ; two empty filters
+         line = line+' & \\ '
+       printf, lun, line
+    endfor 
+    
+    printf, lun, '\enddata'
+;   printf, lun, '\tablecomments{'+tablecomments+'}'
+    niceprintf, lun, '\tablenotetext'+tablenotetext
+    printf, lun, '\end{deluxetable*}'
+;   printf, lun, '\clearpage'
+;   printf, lun, '\end{landscape}'
+;   printf, lun, '\end{turnpage}'
+    free_lun, lun
+
+stop    
+    
+; #########################
+; sub-Table 1 - nref, reref, alpha, beta, etc. for single Sersic
+    sample1 = sample[where(strtrim(sample.shortname,2) ne 'a209' and $
+      strtrim(sample.shortname,2) ne 'a2261')]
+    ncl1 = n_elements(sample1)
+
+    texfile = paperpath+'table_sersic1'+filesuffix+'.tex'
+    splog, 'Writing '+texfile
+    
+    colhead1 = get_colhead([$
+      '','','$r_{\rm e,ref}$','','','',''])
+    colhead2 = get_colhead([$
+      'Cluster','$n_{\rm ref}$','(kpc)','$\alpha$','$\beta$',$
+      '$\chi^{2}_{\nu}$\tablenotemark{b}','$\nu$\tablenotemark{b}'],/nobreak)
+    texcenter = ['l',replicate('c',6)]
+
+    tablenotetext = [$
+      '{a}{Together with Table~\ref{table:sersic2}, this table lists the best-fitting '+$
+      'parameters for the parametric surface-brightness fitting model '+$
+      'described in \S\ref{sec:sersic}.}',$
+      '{b}{$\chi^{2}_{\nu}$ is the reduced $\chi^{2}$ value and '+$
+      '$\nu$ is the number of degrees of freedom (number of photometric data points fitted '+$
+      'minus the number of free parameters).}']
+
+; write it out    
+    openw, lun, texfile, /get_lun
+;   if (keyword_set(preprint) eq 0) then printf, lun, '\LongTables'
+;   printf, lun, '\clearpage'
+;   printf, lun, '\setlength{\tabcolsep}{0.02in}'
+;   printf, lun, '\LongTables'
+;   printf, lun, '\begin{turnpage}'
+;   printf, lun, '\begin{landscape}'
+;   printf, lun, '\tabletypesize{\tiny}'
+    printf, lun, '\begin{deluxetable*}{'+strjoin(texcenter)+'}'
+;   printf, lun, '\setlength{\tabcolsep}{0.005in}'
+    printf, lun, '\tablecaption{Single-\sersic{} Surface-Brightness Profile Fitting '+$
+      'Results\tablenotemark{a}\label{table:sersic1}}'
+;   printf, lun, '\tableenum{\ref{fig:allsb1} \emph{continued}}'
+    printf, lun, '\tablewidth{0pt}'
+    printf, lun, '\tablehead{'
+    niceprintf, lun, colhead1
+    niceprintf, lun, colhead2
+    printf, lun, '}'
+    printf, lun, '\startdata'
+    for ic = 0, ncl1-1 do begin
+       cluster = strtrim(sample1[ic].shortname,2)
+       nicecluster = get_nicecluster(sample1[ic])
+       if (ic eq ncl1-1) then suffix = '' else suffix = ' \\'
+       sersic = read_bcgmstar_sersic(cluster,results=results)
+       
+;       format_flux_error, results.sersic_n_ref, results.sersic_n_ref_err, nn, nnerr
+;       format_flux_error, results.sersic_re_ref, results.sersic_re_ref_err, re, reerr
+;       format_flux_error, abs(results.sersic_alpha1), results.sersic_alpha1_err, alpha, alphaerr
+;       format_flux_error, abs(results.sersic_beta1), results.sersic_beta1_err, beta, betaerr
+;       if results.sersic_alpha1 lt 0 then alpha = '-'+alpha
+;       if results.sersic_beta1 lt 0 then beta = '-'+beta
+
+       nn = '$'+strtrim(string(results.sersic_n_ref,format='(F5.2)'),2)+'\pm'+$
+         strtrim(string(results.sersic_n_ref_err,format='(F5.2)'),2)+'$'
+       re = '$'+strtrim(string(results.sersic_re_ref,format='(F12.1)'),2)+'\pm'+$
+         strtrim(string(results.sersic_re_ref_err,format='(F12.1)'),2)+'$'
+
+       if results.sersic_alpha1 gt 0 then pre = '\phs' else pre = ''
+       alpha = pre+'$'+strtrim(string(results.sersic_alpha1,format='(F12.3)'),2)+'\pm'+$
+         strtrim(string(results.sersic_alpha1_err,format='(F12.3)'),2)+'$'
+       if results.sersic_beta1 gt 0 then pre = '\phs' else pre = ''
+       beta = pre+'$'+strtrim(string(results.sersic_beta1,format='(F12.3)'),2)+'\pm'+$
+         strtrim(string(results.sersic_beta1_err,format='(F12.3)'),2)+'$'
+
+       if results.sersic_alpha1_err eq 0.0 then alpha = '\nodata'
+       if results.sersic_beta1_err eq 0.0 then beta = '\nodata'
+       
+       line = nicecluster+' & '+nn+' & '+re+' & '+alpha+' & '+beta+' & '+$
+         '$'+strtrim(string(results.sersic_chi2/results.sersic_dof,format='(F5.2)'),2)+'$ & '+$
+         '$'+strtrim(string(results.sersic_dof,format='(I0)'),2)+'$'
+       printf, lun, line+suffix
+    endfor 
+    
+    printf, lun, '\enddata'
+;   printf, lun, '\tablecomments{'+tablecomments+'}'
+    niceprintf, lun, '\tablenotetext'+tablenotetext
+    printf, lun, '\end{deluxetable*}'
+;   printf, lun, '\clearpage'
+;   printf, lun, '\end{landscape}'
+;   printf, lun, '\end{turnpage}'
+    free_lun, lun
+
+; #########################
+; sub-Table 2 - single-Sersic surface brightnesses
+    sample1 = sample[where(strtrim(sample.shortname,2) ne 'a209' and $
+      strtrim(sample.shortname,2) ne 'a2261')]
+    ncl1 = n_elements(sample1)
+
+    texfile = paperpath+'table_sersic2'+filesuffix+'.tex'
+    splog, 'Writing '+texfile
+    
+    colhead1 = get_colhead([$
+      '','\multicolumn{7}{c}{$\mu_{\rm e}$}'])
+    colhead2 = get_colhead([$
+      'Cluster','\multicolumn{7}{c}{(mag arcsec$^{-2}$)}'],/nobreak)
+    texcenter = ['l',replicate('c',7)]
+;    colhead1 = get_colhead([$
+;      '','\multicolumn{14}{c}{$\mu_{\rm e}$ (mag arcsec$^{-2}$)}'])
+;    colhead2 = get_colhead([$
+;      'Cluster',$
+;      'F390W','F435W','F475W','F555W','F606W','F625W','F775W','F814W','F850LP',$
+;      'F105W','F110W','F125W','F140W','F160W'],/nobreak)
+;    texcenter = ['l',replicate('c',14)]
+
+    tablenotetext = [$
+      '{a}{Together with Table~\ref{table:sersic1}, this table lists the best-fitting '+$
+      'parameters for the parametric surface-brightness fitting model '+$
+      'described in \S\ref{sec:sersic}.}']
+
+; write it out    
+    openw, lun, texfile, /get_lun
+;   if (keyword_set(preprint) eq 0) then printf, lun, '\LongTables'
+;   printf, lun, '\clearpage'
+;   printf, lun, '\setlength{\tabcolsep}{0.02in}'
+;   printf, lun, '\LongTables'
+;   printf, lun, '\begin{turnpage}'
+;   printf, lun, '\begin{landscape}'
+;   printf, lun, '\tabletypesize{\tiny}'
+    printf, lun, '\begin{deluxetable*}{'+strjoin(texcenter)+'}'
+;   printf, lun, '\setlength{\tabcolsep}{0.005in}'
+    printf, lun, '\tablecaption{Single-\sersic{} Surface-Brightness Profile Fitting '+$
+      'Results\tablenotemark{a}\label{table:sersic2}}'
+    printf, lun, '\tablewidth{0pt}'
+    printf, lun, '\tablehead{'
+    niceprintf, lun, colhead1
+    niceprintf, lun, colhead2
+    printf, lun, '}'
+    printf, lun, '\startdata'
+
+; first seven filters    
+    printf, lun, '\cline{2-8}'
+    printf, lun, get_colhead(['','F390W','F435W','F475W','F555W','F606W','F625W','F775W'])
+    printf, lun, '\cline{2-8}'
+    for ic = 0, ncl1-1 do begin
+       cluster = strtrim(sample1[ic].shortname,2)
+       nicecluster = get_nicecluster(sample1[ic])
+       sersic = read_bcgmstar_sersic(cluster,results=results)
+
+       line = nicecluster+' & '
+       for ff = 0, 6 do begin
+;      for ff = 0, nfilt-1 do begin
+          if ff eq 6 then suffix = ' \\' else suffix = ' & '
+          this = where(short[ff] eq strtrim(sersic.band,2))
+          if this[0] eq -1 then begin
+             line = line+' \nodata & '
+; put nodata
+          endif else begin
+;            format_flux_error, sersic[this].sersic_all_sbe, sersic[this].sersic_all_sbe_err, mu, muerr
+             line = line+'$'+strtrim(string(sersic[this].sersic_all_sbe,format='(F12.2)'),2)+'\pm'+$
+               strtrim(string(sersic[this].sersic_all_sbe_err,format='(F12.2)'),2)+'$'+suffix
+          endelse
+       endfor 
+       printf, lun, line
+    endfor 
+
+; next seven filters    
+    printf, lun, '\cline{2-8}'
+    printf, lun, get_colhead(['','F814W','F850LP','F105W','F110W','F125W','F140W','F160W'])
+    printf, lun, '\cline{2-8}'
+    for ic = 0, ncl1-1 do begin
+       cluster = strtrim(sample1[ic].shortname,2)
+       nicecluster = get_nicecluster(sample1[ic])
+
+       sersic = read_bcgmstar_sersic(cluster,results=results)
+
+       line = nicecluster+' & '
+       for ff = 7, nfilt-1 do begin
+;      for ff = 0, nfilt-1 do begin
+          if ff eq nfilt-1 then begin
+             if (ic eq ncl1-1) then suffix = '' else suffix = ' \\'
+          endif else suffix = ' & '
+          this = where(short[ff] eq strtrim(sersic.band,2))
+          if this[0] eq -1 then begin
+             line = line+' \nodata & '
+; put nodata
+          endif else begin
+;            format_flux_error, sersic[this].sersic_all_sbe, sersic[this].sersic_all_sbe_err, mu, muerr
+             line = line+'$'+strtrim(string(sersic[this].sersic_all_sbe,format='(F12.2)'),2)+'\pm'+$
+               strtrim(string(sersic[this].sersic_all_sbe_err,format='(F12.2)'),2)+'$'+suffix
+          endelse
+       endfor 
+       printf, lun, line
+    endfor 
+    
+    printf, lun, '\enddata'
+;   printf, lun, '\tablecomments{'+tablecomments+'}'
+    niceprintf, lun, '\tablenotetext'+tablenotetext
+    printf, lun, '\end{deluxetable*}'
+;   printf, lun, '\clearpage'
+;   printf, lun, '\end{landscape}'
+;   printf, lun, '\end{turnpage}'
+    free_lun, lun
+
+stop    
+
+; ---------------------------------------------------------------------------    
+; Table: double-Sersic fitting results for A209 and A2261
+    texfile = paperpath+'table_doublesersic'+filesuffix+'.tex'
     splog, 'Writing '+texfile
 
-; build the column headings
-    colhead1 = get_colhead([$
-;     '$r_{\rm min}$','$r_{\rm max}$',$
-      '$n_{\rm ref}$','$r_{\rm e,ref}$','$\alpha$','$\beta$',$
-      'F390W','F435W','F475W','F555W','F606W','F625W','F775W','F814W','F850LP',$
-      'F105W','F110W','F125W','F140W','F160W','$\chi^{2}_{\nu}$','$\nu$'])
-;    colhead2 = get_colhead([$
-;      'Band','(kpc)','(kpc)',$
-;;     '(mag~arcsec$^{-2}$)','(kpc)','$n$','$\chi^{2}_{\nu}$','$\nu$',$
-;      '(mag~arcsec$^{-2}$)','(kpc)','$n_{Ser}$','(mag~arcsec$^{-2}$)','(kpc)','$\chi^{2}_{\nu}$','$\nu$'],/nobreak)
-    
-    texcenter = [replicate('c',4),replicate('c',14),'c','c']
+    colhead1 = get_colhead(['','Abell~209','Abell~2261'])
+
+    a209 = read_bcgmstar_sersic('a209',results=a209res)
+    a2261 = read_bcgmstar_sersic('a2261',results=a2261res)
+
+    texcenter = ['l','c','c']
+;   texcenter = replicate('c',(4+1)*7)
+;   texcenter = replicate('c',(4+1)*14)
 
 ;    tablenotetext = [$
 ;;     '{a}{Ancillary information for our sample of galaxy clusters.}',$
@@ -54,54 +465,73 @@ pro bcgmstar_tables
     openw, lun, texfile, /get_lun
 ;   if (keyword_set(preprint) eq 0) then printf, lun, '\LongTables'
 ;   printf, lun, '\clearpage'
-    printf, lun, '\setlength{\tabcolsep}{0.02in}'
-    printf, lun, '\LongTables'
+;   printf, lun, '\LongTables'
 ;   printf, lun, '\begin{turnpage}'
 ;   printf, lun, '\begin{landscape}'
-    printf, lun, '\tabletypesize{\tiny}'
     printf, lun, '\begin{deluxetable*}{'+strjoin(texcenter)+'}'
-    printf, lun, '\setlength{\tabcolsep}{0.005in}'
-    printf, lun, '\tablecaption{Surface Brightness Profile Fitting Results\label{table:sersic}}'
+;   printf, lun, '\setlength{\tabcolsep}{0.005in}'
+    printf, lun, '\tablecaption{Surface Brightness Profile Fitting Results\label{table:doublesersic}}'
     printf, lun, '\tablewidth{0pt}'
+    printf, lun, '\tabletypesize{\tiny}'
     printf, lun, '\tablehead{'
     niceprintf, lun, colhead1
-    niceprintf, lun, colhead2
+;   niceprintf, lun, colhead2
     printf, lun, '}'
     printf, lun, '\startdata'
+
     for ic = 0, ncl-1 do begin
 ;   for ic = 0, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        nicecluster = get_nicecluster(sample[ic])
-;      printf, lun, '\cutinhead{'+nicecluster+'}'
-       if (ic eq ncl-1) then suffix = '' else suffix = ' \\'
+       printf, lun, '\cutinhead{'+nicecluster+'}'
 
-       results = mrdfits(sersicpath+cluster+'-allsersic-results.fits.gz',1,/silent)
-       sersic = mrdfits(sersicpath+cluster+'-allsersic.fits.gz',1,/silent)
-
-       format_flux_error, results.sersic_n_ref, results.sersic_n_ref_err, nn, nnerr
-       format_flux_error, results.sersic_n_ref, results.sersic_n_ref_err, re, reerr
-
-       format_flux_error, abs(results.sersic_alpha1), results.sersic_alpha1_err, alpha, alphaerr
-       if results.sersic_alpha1 lt 0 then alpha = '-'+alpha
-
-       format_flux_error, abs(results.sersic_beta1), results.sersic_beta1_err, beta, betaerr
-       if results.sersic_beta1 lt 0 then beta = '-'+beta
-       
-       line = '$'+nn+'\pm'+nnerr+'$ & '+'$'+re+'\pm'+reerr+'$ & '+$
-         '$'+alpha+'\pm'+alphaerr+'$ & '+'$'+beta+'\pm'+betaerr+'$ & '
+       phot = mrdfits(sersicpath+cluster+'-phot.fits.gz',1,/silent)
+;      for ff = nfilt-2, nfilt-1 do begin
+;      for ff = 7, nfilt-1 do begin
        for ff = 0, nfilt-1 do begin
-          this = where(short[ff] eq strtrim(sersic.band,2))
+          this = where(short[ff] eq strtrim(phot.band,2))
           if this[0] eq -1 then begin
-             line = line+' \nodata & '
 ; put nodata
           endif else begin
-             format_flux_error, sersic[this].sersic_all_sbe, sersic[this].sersic_all_sbe_err, mu, muerr
-             line = line+'$'+mu+'\pm'+muerr+'$ & '
+             mu_ser = -2.5*alog10(phot[this].sersic2_sbe1)
+             mu_ser_err = 2.5*phot[this].sersic2_sbe1_err/phot[this].sersic2_sbe1/alog(10)
+             mu_dV = -2.5*alog10(phot[this].sersic2_sbe2)
+             mu_dV_err = 2.5*phot[this].sersic2_sbe2_err/phot[this].sersic2_sbe2/alog(10)
+
+             if ff eq nfilt-1 then begin
+                if (ic eq ncl-1) then suffix = '' else suffix = ' \\'
+             endif else suffix = ' \\'
+;            if ff eq nfilt-1 then if (ic eq ncl-1) then suffix = '' else $
+;              suffix = ' \\' else suffix = ' & '
+             printf, lun, strupcase(short[ff])+' & '+$
+               '$'+strtrim(string(phot[this].rmin_kpc, format='(F5.2)'),2)+'$ & '+$
+               '$'+strtrim(string(phot[this].rmax_kpc, format='(F5.2)'),2)+'$ & '+$
+;; single Sersic
+;               '$'+strtrim(string(phot[this].sersic_sbe, format='(F5.2)'),2)+'\pm'+$
+;               strtrim(string(phot[this].sersic_sbe_err, format='(F5.2)'),2)+'$ & '+$
+;               '$'+strtrim(string(phot[this].sersic_re,  format='(F5.2)'),2)+'\pm'+$
+;               strtrim(string(phot[this].sersic_re_err,  format='(F5.2)'),2)+'$ & '+$
+;               '$'+strtrim(string(phot[this].sersic_n,   format='(F5.2)'),2)+'\pm'+$
+;               strtrim(string(phot[this].sersic_n_err,   format='(F5.2)'),2)+'$ & '+$
+;;              '$'+strtrim(string((phot[this].sersic_chi2/phot[this].sersic_dof)>0.1,format='(F5.2)'),2)+'$ & '+$
+;;              '$'+strtrim(string(phot[this].sersic_dof,     format='(I0)'),2)+'$ & '+$
+; double Sersic
+               '$'+strtrim(string(mu_ser, format='(F5.2)'),2)+'\pm'+$
+               strtrim(string(mu_ser_err, format='(F5.2)'),2)+'$ & '+$
+               '$'+strtrim(string(phot[this].sersic2_re1,  format='(F5.2)'),2)+'\pm'+$
+               strtrim(string(phot[this].sersic2_re1_err,  format='(F5.2)'),2)+'$ & '+$
+               '$'+strtrim(string(phot[this].sersic2_n1,  format='(F5.2)'),2)+'\pm'+$
+               strtrim(string(phot[this].sersic2_n1_err,  format='(F5.2)'),2)+'$ & '+$
+
+               '$'+strtrim(string(mu_dV,  format='(F5.2)'),2)+'\pm'+$
+               strtrim(string(mu_dV_err,  format='(F5.2)'),2)+'$ & '+$
+               '$'+strtrim(string(phot[this].sersic2_re2,  format='(F5.2)'),2)+'\pm'+$
+               strtrim(string(phot[this].sersic2_re2_err,  format='(F5.2)'),2)+'$ & '+$
+
+               '$'+strtrim(string((phot[this].sersic2_chi2/phot[this].sersic2_dof)>0.1,format='(F5.2)'),2)+'$ & '+$
+               '$'+strtrim(string(phot[this].sersic2_dof,     format='(I0)'),2)+'$'+suffix
           endelse
-       endfor 
-       line = line+'$'+strtrim(string(results.sersic_chi2/results.sersic2_dof,format='(F5.2)'),2)+'$ & '+$
-         '$'+strtrim(string(results.sersic_dof,format='(I0)'),2)+'$'
-       printf, lun, line+suffix
+       endfor
     endfor 
     
     printf, lun, '\enddata'
@@ -115,7 +545,8 @@ pro bcgmstar_tables
 
 
 stop    
-
+    
+    
 ; ---------------------------------------------------------------------------    
 ; Table 1: table summarizing the sample
     texfile = paperpath+'table_sample'+filesuffix+'.tex'
@@ -348,149 +779,6 @@ stop
 
 stop    
 
-; ---------------------------------------------------------------------------    
-; Table: Sersic fitting results
-    texfile = paperpath+'table_sersic'+filesuffix+'.tex'
-    splog, 'Writing '+texfile
-
-; build the column headings
-;   colhead1 = get_colhead([$
-;     '\multicolumn{4}{c}{F390W}','',$
-;     '\multicolumn{4}{c}{F435W}','',$
-;     '\multicolumn{4}{c}{F475W}','',$
-;     '\multicolumn{4}{c}{F555W}','',$
-;     '\multicolumn{4}{c}{F606W}','',$
-;     '\multicolumn{4}{c}{F625W}','',$
-;     '\multicolumn{4}{c}{F775W}','',$
-;     '\multicolumn{4}{c}{F814W}','',$
-;     '\multicolumn{4}{c}{F850LP}','',$
-;     '\multicolumn{4}{c}{F105W}','',$
-;     '\multicolumn{4}{c}{F110W}','',$
-;     '\multicolumn{4}{c}{F125W}','',$
-;     '\multicolumn{4}{c}{F140W}','',$
-;     '\multicolumn{4}{c}{F160W}'])
-
-;    colhead1 = get_colhead([$
-;      '','$r_{\rm min}$','$r_{\rm max}$',$
-;      '$\mu_{e}$','$r_{e}$','',$
-;      '$\mu_{e,Ser}$','$\mu_{e,dV}$','$r_{e,Ser}$','$r_{e,dV}$',''])
-;    colhead2 = get_colhead([$
-;      'Band','(kpc)','(kpc)',$
-;      '(mag~arcsec$^{-2}$)','(kpc)','$n$',$
-;      '(mag~arcsec$^{-2}$)','(mag~arcsec$^{-2}$)','(kpc)','(kpc)','$n_{Ser}$'],/nobreak)
-
-;   colhead1 = get_colhead([$
-;     '','$r_{\rm min}$','$r_{\rm max}$',$
-;     '$\mu_{e}$','$r_{e}$','','','',$
-;     '$\mu_{e,Ser}$','$\mu_{e,dV}$','$r_{e,Ser}$','$r_{e,dV}$','','',''])
-;   colhead2 = get_colhead([$
-;     'Band','(kpc)','(kpc)',$
-;     '(mag~arcsec$^{-2}$)','(kpc)','$n$','$\chi^{2}_{\nu}$','$\nu$',$
-;     '(mag~arcsec$^{-2}$)','(mag~arcsec$^{-2}$)','(kpc)','(kpc)','$n_{Ser}$','$\chi^{2}_{\nu}$','$\nu$'],/nobreak)
-    
-    colhead1 = get_colhead([$
-      '','$r_{\rm min}$','$r_{\rm max}$',$
-;     '$\mu_{e}$','$r_{e}$','','','',$
-      '$\mu_{e,Ser}$','$r_{e,Ser}$','','$\mu_{e,dV}$','$r_{e,dV}$','',''])
-    colhead2 = get_colhead([$
-      'Band','(kpc)','(kpc)',$
-;     '(mag~arcsec$^{-2}$)','(kpc)','$n$','$\chi^{2}_{\nu}$','$\nu$',$
-      '(mag~arcsec$^{-2}$)','(kpc)','$n_{Ser}$','(mag~arcsec$^{-2}$)','(kpc)','$\chi^{2}_{\nu}$','$\nu$'],/nobreak)
-    
-    texcenter = ['l',replicate('c',9)]
-;   texcenter = replicate('c',(4+1)*7)
-;   texcenter = replicate('c',(4+1)*14)
-
-;    tablenotetext = [$
-;;     '{a}{Ancillary information for our sample of galaxy clusters.}',$
-;      '{a}{Cluster coordinates based on the position of the BCG.}',$
-;      '{b}{Cluster virial mass adopted from \citet{merten14a}.}']
-
-; write it out    
-    openw, lun, texfile, /get_lun
-;   if (keyword_set(preprint) eq 0) then printf, lun, '\LongTables'
-;   printf, lun, '\clearpage'
-    printf, lun, '\LongTables'
-;   printf, lun, '\begin{turnpage}'
-;   printf, lun, '\begin{landscape}'
-    printf, lun, '\begin{deluxetable*}{'+strjoin(texcenter)+'}'
-    printf, lun, '\setlength{\tabcolsep}{0.005in}'
-    printf, lun, '\tablecaption{Surface Brightness Profile Fitting Results\label{table:sersic}}'
-    printf, lun, '\tablewidth{0pt}'
-    printf, lun, '\tabletypesize{\tiny}'
-    printf, lun, '\tablehead{'
-    niceprintf, lun, colhead1
-    niceprintf, lun, colhead2
-    printf, lun, '}'
-    printf, lun, '\startdata'
-    for ic = 0, ncl-1 do begin
-;   for ic = 0, ncl-1 do begin
-       cluster = strtrim(sample[ic].shortname,2)
-       nicecluster = get_nicecluster(sample[ic])
-       printf, lun, '\cutinhead{'+nicecluster+'}'
-
-       phot = mrdfits(sersicpath+cluster+'-phot.fits.gz',1,/silent)
-;      for ff = nfilt-2, nfilt-1 do begin
-;      for ff = 7, nfilt-1 do begin
-       for ff = 0, nfilt-1 do begin
-          this = where(short[ff] eq strtrim(phot.band,2))
-          if this[0] eq -1 then begin
-; put nodata
-          endif else begin
-             mu_ser = -2.5*alog10(phot[this].sersic2_sbe1)
-             mu_ser_err = 2.5*phot[this].sersic2_sbe1_err/phot[this].sersic2_sbe1/alog(10)
-             mu_dV = -2.5*alog10(phot[this].sersic2_sbe2)
-             mu_dV_err = 2.5*phot[this].sersic2_sbe2_err/phot[this].sersic2_sbe2/alog(10)
-
-             if ff eq nfilt-1 then begin
-                if (ic eq ncl-1) then suffix = '' else suffix = ' \\'
-             endif else suffix = ' \\'
-;            if ff eq nfilt-1 then if (ic eq ncl-1) then suffix = '' else $
-;              suffix = ' \\' else suffix = ' & '
-             printf, lun, strupcase(short[ff])+' & '+$
-               '$'+strtrim(string(phot[this].rmin_kpc, format='(F5.2)'),2)+'$ & '+$
-               '$'+strtrim(string(phot[this].rmax_kpc, format='(F5.2)'),2)+'$ & '+$
-;; single Sersic
-;               '$'+strtrim(string(phot[this].sersic_sbe, format='(F5.2)'),2)+'\pm'+$
-;               strtrim(string(phot[this].sersic_sbe_err, format='(F5.2)'),2)+'$ & '+$
-;               '$'+strtrim(string(phot[this].sersic_re,  format='(F5.2)'),2)+'\pm'+$
-;               strtrim(string(phot[this].sersic_re_err,  format='(F5.2)'),2)+'$ & '+$
-;               '$'+strtrim(string(phot[this].sersic_n,   format='(F5.2)'),2)+'\pm'+$
-;               strtrim(string(phot[this].sersic_n_err,   format='(F5.2)'),2)+'$ & '+$
-;;              '$'+strtrim(string((phot[this].sersic_chi2/phot[this].sersic_dof)>0.1,format='(F5.2)'),2)+'$ & '+$
-;;              '$'+strtrim(string(phot[this].sersic_dof,     format='(I0)'),2)+'$ & '+$
-; double Sersic
-               '$'+strtrim(string(mu_ser, format='(F5.2)'),2)+'\pm'+$
-               strtrim(string(mu_ser_err, format='(F5.2)'),2)+'$ & '+$
-               '$'+strtrim(string(phot[this].sersic2_re1,  format='(F5.2)'),2)+'\pm'+$
-               strtrim(string(phot[this].sersic2_re1_err,  format='(F5.2)'),2)+'$ & '+$
-               '$'+strtrim(string(phot[this].sersic2_n1,  format='(F5.2)'),2)+'\pm'+$
-               strtrim(string(phot[this].sersic2_n1_err,  format='(F5.2)'),2)+'$ & '+$
-
-               '$'+strtrim(string(mu_dV,  format='(F5.2)'),2)+'\pm'+$
-               strtrim(string(mu_dV_err,  format='(F5.2)'),2)+'$ & '+$
-               '$'+strtrim(string(phot[this].sersic2_re2,  format='(F5.2)'),2)+'\pm'+$
-               strtrim(string(phot[this].sersic2_re2_err,  format='(F5.2)'),2)+'$ & '+$
-
-               '$'+strtrim(string((phot[this].sersic2_chi2/phot[this].sersic2_dof)>0.1,format='(F5.2)'),2)+'$ & '+$
-               '$'+strtrim(string(phot[this].sersic2_dof,     format='(I0)'),2)+'$'+suffix
-          endelse
-       endfor
-    endfor 
-    
-    printf, lun, '\enddata'
-;   printf, lun, '\tablecomments{'+tablecomments+'}'
-;   niceprintf, lun, '\tablenotetext'+tablenotetext
-    printf, lun, '\end{deluxetable*}'
-;   printf, lun, '\end{landscape}'
-;   printf, lun, '\end{turnpage}'
-;   printf, lun, '\clearpage'
-    free_lun, lun
-
-
-stop    
-    
-    
 return
 end
 
@@ -637,3 +925,96 @@ end
 ;
 ;
 ;stop    
+
+
+;; ---------------------------------------------------------------------------    
+;; Table: Sersic fitting results split into two tables
+;    texfile = paperpath+'table_sersic'+filesuffix+'.tex'
+;    splog, 'Writing '+texfile
+;
+;; build the column headings
+;    colhead1 = get_colhead([$
+;;     '$r_{\rm min}$','$r_{\rm max}$',$
+;      '$n_{\rm ref}$','$r_{\rm e,ref}$','$\alpha$','$\beta$',$
+;      'F390W','F435W','F475W','F555W','F606W','F625W','F775W','F814W','F850LP',$
+;      'F105W','F110W','F125W','F140W','F160W','$\chi^{2}_{\nu}$','$\nu$'])
+;;    colhead2 = get_colhead([$
+;;      'Band','(kpc)','(kpc)',$
+;;;     '(mag~arcsec$^{-2}$)','(kpc)','$n$','$\chi^{2}_{\nu}$','$\nu$',$
+;;      '(mag~arcsec$^{-2}$)','(kpc)','$n_{Ser}$','(mag~arcsec$^{-2}$)','(kpc)','$\chi^{2}_{\nu}$','$\nu$'],/nobreak)
+;    
+;    texcenter = [replicate('c',4),replicate('c',14),'c','c']
+;
+;;    tablenotetext = [$
+;;;     '{a}{Ancillary information for our sample of galaxy clusters.}',$
+;;      '{a}{Cluster coordinates based on the position of the BCG.}',$
+;;      '{b}{Cluster virial mass adopted from \citet{merten14a}.}']
+;
+;; write it out    
+;    openw, lun, texfile, /get_lun
+;;   if (keyword_set(preprint) eq 0) then printf, lun, '\LongTables'
+;;   printf, lun, '\clearpage'
+;    printf, lun, '\setlength{\tabcolsep}{0.02in}'
+;    printf, lun, '\LongTables'
+;;   printf, lun, '\begin{turnpage}'
+;    printf, lun, '\begin{landscape}'
+;    printf, lun, '\tabletypesize{\tiny}'
+;    printf, lun, '\begin{deluxetable}{'+strjoin(texcenter)+'}'
+;    printf, lun, '\setlength{\tabcolsep}{0.005in}'
+;    printf, lun, '\tablecaption{Surface Brightness Profile Fitting Results\label{table:sersic}}'
+;    printf, lun, '\tablewidth{0pt}'
+;    printf, lun, '\tablehead{'
+;    niceprintf, lun, colhead1
+;    niceprintf, lun, colhead2
+;    printf, lun, '}'
+;    printf, lun, '\startdata'
+;    for ic = 0, ncl-1 do begin
+;;   for ic = 0, ncl-1 do begin
+;       cluster = strtrim(sample[ic].shortname,2)
+;       nicecluster = get_nicecluster(sample[ic])
+;;      printf, lun, '\cutinhead{'+nicecluster+'}'
+;       if (ic eq ncl-1) then suffix = '' else suffix = ' \\'
+;
+;       suf = ''
+;;      suf = '-alphabetazero'
+;       results = mrdfits(sersicpath+cluster+'-allsersic'+suf+'-results.fits.gz',1,/silent)
+;       sersic = mrdfits(sersicpath+cluster+'-allsersic'+suf+'.fits.gz',1,/silent)
+;       print, cluster, results.sersic_chi2/results.sersic2_dof, $
+;         results.sersic_n_ref, results.sersic_re_ref
+;
+;       format_flux_error, results.sersic_n_ref, results.sersic_n_ref_err, nn, nnerr
+;       format_flux_error, results.sersic_re_ref, results.sersic_re_ref_err, re, reerr
+;
+;       format_flux_error, abs(results.sersic_alpha1), results.sersic_alpha1_err, alpha, alphaerr
+;       if results.sersic_alpha1 lt 0 then alpha = '-'+alpha
+;
+;       format_flux_error, abs(results.sersic_beta1), results.sersic_beta1_err, beta, betaerr
+;       if results.sersic_beta1 lt 0 then beta = '-'+beta
+;       
+;       line = '$'+nn+'\pm'+nnerr+'$ & '+'$'+re+'\pm'+reerr+'$ & '+$
+;         '$'+alpha+'\pm'+alphaerr+'$ & '+'$'+beta+'\pm'+betaerr+'$ & '
+;       for ff = 0, nfilt-1 do begin
+;          this = where(short[ff] eq strtrim(sersic.band,2))
+;          if this[0] eq -1 then begin
+;             line = line+' \nodata & '
+;; put nodata
+;          endif else begin
+;             format_flux_error, sersic[this].sersic_all_sbe, sersic[this].sersic_all_sbe_err, mu, muerr
+;             line = line+'$'+mu+'\pm'+muerr+'$ & '
+;          endelse
+;       endfor 
+;       line = line+'$'+strtrim(string(results.sersic_chi2/results.sersic2_dof,format='(F5.2)'),2)+'$ & '+$
+;         '$'+strtrim(string(results.sersic_dof,format='(I0)'),2)+'$'
+;       printf, lun, line+suffix
+;    endfor 
+;    
+;    printf, lun, '\enddata'
+;;   printf, lun, '\tablecomments{'+tablecomments+'}'
+;;   niceprintf, lun, '\tablenotetext'+tablenotetext
+;    printf, lun, '\end{deluxetable}'
+;    printf, lun, '\clearpage'
+;    printf, lun, '\end{landscape}'
+;;   printf, lun, '\end{turnpage}'
+;    free_lun, lun
+;
+;    

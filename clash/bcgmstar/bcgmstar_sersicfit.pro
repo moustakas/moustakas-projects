@@ -1,77 +1,7 @@
-function get_radius, radius_sb, nrad=nrad, inrad=inrad, outrad=outrad
-; everything in kpc
-
-    radius = radius_sb
-    nrad = n_elements(radius)
-    
-    deltar = (shift(radius,-1)-radius)/2.0
-    deltar[nrad-1] = (radius[nrad-1]-radius[nrad-2])/2.0
-    outrad = radius+deltar
-    inrad = radius-shift(deltar,1)
-    inrad[0] = 0.0
-
-;   niceprint, inrad, radius, outrad    
-    
-; --------------------
-;; old but functioning code:    
-;    if n_elements(nrad) eq 0 then nrad = 20
-;    nrad1 = nrad-1
-;    inrad = range(min(radius_sb),rmax,nrad1,/asinh) ; inner radius [kpc]
-;    outrad = inrad+(shift(inrad,-1)-inrad)           ; outer radius [kpc]
-;
-;; adjust the edges
-;    outrad[nrad1-1] = (inrad[nrad1-1]-inrad[nrad1-2])+inrad[nrad1-1]
-;    outrad = [inrad[0],outrad]
-;    inrad = [0D,inrad]
-;    radius = (outrad-inrad)/2.0+inrad
-; --------------------
-
-;   niceprint, inrad, radius, outrad
-
-return, radius
-end
-
-function get_sersic_variance, radius_kpc, sersic=sersic, debug=debug
-; variance in the SB profile of a Sersic fit at fixed radius,
-; accounting for the covariance in the paramaeters
-
-    nran = 100
-    
-    rand = mrandomn(seed,sersic.sersic_covar,nran)
-    rand[*,0] += sersic.sersic_sb0
-    rand[*,1] += sersic.sersic_k
-    rand[*,2] += sersic.sersic_n
-
-    sb = fltarr(n_elements(radius_kpc),nran)
-
-    for ii = 0, nran-1 do sb[*,ii] = bcgmstar_sersic_func(radius_kpc,$
-      [rand[ii,0],rand[ii,1],rand[ii,2]])
-
-    sb_var = radius_kpc*0.0
-    for ii = 0, n_elements(radius_kpc)-1 do sb_var[ii] = stddev(sb[ii,*])^2
-    
-; debugging plot    
-    if keyword_set(debug) then begin
-       dfpsclose & im_plotfaves
-       djs_plot, radius_kpc, sb[*,0], xsty=3, ysty=3, /xlog, $
-         /ylog, xrange=[min(radius_kpc)>1E-4,max(radius_kpc)], yrange=minmax(sb)
-       for jj = 1, nran-1 do djs_oplot, radius_kpc, sb[*,jj]
-       oploterror, radius_kpc, bcgmstar_sersic_func(radius_kpc,params=sersic), $
-         sqrt(sb_var), color='blue', errcolor='blue', psym=8
-       cc = get_kbrd(1)
-
-; S/N    
-       djs_plot, radius_kpc, bcgmstar_sersic_func(radius_kpc,$
-         params=sersic)/sqrt(sb_var), xsty=3, ysty=3
-       cc = get_kbrd(1)
-    endif
-    
-return, sb_var
-end
-
 pro bcgmstar_sersic_allbands, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
   init_params=init_params, fixed=fixed, sersicfit=sersicfit, $
-  fixdevac=fixdevac, verbose=verbose, results=results, lambda_ref=lambda_ref
+  fixdevac=fixdevac, verbose=verbose, results=results, lambda_ref=lambda_ref, $
+  alphabetazero=alphabetazero
 ; fit a single-Sersic function to all the bands simultaneously by
 ; allowing the half-light radius and Sersic n parameter to vary as a
 ; power-law function of wavelength, while allowing the surface
@@ -114,15 +44,21 @@ pro bcgmstar_sersic_allbands, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
 ; alpha1
     parinfo[2].parname = 'alpha1'
     parinfo[2].limited = [1,1]
-    parinfo[2].limits = [-1,1]
+    parinfo[2].limits = [-2,1]
     parinfo[2].value = 0.1D
-;   parinfo[2].fixed = 1
+    if keyword_set(alphabetazero) then begin
+       parinfo[2].value = 0D
+       parinfo[2].fixed = 1
+    endif
 ; beta1
     parinfo[3].parname = 'beta1'
     parinfo[3].limited = [1,1]
-    parinfo[3].limits = [-1,1]
+    parinfo[3].limits = [-2,1.0]
     parinfo[3].value = 0.1D
-;   parinfo[3].fixed = 1
+    if keyword_set(alphabetazero) then begin
+       parinfo[3].value = 0D
+       parinfo[3].fixed = 1
+    endif
     
 ; sbe - surface brightness at re_ref
     for ib = 0, nband-1 do begin
@@ -148,7 +84,7 @@ pro bcgmstar_sersic_allbands, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
        parinfo[0].fixed = 1
        parinfo[2].fixed = 1
     endif
-    struct_print, parinfo
+;   struct_print, parinfo
 
     params = mpfitfun('bcgmstar_sersic_allbands_func',xx,xxsb,parinfo=parinfo,$
       yfit=sersicfit,perror=perror,covar=covar,weights=xxsb_ivar,dof=dof,$
@@ -227,7 +163,8 @@ end
 
 pro bcgmstar_sersic2_allbands, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
   init_params=init_params, fixed=fixed, sersicfit=sersicfit, $
-  fixdevac=fixdevac, verbose=verbose, results=results, lambda_ref=lambda_ref
+  fixdevac=fixdevac, verbose=verbose, results=results, lambda_ref=lambda_ref, $
+  alphabetazero=alphabetazero
 ; fit a double-Sersic function to all the bands simultaneously by
 ; allowing the half-light radius and Sersic n parameter to vary as a
 ; power-law function of wavelength, while allowing the surface
@@ -281,25 +218,37 @@ pro bcgmstar_sersic2_allbands, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
     parinfo[4].limited = [1,1]
     parinfo[4].limits = [-1,1]
     parinfo[4].value = 0.1D
-;   parinfo[4].fixed = 1
+    if keyword_set(alphabetazero) then begin
+       parinfo[4].value = 0D
+       parinfo[4].fixed = 1
+    endif
 ; alpha2
     parinfo[5].parname = 'alpha2'
     parinfo[5].limited = [1,1]
     parinfo[5].limits = [-1,1]
     parinfo[5].value = 0.1D
-;   parinfo[5].fixed = 1
+    if keyword_set(alphabetazero) then begin
+       parinfo[5].value = 0D
+       parinfo[5].fixed = 1
+    endif
 ; beta1
     parinfo[6].parname = 'beta1'
     parinfo[6].limited = [1,1]
     parinfo[6].limits = [-1,1]
     parinfo[6].value = 0.1D
-;   parinfo[6].fixed = 1
+    if keyword_set(alphabetazero) then begin
+       parinfo[6].value = 0D
+       parinfo[6].fixed = 1
+    endif
 ; beta2
     parinfo[7].parname = 'beta2'
     parinfo[7].limited = [1,1]
     parinfo[7].limits = [-1,1]
     parinfo[7].value = 0.1D
-;   parinfo[7].fixed = 1
+    if keyword_set(alphabetazero) then begin
+       parinfo[7].value = 0D
+       parinfo[7].fixed = 1
+    endif
     
 ; sbe1 - surface brightness at re1
     for ib = 0, nband-1 do begin
@@ -328,31 +277,21 @@ pro bcgmstar_sersic2_allbands, rr, sb, wave, scoeff, sb_ivar=sb_ivar, $
     if n_elements(fixed) eq nparam then parinfo.fixed = fixed
     if n_elements(init_params) eq nparam then parinfo.value = init_params
 
-; fix the two components to be deVac with no wavelength dependence 
-    parinfo[0].value = 1D
-    parinfo[1].value = 4D
-    parinfo[4].value = 0D
-    parinfo[5].value = 0D
-    parinfo[6].value = 0D
-    parinfo[7].value = 0D
-
-    parinfo[0].fixed = 1
-    parinfo[1].fixed = 1
-    parinfo[4].fixed = 1
-    parinfo[5].fixed = 1
-    parinfo[6].fixed = 1
-    parinfo[7].fixed = 1
+;; fix the two components to be deVac with no wavelength dependence 
+;    parinfo[0].value = 1D
+;    parinfo[1].value = 4D
+;    parinfo[4].value = 0D
+;    parinfo[5].value = 0D
+;    parinfo[6].value = 0D
+;    parinfo[7].value = 0D
+;
+;    parinfo[0].fixed = 1
+;    parinfo[1].fixed = 1
+;    parinfo[4].fixed = 1
+;    parinfo[5].fixed = 1
+;    parinfo[6].fixed = 1
+;    parinfo[7].fixed = 1
     
-;; fix the second Sersic model to be a de Vaucouleurs profile at all
-;; wavelengths     
-;    if keyword_set(fixdevac) then begin
-;       parinfo[1].value = alog10(4D) ; n2_ref=4 is fixed
-;       parinfo[5].value = 0D ; alpha2 is fixed (n2=constant)
-;       parinfo[1].fixed = 1
-;       parinfo[5].fixed = 1
-;    endif
-;   struct_print, parinfo
-
     params = mpfitfun('bcgmstar_sersic2_allbands_func',xx,xxsb,parinfo=parinfo,$
       yfit=sersicfit,perror=perror,covar=covar,weights=xxsb_ivar,dof=dof,$
       bestnorm=chi2,status=status,niter=niter,quiet=keyword_set(verbose) eq 0,$
@@ -602,15 +541,17 @@ return
 end
 
 pro bcgmstar_sersicfit, dofit_allbands=dofit_allbands, dofit_oneband=dofit_oneband, $
-  dophot=dophot, qaplot_allbands=qaplot_allbands, qaplot_oneband=qaplot_oneband, $
-  verbose=verbose, clobber=clobber
+  qaplot_allbands=qaplot_allbands, qaplot_oneband=qaplot_oneband, $
+  alphabetazero=alphabetazero, verbose=verbose, clobber=clobber
 ; jm13oct22siena - fit various Sersic models to the output of
 ; BCGMSTAR_ELLIPSE 
 
 ; dofit_allbands - fit a wavelength-dependent single and double Sersic
 ;   model to all bands simultaneously
 ; dofit_oneband - fit single and double Sersic models to every band
-;   independently   
+;   independently
+; alphabetazero - to be used in tandem with /dofit_allbands; fixes
+;   alpha and beta at zero (i.e., no wavelength-dependent fitting)
 
     if keyword_set(qaplot_allbands) and keyword_set(qaplot_oneband) then begin
        splog, 'qaplot_allbands and qaplot_oneband cannot be set simultaneously'
@@ -623,14 +564,11 @@ pro bcgmstar_sersicfit, dofit_allbands=dofit_allbands, dofit_oneband=dofit_oneba
 
 ; read the sample
     sample = read_bcgmstar_sample()
-;   sample = sample[10]
+    sample = sample[0]
     ncl = n_elements(sample)
 
     pixscale = 0.065D           ; [arcsec/pixel]
     errfloor = 0.0D ; 0.02      ; magnitude error floor on my SB measurements 
-    nphotradius = 15            ; number of radial bins
-    photradius_multiplier = range(0.03,3.0,nphotradius,/log) ; search for "snippet", below
-
     lambda_ref = 8002.83D
     
 ; ##################################################
@@ -705,41 +643,33 @@ pro bcgmstar_sersicfit, dofit_allbands=dofit_allbands, dofit_oneband=dofit_oneba
              endelse
           endfor 
 
-; initial conditions          
+; the optimal model for A2261 and A209 is two Sersic functions with no
+; wavelength dependence; set the initial conditions here based on
+; looking at the qa_sersic_a209.pdf and qa_sersic_a2261.pdf files
           case cluster of
-;             'a209': begin
-;                init_params = [alog10(1D),alog10(8D),alog10(1D),alog10(200D),$
-;                  0.1D,0.1D,0.1D,0.1D,init_sb,0.05*init_sb]
-;                fixdevac = 0    ; fix the 2nd Sersic model to n=4?
-;             end
-;            'a383': begin
-;               init_params = [alog10(1D),alog10(4D),alog10(1D),alog10(50D),$
-;                 0.1D,0.1D,0.1D,0.1D,init_sb,0.01*init_sb]
-;               fixdevac = 1    ; fix the 2nd Sersic model to n=4?
-;            end
-;             'macs0744': begin
-;                init_params = [alog10(1D),alog10(5D),alog10(1.5D),alog10(30D),$
-;                  0D,0.05D,0D,0.05D,0.1*init_sb,init_sb]
-;                fixdevac = 1    ; fix the 2nd Sersic model to n=4?
-;             end
-;             'macs1206': begin
-;                init_params = [alog10(0.5D),alog10(8D),alog10(1.1D),alog10(200D),$
-;                  0.05D,0.05D,0.05D,0.05D,init_sb,0.1*init_sb]
-;                fixdevac = 0    ; fix the 2nd Sersic model to n=4?
-;             end
-             else: delvarx, init_params, fixdevac
+             'a2261': begin
+                init_sersic2 = [0.6D,1.3D,6D,30D,$
+                  0D,0D,0D,0D,-2.5*alog10(init_sb)-1.0,-2.5*alog10(init_sb)]
+             end
+             'a209': begin
+                init_sersic2 = [0.5D,3D,0.6D,30D,$
+                  0D,0D,0D,0D,-2.5*alog10(init_sb)-1.0,-2.5*alog10(init_sb)]
+             end
+             else: delvarx, init_sersic2
           endcase
           
           bcgmstar_sersic_allbands, fit_radius_kpc, fit_sb, fit_wave, $
             allsersic, sb_ivar=fit_sb_ivar, sersicfit=sersicfit, $
             fixdevac=fixdevac, verbose=verbose, results=results, $
-            init_params=init_params, fixed=fixed, lambda_ref=lambda_ref
+            init_params=init_sersic, fixed=fixed, lambda_ref=lambda_ref, $
+            alphabetazero=alphabetazero
           out = struct_addtags(out,allsersic)
 
           bcgmstar_sersic2_allbands, fit_radius_kpc, fit_sb, fit_wave, $
             allsersic2, sb_ivar=fit_sb_ivar, sersicfit=sersic2fit, $
             fixdevac=fixdevac, verbose=verbose, results=results2, $
-            init_params=init_params, fixed=fixed, lambda_ref=lambda_ref
+            init_params=init_sersic2, fixed=fixed, lambda_ref=lambda_ref, $
+            alphabetazero=alphabetazero
           out = struct_addtags(out,allsersic2)
 
           ploterror, fit_radius_kpc, -2.5*alog10(fit_sb), $
@@ -749,10 +679,11 @@ pro bcgmstar_sersicfit, dofit_allbands=dofit_allbands, dofit_oneband=dofit_oneba
           djs_oplot, fit_radius_kpc, sersic2fit, color='orange', psym=7
 
 ; write out
-          im_mwrfits, out, sersicpath+cluster+'-allsersic.fits', clobber=clobber
+          if keyword_set(alphabetazero) then suffix = '-alphabetazero' else suffix = ''
+          im_mwrfits, out, sersicpath+cluster+'-allsersic'+suffix+'.fits', clobber=clobber
           im_mwrfits, struct_addtags(results,results2), sersicpath+cluster+$
-            '-allsersic-results.fits', clobber=clobber
-       endfor          
+            '-allsersic'+suffix+'-results.fits', clobber=clobber
+       endfor
     endif 
     
 ; ##################################################
@@ -842,176 +773,6 @@ pro bcgmstar_sersicfit, dofit_allbands=dofit_allbands, dofit_oneband=dofit_oneba
     endif
     
 ; ##################################################
-; do radial aperture photometry in each band, using the Sersic models
-; to extrapolate inward and outward
-    if keyword_set(dophot) then begin
-
-; -------------------------
-; from this snippet of code, I conclude that we should measure photometry
-; in NRAD radial apertures from approximately 0.05-3 times Re in the
-; F160W band 
-       for ic = 0, ncl-1 do begin
-          cluster = strtrim(sample[ic].shortname,2)
-          jj = mrdfits(sersicpath+cluster+'-sersic.fits.gz',1,/silent,row=0)
-          print, jj.sersic_re, jj.rmin_kpc, jj.rmax_kpc, jj.rmin_kpc/jj.sersic_re, $
-            jj.rmax_kpc/jj.sersic_re, '   '+cluster
-       endfor
-; -------------------------
-
-stop       
-       
-; wrap on each cluster    
-;      for ic = 3, 3 do begin
-       for ic = 0, ncl-1 do begin
-          arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]
-
-          cluster = strtrim(sample[ic].shortname,2)
-          splog, 'Measuring aperture photometry for cluster '+cluster
-
-          sersic = mrdfits(sersicpath+cluster+'-sersic.fits.gz',1,/silent)
-          modphot = mrdfits(ellpath+cluster+'-ellipse-model.fits.gz',1,/silent)
-          nfilt = n_elements(modphot)
-
-; initialize the radial photometry structure using F160W as the
-; reference band
-          photradius_kpc = get_radius(photradius_multiplier*30.0,$ ; fixed radii for all clusters
-            nrad=nphotradius,inrad=photradius_kpc_in,outrad=photradius_kpc_out)
-;         photradius_kpc = get_radius(photradius_multiplier*sersic[0].sersic2_re2,$ ; use 2nd component!
-;           nrad=nphotradius,inrad=photradius_kpc_in,outrad=photradius_kpc_out)
-;         photradius_kpc = get_radius(photradius_multiplier*sersic[0].sersic_re,$
-;           nrad=nphotradius,inrad=photradius_kpc_in,outrad=photradius_kpc_out)
-;         niceprint, photradius_kpc_in, photradius_kpc, photradius_kpc_out
-             
-          phot = replicate({$
-            photradius_kpc:          photradius_kpc,$
-            photradius_kpc_in:    photradius_kpc_in,$
-            photradius_kpc_out:  photradius_kpc_out,$
-            maggies:            fltarr(nphotradius),$
-            ivarmaggies:        fltarr(nphotradius),$
-            maggies_int_obs:                    0.0,$ ; observed integrated flux
-            ivarmaggies_int_obs:                0.0,$
-            maggies_int:                        0.0,$ ; integrated flux (Sersic extrapolated)
-            ivarmaggies_int:                    0.0,$
-            dabmag_in:                          0.0,$ ; magnitude correction from extrapolating inward
-            dabmag_out:                         0.0,$ ; magnitude correction from extrapolating outward
-            dabmag_int: 0.0},nfilt)                   ; AB magnitude difference between _int and _int_obs,
-                                                      ;  or the sum of DABMAG_IN and DABMAG_OUT
-          phot = struct_addtags(sersic,phot)
-          
-; now loop on each band          
-          for ib = 0, nfilt-1 do begin
-             band = strtrim(strupcase(modphot[ib].band),2)
-
-             modgood = where(modphot[ib].majora*pixscale*arcsec2kpc le sersic[ib].amax_kpc and $
-               modphot[ib].sb0fit gt 0 and modphot[ib].sb0fit_ivar gt 0,nmodgood)
-
-             sb = modphot[ib].sb0fit[modgood]*1D
-             sb_var_floor = (sb*errfloor)^2.0
-             sb_ivar = 1D/(1D/modphot[ib].sb0fit_ivar[modgood]+sb_var_floor)
-             radius_kpc = modphot[ib].radius_kpc[modgood] ; [kpc]
-             
-             srt = sort(radius_kpc)
-             radius_kpc = radius_kpc[srt]
-             sb = sb[srt]
-             sb_ivar = sb_ivar[srt]
-             sb_var = 1.0/sb_ivar
-
-; use the Sersic model to extrapolate the SB profile inward and
-; outward and then integrate to get the total magnitude; our radii
-; need to be in arcseconds to make the units work out when we
-; integrate
-             radius_arcsec = radius_kpc/arcsec2kpc
-             radius_arcsec_extrap_in = [0,range(min(radius_arcsec)*1E-3,min(radius_arcsec)*0.999,20,/log)]
-             radius_arcsec_extrap_out = range(max(radius_arcsec)*1.001,500.0/arcsec2kpc,30,/log)
-             
-             int_radius_arcsec = [radius_arcsec_extrap_in,radius_arcsec,radius_arcsec_extrap_out]
-
-; single and 2-component Sersic fluxes
-;            int_sb = [10.0^(-0.4*bcgmstar_sersic_func(radius_arcsec_extrap_in*arcsec2kpc,params=sersic[ib])),$
-;              sb,10.0^(-0.4*bcgmstar_sersic_func(radius_arcsec_extrap_out*arcsec2kpc,params=sersic[ib]))]
-             int_sb = [bcgmstar_sersic2_func(radius_arcsec_extrap_in*arcsec2kpc,params=sersic[ib]),$
-               sb,bcgmstar_sersic2_func(radius_arcsec_extrap_out*arcsec2kpc,params=sersic[ib])]
-
-; the code below is fancier because it takes into account the covariance in
-; the Sersic parameters, but for now just extrapolate the last
-; measured variance
-             int_sb_var = [interpolate(sb_var,findex(radius_arcsec,radius_arcsec_extrap_in)),$
-               sb_var,interpolate(sb_var,findex(radius_arcsec,radius_arcsec_extrap_out))]
-             
-;; get the variance of the SB profile accounting for the covariance in
-;; the Sersic parameters
-;             if sersic.sersic_sb0_err eq 0.0 or sersic.sersic_k_err eq 0.0 or $
-;               sersic.sersic_n_err eq 0.0 then begin
-;                splog, band+' - ERROR IS ZERO!'
-;                int_sb_var = [$
-;                  radius_arcsec_extrap_in*0.0+median(sb_var),$
-;                  sb_var,$
-;                  radius_arcsec_extrap_out*0.0+median(sb_var)]
-;             endif else begin
-;                int_sb_var = [$
-;                  get_sersic_variance(radius_arcsec_extrap_in,sersic=sersic)>sb_var[0],$
-;                  sb_var,$
-;                  get_sersic_variance(radius_arcsec_extrap_out,sersic=sersic)>sb_var[n_elements(sb_var)-1]]
-;             endelse
-
-; get the total galaxy magnitude as well as the size of the magnitude
-; correction due to the Sersic extrapolation
-             phot[ib].maggies_int = 2.0*!pi*im_integral(int_radius_arcsec,int_radius_arcsec*int_sb)
-             phot[ib].ivarmaggies_int = 1.0/(2.0*!pi*im_integral(int_radius_arcsec,int_radius_arcsec*int_sb_var))
-             
-             phot[ib].maggies_int_obs = 2.0*!pi*im_integral(radius_arcsec,radius_arcsec*sb)
-             phot[ib].ivarmaggies_int_obs = 1.0/(2.0*!pi*im_integral(radius_arcsec,radius_arcsec*sb_var))
-
-;; single Sersic             
-;             phot[ib].dabmag_in = -2.5*alog10(1+2.0*!pi*im_integral(radius_arcsec_extrap_in,$
-;               radius_arcsec_extrap_in*10.0^(-0.4*bcgmstar_sersic_func($
-;               radius_arcsec_extrap_in*arcsec2kpc,params=sersic[ib])))/phot[ib].maggies_int_obs)
-;             phot[ib].dabmag_out = -2.5*alog10(1+2.0*!pi*im_integral(radius_arcsec_extrap_out,$
-;               radius_arcsec_extrap_out*10.0^(-0.4*bcgmstar_sersic_func($
-;               radius_arcsec_extrap_out*arcsec2kpc,params=sersic[ib])))/phot[ib].maggies_int_obs)
-; double Sersic             
-             phot[ib].dabmag_in = -2.5*alog10(1+2.0*!pi*im_integral(radius_arcsec_extrap_in,$
-               radius_arcsec_extrap_in*bcgmstar_sersic2_func($
-               radius_arcsec_extrap_in*arcsec2kpc,params=sersic[ib]))/phot[ib].maggies_int_obs)
-             phot[ib].dabmag_out = -2.5*alog10(1+2.0*!pi*im_integral(radius_arcsec_extrap_out,$
-               radius_arcsec_extrap_out*bcgmstar_sersic2_func($
-               radius_arcsec_extrap_out*arcsec2kpc,params=sersic[ib]))/phot[ib].maggies_int_obs)
-
-             phot[ib].dabmag_int = -2.5*alog10(phot[ib].maggies_int/phot[ib].maggies_int_obs)
-
-;            print, phot[ib].band, 2.0*!pi*im_integral(radius_arcsec_extrap_out,$
-;              radius_arcsec_extrap_out*10.0^(-0.4*bcgmstar_sersic_func($
-;              radius_arcsec_extrap_out*arcsec2kpc,params=sersic[ib])))
-
-; now do photometry in each aperture
-             for ir = 0, nphotradius-1 do begin
-                phot[ib].maggies[ir] = 2.0*!pi*im_integral(int_radius_arcsec,int_radius_arcsec*int_sb,$
-                  phot[ib].photradius_kpc_in[ir]/arcsec2kpc,phot[ib].photradius_kpc_out[ir]/arcsec2kpc)
-                phot[ib].ivarmaggies[ir] = 1.0/(2.0*!pi*im_integral(int_radius_arcsec,int_radius_arcsec*$
-                  int_sb_var,phot[ib].photradius_kpc_in[ir]/arcsec2kpc,phot[ib].photradius_kpc_out[ir]/arcsec2kpc))
-             endfor
-             
-;            for ir = 0, nphotradius-1 do begin
-;               if max(radius_kpc) gt phot[ib].photradius_kpc[ir] then begin
-;                  phot[ib].maggies[ir] = 2.0*!pi*im_integral(int_radius_arcsec,int_radius_arcsec*int_sb,$
-;                    phot[ib].photradius_in_kpc[ir],phot[ib].photradius_out_kpc[ir])
-;                  phot[ib].ivarmaggies[ir] = 1.0/(2.0*!pi*im_integral(int_radius_arcsec,int_radius_arcsec*$
-;                    int_sb_var,phot[ib].photradius_in_kpc[ir],phot[ib].photradius_out_kpc[ir]))
-;               endif else begin ; extrapolation
-;                  phot[ib].maggies[ir] = 0.0
-;                  phot[ib].ivarmaggies[ir] = 1.0/(10.0^(-0.4*modphot[ib].sblimit))^2
-;               endelse
-;            endfor
-;            if total(int_sb_var eq 0) ne 0.0 then stop
-             
-          endfor 
-
-; write out
-          im_mwrfits, phot, sersicpath+cluster+'-phot.fits', clobber=clobber
-       endfor
-    endif
-
-; ##################################################
 ; build QAplots
     ncol = 3 ; number of columns
     rr = [0,range(0.01,200,500,/log)] ; equivalent radius [kpc]
@@ -1019,25 +780,32 @@ stop
 ; -------------------------    
 ; QAplot: SB profiles and the Sersic fits
     if keyword_set(qaplot_allbands) or keyword_set(qaplot_oneband) then begin
-;      for ic = 0, 0 do begin
+       if keyword_set(alphabetazero) then begin
+          suffix1 = 'alphabetazero_'
+          suffix2 = '-alphabetazero'
+       endif else begin
+          suffix1 = ''
+          suffix2 = ''
+       endelse
+
        for ic = 0, ncl-1 do begin
           cluster = strtrim(sample[ic].shortname,2)
           splog, cluster
-          if keyword_set(qaplot_allbands) then psfile = qapath+'qa_allsersic_'+cluster+'.ps' else $
+          if keyword_set(qaplot_allbands) then psfile = qapath+'qa_allsersic_'+suffix1+cluster+'.ps' else $
             psfile = qapath+'qa_sersic_'+cluster+'.ps'
           im_plotconfig, 0, pos, psfile=psfile, charsize=1.3
 
           arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]
 
           if keyword_set(qaplot_allbands) then begin
-             sersic = mrdfits(sersicpath+cluster+'-allsersic.fits.gz',1,/silent)
-             sersic_results = mrdfits(sersicpath+cluster+'-allsersic-results.fits.gz',1,/silent)
+             sersic = mrdfits(sersicpath+cluster+'-allsersic'+suffix2+'.fits.gz',1,/silent)
+             sersic_results = mrdfits(sersicpath+cluster+'-allsersic'+suffix2+'-results.fits.gz',1,/silent)
           endif else begin
              sersic = mrdfits(sersicpath+cluster+'-sersic.fits.gz',1,/silent)
           endelse
           modphot = mrdfits(ellpath+cluster+'-ellipse-model.fits.gz',1,/silent)
           nfilt = n_elements(modphot)
-          
+
           allband = strtrim(modphot.band,2)
           pp = read_bcg_profiles(cluster,these_filters=allband)
           

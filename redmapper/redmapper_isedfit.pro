@@ -10,15 +10,17 @@ pro redmapper_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
 ; rsync -auv --delete /Users/ioannis/archive/projects/redmapper/*.pdf coma2:"/moustakas/archive/projects/redmapper/"
 ; rsync -auv --delete /Users/ioannis/archive/projects/redmapper/*.par coma2:"/moustakas/archive/projects/redmapper/"
 
+    ver = 'v5.10'
     prefix = 'redmapper'
     isedfit_dir = redmapper_path(/isedfit)
     montegrids_dir = isedfit_dir+'montegrids/'
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
-    redmapper_dir = redmapper_path(version=ver)
+;   redmapper_dir = redmapper_path(version=ver)
+    redmapper_dir = '~/'
 
     filterlist = redmapper_filterlist()
 
-    nchunk = 10
+    nchunk = 300
     
 ; --------------------------------------------------
 ; write the iSEDfit parameter file 
@@ -29,7 +31,7 @@ pro redmapper_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
          imf='chab', redcurve='charlot', igm=0, zminmax=[0.05,0.6], zbin=0.01, $
          nmodel=25000L, age=[0.1,13.0], tau=[0.0,5.0], Zmetal=[0.004,0.03], $
          AV=[0.35,2.0], mu=[0.1,4.0], pburst=0.1, interval_pburst=2.0, $
-         tburst=[0.1,13.0], /delayed, galchunksize=2000L, clobber=clobber
+         tburst=[0.1,13.0], /delayed, galchunksize=2500L, clobber=clobber
     endif
 
 ; --------------------------------------------------
@@ -47,26 +49,26 @@ pro redmapper_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
          clobber=clobber
     endif
 
-; --------------------------------------------------
-; generate the model photometry QAplots
-    if keyword_set(qaplot_models) then begin
-       thesefilters = ['galex_NUV','sdss_g0','sdss_r0','sdss_i0','wise_w1']
-       phot = mrdfits(redmapper_dir+'redmapper_'+ver+'_phot.fits.gz',1)
-       if keyword_set(bcgs) then begin
-          outprefix = 'bcgs'
-          phot = phot[where(phot.isbcg)]
-       endif
-       isedfit_qaplot_models, isedfit_paramfile, phot.maggies, phot.ivarmaggies, $
-         phot.z, isedfit_dir=isedfit_dir, outprefix=outprefix, thissfhgrid=thissfhgrid, $
-         thesefilters=thesefilters, clobber=clobber
-    endif
+;; --------------------------------------------------
+;; generate the model photometry QAplots
+;    if keyword_set(qaplot_models) then begin
+;       thesefilters = ['galex_NUV','sdss_g0','sdss_r0','sdss_i0','wise_w1']
+;       phot = mrdfits(redmapper_dir+'redmapper_'+ver+'_phot.fits.gz',1)
+;       if keyword_set(bcgs) then begin
+;          outprefix = 'bcgs'
+;          phot = phot[where(phot.isbcg)]
+;       endif
+;       isedfit_qaplot_models, isedfit_paramfile, phot.maggies, phot.ivarmaggies, $
+;         phot.z, isedfit_dir=isedfit_dir, outprefix=outprefix, thissfhgrid=thissfhgrid, $
+;         thesefilters=thesefilters, clobber=clobber
+;    endif
     
 ; --------------------------------------------------
 ; fit! but split the members catalog into chunks since it's so big 
     if keyword_set(isedfit) then begin
-       phot = mrdfits(redmapper_dir+'redmapper_'+ver+'_phot.fits.gz',1)
-       ngal = n_elements(phot)
        if keyword_set(bcgs) then begin
+          phot = mrdfits(redmapper_dir+'redmapper_'+ver+'_phot.fits.gz',1)
+
           outprefix = 'bcgs'
           phot = phot[where(phot.isbcg)]
 ;         phot = phot[0:100]
@@ -75,21 +77,24 @@ pro redmapper_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
             phot.z, ra=phot.ra, dec=phot.dec, isedfit_dir=isedfit_dir, $
             outprefix=outprefix, thissfhgrid=thissfhgrid, clobber=clobber
        endif else begin
+          splog, 'Hard-coding NGAL to speed things up!'
+          ngal = 11235932L
           chunksize = ceil(ngal/float(nchunk))
           if n_elements(firstchunk) eq 0 then firstchunk = 0
           if n_elements(lastchunk) eq 0 then lastchunk = nchunk-1
 
           for ii = firstchunk, lastchunk do begin
-             splog, 'Working on CHUNK '+strtrim(ii,2)+'/'+strtrim(lastchunk+1,2)
+             splog, 'Working on CHUNK '+strtrim(ii,2)+', '+strtrim(lastchunk,2)
              splog, im_today()
              t0 = systime(1)
-             outprefix = 'redmapper_chunk'+string(ii,format='(I0)')
+             outprefix = 'redmapper_chunk'+string(ii,format='(I3.3)')
              these = lindgen(chunksize)+ii*chunksize
              these = these[where(these lt ngal)]
 ;            these = these[0:99] ; test!
-             
-             isedfit, isedfit_paramfile, phot[these].maggies, phot[these].ivarmaggies, $
-               phot[these].z, ra=phot[these].ra, dec=phot[these].dec, isedfit_dir=isedfit_dir, $
+
+             phot = mrdfits(redmapper_dir+'redmapper_'+ver+'_phot.fits.gz',1,rows=these)
+             isedfit, isedfit_paramfile, phot.maggies, phot.ivarmaggies, $
+               phot.z, ra=phot.ra, dec=phot.dec, isedfit_dir=isedfit_dir, $
                outprefix=outprefix, thissfhgrid=thissfhgrid, clobber=clobber
              splog, 'Total time (min) = '+strtrim((systime(1)-t0)/60.0,2)
           endfor                    
@@ -102,7 +107,7 @@ pro redmapper_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
        params = read_isedfit_paramfile(isedfit_paramfile,thissfhgrid=thissfhgrid)
        fp = isedfit_filepaths(params,isedfit_dir=isedfit_dir)
        for ii = 0, nchunk-1 do begin
-          outprefix = 'redmapper_chunk'+string(ii,format='(I0)')
+          outprefix = 'redmapper_chunk'+string(ii,format='(I3.3)')
           ised1 = read_isedfit(isedfit_paramfile,isedfit_dir=isedfit_dir,$
             outprefix=outprefix)
           if ii eq 0 then ised = temporary(ised1) else ised = [temporary(ised),temporary(ised1)]

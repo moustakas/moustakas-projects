@@ -20,7 +20,7 @@ pro redmapper_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
 
     filterlist = redmapper_filterlist()
 
-    nchunk = 300
+    nchunk = 320
     
 ; --------------------------------------------------
 ; write the iSEDfit parameter file 

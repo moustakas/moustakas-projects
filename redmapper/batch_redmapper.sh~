@@ -17,12 +17,13 @@ echo "redmapper_isedfit, first=0, last=10,   /ised, /cl" | /usr/bin/nohup idl > 
 
 
 
-echo "redmapper_isedfit,   first=0,  last=39,   /ised, /cl" | /usr/bin/nohup idl > & ~/archive/projects/redmapper/v5.10/logs/chunk01.log &
-echo "redmapper_isedfit,  first=40,  last=79,   /ised, /cl" | /usr/bin/nohup idl > & ~/archive/projects/redmapper/v5.10/logs/chunk02.log &
-echo "redmapper_isedfit,  first=80, last=119,   /ised, /cl" | /usr/bin/nohup idl > & ~/archive/projects/redmapper/v5.10/logs/chunk03.log &
-echo "redmapper_isedfit, first=120, last=159,   /ised, /cl" | /usr/bin/nohup idl > & ~/archive/projects/redmapper/v5.10/logs/chunk04.log &
-echo "redmapper_isedfit, first=160, last=199,   /ised, /cl" | /usr/bin/nohup idl > & ~/archive/projects/redmapper/v5.10/logs/chunk05.log &
-echo "redmapper_isedfit, first=200, last=239,   /ised, /cl" | /usr/bin/nohup idl > & ~/archive/projects/redmapper/v5.10/logs/chunk06.log &
-echo "redmapper_isedfit, first=240, last=279,   /ised, /cl" | /usr/bin/nohup idl > & ~/archive/projects/redmapper/v5.10/logs/chunk07.log &
-echo "redmapper_isedfit, first=280, last=319,   /ised, /cl" | /usr/bin/nohup idl > & ~/archive/projects/redmapper/v5.10/logs/chunk08.log &
-
+echo "redmapper_isedfit,   first=0,  last=29,   /ised, /cl" | /usr/bin/nohup idl > & ~/archive/projects/redmapper/v5.10/logs/chunk01.log &
+echo "redmapper_isedfit,  first=30,  last=59,   /ised, /cl" | /usr/bin/nohup idl > & ~/archive/projects/redmapper/v5.10/logs/chunk02.log &
+echo "redmapper_isedfit,  first=60,  last=89,   /ised, /cl" | /usr/bin/nohup idl > & ~/archive/projects/redmapper/v5.10/logs/chunk03.log &
+echo "redmapper_isedfit,  first=90, last=119,   /ised, /cl" | /usr/bin/nohup idl > & ~/archive/projects/redmapper/v5.10/logs/chunk04.log &
+echo "redmapper_isedfit, first=120, last=149,   /ised, /cl" | /usr/bin/nohup idl > & ~/archive/projects/redmapper/v5.10/logs/chunk05.log &
+echo "redmapper_isedfit, first=150, last=179,   /ised, /cl" | /usr/bin/nohup idl > & ~/archive/projects/redmapper/v5.10/logs/chunk06.log &
+echo "redmapper_isedfit, first=180, last=209,   /ised, /cl" | /usr/bin/nohup idl > & ~/archive/projects/redmapper/v5.10/logs/chunk07.log &
+echo "redmapper_isedfit, first=210, last=239,   /ised, /cl" | /usr/bin/nohup idl > & ~/archive/projects/redmapper/v5.10/logs/chunk08.log &
+echo "redmapper_isedfit, first=240, last=269,   /ised, /cl" | /usr/bin/nohup idl > & ~/archive/projects/redmapper/v5.10/logs/chunk09.log &
+echo "redmapper_isedfit, first=270, last=299,   /ised, /cl" | /usr/bin/nohup idl > & ~/archive/projects/redmapper/v5.10/logs/chunk10.log & 

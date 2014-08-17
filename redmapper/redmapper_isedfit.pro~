@@ -15,8 +15,8 @@ pro redmapper_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
     isedfit_dir = redmapper_path(/isedfit)
     montegrids_dir = isedfit_dir+'montegrids/'
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
-    redmapper_dir = redmapper_path(version=ver)
-;   redmapper_dir = '~/'
+;   redmapper_dir = redmapper_path(version=ver)
+    redmapper_dir = '~/'
 
     filterlist = redmapper_filterlist()
 

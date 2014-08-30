@@ -195,8 +195,8 @@ pro bcgmstar_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, 
 ;         out.mstar_70_err  = stddev(allmstar_70)
           
 ; pack in the strong-lensing profiles
-          lensingprefix = strupcase(repstr(repstr(cluster,'macs','M'),'clj','cl'))
-          lensingfile = lensingpath+lensingprefix+'profile_ltm.txt'
+          lensingsuffix = strupcase(repstr(repstr(cluster,'macs','M'),'clj','cl'))
+          lensingfile = lensingpath+'CenterJohnKeiichi_profile_ltm_'+lensingsuffix+'.txt'
           if file_test(lensingfile) eq 0 then begin
              splog, lensingfile+' not found!'
              stop

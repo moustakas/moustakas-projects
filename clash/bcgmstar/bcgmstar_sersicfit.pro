@@ -564,7 +564,7 @@ pro bcgmstar_sersicfit, dofit_allbands=dofit_allbands, dofit_oneband=dofit_oneba
 
 ; read the sample
     sample = read_bcgmstar_sample()
-    sample = sample[0]
+    sample = sample[7]
     ncl = n_elements(sample)
 
     pixscale = 0.065D           ; [arcsec/pixel]
@@ -602,7 +602,7 @@ pro bcgmstar_sersicfit, dofit_allbands=dofit_allbands, dofit_oneband=dofit_oneba
              ppgood = where(pp[ib].sma gt -90)
              amax_fit = max(pp[ib].sma[ppgood],mxindx)
              amax_sblimit = interpol(pp[ib].sma[ppgood],pp[ib].mu[ppgood],$
-               modphot[ib].sblimit-2.5*alog10(2)) ; 3-sigma
+               modphot[ib].sblimit-2.5*alog10(2)) ; 2-sigma
              amax_kpc = amax_fit < amax_sblimit
 
              modgood = where(modphot[ib].majora*pixscale*arcsec2kpc le amax_kpc and $
@@ -653,6 +653,10 @@ pro bcgmstar_sersicfit, dofit_allbands=dofit_allbands, dofit_oneband=dofit_oneba
              end
              'a209': begin
                 init_sersic2 = [0.5D,3D,0.6D,30D,$
+                  0D,0D,0D,0D,-2.5*alog10(init_sb)-1.0,-2.5*alog10(init_sb)]
+             end
+             'rxj2248': begin
+                init_sersic2 = [0.8D,2D,3D,30D,$
                   0D,0D,0D,0D,-2.5*alog10(init_sb)-1.0,-2.5*alog10(init_sb)]
              end
              else: delvarx, init_sersic2
@@ -959,7 +963,7 @@ pro bcgmstar_sersicfit, dofit_allbands=dofit_allbands, dofit_oneband=dofit_oneba
           xyouts, min(pos[0,*])-0.06, (max(pos[3,*])-min(pos[1,*]))/2.0+min(pos[1,*]), $
             textoidl('\mu (mag arcsec^{-2})'), orientation=90, align=0.5, charsize=1.4, /norm
           xyouts, (max(pos[2,*])-min(pos[0,*]))/2.0+min(pos[0,*]), min(pos[1,*])-0.06, $
-            textoidl('Equivalent Radius (kpc)'), align=0.5, charsize=1.4, /norm
+            textoidl('Galactocentric Radius (kpc)'), align=0.5, charsize=1.4, /norm
           im_plotconfig, psfile=psfile, /psclose, /pdf
        endfor 
 

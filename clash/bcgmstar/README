@@ -6,6 +6,7 @@ Build the object masks for all the clusters using the F160W band:
 
 Sky-subtract and pre-process the mosaics:
   bcgmstar_skysubtract
+  bcgmstar_parallelsky - analyze the sky in the parallel fields (for the Appendix)
 
 Cut out and write just the BCG image and model:
   bcgmstar_get_bcg

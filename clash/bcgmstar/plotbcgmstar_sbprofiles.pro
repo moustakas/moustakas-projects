@@ -10,10 +10,154 @@ pro plotbcgmstar_sbprofiles, pdf=pdf
 
     pixscale = 0.065
     errfloor = 0.0D ; 0.02      ; magnitude error floor on my SB measurements 
-    ncol = 4 ; number of columns
+    ncol = 6 ; number of columns
     
     nicecluster = repstr(repstr(strupcase(sample.dirname),'ABELL','Abell'),'_',' ')
 
+; ---------------------------------------------------------------------------
+; make 15 figures for the appendix which shows all the clusters and
+; all the bands (see bcgmstar_sersicfit, /qaplot_sbprofiles
+    modelrr = [0,range(0.01,200,500,/log)] ; equivalent radius [kpc]
+    xrange = [0.3,120]
+    
+;   for ic = 1, 1 do begin
+    for ic = 0, ncl-1 do begin
+       cluster = strtrim(sample[ic].shortname,2)
+       arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]
+
+       sersic = read_bcgmstar_sersic(cluster,results=sersic_results,$
+         radius=modelrr,model=modelsb,firstsersic=firstsersic,$
+         secondsersic=secondsersic)
+       modphot = mrdfits(ellpath+cluster+'-ellipse-model.fits.gz',1,/silent)
+       nfilt = n_elements(modphot)
+
+       psfile = paperpath+'bcg_all_sbprofiles_'+cluster+'.eps'
+       im_plotconfig, 1, pos, psfile=psfile, charsize=1.3
+
+       nrow = 2*ceil(nfilt/float(ncol))
+;      if allsersic then nrow = ceil((nfilt+1)/float(ncol)) else $
+;        nrow = ceil(nfilt/float(ncol))
+       ym = [0.4,1.1]
+       xm = [1.4,0.4]
+       wid = replicate(2.6,ncol)
+       hei = reform(cmreplicate([1.2,0.8],nrow/2),nrow)
+       xsp = replicate(0.05,ncol-1)
+       ysp = [reform(cmreplicate([0.0,0.05],(nrow-2)/2),nrow-2),0.0]
+       
+       xpage = total(xm)+total(wid)+total(xsp)
+       ypage = total(ym)+total(hei)+total(ysp)
+;      ypage = total(ym)+total(replicate(hei,nrow))
+
+       pos = im_getposition(nx=ncol,ny=nrow,yspace=ysp,xspace=xsp,$
+         xmargin=xm,ymargin=ym,width=wid,height=hei,xpage=xpage,$
+         ypage=ypage,/landscape)
+       pos = reform(pos,4,ncol,nrow)
+       plotpos = reform(pos[*,*,2*lindgen(nrow/2)],4,ncol*nrow/2)
+       residpos = reform(pos[*,*,2*lindgen(nrow/2)+1],4,ncol*nrow/2)
+
+       count = 0
+
+;      for ib = nfilt-1, 0, -1 do begin ; reverse order
+       for ib = 0, nfilt-1 do begin
+          band = strtrim(strupcase(modphot[ib].band),2)
+
+          modgood = where(modphot[ib].majora*pixscale*arcsec2kpc le sersic[ib].amax_kpc and $
+            modphot[ib].sb0fit gt 0 and modphot[ib].sb0fit_ivar gt 0)
+          modbad = where(modphot[ib].majora*pixscale*arcsec2kpc gt sersic[ib].amax_kpc and $
+            modphot[ib].sb0fit gt 0 and modphot[ib].sb0fit_ivar gt 0)
+          
+          rr = modphot[ib].radius_kpc[modgood] ; [kpc]
+          sb = -2.5*alog10(modphot[ib].sb0fit[modgood])
+          sberr = 2.5/(modphot[ib].sb0fit[modgood]*sqrt(modphot[ib].sb0fit_ivar[modgood])*alog(10))
+
+; just for the plot make the uncertainty have a minimum floor so that
+; the SB profile shows up!          
+          sberr = sberr>0.1
+          
+;         if count eq 1 then title = strupcase(cluster) else delvarx, title
+          if count ge nfilt-ncol then begin
+             delvarx, xtickname
+          endif else begin
+             xtickname = replicate(' ',10)
+          endelse
+          if (count mod ncol) eq 0 then begin
+             delvarx, ytickname
+             plottitle = '\mu' ; 
+             residtitle = '\Delta'+'\mu'
+          endif else begin
+             ytickname = replicate(' ',10)
+             delvarx, plottitle, residtitle
+          endelse
+          
+          djs_plot, [0], [0], /nodata, /xlog, noerase=count gt 0, $
+            xrange=xrange, xsty=1, yrange=[26,16], position=plotpos[*,count], $
+            xtickname=replicate(' ',10), ytickname=ytickname, $ ; title=title, $
+            symsize=0.5, ytickinterval=3, ysty=1, ytitle=plottitle
+
+;         djs_oplot, rr, sb, color=cgcolor('dark grey'), thick=10
+;         djs_oplot, rr, sb, psym=symcat(15), symsize=0.5
+          polyfill, [rr,reverse(rr)], [sb-sberr,reverse(sb+sberr)], /fill, $
+            color=cgcolor('tomato'), noclip=0
+;         djs_oplot, rr, sb+sberr, line=0, color=cgcolor('dark grey')
+;         djs_oplot, rr, sb-sberr, line=0, color=cgcolor('dark grey')
+
+;         if count eq 0 then im_legend, nicecluster[ic], /left, $
+;           /bottom, box=0, charsize=1.5, margin=0;, $
+;           position=[pos[2,count]+0.005,pos[3,count]-0.02], /norm
+;         if count eq 0 then im_legend, nicecluster[ic], /left, /bottom, box=0, charsize=1.5, margin=0
+          
+;          if modbad[0] ne -1 then begin
+;             djs_oplot, modphot[ib].radius_kpc[modbad], -2.5*alog10(modphot[ib].sb0fit[modbad]), $
+;               psym=symcat(9), color=cgcolor('medium grey'), symsize=0.5
+;          endif
+
+; overplot the model          
+          djs_oplot, modelrr, modelsb[*,ib], line=0
+          if cluster eq 'a209' or cluster eq 'a2261' or cluster eq 'rxj2248' then begin
+             djs_oplot, modelrr, firstsersic[*,ib], line=5
+             djs_oplot, modelrr, secondsersic[*,ib], line=5
+          endif
+
+          im_legend, band, /right, /top, box=0, margin=0, charsize=1.1;, charthick=1.8
+;         im_legend, band, /right, /top, box=0, margin=0, charsize=1.2;, charthick=1.8
+                    
+          djs_oplot, 10^!x.crange, (modphot[ib].sblimit-2.5*alog10(2.0))*[1,1], line=1 ; 3-sigma
+;         djs_oplot, [70.0,10^!x.crange[1]], modphot[ib].sblimit*[1,1], line=0
+
+; residuals
+          resid = sb-interpol(modelsb[*,ib],modelrr,rr)
+          djs_plot, [0], [0], /nodata, /xlog, /noerase, $
+            xrange=xrange, xsty=1, yrange=0.8*[-1,1], position=residpos[*,count], $
+            xtickname=xtickname, ytickname=ytickname, $ ; title=title, $
+            ytickinterval=0.5, ysty=1, ytitle=residtitle
+
+          polyfill, [rr,reverse(rr)], [resid-sberr,reverse(resid+sberr)], /fill, $
+            color=cgcolor('tomato'), noclip=0
+;         djs_oplot, rr, resid+sberr, line=0, color=cgcolor('dark grey')
+;         djs_oplot, rr, resid-sberr, line=0, color=cgcolor('dark grey')
+;         djs_oplot, rr, resid, psym=symcat(16), symsize=0.3
+
+          djs_oplot, 10^!x.crange, [0,0], line=0, thick=2
+          
+          count++
+       endfor 
+
+;       xyouts, min(pos[0,*])-0.06, (max(pos[3,*])-min(pos[1,*]))/2.0+min(pos[1,*]), $
+;         textoidl('\mu (mag arcsec^{-2})'), orientation=90, align=0.5, charsize=1.6, /norm
+       xyouts, (max(residpos[2,*])-min(residpos[0,*]))/2.0+min(residpos[0,*]), $
+         min(residpos[1,*])-0.1, textoidl('Galactocentric Radius (kpc)'), $
+         align=0.5, charsize=1.6, /norm
+
+       xyouts, (max(residpos[2,*])-min(residpos[0,*]))/2.0+min(residpos[0,*]), $
+         max(plotpos[3,*])+0.02, nicecluster[ic], $
+         align=0.5, charsize=1.6, /norm
+
+       im_plotconfig, psfile=psfile, /psclose, /pdf
+;stop
+    endfor 
+
+stop    
+    
 ; ---------------------------------------------------------------------------
 ; make a plot for the main body of the paper which shows the surface
 ; brightness profiles and Sersic fits for three representative
@@ -25,7 +169,7 @@ pro plotbcgmstar_sbprofiles, pdf=pdf
     color1 = ['dark grey','dodger blue','tomato']
 ;   color2 = ['black','black','black']
     color2 = ['black','navy','firebrick']
-    line = [5,3,0]
+    line = [2,1,0]
 
 ;   thesefilt = ['f160w','f814w','f475w']
 ;   color1 = ['tomato','powder blue','medium grey']
@@ -89,9 +233,10 @@ pro plotbcgmstar_sbprofiles, pdf=pdf
        im_legend, strupcase(cluster), /right, /top, box=0, margin=0, charsize=1.0
 
        if ic eq 0 then begin
-          im_legend, ['F475W','F814W','F160W'], /left, /bottom, box=0, $
-            line=line, color=color2, pspacing=1.8, margin=-0.2, charsize=0.8, $
-            charthick=3
+          im_legend, ['F160W','F814W','F475W or!c F555W'], /left, /bottom, box=0, $
+            line=reverse(line), color=reverse(color1), pspacing=1.7, $ ; margin=-0.2, $
+            charsize=0.7, charthick=2, position=[pos[0,ic]+0.003,pos[1,ic]+0.025], $
+            /norm, thick=6
        endif
        
 ;      for ii = 0, nfilt-1 do begin
@@ -119,7 +264,7 @@ pro plotbcgmstar_sbprofiles, pdf=pdf
           sberr = 2.5/(modphot[this].sb0fit[modgood]*sqrt(modphot[this].sb0fit_ivar[modgood])*alog(10))
 
 ; overplot the model fit
-          djs_oplot, modelrr, modelsb[*,this], color=cgcolor(color2[ii]), line=line[ii], thick=3
+          djs_oplot, modelrr, modelsb[*,this], color=cgcolor(color1[ii]), line=line[ii], thick=3
 ;         djs_oplot, modelrr, -2.5*alog10(bcgmstar_sersic2_func(modelrr,params=sersic[this])), $
 ;           color=cgcolor(color2[ii]), line=line[ii], thick=3
           
@@ -164,138 +309,6 @@ pro plotbcgmstar_sbprofiles, pdf=pdf
 
 stop    
     
-; ---------------------------------------------------------------------------
-; make 15 figures for the appendix which shows all the clusters and
-; all the bands (see bcgmstar_sersicfit, /qaplot_sbprofiles
-    modelrr = [0,range(0.01,200,500,/log)] ; equivalent radius [kpc]
-
-;   allsersic = 1
-;   dosersic2 = 0
-
-    xrange = [0.3,120]
-    
-;   for ic = 1, 1 do begin
-    for ic = 0, ncl-1 do begin
-       cluster = strtrim(sample[ic].shortname,2)
-       arcsec2kpc = dangular(sample[ic].z,/kpc)/206265D ; [kpc/arcsec]
-
-       sersic = read_bcgmstar_sersic(cluster,results=sersic_results,radius=modelrr,model=modelsb)
-       modphot = mrdfits(ellpath+cluster+'-ellipse-model.fits.gz',1,/silent)
-       nfilt = n_elements(modphot)
-
-       psfile = paperpath+'bcg_all_sbprofiles_'+cluster+'.ps'
-       im_plotconfig, 0, pos, psfile=psfile, charsize=1.2
-
-       nrow = 2*ceil(nfilt/float(ncol))
-;      if allsersic then nrow = ceil((nfilt+1)/float(ncol)) else $
-;        nrow = ceil(nfilt/float(ncol))
-       ym = [0.2,1.1]
-       xm = [1.1,0.4]
-       wid = replicate(2.4,ncol)
-       hei = reform(cmreplicate([2.0,1.0],nrow/2),nrow)
-       xsp = replicate(0.05,ncol-1)
-       ysp = [reform(cmreplicate([0.0,0.05],(nrow-2)/2),nrow-2),0.0]
-       
-       xpage = total(xm)+total(wid)+total(xsp)
-       ypage = total(ym)+total(hei)+total(ysp)
-;      ypage = total(ym)+total(replicate(hei,nrow))
-
-       pos = im_getposition(nx=ncol,ny=nrow,yspace=ysp,xspace=xsp,$
-         xmargin=xm,ymargin=ym,width=wid,height=hei,xpage=xpage,$
-         ypage=ypage)
-       pos = reform(pos,4,ncol,nrow)
-       plotpos = reform(pos[*,*,2*lindgen(nrow/2)],4,ncol*nrow/2)
-       residpos = reform(pos[*,*,2*lindgen(nrow/2)+1],4,ncol*nrow/2)
-
-       count = 0
-
-;      for ib = nfilt-1, 0, -1 do begin ; reverse order
-       for ib = 0, nfilt-1 do begin
-          band = strtrim(strupcase(modphot[ib].band),2)
-
-          modgood = where(modphot[ib].majora*pixscale*arcsec2kpc le sersic[ib].amax_kpc and $
-            modphot[ib].sb0fit gt 0 and modphot[ib].sb0fit_ivar gt 0)
-          modbad = where(modphot[ib].majora*pixscale*arcsec2kpc gt sersic[ib].amax_kpc and $
-            modphot[ib].sb0fit gt 0 and modphot[ib].sb0fit_ivar gt 0)
-          
-          rr = modphot[ib].radius_kpc[modgood] ; [kpc]
-          sb = -2.5*alog10(modphot[ib].sb0fit[modgood])
-          sberr = 2.5/(modphot[ib].sb0fit[modgood]*sqrt(modphot[ib].sb0fit_ivar[modgood])*alog(10))
-
-; just for the plot make the uncertainty have a minimum floor so that
-; the SB profile shows up!          
-          sberr = sberr>0.1
-          
-;         if count eq 1 then title = strupcase(cluster) else delvarx, title
-          if count ge nfilt-ncol then begin
-             delvarx, xtickname
-          endif else begin
-             xtickname = replicate(' ',10)
-          endelse
-          if (count mod ncol) eq 0 then begin
-             delvarx, ytickname
-             plottitle = '\mu' ; 
-             residtitle = '\Delta'+'\mu'
-          endif else begin
-             ytickname = replicate(' ',10)
-             delvarx, plottitle, residtitle
-          endelse
-          
-          djs_plot, [0], [0], /nodata, /xlog, noerase=count gt 0, $
-            xrange=xrange, xsty=1, yrange=[26,16], position=plotpos[*,count], $
-            xtickname=replicate(' ',10), ytickname=ytickname, $ ; title=title, $
-            symsize=0.5, ytickinterval=3, ysty=1, ytitle=plottitle
-
-;         djs_oplot, rr, sb, color=cgcolor('dark grey'), thick=10
-;         djs_oplot, rr, sb, psym=symcat(15), symsize=0.5
-          polyfill, [rr,reverse(rr)], [sb-sberr,reverse(sb+sberr)], /fill, $
-            color=cgcolor('tomato'), noclip=0
-;         djs_oplot, rr, sb+sberr, line=0, color=cgcolor('dark grey')
-;         djs_oplot, rr, sb-sberr, line=0, color=cgcolor('dark grey')
-
-          if count eq 0 then im_legend, nicecluster[ic], /left, $
-            /bottom, box=0, charsize=1.5, margin=0;, position=[pos[2,count]+0.005,pos[3,count]-0.02], /norm
-;         if count eq 0 then im_legend, nicecluster[ic], /left, /bottom, box=0, charsize=1.5, margin=0
-          
-;          if modbad[0] ne -1 then begin
-;             djs_oplot, modphot[ib].radius_kpc[modbad], -2.5*alog10(modphot[ib].sb0fit[modbad]), $
-;               psym=symcat(9), color=cgcolor('medium grey'), symsize=0.5
-;          endif
-
-; overplot the model          
-          djs_oplot, modelrr, modelsb[*,ib], line=0
-
-          im_legend, band, /right, /top, box=0, margin=0, charsize=1.1;, charthick=1.8
-;         im_legend, band, /right, /top, box=0, margin=0, charsize=1.2;, charthick=1.8
-                    
-          djs_oplot, 10^!x.crange, (modphot[ib].sblimit-2.5*alog10(2.0))*[1,1], line=1 ; 3-sigma
-;         djs_oplot, [70.0,10^!x.crange[1]], modphot[ib].sblimit*[1,1], line=0
-
-; residuals
-          resid = sb-interpol(modelsb[*,ib],modelrr,rr)
-          djs_plot, [0], [0], /nodata, /xlog, /noerase, $
-            xrange=xrange, xsty=1, yrange=0.99*[-1,1], position=residpos[*,count], $
-            xtickname=xtickname, ytickname=ytickname, $ ; title=title, $
-            ytickinterval=0.7, ysty=1, ytitle=residtitle
-
-          polyfill, [rr,reverse(rr)], [resid-sberr,reverse(resid+sberr)], /fill, $
-            color=cgcolor('tomato'), noclip=0
-;         djs_oplot, rr, resid+sberr, line=0, color=cgcolor('dark grey')
-;         djs_oplot, rr, resid-sberr, line=0, color=cgcolor('dark grey')
-;         djs_oplot, rr, resid, psym=symcat(16), symsize=0.3
-
-          djs_oplot, 10^!x.crange, [0,0], line=0, thick=2
-          
-          count++
-       endfor 
-
-;       xyouts, min(pos[0,*])-0.06, (max(pos[3,*])-min(pos[1,*]))/2.0+min(pos[1,*]), $
-;         textoidl('\mu (mag arcsec^{-2})'), orientation=90, align=0.5, charsize=1.6, /norm
-       xyouts, (max(residpos[2,*])-min(residpos[0,*]))/2.0+min(residpos[0,*]), min(residpos[1,*])-0.07, $
-         textoidl('Galactocentric Radius (kpc)'), align=0.5, charsize=1.6, /norm
-       im_plotconfig, psfile=psfile, /psclose, /pdf
-    endfor 
-
 return
 end
     

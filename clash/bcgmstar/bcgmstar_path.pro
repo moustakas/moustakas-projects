@@ -12,7 +12,7 @@ function bcgmstar_path, propath=propath, paper=paper, bcg=bcg, skysub=skysub, $
     path = getenv('IM_PROJECTS_DIR')+'/clash/bcgmstar/' ; default
     if keyword_set(ellipse) then path = path+'ellipse/'
     if keyword_set(sersic) then path = path+'sersic/'
-    if keyword_set(colormosaics) then path = path+'colormosaics/'
+    if keyword_set(colormosaics) then path = datapath+'colormosaics/'
     if keyword_set(isedfit) then path = path+'isedfit/'
     if keyword_set(massprofiles) then path = path+'massprofiles/'
     if keyword_set(ancillary) then path = path+'ancillary/'

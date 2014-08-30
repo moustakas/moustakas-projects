@@ -31,13 +31,15 @@ function get_radius, radius_sb, nrad=nrad, inrad=inrad, outrad=outrad
 return, radius
 end
 
-function get_sersic_variance, radius_kpc, sersic=sersic, debug=debug
+function get_sersic_variance, radius_kpc, sersic=sersic, covar=covar, debug=debug
 ; variance in the SB profile of a Sersic fit at fixed radius,
 ; accounting for the covariance in the paramaeters
 
-    nran = 100
+; this code assumes that alpha,beta are both zero!    
     
-    rand = mrandomn(seed,sersic.sersic_covar,nran)
+    nran = 200
+    rand = mrandomn(seed,covar,nran)
+    
     rand[*,0] += sersic.sersic_sb0
     rand[*,1] += sersic.sersic_k
     rand[*,2] += sersic.sersic_n
@@ -69,7 +71,7 @@ function get_sersic_variance, radius_kpc, sersic=sersic, debug=debug
 return, sb_var
 end
 
-pro bcgmstar_photometry, clobber=clobber
+pro bcgmstar_photometry, debug=debug, clobber=clobber
 ; jm14aug12siena - do radial aperture photometry in each band, using
 ; the Sersic models to extrapolate inward and outward 
 
@@ -86,8 +88,11 @@ pro bcgmstar_photometry, clobber=clobber
     nphotradius = 20            ; number of radial bins
     photradius_multiplier = range(0.03,3.0,nphotradius,/log) ; search for "snippet", below
 
-    modelrr = [0D,range(1E-4,300,1000,/log)] ; equivalent radius [kpc]
+    nrr = 1000
+    modelrr = [0D,range(1E-4,300,nrr,/log)] ; equivalent radius [kpc]
     
+    nran = 200
+
 ;; -------------------------
 ;; from this snippet of code, I conclude that we should measure photometry
 ;; in NRAD radial apertures from approximately 0.05-3 times Re in the
@@ -108,7 +113,8 @@ pro bcgmstar_photometry, clobber=clobber
        cluster = strtrim(sample[ic].shortname,2)
        splog, 'Measuring aperture photometry for cluster '+cluster
        
-       sersic = read_bcgmstar_sersic(cluster,radius=modelrr,model=modelsb)
+       sersic = read_bcgmstar_sersic(cluster,radius=modelrr,$
+         model=modelsb,results=results,covar=covar)
        modelsb = 10D^(-0.4*modelsb) ; note!
        
        modphot = mrdfits(ellpath+cluster+'-ellipse-model.fits.gz',1,/silent)
@@ -125,6 +131,11 @@ pro bcgmstar_photometry, clobber=clobber
 ;      niceprint, photradius_kpc_in, photradius_kpc, photradius_kpc_out
              
        phot = replicate({$
+         sbe_mean:                           0.0,$ ; mean surface brightness (within re)
+         sbe_mean_err:                       0.0,$
+         re_mean:                            0.0,$ ; mean half-light radius (should match sersic_all_re) kpc
+;        re_mean_err:                        0.0,$ ; in the clusters that were fitted with single Sersics
+
          photradius_kpc:          photradius_kpc,$
          photradius_kpc_in:    photradius_kpc_in,$
          photradius_kpc_out:  photradius_kpc_out,$
@@ -205,28 +216,42 @@ pro bcgmstar_photometry, clobber=clobber
 ;          int_sb = [bcgmstar_sersic2_func(radius_arcsec_extrap_in*arcsec2kpc,params=sersic[ib]),$
 ;            sb,bcgmstar_sersic2_func(radius_arcsec_extrap_out*arcsec2kpc,params=sersic[ib])]
 
-; the code below is fancier because it takes into account the covariance in
-; the Sersic parameters, but for now just extrapolate the last
-; measured variance
-          int_sbvar = [interpolate(sbvar,findex(radius_arcsec,radius_arcsec_extrap_in)),$
-            sbvar,interpolate(sbvar,findex(radius_arcsec,radius_arcsec_extrap_out))]
-          
-;; get the variance of the SB profile accounting for the covariance in
-;; the Sersic parameters
-;          if sersic.sersic_sb0_err eq 0.0 or sersic.sersic_k_err eq 0.0 or $
-;            sersic.sersic_n_err eq 0.0 then begin
-;             splog, band+' - ERROR IS ZERO!'
-;             int_sbvar = [$
-;               radius_arcsec_extrap_in*0.0+median(sbvar),$
-;               sbvar,$
-;               radius_arcsec_extrap_out*0.0+median(sbvar)]
-;          endif else begin
-;             int_sbvar = [$
-;               get_sersic_variance(radius_arcsec_extrap_in,sersic=sersic)>sbvar[0],$
-;               sbvar,$
-;               get_sersic_variance(radius_arcsec_extrap_out,sersic=sersic)>sbvar[n_elements(sbvar)-1]]
-;          endelse
+; get the variance of the SB profile by just extrapolating the
+; last/first measured variance
+;         int_sbvar = [interpolate(sbvar,findex(radius_arcsec,radius_arcsec_extrap_in)),$
+;           sbvar,interpolate(sbvar,findex(radius_arcsec,radius_arcsec_extrap_out))]
 
+; get the variance of the SB profile accounting for the covariance in
+; the Sersic parameters; note that the variance is generally very
+; small in the outer regions!
+          rand = mrandomn(seed,covar,nran)
+
+          n = reform(rand[*,0]+sersic[ib].sersic_all_n)
+          re = reform(rand[*,1]+sersic[ib].sersic_all_re)
+          sbe = reform(rand[*,ib+2]+sersic[ib].sersic_all_sbe)
+          
+          sbmodel = fltarr(n_elements(int_radius_arcsec),nran)
+          for ii = 0, nran-1 do sbmodel[*,ii] = 10D^(-0.4*bcgmstar_sersic_func($
+            int_radius_arcsec*arcsec2kpc,[sbe[ii],re[ii],n[ii]]))
+          sbmodel_var = stddev(sbmodel,dim=2)^2
+
+          int_sbvar = [$
+            interpolate(sbmodel_var,findex(int_radius_arcsec,radius_arcsec_extrap_in)),$
+            sbvar,$
+            interpolate(sbmodel_var,findex(int_radius_arcsec,radius_arcsec_extrap_out))]
+          
+; debugging plot    
+          if keyword_set(debug) then begin
+             djs_plot, int_radius_arcsec*arcsec2kpc, int_sb, xr=[0.1,100], $
+               xsty=1, ysty=1, /xlog, /ylog
+             djs_oplot, int_radius_arcsec*arcsec2kpc, int_sb+sqrt(int_sbvar), line=5
+             djs_oplot, int_radius_arcsec*arcsec2kpc, int_sb-sqrt(int_sbvar), line=5
+             djs_oplot, radius_kpc, sb, psym=symcat(16), color='blue'
+             djs_oplot, modelrr, modelsb[*,ib], color='orange'
+             for ii = 0, nran-1 do djs_oplot, int_radius_arcsec*arcsec2kpc, sbmodel[*,ii], color='red'
+             cc = get_kbrd(1)
+          endif
+    
 ; get the total galaxy magnitude in multiple physical apertures, as
 ; well as the size of the magnitude correction due to the Sersic
 ; extrapolation
@@ -254,6 +279,7 @@ pro bcgmstar_photometry, clobber=clobber
 ; calculate some magnitude differences of convenience
           phot[ib].dabmag_in = -2.5*alog10(1+2.0*!pi*im_integral(radius_arcsec_extrap_in,$
             radius_arcsec_extrap_in*int_sb_in)/phot[ib].maggies_int_obs)
+
           phot[ib].dabmag_out = -2.5*alog10(1+2.0*!pi*im_integral(radius_arcsec_extrap_out,$
             radius_arcsec_extrap_out*int_sb_out)/phot[ib].maggies_int_obs)
           phot[ib].dabmag_int = -2.5*alog10(phot[ib].maggies_int/phot[ib].maggies_int_obs)
@@ -279,8 +305,21 @@ pro bcgmstar_photometry, clobber=clobber
 ;         endfor
 ;         if total(int_sbvar eq 0) ne 0.0 then stop
           
+; get the mean surface brightness within Re (see Binney & Merrifield,
+; pg 186 for some equations which I used to check that I'm
+; going the calculation correctly); get Re numerically because some
+; clusters were fitted with two Sersic functions
+          light = [0,fltarr(nrr)]
+          for ir = 1, nrr do light[ir] = 2.0*!pi*im_integral(int_radius_arcsec,$
+            int_radius_arcsec*int_sb,0D,modelrr[ir]/arcsec2kpc)
+          phot[ib].re_mean = interpol(modelrr,light/phot[ib].maggies_int,0.5)
+
+          phot[ib].sbe_mean = 2.0*!pi*im_integral(int_radius_arcsec,int_radius_arcsec*int_sb,$
+            0D,phot[ib].re_mean/arcsec2kpc)/(!pi*(phot[ib].re_mean/arcsec2kpc)^2)
        endfor 
 
+stop       
+       
 ; write out
        im_mwrfits, phot, sersicpath+cluster+'-phot.fits', clobber=clobber
     endfor

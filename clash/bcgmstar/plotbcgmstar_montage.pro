@@ -29,7 +29,7 @@ pro get_colorcutout, image, outfile=outfile, cluster=cluster
 return
 end
 
-pro plotbcgmstar_montage, cfirst, clast, dobcg=dobcg, donobcg=donobcg, $
+pro plotbcgmstar_montage, cfirst=cfirst, clast=clast, dobcg=dobcg, donobcg=donobcg, $
   doimage=doimage, onecluster_montage=onecluster_montage, final_montage=final_montage, $
   final_model_montage=final_model_montage, doitall=doitall
 ; jm13nov01siena - build a color montage of all the BCGs 
@@ -50,13 +50,17 @@ pro plotbcgmstar_montage, cfirst, clast, dobcg=dobcg, donobcg=donobcg, $
     paperpath = bcgmstar_path(/paper)
 
     sample = read_bcgmstar_sample()
-    sample = sample[sort(sample.mvir)]
+;   sample = sample[0]
+    allcluster = strtrim(sample.shortname,2)
     ncl = n_elements(sample)
 
 ; choose the red, blue, and green filters
-    blue = ['f105w','f110w']
-    green = ['f125w','f140w']
-    red = 'f160w'
+    blue = ['f435w','f475w']
+    green = ['f606w','f625w','f775w','f814w','f850lp']
+    red = ['f105w','f110w','f125w','f140w','f160w']
+;   blue = ['f105w','f110w']
+;   green = ['f125w','f140w']
+;   red = 'f160w'
 
     if n_elements(cfirst) eq 0 then cfirst = 0
     if n_elements(clast) eq 0 then clast = ncl-1
@@ -89,16 +93,22 @@ pro plotbcgmstar_montage, cfirst, clast, dobcg=dobcg, donobcg=donobcg, $
           infile = outpath+cluster+'-image.in'
           openw, lun, infile, /get_lun
           printf, lun, 'B'
-          for ii = 0, n_elements(blue)-1 do printf, lun, $
-            file_search(imagepath+cluster+'_mosaic_065mas_*_'+blue[ii]+suffix+'_drz_*.fits*')
+          for ii = 0, n_elements(blue)-1 do begin
+             thisfile = file_search(imagepath+cluster+'_mosaic_065mas_*_'+blue[ii]+suffix+'_drz_*.fits*',count=cc)
+             if cc ne 0 then printf, lun, thisfile
+          endfor
           printf, lun, ''
           printf, lun, 'G'
-          for ii = 0, n_elements(green)-1 do printf, lun, $
-            file_search(imagepath+cluster+'_mosaic_065mas_*_'+green[ii]+suffix+'_drz_*.fits*')
+          for ii = 0, n_elements(green)-1 do begin
+             thisfile = file_search(imagepath+cluster+'_mosaic_065mas_*_'+green[ii]+suffix+'_drz_*.fits*',count=cc)
+             if cc ne 0 then printf, lun, thisfile
+          endfor
           printf, lun, ''
           printf, lun, 'R'
-          for ii = 0, n_elements(red)-1 do printf, lun, $
-            file_search(imagepath+cluster+'_mosaic_065mas_*_'+red[ii]+suffix+'_drz_*.fits*')
+          for ii = 0, n_elements(red)-1 do begin
+             thisfile = file_search(imagepath+cluster+'_mosaic_065mas_*_'+red[ii]+suffix+'_drz_*.fits*',count=cc)
+             if cc ne 0 then printf, lun, thisfile
+          endfor
           printf, lun, ''
           printf, lun, 'indir '+imagepath
           printf, lun, 'outname '+outpath+cluster+'-image'
@@ -109,7 +119,10 @@ pro plotbcgmstar_montage, cfirst, clast, dobcg=dobcg, donobcg=donobcg, $
           printf, lun, 'testfirst 0'
           free_lun, lun
 
-          spawn, 'python '+getenv('IM_RESEARCH_DIR')+'/mybin/trilogy.py '+infile, /sh
+          cmd = 'python '+getenv('IM_RESEARCH_DIR')+'/mybin/trilogy.py '+infile
+          splog, cmd
+
+          spawn, cmd, /sh
           popd
        endfor
     endif
@@ -268,7 +281,7 @@ pro plotbcgmstar_montage, cfirst, clast, dobcg=dobcg, donobcg=donobcg, $
             '-tile 3x1 -geometry +0+0 -quality 100 '+$ ; -resize 200x200 '+$
             strjoin(coloroutpath+cluster+'/'+cluster+'-'+['image','bcg','nobcg']+'-cutout.png',' ')+' '+outfile
           splog, cmd
-          spawn, cmd, /sh
+;         spawn, cmd, /sh
        endfor
     endif
 
@@ -278,18 +291,18 @@ pro plotbcgmstar_montage, cfirst, clast, dobcg=dobcg, donobcg=donobcg, $
 ; BCGs 
     if keyword_set(final_montage) then begin
        outfile = bcgmstar_path()+'bcg-mstar-finalmontage.png'
-       infile = strjoin(file_search(coloroutpath+cluster+'/'+cluster+'-image-cutout.png'),' ')
+       infile = strjoin(file_search(coloroutpath+allcluster+'/'+allcluster+'-image-cutout.png'),' ')
        cmd = 'montage -bordercolor white -borderwidth 1 '+ $
          '-tile 5x3 -geometry +0+0 -quality 100 '+$ ; -resize 1024x1024 '+$
          infile+' '+outfile
 ;      cmd = 'montage '+infile+' '+outfile
        splog, cmd
-;      spawn, cmd, /sh ; this doesn't work!
+       spawn, cmd, /sh ; this doesn't work!
 
        cmd = 'convert -scale 50% '+outfile+' '+paperpath+$
          'bcg-mstar-finalmontage-small.png'
        splog, cmd
-;      spawn, cmd ; this doesn't work!
+       spawn, cmd, /sh ; this doesn't work!
     endif
 
     if keyword_set(final_model_montage) then begin

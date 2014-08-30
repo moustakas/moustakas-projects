@@ -34,7 +34,8 @@ function read_bcgmstar_sample, zsort=zsort
     
 ;   splog, 'HACK!!!!!'
 ;   sample = sample[14]
-    if keyword_set(zsort) then sample = sample[sort(sample.z)]
+    sample = sample[sort(sample.z)]
+;   if keyword_set(zsort) then sample = sample[sort(sample.z)]
 ;   struct_print, sample
 
 return, sample

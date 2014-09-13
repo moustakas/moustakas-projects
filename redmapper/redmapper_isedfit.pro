@@ -106,6 +106,7 @@ pro redmapper_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
     if keyword_set(merge_isedfit) then begin
        params = read_isedfit_paramfile(isedfit_paramfile,thissfhgrid=thissfhgrid)
        fp = isedfit_filepaths(params,isedfit_dir=isedfit_dir)
+;      for ii = 0, 10 do begin
        for ii = 0, nchunk-1 do begin
           outprefix = 'redmapper_chunk'+string(ii,format='(I3.3)')
           ised1 = read_isedfit(isedfit_paramfile,isedfit_dir=isedfit_dir,$

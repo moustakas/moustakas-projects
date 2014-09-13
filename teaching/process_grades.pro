@@ -64,10 +64,10 @@ pro process_grades, data, assign=assign, allassign=allassign, $
              isdata[ii] = 1
              
 ; get the relevant structure indices
-             points = data[ss].(tag_indx(data,strupcase(repstr(allassign[ii],' ','_'))))
-             possible = data[ss].(tag_indx(data,strupcase(repstr(allassign[ii]+'_points',' ','_'))))
-             details = data[ss].(tag_indx(data,strupcase(repstr(allassign[ii]+'_details',' ','_'))))
-             dates = data[ss].(tag_indx(data,strupcase(repstr(allassign[ii]+'_date',' ','_'))))
+             points = data[ss].(tag_indx(data,strupcase(repstr(repstr(allassign[ii],' ','_'),'-','_'))))
+             possible = data[ss].(tag_indx(data,strupcase(repstr(repstr(allassign[ii]+'_points',' ','_'),'-','_'))))
+             details = data[ss].(tag_indx(data,strupcase(repstr(repstr(allassign[ii]+'_details',' ','_'),'-','_'))))
+             dates = data[ss].(tag_indx(data,strupcase(repstr(repstr(allassign[ii]+'_date',' ','_'),'-','_'))))
 
 ; detail each assignment...  ignore any missing labs
              nassign = n_elements(points)

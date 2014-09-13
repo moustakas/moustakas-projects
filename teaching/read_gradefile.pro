@@ -44,13 +44,13 @@ function read_gradefile, file, unique_assignments=uassign
        create_struct, junk, '', tags, types
        out = create_struct(out,junk)
 
-       indx = tag_indx(out,repstr(uassign[ii]+'_details',' ','_')) ; second row
+       indx = tag_indx(out,repstr(repstr(uassign[ii]+'_details',' ','_'),'-','_')) ; second row
        out.(indx) = header[match,1]
 
-       indx = tag_indx(out,repstr(uassign[ii]+'_date',' ','_')) ; third row
+       indx = tag_indx(out,repstr(repstr(uassign[ii]+'_date',' ','_'),'-','_')) ; third row
        out.(indx) = header[match,2]
 
-       indx = tag_indx(out,repstr(uassign[ii]+'_points',' ','_')) ; fourth row
+       indx = tag_indx(out,repstr(repstr(uassign[ii]+'_points',' ','_'),'-','_')) ; fourth row
        out.(indx) = header[match,3]
     endfor
     out = replicate(out,nstudent)
@@ -61,7 +61,7 @@ function read_gradefile, file, unique_assignments=uassign
 ; now parse the points earned for each assignment
     for ii = 0, nuassign-1 do begin
        match = where(uassign[ii] eq assign,nmatch)
-       indx = tag_indx(out,repstr(uassign[ii],' ','_'))
+       indx = tag_indx(out,repstr(repstr(uassign[ii],' ','_'),'-','_'))
        out.(indx) = reform(data[match,*])
     endfor
 

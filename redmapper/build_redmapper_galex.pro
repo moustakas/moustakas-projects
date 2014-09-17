@@ -1,3 +1,5 @@
+RELEGATED AS OF V5.10!
+
 function casjobs_remove_double, cat
 ; most of the fields in the casjobs catalog are unnecessarily double
 ; precision; change them to float

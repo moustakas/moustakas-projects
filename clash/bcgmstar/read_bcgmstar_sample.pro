@@ -1,7 +1,8 @@
-function read_bcgmstar_sample, zsort=zsort
+function read_bcgmstar_sample, zsort=zsort, getmbcg=getmbcg
 ; jm13oct19siena - read the sample
 
     propath = bcgmstar_path(/propath)
+    massprofpath = bcgmstar_path(/massprofiles)
     
 ;   sample = rsex(getenv('CLASH_DIR')+'/clash_sample.sex')
     sample = rsex(bcgmstar_path(/propath)+'bcgmstar_sample.sex')
@@ -31,7 +32,18 @@ function read_bcgmstar_sample, zsort=zsort
     zero = where(sample.m500 eq 0.0)
     sample[zero].m500 = sample[zero].m500_xray
     sample[zero].m500_err = sample[zero].m500_xray_err
-    
+
+; optionally get M(BCG); requires that BCGMSTAR_ISEDFIT,
+; /PARSE_MASSPROFILES has been run already
+    if keyword_set(getmbcg) then begin
+       sample = struct_addtags(sample,replicate({mbcg: 0.0, mbcg_err: 0.0},ncl))
+       for ic = 0, ncl-1 do begin
+          cluster = strtrim(sample[ic].shortname,2)
+          prof = mrdfits(massprofpath+cluster+'-massprofile.fits.gz',1,/silent)
+          sample[ic].mbcg = prof.mstar_int ; Salpeter IMF
+          sample[ic].mbcg_err = prof.mstar_int_err
+       endfor
+    endif
 ;   splog, 'HACK!!!!!'
 ;   sample = sample[14]
     sample = sample[sort(sample.z)]

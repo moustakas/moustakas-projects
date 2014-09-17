@@ -1,6 +1,8 @@
 pro read_redmapper, centrals=centrals, satellites=satellites
 ; jm13aug27siena - read all the redmapper outputs
 
+    common com_redmapper, centrals, satellites
+
     datapath = redmapper_path(ver=ver)
 
 ; pick out the centrals & satellites; note that PHOT contains
@@ -18,7 +20,10 @@ pro read_redmapper, centrals=centrals, satellites=satellites
          except=['z','ra','dec']))
 
 ; for the centrals need to sort the BCGs file
-       bcgs = mrdfits(datapath+'dr8_run_redmapper_v5.2_lgt20_catalog.fits.gz',1)
+       bcgs = mrdfits(datapath+'dr8_run_redmapper_'+ver+'_lgt5_catalog.fits.gz',1)
+
+stop       
+       
        match, phot[icen].mem_match_id, bcgs.mem_match_id, m1, m2
        srt = sort(m1)
        bcgs = bcgs[m2[srt]]

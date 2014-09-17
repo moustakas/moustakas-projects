@@ -4,25 +4,80 @@ function rykoff_mass, lambda
     return, alog10(1D14*exp(1.72+1.08*alog(lambda/60.0)))
 end
 
-pro redbaryons_plots, pdf=pdf
+pro redbaryons_plots
 ; jm13aug27siena - build some plots for the redmapper/baryons paper
 
     common com_redmapper, centrals, satellites
 
-    datapath = redmapper_path(/redbaryons)
-    if keyword_set(pdf) then begin
-       paperpath = redmapper_path(/qaplots,/redbaryons)
-       suffix = '.ps'
-    endif else begin
-       paperpath = redmapper_path(/paper,/redbaryons)
-       suffix = '.eps'
-    endelse
+    paperpath = redmapper_path(/redbaryons,/paper)
+    massprofpath = bcgmstar_path(/massprofiles)
 
 ; read the catalogs
     if n_elements(centrals) eq 0L then read_redmapper, $
       centrals=centrals, satellites=satellites
     zbins = redbaryons_zbins(nzbins)
 
+; --------------------------------------------------    
+; plot total stellar mass vs virial mass using the CLASH and redmapper
+; samples 
+    sample = read_bcgmstar_sample(/getmbcg)
+    ncl = n_elements(sample)
+
+; make the plot    
+    xrange = alog10([3D13,3D15])
+    yrange = [11.0,13.2]
+    
+    psfile = paperpath+'mbcg_vs_m500.eps'
+    im_plotconfig, 0, pos, psfile=psfile, height=5.0, xmargin=[1.3,0.4], $
+      width=6.8
+
+    djs_plot, [0], [0], /nodata, position=pos, xsty=5, ysty=5, $
+      xrange=xrange, yrange=yrange
+      
+; overplot the power-law fit from Kravtsov (Table 2)    
+    scat = 0.17
+    xx = range(xrange[0],xrange[1],50)
+    yy = poly(xx-14.5,[12.24,0.33])
+    polyfill, [xx,reverse(xx)], [yy+scat,reverse(yy-scat)], $
+      /fill, color=cgcolor('light grey'), noclip=0
+;   djs_oplot, xx, yy, thick=4
+
+; overlay Kravtsov
+    mbcg_krav = [3.12,4.14,3.06,1.47,0.79,1.26,1.09,0.91,1.38]*1D12
+    mbcg_krav_err = [0.36,0.3,0.3,0.13,0.05,0.11,0.06,0.05,0.14]*1D12
+    m500_krav = [15.6,10.3,7,5.34,2.35,1.86,1.34,0.46,0.47]*1D14
+
+    oploterror, alog10(m500_krav), alog10(mbcg_krav), mbcg_krav_err/mbcg_krav/alog(10), $
+      psym=symcat(15), color=cgcolor('tomato'), errcolor=cgcolor('tomato'), $
+      symsize=1.5
+
+; overplot Gonzalez+13
+    mbcg_gonz = [0.68,0.82,0.35,0.74,0.56,0.35,0.46,0.88,0.64,0.7,0.65,0.35]*1D13
+    mbcg_gonz_err = [0.04,0.06,0.03,0.06,0.05,0.02,0.02,0.06,0.05,0.06,0.04,0.02]*1D13
+    m500_gonz = [2.26,5.15,0.95,3.46,3.59,0.99,0.95,3.23,2.26,2.41,2.37,1.45]*1D14
+    m500_gonz_err = [0.19,0.42,0.1,0.32,0.28,0.11,0.1,0.19,0.23,0.18,0.24,0.21]*1D14
+    
+;    oploterror, alog10(m500_gonz), alog10(mbcg_gonz), mbcg_gonz_err/mbcg_gonz/alog(10), $
+;      psym=symcat(14), color=cgcolor('forest green'), errcolor=cgcolor('forest green'), $
+;      symsize=1.8
+
+; overplot CLASH    
+    oploterror, sample.m500, sample.mbcg, sample.m500_err, sample.mbcg_err, psym=symcat(16), symsize=1.6
+
+; make a legend
+    im_legend, ['CLASH','Kravtsov+14'], /right, /bottom, box=0, $
+      psym=[16,15], color=['black','tomato'], spacing=2.5
+
+; redraw the axes
+    djs_plot, [0], [0], /nodata, /noerase, position=pos, xsty=1, ysty=1, $
+      xrange=xrange, yrange=yrange, $
+      xtitle='log_{10} (M_{500} / M_{\odot})', $
+      ytitle='log_{10} (M_{*,BCG} / M_{\odot})'
+    
+    im_plotconfig, psfile=psfile, /psclose, /pdf
+
+stop
+    
 ; ---------------------------------------------------------------------------
 ; stellar mass vs redshift
     psfile = paperpath+'mstar_vs_z'+suffix

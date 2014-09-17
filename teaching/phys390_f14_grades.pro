@@ -3,7 +3,7 @@ pro phys390_f14_grades, alldata, test=test, sendit=sendit, final=final
 
     path = getenv('TEACHING_DIR')+'/390-F14/grades/'
     
-    date = '14sep11' ; update this
+    date = '14sep13' ; update this
     semester = 'Fall 2014'
     class = 'Astronomy 390 - Principles of Astrophysics I'
 
@@ -13,9 +13,9 @@ pro phys390_f14_grades, alldata, test=test, sendit=sendit, final=final
 
 ; specify the complete list of *possible* assignments and their
 ; relative weights
-    allassign = ['Homework','Lab','In-Class Reading Quizzes','Midterm 1','Midterm 2','Final Exam']
-    weight = [0.25,0.15,0.10,0.15,0.15,0.20]
-    droplowest = [0,0,1,0,0,0]
+    allassign = ['Homework','Quizzes','Talk','Final Problem Set']
+    weight = [0.30,0.40,0.15,0.15]
+    droplowest = [0,0,0,0]
 
 ;   keep = where(strmatch(data.last_name,'*Ippo*'))
 ;   keep = where(data.final_exam gt 0.0)

@@ -3,7 +3,7 @@ pro phys130_f14_grades, alldata, test=test, sendit=sendit, final=final
 
     path = getenv('TEACHING_DIR')+'/shared/Phys130/130-F14/moustakas/grades/'
     
-    date = '14sep11' ; update this
+    date = '14sep28' ; update this
     semester = 'Fall 2014'
     class = 'Physics 130 - General Physics I'
 

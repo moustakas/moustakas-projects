@@ -3,7 +3,7 @@ pro phys390_f14_grades, alldata, test=test, sendit=sendit, final=final
 
     path = getenv('TEACHING_DIR')+'/390-F14/grades/'
     
-    date = '14sep13' ; update this
+    date = '14sep26' ; update this
     semester = 'Fall 2014'
     class = 'Astronomy 390 - Principles of Astrophysics I'
 
@@ -15,12 +15,12 @@ pro phys390_f14_grades, alldata, test=test, sendit=sendit, final=final
 ; relative weights
     allassign = ['Homework','Quizzes','Talk','Final Problem Set']
     weight = [0.30,0.40,0.15,0.15]
-    droplowest = [0,0,0,0]
+    droplowest = [0,1,0,0]
 
-;   keep = where(strmatch(data.last_name,'*Ippo*'))
+;   keep = where(strmatch(data.last_name,'*Mor*'))
 ;   keep = where(data.final_exam gt 0.0)
 ;   data = data[keep]
-    
+
     process_grades, data, assign=assign, allassign=allassign, $
       weight=weight, class=class, semester=semester, test=test, $
       sendit=sendit, alldata=alldata, final=final, droplowest=droplowest

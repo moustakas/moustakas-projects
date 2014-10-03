@@ -42,17 +42,21 @@ pro decamlegacy_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, $
        return
     endif
 
-    filterlist = wise_filterlist(/short)
-    weff = k_lambda_eff(filterlist=filterlist)
-    nbands = n_elements(filterlist)
+    filterlist = decamlegacy_filterlist()
+    dfilterlist = filterlist[0:2] ; just DECam/grz
+    weff = k_lambda_eff(filterlist=dfilterlist)
+    nbands = n_elements(dfilterlist)
 
 ; convert the SDSS photometry to maggies
-    sdsscat = im_struct_trimtags(cat,select='sdss_'+['modelflux'
-    
-    
-    
-    tags = ['sdss_'+['u','g','i','z'],'decam_'+['g','r','z']]+'_nanomaggies'
-    ivartags = tags+'_ivar'
+    tags = ['modelflux','modelflux_ivar','extinction']
+    sdsscat = im_struct_trimtags(cat,select='sdss_'+tags,newtags=tags)
+    sdss_to_maggies, smaggies, sivarmaggies, calib=sdsscat, flux='model'
+
+; now deal with the DECam photometry
+    decam_flux = cat.decam_flux[[1,2,4]]
+    decam_ivar = cat.decam_flux_isig[[1,2,4]]^2
+    nan = where(finite(cat.decam_flux_isig[[1,2,4]]) eq 0)
+    decam_ivar[nan] = 0
 
     kl = ext_ccm(weff)*3.1
 ;   kl = k_lambda(weff,/ccm,/silent)
@@ -66,14 +70,15 @@ pro decamlegacy_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, $
     fact = 1D-9
 
 ; construct maggies and ivarmaggies in each band       
-    maggies = dblarr(nbands,ngal)
-    ivarmaggies = dblarr(nbands,ngal)
+    dmaggies = dblarr(nbands,ngal)
+    divarmaggies = dblarr(nbands,ngal)
     for ib = 0, nbands-1 do begin
-       ftag = tag_indx(cat[0],tags[ib])
-       itag = tag_indx(cat[0],ivartags[ib])
-       maggies[ib,*] = cat[*].(ftag)*fact*10D^(0.4*(kl[ib]*ebv))
-       ivarmaggies[ib,*] = cat[*].(itag)/(fact*10D^(0.4*(kl[ib]*ebv)))^2D
+       dmaggies[ib,*] = decam_flux[ib,*]*fact*10D^(0.4*(kl[ib]*ebv))
+       divarmaggies[ib,*] = decam_ivar[ib,*]/(fact*10D^(0.4*(kl[ib]*ebv)))^2D
     endfor
 
+    maggies = [dmaggies,smaggies]
+    ivarmaggies = [divarmaggies,sivarmaggies]
+    
 return   
 end

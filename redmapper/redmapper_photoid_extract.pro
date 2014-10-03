@@ -2,7 +2,7 @@ pro redmapper_photoid_extract
 ; jm14aug01siena - parse photoid so that I can run
 ; build_redmapper_unwise on NERSC without running into memory issues
 
-    path = redmapper_path(version=ver)
+    path = redmapper_path(version=ver,/catalogs)
     cat = mrdfits(path+'dr8_run_redmapper_'+ver+$
       '_lgt5_catalog_members.fits.gz',1,columns='photoid')
     ngal = n_elements(cat)

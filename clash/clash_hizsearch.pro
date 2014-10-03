@@ -1,6 +1,6 @@
 pro clash_hizsearch
 
-    path = clash_path()+'projects/hizsearch/
+    path = clash_path()+'projects/hizsearch/'
     
 ;   filt = clash_filterlist()
     filt = ['clash_wfc3_f110w.par','clash_wfc3_f125w.par','clash_wfc3_f160w.par']

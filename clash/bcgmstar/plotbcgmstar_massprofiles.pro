@@ -1,29 +1,18 @@
 pro plotbcgmstar_massprofiles
 ; jm14jun18siena - plot the stellar mass profiles
 
-    ellpath = bcgmstar_path(/ellipse)
-    massprofpath = bcgmstar_path(/massprofiles)
     paperpath = bcgmstar_path(/paper)
+    massprofpath = bcgmstar_path(/massprofiles)
     isedfit_dir = bcgmstar_path(/isedfit)
 
     prefix = 'bcgmstar'
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
 
-    sample = read_bcgmstar_sample()
+    sample = read_bcgmstar_sample(/getmbcg)
     ncl = n_elements(sample)
 
 ; --------------------------------------------------    
 ; plot the total stellar mass vs the virial mass
-
-; first gather the BCG stellar masses    
-    mbcg = fltarr(ncl)
-    mbcg_err = fltarr(ncl)
-    for ic = 0, ncl-1 do begin
-       cluster = strtrim(sample[ic].shortname,2)
-       prof = mrdfits(massprofpath+cluster+'-massprofile.fits.gz',1,/silent)
-       mbcg[ic] = prof.mstar_int-0.25
-       mbcg_err[ic] = prof.mstar_int_err-0.25
-    endfor
 
 ; make the plot    
     xrange = alog10([3D13,3D15])
@@ -64,7 +53,7 @@ pro plotbcgmstar_massprofiles
 ;      symsize=1.8
 
 ; overplot CLASH    
-    oploterror, sample.m500, mbcg, sample.m500_err, mbcg_err, psym=symcat(16), symsize=1.6
+    oploterror, sample.m500, sample.mbcg, sample.m500_err, sample.mbcg_err, psym=symcat(16), symsize=1.6
 
 ; make a legend
     im_legend, ['CLASH','Kravtsov+14'], /right, /bottom, box=0, $

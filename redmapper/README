@@ -1,14 +1,21 @@
-First query photometry for the sample:
- build_redmapper_sdss - the output catalog is unique and pre-sorted
- build_redmapper_wise, /query
- build_redmapper_wise, /parse
- build_redmapper_galex, /query
- build_redmapper_galex
+Ancillary routines:
+  * redmapper_path - set all the path names
+  * redmapper_photoid_extract - needed by BUILD_REDMAPPER_UNWISE
 
-Then merge everything together and compute K-corrections
- build_redmapper_photometry
- redmapper_kcorrect
+The parent redmapper catalogs are stored in:
+${IM_ARCHIVE_DIR}/projects/redmapper/catalogs
+  
+Build the photometric catalogs for the sample:
+  * build_redmapper_sdss - create the input catalogs for CAS
+  * build_redmapper_unwise - build the unWISE catalogs (must be run on coma)
+  * build_redmapper_galex - RELEGATED!
 
-Run iSEDfit:
- redmapper_isedfit
- 
+Merge all the catalogs together and compute K-corrections:
+  * build_redmapper_photometry
+  * redmapper_kcorrect
+
+Run iSEDfit - this has to happen on a rockin' machine, in chunks!
+  * redmapper_isedfit, /build_grids, /model_phot, /isedfit, /merge_isedfit
+
+Finally merge the redmapper and iSEDfit catalogs, split into satellites and BCGs
+  * merge_redmapper_isedfit - merge the iSEDfit and redmapper catalogs, 

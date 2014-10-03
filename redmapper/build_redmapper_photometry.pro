@@ -22,7 +22,7 @@ pro build_redmapper_photometry, out
     filt = redmapper_filterlist()
     nfilt = n_elements(filt)
     
-    path = redmapper_path(version=ver)
+    path = redmapper_path(version=ver,/catalogs)
 ;   bcgs = mrdfits(path+'dr8_run_redmapper_'+ver+$
 ;     '_lgt20_catalog.fits.gz',1)
     cat = mrdfits(path+'dr8_run_redmapper_'+ver+$

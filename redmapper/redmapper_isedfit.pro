@@ -113,7 +113,8 @@ pro redmapper_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
             outprefix=outprefix)
           if ii eq 0 then ised = temporary(ised1) else ised = [temporary(ised),temporary(ised1)]
        endfor
-       im_mwrfits, ised, redmapper_dir+fp.isedfit_outfile, clobber=clobber
+       im_mwrfits, ised, '~/'+fp.isedfit_outfile, clobber=clobber
+;      im_mwrfits, ised, redmapper_dir+fp.isedfit_outfile, clobber=clobber
 ;      im_mwrfits, ised, fp.isedfit_dir+fp.isedfit_outfile, clobber=clobber
     endif
 

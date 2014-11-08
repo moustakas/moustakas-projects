@@ -43,19 +43,19 @@ pro decamlegacy_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, $
     endif
 
     filterlist = decamlegacy_filterlist()
-    dfilterlist = filterlist[0:2] ; just DECam/grz
-    weff = k_lambda_eff(filterlist=dfilterlist)
-    nbands = n_elements(dfilterlist)
+;   dfilterlist = filterlist[0:2] ; just DECam/grz
+    weff = k_lambda_eff(filterlist=filterlist)
+    nbands = n_elements(filterlist)
 
-; convert the SDSS photometry to maggies
-    tags = ['modelflux','modelflux_ivar','extinction']
-    sdsscat = im_struct_trimtags(cat,select='sdss_'+tags,newtags=tags)
-    sdss_to_maggies, smaggies, sivarmaggies, calib=sdsscat, flux='model'
+;; convert the SDSS photometry to maggies
+;    tags = ['modelflux','modelflux_ivar','extinction']
+;    sdsscat = im_struct_trimtags(cat,select='sdss_'+tags,newtags=tags)
+;    sdss_to_maggies, smaggies, sivarmaggies, calib=sdsscat, flux='model'
 
 ; now deal with the DECam photometry
     decam_flux = cat.decam_flux[[1,2,4]]
-    decam_ivar = cat.decam_flux_isig[[1,2,4]]^2
-    nan = where(finite(cat.decam_flux_isig[[1,2,4]]) eq 0)
+    decam_ivar = cat.decam_flux_ivar[[1,2,4]]^2
+    nan = where(finite(cat.decam_flux_ivar[[1,2,4]]) eq 0)
     decam_ivar[nan] = 0
 
     kl = ext_ccm(weff)*3.1

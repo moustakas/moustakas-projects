@@ -1,4 +1,4 @@
-pro decamlegacy_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
+pro decals_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
   model_photometry=model_photometry, qaplot_models=qaplot_models, isedfit=isedfit, $
   kcorrect=kcorrect, qaplot_sed=qaplot_sed, thissfhgrid=thissfhgrid, $
   clobber=clobber
@@ -12,7 +12,7 @@ pro decamlegacy_isedfit, write_paramfile=write_paramfile, build_grids=build_grid
 ; gather the photometry
 ;   cat = mrdfits(isedfit_dir+'phot-spec.fits.gz',1)
 
-    filterlist = decamlegacy_filterlist()
+    filterlist = decals_filterlist()
     nfilt = n_elements(filterlist)
 
 ; --------------------------------------------------

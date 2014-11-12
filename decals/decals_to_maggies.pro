@@ -1,6 +1,6 @@
 ;+
 ; NAME:
-;   DECAMLEGACY_TO_MAGGIES
+;   DECALS_TO_MAGGIES
 ;
 ; PURPOSE:
 ;   Convert the Tractor DECam-Legacy photometry to AB maggies.  
@@ -33,16 +33,16 @@
 ; General Public License for more details. 
 ;-
 
-pro decamlegacy_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, $
+pro decals_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, $
   ratag=ratag, dectag=dectag, nodust=nodust, ebv=ebv
 
     ngal = n_elements(cat)
     if (ngal eq 0L) then begin
-       doc_library, 'decamlegacy_to_maggies'
+       doc_library, 'decals_to_maggies'
        return
     endif
 
-    filterlist = decamlegacy_filterlist()
+    filterlist = decals_filterlist()
 ;   dfilterlist = filterlist[0:2] ; just DECam/grz
     weff = k_lambda_eff(filterlist=filterlist)
     nbands = n_elements(filterlist)

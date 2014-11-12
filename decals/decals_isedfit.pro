@@ -10,7 +10,7 @@ pro decals_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
     
 ; gather the photometry
-;   cat = mrdfits(isedfit_dir+'phot-spec.fits.gz',1)
+    cat = mrdfits(isedfit_dir+'decals_edr.fits.gz',1)
 
     filterlist = decals_filterlist()
     nfilt = n_elements(filterlist)
@@ -19,11 +19,11 @@ pro decals_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
 ; build the parameter files
     if keyword_set(write_paramfile) then begin
        write_isedfit_paramfile, params=params, isedfit_dir=isedfit_dir, $
-         prefix=prefix, filterlist=filterlist, zminmax=[0.001,2.0], nzz=5, $
-         spsmodels='fsps_v2.4_miles', imf='chab', redcurve='calz', igm=0, $
-         sfhgrid=1, nmodel=5000L, age=[0.01,0.6], AV=[0.0,0.0], tau=[0.0,0.6], $
-         Zmetal=[0.0008,0.019], oiiihb=[0.0,1.0], /nebular, /delayed, $
-         clobber=clobber
+         prefix=prefix, filterlist=filterlist, zminmax=[0.05,0.7], nzz=50, $
+         spsmodels='bc03_basel', imf='chab', redcurve='calz', igm=0, $
+         sfhgrid=1, nmodel=5000L, age=[0.01,13.0], AV=[0.35,2.0], tau=[0.0,5.0], $
+         Zmetal=[0.0004,0.05], oiiihb=[-1.0,1.0], /nebular, /delayed, $
+         pburst=0.1, clobber=clobber
     endif
 
 ; --------------------------------------------------

@@ -33,8 +33,32 @@
 ; General Public License for more details. 
 ;-
 
-pro decals_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, $
-  ratag=ratag, dectag=dectag, nodust=nodust, ebv=ebv
+pro decals_sdss_to_maggies, cat, maggies, ivarmaggies
+
+    flux = 'cmodel'
+    fluxname = 'sdss_'+flux+'flux'
+    ivarname = 'sdss_'+flux+'flux_ivar'
+    iflux = tag_indx(cat[0],fluxname)
+    iivar = tag_indx(cat[0],ivarname)
+    sdss_nmgy = cat.(iflux)
+    sdss_ivar = cat.(iivar)
+
+    iextinction = tag_indx(cat[0],'sdss_extinction')
+    extinction = cat.(iextinction)
+
+    sdss_nmgy = sdss_nmgy*10D^(0.4*extinction)
+    sdss_ivar = sdss_ivar*10D^(-0.8*extinction)
+    maggies = sdss_nmgy*1D-9
+    ivarmaggies = sdss_ivar*1D18
+    k_abfix, maggies, ivarmaggies
+    k_minerror, maggies, ivarmaggies
+    maggies = float(maggies)
+    ivarmaggies = float(ivarmaggies)
+
+return
+end
+
+pro decals_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist
 
     ngal = n_elements(cat)
     if (ngal eq 0L) then begin
@@ -43,42 +67,21 @@ pro decals_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, $
     endif
 
     filterlist = decals_filterlist()
-;   dfilterlist = filterlist[0:2] ; just DECam/grz
     weff = k_lambda_eff(filterlist=filterlist)
     nbands = n_elements(filterlist)
 
-;; convert the SDSS photometry to maggies
-;    tags = ['modelflux','modelflux_ivar','extinction']
-;    sdsscat = im_struct_trimtags(cat,select='sdss_'+tags,newtags=tags)
-;    sdss_to_maggies, smaggies, sivarmaggies, calib=sdsscat, flux='model'
+    decals_sdss_to_maggies, cat, smaggies, sivarmaggies
 
-; correct for dust
-    glactc, cat.(tag_indx(cat,'ra')), cat.(tag_indx(cat,'dec')), $
-      2000.0, gl, gb, 1, /deg
-    ebv = dust_getval(gl,gb,/interp,/noloop)
+; correct DECaLS for dust; get the extinction factors from Table 6 of
+; Schlafly & Finkbeiner 2011 for R_V=3.1
+    red_fac = [3.237,2.176,1.217] ; =grz
+;   red_fac = [3.237,2.176,1.595,1.217,1.058] ; =grizY
 
-    kl = ext_ccm(weff)*3.1
-;   kl = k_lambda(weff,/ccm,/silent)
-    
+    euler, cat.ra, cat.dec, ll, bb, 1
+    extinction = red_fac # dust_getval(ll,bb,/interp,/noloop)
 
-    stop    
-
-; now deal with the DECam photometry
-    decam_flux = cat.decam_flux[[1,2,4]]
-    decam_ivar = cat.decam_flux_ivar[[1,2,4]]^2
-    nan = where(finite(cat.decam_flux_ivar[[1,2,4]]) eq 0)
-    decam_ivar[nan] = 0
-
-; conversion factor from nanomaggies to maggies
-    fact = 1D-9
-
-; construct maggies and ivarmaggies in each band       
-    dmaggies = dblarr(nbands,ngal)
-    divarmaggies = dblarr(nbands,ngal)
-    for ib = 0, nbands-1 do begin
-       dmaggies[ib,*] = decam_flux[ib,*]*fact*10D^(0.4*(kl[ib]*ebv))
-       divarmaggies[ib,*] = decam_ivar[ib,*]/(fact*10D^(0.4*(kl[ib]*ebv)))^2D
-    endfor
+    dmaggies = float(cat.decam_flux[[1,2,4]]*10D^(0.4*extinction)*1D-9)
+    divarmaggies = float(cat.decam_flux_ivar[[1,2,4]]*10D^(-0.8*extinction)*1D18)
 
     maggies = [dmaggies,smaggies]
     ivarmaggies = [divarmaggies,sivarmaggies]

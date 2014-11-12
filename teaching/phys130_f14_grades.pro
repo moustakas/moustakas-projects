@@ -3,7 +3,7 @@ pro phys130_f14_grades, alldata, test=test, sendit=sendit, final=final
 
     path = getenv('TEACHING_DIR')+'/shared/Phys130/130-F14/moustakas/grades/'
     
-    date = '14sep28' ; update this
+    date = '14nov09' ; update this
     semester = 'Fall 2014'
     class = 'Physics 130 - General Physics I'
 
@@ -17,7 +17,7 @@ pro phys130_f14_grades, alldata, test=test, sendit=sendit, final=final
     weight = [0.25,0.15,0.10,0.15,0.15,0.20]
     droplowest = [0,0,1,0,0,0]
 
-;   keep = where(strmatch(data.last_name,'*Ippo*'))
+;   keep = where(strmatch(data.last_name,'*Nap*'))
 ;   keep = where(data.final_exam gt 0.0)
 ;   data = data[keep]
     

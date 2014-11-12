@@ -1,5 +1,5 @@
 pro hff_to_maggies, cat, maggies, ivar, filterlist=filterlist, $
-  nJy=nJy, usehawki=usehawki
+  nJy=nJy, usehawki=usehawki, usemoircs=usemoircs
 ; jm13nov08siena 
 
     ngal = n_elements(cat)    
@@ -8,7 +8,8 @@ pro hff_to_maggies, cat, maggies, ivar, filterlist=filterlist, $
        return
     endif
 
-    filterlist = hff_filterlist(short_filter=filt,/useirac,usehawki=usehawki)
+    filterlist = hff_filterlist(short_filter=filt,/useirac,usehawki=usehawki,$
+      usemoircs=usemoircs)
     nbands = n_elements(filterlist)
 
     tags = filt+'_flux'

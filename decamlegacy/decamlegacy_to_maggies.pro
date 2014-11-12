@@ -52,20 +52,23 @@ pro decamlegacy_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, $
 ;    sdsscat = im_struct_trimtags(cat,select='sdss_'+tags,newtags=tags)
 ;    sdss_to_maggies, smaggies, sivarmaggies, calib=sdsscat, flux='model'
 
+; correct for dust
+    glactc, cat.(tag_indx(cat,'ra')), cat.(tag_indx(cat,'dec')), $
+      2000.0, gl, gb, 1, /deg
+    ebv = dust_getval(gl,gb,/interp,/noloop)
+
+    kl = ext_ccm(weff)*3.1
+;   kl = k_lambda(weff,/ccm,/silent)
+    
+
+    stop    
+
 ; now deal with the DECam photometry
     decam_flux = cat.decam_flux[[1,2,4]]
     decam_ivar = cat.decam_flux_ivar[[1,2,4]]^2
     nan = where(finite(cat.decam_flux_ivar[[1,2,4]]) eq 0)
     decam_ivar[nan] = 0
 
-    kl = ext_ccm(weff)*3.1
-;   kl = k_lambda(weff,/ccm,/silent)
-    
-; correct for dust
-    glactc, cat.(tag_indx(cat,'dec')), cat.(tag_indx(cat,'ra')), $
-      2000.0, gl, gb, 1, /deg
-    ebv = dust_getval(gl,gb,/interp,/noloop)
-    
 ; conversion factor from nanomaggies to maggies
     fact = 1D-9
 

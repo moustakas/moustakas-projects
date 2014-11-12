@@ -8,6 +8,7 @@
 ;-
 
 function decamlegacy_filterlist
-    return, 'decam_'+['g','r','z']+'.par'
+    return, 'decam_'+['u','g','r','i','z','Y']+'.par'
+;   return, 'decam_'+['g','r','z']+'.par'
 ;   return, ['decam_'+['g','r','z']+'.par',sdss_filterlist()]
 end

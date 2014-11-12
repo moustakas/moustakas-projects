@@ -1,6 +1,6 @@
 function hff_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
   zpt=zpt, alam=alam, useirac=useirac, weff=weff, fwhm=fwhm, pivotwave=pivotwave, $
-  width=width, instr=instr, usehawki=usehawki
+  width=width, instr=instr, usehawki=usehawki, usemoircs=usemoircs
 ; jm11apr24ucsd 
 
     filterlist = [$
@@ -96,6 +96,16 @@ function hff_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
        filterlist = [filterlist,'hawki_Ks1.par']
        nice_filter = [nice_filter,'HAWKI-Ks']
        short_filter = [short_filter,'HAWKI_KS']
+       zpt = [zpt,0.0]
+       pivotwave = [pivotwave,21420.8]
+       width = [width,1922.24]
+    endif
+
+; add MOIRCS/K
+    if keyword_set(usemoircs) then begin
+       filterlist = [filterlist,'moircs_K.par']
+       nice_filter = [nice_filter,'MOIRCS-K']
+       short_filter = [short_filter,'MOIRCS_K']
        zpt = [zpt,0.0]
        pivotwave = [pivotwave,21420.8]
        width = [width,1922.24]

@@ -66,10 +66,6 @@ pro decals_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist
        return
     endif
 
-    filterlist = decals_filterlist()
-    weff = k_lambda_eff(filterlist=filterlist)
-    nbands = n_elements(filterlist)
-
     decals_sdss_to_maggies, cat, smaggies, sivarmaggies
 
 ; correct DECaLS for dust; get the extinction factors from Table 6 of
@@ -85,6 +81,7 @@ pro decals_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist
 
     maggies = [dmaggies,smaggies]
     ivarmaggies = [divarmaggies,sivarmaggies]
+    filterlist = [decals_filterlist(),sdss_filterlist()]
     
 return   
 end

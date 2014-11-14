@@ -3,10 +3,10 @@ pro recalibrate_edr_specz
 ; written out by MATCH_EDR_SPECZ to the latest (DR13) photometric
 ; uber-calibration  
 
-    topdir = '/global/project/projectdirs/cosmo/work/decam/release/edr/'
+    topdir = '/project/projectdirs/cosmo/work/decam/release/edr/'
 ;   topdir = '/global/data/desi/decam/release/edr/'
-    edrfile = topdir+'edr-specz-dr10-oldcalib.fits'
-    outfile = topdir+'edr-specz-dr10.fits'
+    edrfile = topdir+'spAll-dr10-edr-oldcalib.fits'
+    outfile = topdir+'spAll-dr10-edr.fits'
 
 ; read the full catalog and then apply the recalibration in a loop
     splog, 'Reading '+edrfile

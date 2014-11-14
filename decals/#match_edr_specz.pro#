@@ -66,7 +66,7 @@ pro match_edr_specz
 ;    HDU #2: SDSS imaging (from the photoPosPlate file)
 ;    HDU #3: WISE imaging (the WISE* tags in Dustin's file above)
 
-    outfile = topdir+'spAll-dr10-edr-oldcalib.fits'
+    outfile = topdir+'spAll-dr10-edrspecz-dr10-oldcalib.fits'
     splog, 'Writing '+outfile
     mwrfits, tractor, outfile, /create
     mwrfits, spec, outfile

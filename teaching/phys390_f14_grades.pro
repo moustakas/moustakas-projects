@@ -3,7 +3,7 @@ pro phys390_f14_grades, alldata, test=test, sendit=sendit, final=final
 
     path = getenv('TEACHING_DIR')+'/390-F14/grades/'
     
-    date = '14oct30' ; update this
+    date = '14nov12' ; update this
     semester = 'Fall 2014'
     class = 'Astronomy 390 - Principles of Astrophysics I'
 

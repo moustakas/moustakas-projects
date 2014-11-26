@@ -19,7 +19,7 @@ pro match_edr_specz
     if n_elements(sdss_coord) eq 0L then sdss_coord = mrdfits(dr10dir+$
       'photoPosPlate-dr10.fits',1,columns=['ra','dec'])
 
-    allcat = file_search(topdir+'tractor/updated-tractor/tractor-??????.fits',count=ncat)
+    allcat = file_search(topdir+'tractor/tractor-??????.fits',count=ncat)
 
 ; loop on each Tractor catalog
     tall = systime(1)
@@ -66,7 +66,8 @@ pro match_edr_specz
 ;    HDU #2: SDSS imaging (from the photoPosPlate file)
 ;    HDU #3: WISE imaging (the WISE* tags in Dustin's file above)
 
-    outfile = topdir+'spAll-dr10-edr-oldcalib.fits'
+    outfile = '~/edr-specz-dr10-oldcalib.fits'
+;   outfile = topdir+'spAll-dr10-edr-oldcalib.fits'
     splog, 'Writing '+outfile
     mwrfits, tractor, outfile, /create
     mwrfits, spec, outfile

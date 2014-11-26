@@ -5,8 +5,9 @@ pro recalibrate_edr_specz
 
     topdir = '/project/projectdirs/cosmo/work/decam/release/edr/'
 ;   topdir = '/global/data/desi/decam/release/edr/'
-    edrfile = topdir+'spAll-dr10-edr-oldcalib.fits'
-    outfile = topdir+'spAll-dr10-edr.fits'
+    edrfile = '~/edr-specz-dr10-oldcalib.fits'
+;   edrfile = topdir+'spAll-dr10-edr-oldcalib.fits'
+    outfile = topdir+'edr-specz-dr10.fits'
 
 ; read the full catalog and then apply the recalibration in a loop
     splog, 'Reading '+edrfile
@@ -19,7 +20,7 @@ pro recalibrate_edr_specz
     outphot = phot
     for ii = 0L, nobj-1 do begin
        print, format='("Recalibrating ",I0,"/",I0, A10,$)', ii, nobj, string(13b)
-       outphot1 = outphot[ii]
+       outphot1 = phot[ii]
        sdss_recalibrate, outphot1
        outphot[ii] = outphot1
     endfor

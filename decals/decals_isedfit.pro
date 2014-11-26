@@ -7,18 +7,39 @@ pro decals_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
     prefix = 'decals'
     isedfit_dir = getenv('DECALS_DIR')+'/isedfit/'
     montegrids_dir = isedfit_dir+'montegrids/'
+    edr_dir = getenv('HOME')+'/edr/'
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
     
-; gather the photometry
-    cat = mrdfits(isedfit_dir+'decals_edr.fits.gz',1)
-    these = where(cat.z ge 0.05 and cat.z le 0.7 and cat.zwarning eq 0 and $
-      cat.brick_primary eq 'T' and strtrim(cat.class,2) eq 'GALAXY',ngal)
-    cat = cat[these]
+; define the catalog
+    tractor = mrdfits(edr_dir+'edr-specz-dr10.fits',1)
+    specz = mrdfits(edr_dir+'edr-specz-dr10.fits',2)
+    phot = mrdfits(edr_dir+'edr-specz-dr10.fits',3)
+    these = where(specz.z ge 0.05 and specz.z le 0.7 and specz.zwarning eq 0 and $
+      strtrim(specz.class,2) eq 'GALAXY' and tractor.brick_primary eq 'T',ngal)
+    tractor = tractor[these]
+    specz = specz[these]
+    phot = phot[these]
     splog, 'Number of galaxies ', ngal
-    
-    decals_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist
-    galaxy = cat.brickname+'-'+string(cat.objid,format='(I5.5)')
-    zobj = cat.z
+
+    galaxy = tractor.brickname+'-'+string(tractor.objid,format='(I5.5)')
+
+; gather the photometry    
+    decals_to_maggies, tractor, dmaggies, divarmaggies, filterlist=filterlist
+
+;   sdss_to_maggies, smaggies, sivarmaggies, calib=phot, flux='model'
+    sdss_to_maggies, modelmaggies, modelivarmaggies, calib=phot, flux='model'
+    sdss_to_maggies, cmodelmaggies, cmodelivarmaggies, calib=phot, flux='cmodel'
+    ratio = cmodelmaggies[2,*]/modelmaggies[2,*]
+    neg = where(modelmaggies[2,*] le 0)
+    if (neg[0] ne -1L) then ratio[neg] = 1.0
+
+    factor = rebin(ratio,5,ngal)
+    smaggies = modelmaggies*factor
+    sivarmaggies = modelivarmaggies/factor^2
+
+    maggies = [dmaggies,smaggies]
+    ivarmaggies = [divarmaggies,sivarmaggies]
+    zobj = specz.z
 
 ; do not use DECaLS photometry in the fitting    
     if keyword_set(nodecals) then begin

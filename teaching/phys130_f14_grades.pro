@@ -1,9 +1,10 @@
 pro phys130_f14_grades, alldata, test=test, sendit=sendit, final=final
 ; jm14feb02siena - parse the grades for this class 
 
-    path = getenv('TEACHING_DIR')+'/shared/Phys130/130-F14/moustakas/grades/'
+    path = getenv('TEACHING_DIR')+'/Phys130/2014/moustakas/grades/'
+;   path = getenv('TEACHING_DIR')+'/shared/Phys130/130-F14/moustakas/grades/'
     
-    date = '14nov09' ; update this
+    date = '14nov18' ; update this
     semester = 'Fall 2014'
     class = 'Physics 130 - General Physics I'
 

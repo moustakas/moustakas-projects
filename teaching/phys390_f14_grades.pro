@@ -1,10 +1,10 @@
 pro phys390_f14_grades, alldata, test=test, sendit=sendit, final=final
 ; jm14sep11siena - parse the grades for this class 
 
-    path = getenv('HOME')+'/Copy/teaching/390-F14/grades/'
+    path = getenv('TEACHING_DIR')+'/390-F14/grades/'
 ;   path = getenv('TEACHING_DIR')+'/390-F14/grades/'
     
-    date = '14dec08' ; update this
+    date = '14dec15' ; update this
     semester = 'Fall 2014'
     class = 'Astronomy 390 - Principles of Astrophysics I'
 

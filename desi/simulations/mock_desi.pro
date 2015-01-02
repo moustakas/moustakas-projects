@@ -1,5 +1,4 @@
 function get_hizlrg, rz=rz, rW1=rW1, zmag=zmag, magcut=magcut
-
     if n_elements(magcut) eq 0 then magcut = 99.0
 
     rzmin = 1.6                                          
@@ -8,13 +7,11 @@ function get_hizlrg, rz=rz, rW1=rW1, zmag=zmag, magcut=magcut
     hiz = where(zmag lt magcut and rz gt rzmin and $
       rW1 gt poly(rz,[int1,slope1]))
 
-; from Jeff Newman:
-    whsel_new = where( (z lt 20.56) $
-      AND (i gt 19.9) AND $
-      ((r-z) gt 1.6) AND $
-      ((r-W1) gt (1.8*(r-z)-1)) )
-
-
+;; from Jeff Newman:
+;    whsel_new = where( (z lt 20.56) $
+;      AND (i gt 19.9) AND $
+;      ((r-z) gt 1.6) AND $
+;      ((r-W1) gt (1.8*(r-z)-1)) )
 return, hiz
 end
 
@@ -35,9 +32,14 @@ function get_hizelg, gr=gr, rz=rz, rmag=rmag, fluxoii=fluxoii, $
 return, hiz
 end
 
-pro mock_desi, elgs=elgs, lrgs=lrgs, stdstars=stdstars
+pro mock_desi, elgs=elgs, lrgs=lrgs, stdstars=stdstars, qaplots=qaplots
 ; jm14dec01siena - build a mock set of objects for the DESI
 ; Winter/2014 data challenge
+
+; ToDo:
+; 1) varying doublet ratio; varying line-ratios
+; 2) more realistic n(z,m) distribution
+; 3) including contaminating galaxies
 
     common com_elg, elg_info, elg_restflux, elg_restwave, elg_zvals, elg_gr, elg_rz
     common com_star, star_info, star_restflux, star_restwave, star_ugriz
@@ -416,8 +418,8 @@ pro mock_desi, elgs=elgs, lrgs=lrgs, stdstars=stdstars
 ; distribution of physical properties of the BOSS standards
        keep = where(mdist lt 0.08,nkeep)
 
-;      boss = mrdfits(outdir+'boss-stds.fits',1)
-;      splog, median(boss.teff), median(boss.logg), median(boss.feh)
+       boss = mrdfits(outdir+'boss-stds.fits',1)
+       splog, median(boss.teff), median(boss.logg), median(boss.feh)
        struct_print, star_info[keep]
 
 ; assign r-band magnitudes uniformly
@@ -504,6 +506,201 @@ pro mock_desi, elgs=elgs, lrgs=lrgs, stdstars=stdstars
         im_mwrfits, outflux, outfile, outhdr, /clobber, /nogzip
         im_mwrfits, outinfo, outfile, metahdr, /append, /nogzip
     endif 
+
+; --------------------------------------------------
+; make some QAplots
+    if keyword_set(qaplots) then begin
+
+; ####################
+; LRGs
+       if n_elements(lrg_info) eq 0L then begin
+          version = desi_lrg_templates_version()
+          templatepath = getenv('DESI_ROOT')+'/spectro/templates/'+$
+            'lrg_templates/'+version+'/'
+
+          restfile = templatepath+'lrg_templates_'+version+'.fits.gz'
+          
+          lrg_restflux1 = mrdfits(restfile,0,resthdr)
+          lrg_restwave = 10D^make_wave(resthdr)
+          lrg_info1 = mrdfits(restfile,1)
+
+;; for the plots don't cut on age & metallicity!
+;          super = where(lrg_info1.zmetal ge 0.019 and lrg_info1.age gt 1.0)
+;          lrg_restflux = lrg_restflux1[*,super]
+;          lrg_info = lrg_info1[super]
+
+          lrg_restflux = lrg_restflux1
+          lrg_info = lrg_info1
+
+; K-corrections are expensive, so compute them once on a regular
+; redshift grid
+          k_projection_table, rzW1maggies, lrg_restflux, k_lambda_to_edges(lrg_restwave), $
+            lrg_zvals, lrg_filterlist, zmin=lrg_zmin, zmax=lrg_zmax, nz=lrg_nz
+
+          lrg_rz = -2.5*alog10(rzW1maggies[*,*,0]/rzW1maggies[*,*,1])
+          lrg_rW1 = -2.5*alog10(rzW1maggies[*,*,0]/rzW1maggies[*,*,2])
+       endif
+
+       lrg_tempinfo = mrdfits(outdir+'lrg_templates.fits',1)
+
+       psfile = outdir+'qa_lrg.ps'
+       im_plotconfig, 0, pos1, psfile=psfile, height=4.0, ymargin=[0.4,6.6], xmargin=[1.2,0.3]
+       djs_plot, [0], [0], /nodata, position=pos1, $
+         xsty=1, ysty=1, xrange=[0.0,2.5], yrange=[-2,6], $
+         xtitle='r - z', ytitle='r - W1'
+       djs_oplot, lrg_rz, lrg_rW1, psym=symcat(16), $
+         symsize=0.4, color=cgcolor('grey')
+       djs_oplot, lrg_tempinfo.decam_rz, lrg_tempinfo.decam_rW1, $
+         psym=symcat(9), color=cgcolor('dodger blue'), symsize=0.3
+
+       rzaxis = range(1.6,2.5,50)
+       djs_oplot, rzaxis, poly(rzaxis,[-1.5,2.0])
+       djs_oplot, [1.6,1.6], [poly(1.6,[-1.5,2.0]),!y.crange[1]]
+
+;      im_legend, ['Z/Z_{\odot}\ge1','SSP Age < 1 Gyr'], /left, /top, box=0, $
+;        margin=0, charsize=1.8
+;      im_legend, ['Z/Z_{\odot}\ge1','SSP Age < 1 Gyr'], /left, /top, box=0, $
+;        margin=0, charsize=1.8
+
+; magnitude vs redshift
+       im_plotconfig, 0, pos2, ymargin=[6.0,1.1], height=4.5, xmargin=[1.2,0.3]
+;      im_plotconfig, 12, pos2, ymargin=[6.0,1.1], height=4.5, xspace=1.0
+       djs_plot, [0], [0], /nodata, /noerase, position=pos2[*,0], $
+         xsty=1, ysty=1, xrange=[lrg_zmin*0.95,lrg_zmax*1.05], $
+         yrange=[lrg_zbright-0.2,lrg_zfaint+0.2], $
+         xtitle='Redshift', ytitle='z (AB mag)', ytickinterval=0.5
+       djs_oplot, lrg_tempinfo.z, lrg_tempinfo.decam_z, psym=symcat(16), $
+         symsize=0.3, color=cgcolor('dodger blue')
+
+       im_plotconfig, psfile=psfile, /psclose, /pdf
+
+stop
+
+; ####################
+; ELGs
+       if n_elements(elg_info) eq 0L then begin
+          version = desi_elg_templates_version()
+          templatepath = getenv('DESI_ROOT')+'/spectro/templates/'+$
+         'elg_templates/'+version+'/'
+          obsfile = templatepath+'elg_templates_obs_'+version+'.fits.gz'
+          elg_info = mrdfits(obsfile,1);,range=[0,999])
+       endif
+
+       elg_tempinfo = mrdfits(outdir+'elg_templates.fits',1)
+
+       psfile = outdir+'qa_elg.ps'
+       im_plotconfig, 0, pos1, psfile=psfile, height=4.0, $
+         ymargin=[0.4,6.6], xmargin=[1.2,0.3]
+       djs_plot, [0], [0], /nodata, position=pos1, $
+         xsty=1, ysty=1, xrange=[-0.5,2], yrange=[-0.3,2], $
+         xtitle='r - z', ytitle='g - r'
+       djs_oplot, elg_info.decam_r-elg_info.decam_z, $
+         elg_info.decam_g-elg_info.decam_r, psym=symcat(16), $
+         symsize=0.4, color=cgcolor('grey')
+       djs_oplot, elg_tempinfo.decam_rz, elg_tempinfo.decam_gr, $
+         psym=symcat(9), color=cgcolor('dodger blue'), symsize=0.3
+
+       rzmin = 0.3
+       rzaxis = range(rzmin,1.5,100)
+       slope1 = 1.0
+       slope2 = -1.0
+       int1 = -0.2
+       int2 = 1.2
+       
+       djs_oplot, rzmin*[1,1], [!y.crange[0],poly(rzmin,[int1,slope1])], thick=8
+       djs_oplot, rzaxis, poly(rzaxis,[int1,slope1])<poly(rzaxis,[int2,slope2]), thick=8
+
+; magnitude vs redshift & [OII] flux vs redshift
+       im_plotconfig, 12, pos2, ymargin=[6.0,1.1], height=4.5, $
+         xspace=1.0, xmargin=[1.2,0.3]
+
+       djs_plot, [0], [0], /nodata, /noerase, position=pos2[*,0], $
+         xsty=1, ysty=1, xrange=[0.5,1.7], yrange=[0.3,20], $
+         xtickinterval=0.4, /ylog, xtitle='Redshift', $
+         ytitle='[O II] \lambda\lambda3726,29 (10^{-16} erg s^{-1} cm^{-2})'
+       djs_oplot, elg_tempinfo.z, 1D16*elg_tempinfo.oii_3727, psym=symcat(16), $
+         symsize=0.3, color=cgcolor('dodger blue')
+
+       djs_plot, [0], [0], /nodata, /noerase, position=pos2[*,1], $
+         xsty=1, ysty=1, xrange=[0.5,1.7], yrange=[elg_rbright-0.4,elg_rfaint+0.2], $
+         xtitle='Redshift', ytitle='r (AB mag)', ytickinterval=1, $
+         xtickinterval=0.4
+       djs_oplot, elg_tempinfo.z, elg_tempinfo.decam_r, psym=symcat(16), $
+         symsize=0.3, color=cgcolor('dodger blue')
+       
+       im_plotconfig, psfile=psfile, /psclose, /pdf
+
+stop
+
+; ####################
+; standard stars
+       if n_elements(star_restflux) eq 0L then begin
+          version = desi_stellar_templates_version()
+          templatepath = getenv('DESI_ROOT')+'/spectro/templates/'+$
+            'stellar_templates/'+version+'/'
+       
+          restfile = templatepath+'stellar_templates_'+version+'.fits.gz'
+          
+          star_restflux = mrdfits(restfile,0,resthdr)
+          star_restwave = 10D^make_wave(resthdr)
+          star_info = mrdfits(restfile,1)
+
+; synthesize ugriz photometry; this isn't quite right because
+; we should be just considering DECam/grz photometry
+          star_ugriz = fltarr(5,n_elements(star_info))
+          for ii = 0, n_elements(star_info)-1 do star_ugriz[*,ii] = $
+            reform(k_project_filters(k_lambda_to_edges(star_restwave),$
+            star_restflux[*,ii],filterlist=sdss_filterlist))
+          star_ugriz = -2.5*alog10(star_ugriz)
+       endif
+
+       std_tempinfo = mrdfits(outdir+'std_templates.fits',1)
+       boss = mrdfits(outdir+'boss-stds.fits',1)
+
+       psfile = outdir+'qa_std.ps'
+       im_plotconfig, 0, pos1, psfile=psfile, height=4.0, $
+         ymargin=[0.4,6.6], xmargin=[1.2,0.3]
+       djs_plot, [0], [0], /nodata, position=pos1, $
+         xsty=1, ysty=1, xrange=[-1,3], yrange=[-0.7,2], $
+         xtitle='r - z', ytitle='g - r'
+       djs_oplot, star_ugriz[2,*]-star_ugriz[4,*], $
+         star_ugriz[1,*]-star_ugriz[2,*], psym=symcat(16), $
+         symsize=0.7, color=cgcolor('grey')
+       djs_oplot, std_tempinfo.sdss_ri+std_tempinfo.sdss_iz, $
+         std_tempinfo.sdss_gr, psym=symcat(9), $
+         color=cgcolor('dodger blue'), symsize=0.7
+
+       im_legend, '[(u-g)-0.82]^2 + [(g-r)-0.30]^2 + !c!c '+$
+         '[(r-i)-0.09]^2 + [(i-z)-0.02]^2 < 0.08', $
+         /right, /bottom, box=0, charsize=1.5, margin=2
+
+; magnitude histogram
+       im_plotconfig, 12, pos2, ymargin=[6.0,1.1], height=4.5, $
+         xspace=1.0, xmargin=[1.2,0.3]
+       djs_plot, [0], [0], /nodata, /noerase, position=pos2[*,0], $
+         xsty=1, ysty=1, yrange=[0,1.05], $
+         xrange=[std_rbright-0.4,std_rfaint+0.2], $
+         ytitle='Relative Number', xtitle='r (AB mag)'
+       im_plothist, std_tempinfo.sdss_r, bin=0.2, /overplot, /peak
+
+       djs_plot, [0], [0], /nodata, /noerase, position=pos2[*,1], $
+         xsty=1, ysty=1, yrange=[4.5,8], xrange=[-3.0,0.5], $
+         ytitle='T_{eff} (1000 K)', xtitle='[Fe/H]', $
+         xtickinterval=1.0, ytickinterval=1.0
+       djs_oplot, boss.feh, boss.teff/1000, psym=6, symsize=1.0
+       djs_oplot, star_info[std_tempinfo.templateid].feh, $
+         star_info[std_tempinfo.templateid].teff/1000.0, $
+         psym=symcat(16), color=cgcolor('dodger blue'), symsize=1.0
+       im_legend, ['BOSS Standards','STD Templates'], /left, /top, box=0, $
+         psym=[6,16], color=['black','dodger blue'], charsize=1.4, $
+         margin=0
+
+       im_plotconfig, psfile=psfile, /psclose, /pdf
+       
+stop
+
+    endif
+
 
 stop
 

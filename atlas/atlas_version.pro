@@ -27,7 +27,7 @@ function atlas_version, ancillary=ancillary, specfit=specfit, $
     if keyword_set(templates) then version = 'v1.1'
 
     if keyword_set(ppxf_templates) then version = 'v1.0'
-    if keyword_set(ppxf_specfit) then version = 'v1.0' ; 'v2.0'
+    if keyword_set(ppxf_specfit) then version = 'v1.0'
     if keyword_set(ppxf_ancillary) then version = 'v1.0'
 
 return, version

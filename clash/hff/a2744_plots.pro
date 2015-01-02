@@ -72,7 +72,8 @@ stop
     niceprint, cat.id, cat.z_b
     
     rr = read_isedfit(isedfit_paramfile,index=these,/getmodels,$
-      isedfit_dir=isedfit_dir,montegrids_dir=montegrids_dir)
+      isedfit_dir=isedfit_dir,montegrids_dir=montegrids_dir,fnu=fnu)
+;   mwrfits, rr, '~/a2744_hiz_models.fits', /creat
     
     srt = reverse(sort(cat.z_b))
     cat = cat[srt]

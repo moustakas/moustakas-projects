@@ -82,9 +82,9 @@ pro bcgmstar_ellipse, debug=debug, clobber=clobber
     skyinfopath = bcgmstar_path()+'skyinfo/'
 
 ; wrap on each cluster    
-    for ic = 4, 4 do begin
+;   for ic = 4, 4 do begin
 ;   for ic = 5, ncl-1 do begin
-;   for ic = 0, ncl-1 do begin
+    for ic = 0, ncl-1 do begin
        cluster = strtrim(sample[ic].shortname,2)
        splog, 'Working on cluster '+cluster
        datapath = bcgmstar_path(/bcg)+cluster+'/'

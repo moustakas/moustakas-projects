@@ -564,7 +564,7 @@ pro bcgmstar_sersicfit, dofit_allbands=dofit_allbands, dofit_oneband=dofit_oneba
 
 ; read the sample
     sample = read_bcgmstar_sample()
-    sample = sample[7]
+;   sample = sample[7]
     ncl = n_elements(sample)
 
     pixscale = 0.065D           ; [arcsec/pixel]
@@ -656,6 +656,10 @@ pro bcgmstar_sersicfit, dofit_allbands=dofit_allbands, dofit_oneband=dofit_oneba
                   0D,0D,0D,0D,-2.5*alog10(init_sb)-1.0,-2.5*alog10(init_sb)]
              end
              'rxj2248': begin
+                init_sersic2 = [0.8D,2D,3D,30D,$
+                  0D,0D,0D,0D,-2.5*alog10(init_sb)-1.0,-2.5*alog10(init_sb)]
+             end
+             'ms2137': begin
                 init_sersic2 = [0.8D,2D,3D,30D,$
                   0D,0D,0D,0D,-2.5*alog10(init_sb)-1.0,-2.5*alog10(init_sb)]
              end

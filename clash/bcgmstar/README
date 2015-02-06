@@ -18,8 +18,13 @@ Ellipse-fit the BCGs; make QAplots
 Construct the radial surface brightness profiles of the sample and
 then fit both single and double Sersic models in order to extrapolate
 the data inward and outward.  
-  bcgmstar_sersicfit, /dofit_allbands, /qaplot_oneband - Sersic fitting
-  bcgmstar_sersicfit, /qaplot_allbands, /qaplot_oneband - build QAplots
+  Sersic fitting
+    bcgmstar_sersicfit, /dofit_oneband, /dofit_allbands, /clob
+    bcgmstar_sersicfit, /dofit_oneband, /dofit_allbands, /alphabetazero, /clob
+
+    bcgmstar_sersicfit, /qaplot_oneband
+    bcgmstar_sersicfit, /qaplot_allbands
+    bcgmstar_sersicfit, /qaplot_allbands, /alphabetazero
 
 To read the cluster-specific Sersic-fitting results use:
   read_bcgmstar_sersic()

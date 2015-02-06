@@ -437,10 +437,8 @@ stop
     tablenotetext = [$
 ;     '{a}{Ancillary information for our sample of galaxy clusters.}',$
       '{a}{Cluster coordinates based on the position of the BCG.}',$
-      '{b}{Total cluster mass within the $r_{500}$ radius taken from Donahue et~al. (2014, in prep.) '+$
-      'for MACS2129 and Abell~1423 and from \citet{merten14a} for the other clusters.  The '+$
-      '$r_{500}$ radius is the radius at which the average density of the halo is $500$ times '+$
-      'the critical density of the Universe at that redshift.}']
+      '{b}{Total cluster mass within the $r_{500}$ radius taken from \citet{donahue14a} '+$
+      'for MACS2129 and Abell~1423 and from \citet{merten14a} for the other clusters.}']
 
 ; write it out    
     openw, lun, texfile, /get_lun

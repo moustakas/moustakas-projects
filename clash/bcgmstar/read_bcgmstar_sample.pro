@@ -6,6 +6,7 @@ function read_bcgmstar_sample, zsort=zsort, getmbcg=getmbcg
     
 ;   sample = rsex(getenv('CLASH_DIR')+'/clash_sample.sex')
     sample = rsex(bcgmstar_path(/propath)+'bcgmstar_sample.sex')
+    sample = sample[13]
     ncl = n_elements(sample)
 
 ; add the M(500) masses from Merten+14 and from Donahue+14; note that

@@ -2,7 +2,8 @@ function read_bcg_profiles, cluster, scale=scale, these_filters=these_filters
 ; jm13may20siena - read a M. Postman style BCG profile file 
 
 ;   profilepath = getenv('CLASH_DATA')+'/bcg_profiles/13oct29/'
-    profilepath = getenv('CLASH_DATA')+'/bcg_profiles/14jul12/'
+    profilepath = getenv('CLASH_DATA')+'/bcg_profiles/15feb04/'
+;   profilepath = getenv('CLASH_DATA')+'/bcg_profiles/14jul12/'
     if n_elements(cluster) eq 0 then begin
        splog, 'Need CLUSTER name.'
        return, -1

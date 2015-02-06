@@ -318,8 +318,6 @@ pro bcgmstar_photometry, debug=debug, clobber=clobber
             0D,phot[ib].re_mean/arcsec2kpc)/(!pi*(phot[ib].re_mean/arcsec2kpc)^2)
        endfor 
 
-stop       
-       
 ; write out
        im_mwrfits, phot, sersicpath+cluster+'-phot.fits', clobber=clobber
     endfor

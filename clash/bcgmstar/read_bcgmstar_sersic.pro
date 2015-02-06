@@ -66,7 +66,8 @@ function read_bcgmstar_sersic, cluster, results=results, radius=radius, $
        secondsersic = model*0
        for ib = 0, nfilt-1 do begin
 ; double-Sersic
-          if cluster eq 'a209' or cluster eq 'a2261' or cluster eq 'rxj2248' then begin
+          if cluster eq 'a209' or cluster eq 'a2261' or cluster eq 'rxj2248' or cluster eq 'ms2137' then begin
+;         if cluster eq 'a209' or cluster eq 'a2261' or cluster eq 'rxj2248' then begin
              model[*,ib] = bcgmstar_sersic2_func(radius,params=sersic[ib],/allbands)
              firstsersic[*,ib] = bcgmstar_sersic_func(radius,[sersic[ib].sersic2_all_sbe1,$
                sersic[ib].sersic2_all_re1,sersic[ib].sersic2_all_n1])

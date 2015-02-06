@@ -4,7 +4,8 @@ function ages_path, papers=papers, specfit=specfit, spec1d=spec1d, analysis=anal
   ppxf=ppxf, thumbs=thumbs, window=window, qaplots=qaplots, psfs=psfs
 ; jm04jun04uofa
 
-    agespath = getenv('IM_DATA_DIR')+'/ages/'
+    agespath = getenv('IM_ARCHIVE_DIR')+'/data/ages/'
+;   agespath = getenv('IM_DATA_DIR')+'/ages/'
     paperspath = getenv('IM_PAPERS_DIR')+'/projects/ages/'
     archivepath = getenv('IM_ARCHIVE_DIR')+'/data/ages/'
 

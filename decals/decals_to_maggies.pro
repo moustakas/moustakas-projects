@@ -66,24 +66,24 @@ pro decals_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist
        return
     endif
 
-;   decals_sdss_to_maggies, cat, smaggies, sivarmaggies
+    decals_sdss_to_maggies, cat, smaggies, sivarmaggies
 
 ; reddening factors from Schlafly & Finkbeiner (2014, private
 ; communication) for the DECam filter curves
-    red_fac = [3.214,2.165,1.211] ; =ugrizY
+;   red_fac = [3.214,2.165,1.211] ; =grz
 ;   red_fac = [3.995,3.214,2.165,1.592,1.211,1.064] ; =ugrizY
 
 ;   euler, cat.ra, cat.dec, ll, bb, 1
 ;   extinction = red_fac # dust_getval(ll,bb,/interp,/noloop)
 
     these = [1,2,4]
-    maggies = float(cat.decam_flux[these]*10D^(0.4*cat.extinction[these])*1D-9)
-    ivarmaggies = float(cat.decam_flux_ivar[these]*10D^(-0.8*cat.extinction[these])*1D18)
-    filterlist = decals_filterlist()
+    dmaggies = float(cat.decam_flux[these]*10D^(0.4*cat.extinction[these])*1D-9)
+    divarmaggies = float(cat.decam_flux_ivar[these]*10D^(-0.8*cat.extinction[these])*1D18)
 
-;   maggies = [dmaggies,smaggies]
-;   ivarmaggies = [divarmaggies,sivarmaggies]
-;   filterlist = [decals_filterlist(),sdss_filterlist()]
+    maggies = [dmaggies,smaggies]
+    ivarmaggies = [divarmaggies,sivarmaggies]
+    filterlist = [decals_filterlist(),sdss_filterlist()]
+;   filterlist = decals_filterlist()
     
 return   
 end

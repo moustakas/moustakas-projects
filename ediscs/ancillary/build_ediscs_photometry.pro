@@ -156,6 +156,7 @@ pro build_ediscs_photometry, outphot, clobber=clobber
     tags = tag_names(out)
     newtags = repstr(repstr(tags,'RA_HOURS','RA'),'DEC_DEG','DEC')
     out = im_struct_trimtags(out,select=tags,newtags=newtags)
+    out.ra *= 15D
 
 ; add the spectroscopic completeness weights from Bianca; there are
 ; duplicates, so to be safe, loop
@@ -186,6 +187,17 @@ pro build_ediscs_photometry, outphot, clobber=clobber
 ;   miss = lindgen(n_elements(comp))
 ;   remove, m2, miss
 ;   struct_print, comp[miss]
+
+; add HST morphologies
+    splog, 'Adding HST morphologies'
+    morph = mrdfits(catpath+'ediscs_morphology.fits',1)
+
+    spherematch, out.ra, out.dec, morph._raj2000, morph._dej2000, 1D/3600.0, m1, m2
+    outmorph = im_empty_structure(morph[0],empty_value=-999.0,ncopies=ngal)
+    outmorph[m1] = im_struct_assign(morph[m2],outmorph[m1])
+
+    out = struct_addtags(out,struct_trimtags(outmorph,$
+      except=['_raj2000','_dej2000','_ra','_de','cluster','edcsn','imag']))
     
 ; write out
     outfile = mycatpath+'ediscs_all_photometry.'+vv+'.fits'

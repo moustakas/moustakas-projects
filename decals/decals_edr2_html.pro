@@ -45,7 +45,8 @@
 ;-
 
 pro decals_edr2_html, htmlbase, pnglist=pnglist, npngcols=npngcols, $
-  html_path=html_path, title=title, silent=silent
+  html_path=html_path, title=title, silent=silent, nomenu=nomenu, $
+  ra=ra, dec=dec
   
     nhtmlbase = n_elements(htmlbase)
     if (nhtmlbase ne 1L) then begin
@@ -139,25 +140,31 @@ pro decals_edr2_html, htmlbase, pnglist=pnglist, npngcols=npngcols, $
        printf, lun1, '<h1>'+title+'</h1>'
        printf, lun1, '</br>'
 
-; generate the menu       
-       printf, lun1, '<table border="1" align="center" frame="box" width="100%">'
-       printf, lun1, '<tbody>'
-       for i = 0L, ceil(npngfiles/float(nmenucols))-1 do begin
-          printf, lun1, '<tr width="100%">'
-          for j = 0L, nmenucols-1L do begin
-             indx = j + i*nmenucols
-             if (indx le npngfiles-1L) then begin
-                printf, lun1, '<td width="3%">'+string(j+1,format='(I0)')+':'+$
-                  string(i+1,format='(I0)')+'</td>'
-                printf, lun1, '<td width="10%"><a href="'+htmlbase+'/'+pngfiles[indx]+'">png</a>'
-                printf, lun1, '</td>'
-                printf, lun1, '<td>'+rootpngfiles[indx]+'</td>'
-             endif
+; generate the menu
+       if keyword_set(nomenu) eq 0 then begin
+          printf, lun1, '<table border="1" align="center" frame="box" width="100%">'
+          printf, lun1, '<tbody>'
+          for i = 0L, ceil(npngfiles/float(nmenucols))-1 do begin
+             printf, lun1, '<tr width="100%">'
+             for j = 0L, nmenucols-1L do begin
+                indx = j + i*nmenucols
+                if (indx le npngfiles-1L) then begin
+                   printf, lun1, '<td width="3%">'+string(j+1,format='(I0)')+':'+$
+                     string(i+1,format='(I0)')+'</td>'
+                   printf, lun1, '<td width="10%"><a href="http://legacysurvey.org/cutouts/?ra='+$
+                     strtrim(string(ra[indx],format='(F12.9)'),2)+'&dec='+$
+                     strtrim(string(dec[indx],format='(F12.9)'),2)+'">Cutouts</a>'
+;                  printf, lun1, '<td width="10%"><a href="'+htmlbase+'/'+pngfiles[indx]+'">png</a>'
+                   printf, lun1, '</td>'
+                   printf, lun1, '<td>'+rootpngfiles[indx]+'</td>'
+                endif
+             endfor
+             printf, lun1, '</tr>'
           endfor
-          printf, lun1, '</tr>'
-       endfor
-       printf, lun1, '</tbody>'
-       printf, lun1, '</table>'
+          printf, lun1, '</tbody>'
+          printf, lun1, '</table>'
+       endif
+
        printf, lun1, '<br />'
        printf, lun1, '<table align="center" cellpadding="10" border="2" cellspacing="10" width="100%">'
        printf, lun1, '<tbody>'
@@ -182,7 +189,10 @@ pro decals_edr2_html, htmlbase, pnglist=pnglist, npngcols=npngcols, $
              if (indx le npngfiles-1L) then begin
                 printf, lun1, '<td width="'+xwidth+'%" class="center">'+string(j+1,format='(I0)')+':'+$
                   string(i+1,format='(I0)')
-                printf, lun1, rootpngfiles[indx]+' <a href="'+htmlbase+'/'+pngfiles[indx]+'">png</a>'
+                printf, lun1, '<a href="http://legacysurvey.org/cutouts/?ra='+$
+                  strtrim(string(ra[indx],format='(F12.6)'),2)+'&dec='+$
+                  strtrim(string(dec[indx],format='(F12.7)'),2)+'">'+rootpngfiles[indx]+'</a>'
+;               printf, lun1, rootpngfiles[indx]+' <a href="'+htmlbase+'/'+pngfiles[indx]+'">png</a>'
                 printf, lun1, '</td>'
              endif
           endfor

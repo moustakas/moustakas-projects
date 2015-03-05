@@ -77,8 +77,8 @@ pro decals_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist
 ;   extinction = red_fac # dust_getval(ll,bb,/interp,/noloop)
 
     these = [1,2,4]
-    dmaggies = float(cat.decam_flux[these]*10D^(0.4*cat.extinction[these])*1D-9)
-    divarmaggies = float(cat.decam_flux_ivar[these]*10D^(-0.8*cat.extinction[these])*1D18)
+    dmaggies = float(cat.decam_flux[these]*10D^(0.4*cat.decam_extinction[these])*1D-9)
+    divarmaggies = float(cat.decam_flux_ivar[these]*10D^(-0.8*cat.decam_extinction[these])*1D18)
 
     maggies = [dmaggies,smaggies]
     ivarmaggies = [divarmaggies,sivarmaggies]

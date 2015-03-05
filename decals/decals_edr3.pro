@@ -4,11 +4,12 @@ function stretchit, im, scale=scale
     farcsinh = 1.0
     nim = asinh(im*farcsinh/scale)/sqrt(farcsinh)
     img = bytscl(nim,min=mn,max=mx)
+    img = max(img)-img
 return, img
 end
 
-pro decals_edr2, stars=stars, html_only=html_only
-; jm15feb13siena - test the preliminary EDR2 catalogs
+pro decals_edr3, stars=stars, html_only=html_only
+; jm15feb27siena - test the preliminary EDR3 catalogs
 
     edrpath = '/global/work/decam/cats/edr3/'
     outpath = edrpath+'cutouts/'
@@ -34,7 +35,8 @@ pro decals_edr2, stars=stars, html_only=html_only
     for ii = 0, 0 do begin
 ;   for ii = 0L, nbrick-1 do begin
        catfile = file_search(edrpath+'tractor/'+allbrick[ii]+'/tractor-*.fits',count=ncat)
-       for ic = 0L, ncat-1 do begin
+       for ic = 0L, 0 do begin
+;      for ic = 0L, ncat-1 do begin
           cat = mrdfits(catfile[ic],1)
           brick = strtrim(cat[0].brickname,2)
           coaddpath = edrpath+'coadd/'+allbrick[ii]+'/'+brick+'/'
@@ -43,13 +45,21 @@ pro decals_edr2, stars=stars, html_only=html_only
           file_mkdir, html_path ; base output path
 
 ; read the coadds once
-          if keyword_set(html_only) eq 0 then begin
+          if keyword_set(html_only) then begin
+             hdr = headfits(coaddpath+'decals-'+brick+'-image-'+band[0]+'.fits')
+             extast, hdr, astr
+             ad2xy, cat.ra, cat.dec, astr, xcat, ycat
+          endif else begin
              image = fltarr(nmosaic,nmosaic,nband)
              model = image
+             mask = image
              for ib = 0, nband-1 do begin
                 imfile = coaddpath+'decals-'+brick+'-image-'+band[ib]+'.fits'
                 image[*,*,ib] = mrdfits(imfile,0,hdr)
                 model[*,*,ib] = mrdfits(repstr(imfile,'-image','-model'),0)
+                mask[*,*,ib] = mrdfits(repstr(imfile,'-image','-invvar'),0)
+                extast, hdr, astr
+                ad2xy, cat.ra, cat.dec, astr, xcat, ycat
              endfor
              resid = image - model
 
@@ -57,21 +67,22 @@ pro decals_edr2, stars=stars, html_only=html_only
              decals_to_maggies, cat, maggies, ivarmaggies
              mag = maggies2mag(maggies,ivarmaggies=ivarmaggies,$
                magerr=magerr,magnsigma=magnsigma)
-          endif
+          endelse
           
 ; one set of webpages per type
-          for it = 0, ntype-1 do begin
+          for it = 2, 2 do begin
+;         for it = 0, ntype-1 do begin
              html_base = brick+'-'+allmytype[it]
              png_path = html_path+html_base+'/'
              file_mkdir, png_path
              
-             these = where(cat.type eq alltype[it] and cat.bx gt npad and $
-               cat.bx lt nmosaic-npad and cat.by gt npad and $
-               cat.by lt nmosaic-npad and cat.sdss_objid ne 0,nobj)
+             these = where(cat.type eq alltype[it] and xcat gt npad and $
+               xcat lt nmosaic-npad and ycat gt npad and $
+               ycat lt nmosaic-npad and cat.sdss_objid ne 0,nobj)
 ;            srt = sort(cat[these].decam_flux[1]) ; sort by r-band flux
              srt = reverse(sort(cat[these].decam_flux[2])) ; sort by r-band flux
              these = these[srt]
-;            these = these[0:9] & nobj = 10
+             these = these[0:14] & nobj = 15
 
 ; (re)build just the HTML pages
              if keyword_set(html_only) then begin
@@ -80,8 +91,10 @@ pro decals_edr2, stars=stars, html_only=html_only
                   title='Brick '+brick+'-'+allmytype[it], /nomenu, $
                   pnglist=pngfiles, ra=cat[these].ra, dec=cat[these].dec
              endif else begin
-                xall = cat[these].bx;-1
-                yall = cat[these].by;-1
+                xall = xcat[these]
+                yall = ycat[these]
+;               xall = cat[these].bx
+;               yall = cat[these].by
 
 ; get image cutouts in all three bands
                 for ig = 0L, nobj-1 do begin
@@ -96,70 +109,76 @@ pro decals_edr2, stars=stars, html_only=html_only
 ;                  cgdisplay, aspect=1.0 ;/3.0
 ;                  pos = cglayout([3,nband],aspect=1.0,xgap=0.0,ygap=1,$
 ;                    oxmargin=[1,1],oymargin=[1,1])
-                   im_plotconfig, 13, pos, psfile=psfile, xmargin=[0.0,0.0], $
-                     ymargin=[0.0,0.0], xspace=0.0, yspace=1.0
+                   im_plotconfig, 0, pos, psfile=psfile
+;                  im_plotconfig, 15, pos, psfile=psfile, xmargin=[0.0,0.0], $
+;                    ymargin=[0.0,0.0], xspace=0.0, yspace=[0.5,0.5,0.5]
+                   pos = im_getposition(nx=4,ny=nband,width=5.0,height=5.0,$
+                     xmargin=[0.01,0.01],ymargin=[0.01,0.01],xspace=0.01,yspace=0.02,$
+                     xpage=20.05,ypage=15.06)
+                   
                    for ib = 0, nband-1 do begin
                       gim = image[long(xx-ncutpix/2.0):long(xx+ncutpix/2.0),$
+                        long(yy-ncutpix/2.0):long(yy+ncutpix/2.0),ib]
+                      gmask = mask[long(xx-ncutpix/2.0):long(xx+ncutpix/2.0),$
                         long(yy-ncutpix/2.0):long(yy+ncutpix/2.0),ib]
                       gmodel = model[long(xx-ncutpix/2.0):long(xx+ncutpix/2.0),$
                         long(yy-ncutpix/2.0):long(yy+ncutpix/2.0),ib]
                       gresid = resid[long(xx-ncutpix/2.0):long(xx+ncutpix/2.0),$
                         long(yy-ncutpix/2.0):long(yy+ncutpix/2.0),ib]
                       
-;                     med = djs_median(gim)
-;                     sig = djsig(gresid)
-;                     mn = med - 2.0*sig
-;                     mx = med + 7.0*sig
-;                     splog, minmax(gim), med, sig, mn, mx
-
-;                     sgim    = gmascl(   gim,min=mn,max=mx,/negative,gamma=gamma)
-;                     sgmodel = gmascl(gmodel,min=mn,max=mx,/negative,gamma=gamma)
-;                     sgresid = gmascl(gresid,min=mn,max=mx,/negative,gamma=gamma)
-;                     sgim    = asinhscl(   gim,min=mn,max=mx,/negative,beta=beta)
-;                     sgmodel = asinhscl(gmodel,min=mn,max=mx,/negative,beta=beta)
-;                     sgresid = asinhscl(gresid,min=mn,max=mx,/negative,beta=beta)
-
                       sgim = stretchit(gim,scale=scales[ib])
+                      sgmask = stretchit(1.0/sqrt(gmask+(gmask eq 0)),scale=scales[ib]) * (gmask ne 0)
                       sgmodel = stretchit(gmodel,scale=scales[ib])
                       sgresid = stretchit(gresid,scale=scales[ib])
                       
-                      plotimage, sgim, /preserve, /noaxes, position=pos[*,3*ib+0], $
+                      plotimage, sgim, /preserve, /noaxes, position=pos[*,4*ib+0], $
                         noerase=ib gt 0, /save
-;                     cgimage, sgim, position=pos[*,3*ib+0], noerase=ib gt 0, /save
-                      plots, ncutpix/2.0, ncutpix/2.0, psym=cgsymcat(9,thick=5), $
-                        symsize=1.2, color=cgcolor('black')
+;                     plots, ncutpix/2.0, ncutpix/2.0, psym=cgsymcat(9,thick=5), $
+;                       symsize=1.2, color=cgcolor('black')
                       djs_oplot, cat.bx-xx+ncutpix/2.0, cat.by-yy+ncutpix/2.0, psym=cgsymcat(16), $
                         symsize=1.0, color=cgcolor('dodger blue')
-                      im_legend, obj, /left, /top, box=0, charsize=1.3, $
-                        charthick=8.0, margin=0, position=[0.01,0.96], /norm
+                      im_legend, obj, /left, /top, box=0, charsize=1.2, $
+                        charthick=4.0, position=[pos[0,4*ib+0]-0.01,pos[3,4*ib+0]-0.06], $
+                        /norm, textcolor=cgcolor('white')
+                      loadct, 0, /silent
                       if mag[ib,these[ig]] gt 0 then begin
                          thismag = band[ib]+'='+strtrim(string(mag[ib,these[ig]],format='(F12.3)'),2)+$
                            '\pm'+strtrim(string(magerr[ib,these[ig]],format='(F12.3)'),2)
                       endif else begin
                          thismag = band[ib]+'>'+string(magnsigma[ib,these[ig]],format='(F5.2)')
                       endelse
-                      im_legend, thismag, /left, /bottom, box=0, charsize=1.5, $
-                        charthick=8.0, position=[pos[0,3*ib+0]-0.01,pos[1,3*ib+0]+0.01], /norm
+                      im_legend, thismag, /left, /bottom, box=0, charsize=1.2, $
+                        charthick=4.0, position=[pos[0,4*ib+0]-0.01,pos[1,4*ib+0]+0.05], /norm, $
+                        textcolor=cgcolor('white')
                       loadct, 0, /silent
                       
-                      plotimage, sgmodel, /preserve, /noaxes, position=pos[*,3*ib+1], /noerase, /save
-;                     cgimage, sgmodel, position=pos[*,3*ib+1], /noerase, /save
+                      plotimage, sgmask, /preserve, /noaxes, position=pos[*,4*ib+1], /noerase
+                      frac = strtrim(string(cat[these[ig]].decam_fracmasked,format='(F12.2)'),2)
+                      im_legend, 'fracmasked='+frac, /left, /bottom, box=0, charsize=1.2, $
+                        charthick=4.0, position=[pos[0,4*ib+1]-0.01,pos[1,4*ib+1]+0.05], /norm, $
+                        textcolor=cgcolor('white')
+                      loadct, 0, /silent
+
+                      plotimage, sgmodel, /preserve, /noaxes, position=pos[*,4*ib+2], /noerase, /save
                       chi2 = strtrim(string(cat[these[ig]].decam_rchi2[bandindx[ib]],format='(F12.2)'),2)
-                      im_legend, '\chi^{2}_{\nu}='+chi2, /left, /bottom, box=0, charsize=1.5, $
-                        charthick=8.0, position=[pos[0,3*ib+1]-0.01,pos[1,3*ib+1]+0.01], /norm
+                      im_legend, '\chi^{2}_{\nu}='+chi2, /left, /bottom, box=0, charsize=1.2, $
+                        charthick=4.0, position=[pos[0,4*ib+2]-0.01,pos[1,4*ib+2]+0.05], /norm, $
+                        textcolor=cgcolor('white')
                       loadct, 0, /silent
                       
-                      plotimage, sgresid, /preserve, /noaxes, position=pos[*,3*ib+2], /noerase, /save
-;                     cgimage, sgresid, position=pos[*,3*ib+2], /noerase, /save
+                      plotimage, sgresid, /preserve, /noaxes, position=pos[*,4*ib+3], /noerase, /save
                    endfor 
 ;                  cgps_close
                    im_plotconfig, psfile=psfile, /psclose, /png
                 endfor 
                 
 ; build the webpage for this brick
+                pngfiles = brick+'-'+string(cat[these].objid,format='(I6.6)')+'.png'
                 decals_edr2_html, html_base, html_path=html_path, npngcols=4, $
-                  title='Brick '+brick+'-'+allmytype[it], /nomenu
+                  title='Brick '+brick+'-'+allmytype[it], /nomenu, ra=cat[these].ra, $
+                  dec=cat[these].dec, pnglist=pngfiles
              endelse
+stop
           endfor 
        endfor 
     endfor

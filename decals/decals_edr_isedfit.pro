@@ -1,4 +1,4 @@
-pro decals_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
+pro decals_edr_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
   model_photometry=model_photometry, qaplot_models=qaplot_models, isedfit=isedfit, $
   kcorrect=kcorrect, qaplot_sed=qaplot_sed, thissfhgrid=thissfhgrid, $
   clobber=clobber, nodecals=nodecals

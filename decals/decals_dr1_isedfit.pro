@@ -4,16 +4,16 @@ pro decals_dr1_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
   clobber=clobber, nodecals=nodecals
 ; jm14sep07siena
 
-    prefix = 'decals'
-    isedfit_dir = getenv('DECALS_DIR')+'/isedfit/'
+    prefix = 'decals_dr1'
+    dr1_dir = getenv('DECALS_DIR')+'/dr1/'
+    isedfit_dir = getenv('DECALS_DIR')+'/isedfit/dr1/'
     montegrids_dir = isedfit_dir+'montegrids/'
-    edr_dir = getenv('HOME')+'/edr/'
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
     
 ; define the catalog
-    tractor = mrdfits(edr_dir+'edr-specz-dr10.fits',1)
-    specz = mrdfits(edr_dir+'edr-specz-dr10.fits',2)
-    phot = mrdfits(edr_dir+'edr-specz-dr10.fits',3)
+    tractor = mrdfits(dr1_dir+'dr1-specz-dr10.fits',1)
+    specz = mrdfits(dr1_dir+'dr1-specz-dr10.fits',2)
+    phot = mrdfits(dr1_dir+'dr1-specz-dr10.fits',3)
     these = where(specz.z ge 0.05 and specz.z le 0.7 and specz.zwarning eq 0 and $
       strtrim(specz.class,2) eq 'GALAXY' and tractor.brick_primary eq 'T',ngal)
     tractor = tractor[these]

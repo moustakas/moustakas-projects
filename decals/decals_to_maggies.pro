@@ -33,34 +33,41 @@
 ; General Public License for more details. 
 ;-
 
-pro decals_sdss_to_maggies, cat, maggies, ivarmaggies
+pro decals_sdss_to_maggies, cat, maggies, ivarmaggies, psf=psf
 
     ngal = n_elements(cat)
-    
     dustfactor = 1D-9*10D^(0.4*cat.sdss_extinction)
-    cmodelmaggies = cat.sdss_cmodelflux*dustfactor
-    cmodelivarmaggies = cat.sdss_cmodelflux_ivar/dustfactor^2
 
-    modelmaggies = cat.sdss_modelflux*dustfactor
-    modelivarmaggies = cat.sdss_modelflux_ivar/dustfactor^2
+    if keyword_set(psf) then begin
+       maggies = cat.sdss_psfflux*dustfactor
+       ivarmaggies = cat.sdss_psfflux_ivar/dustfactor^2
+    endif else begin
+       cmodelmaggies = cat.sdss_cmodelflux*dustfactor
+       cmodelivarmaggies = cat.sdss_cmodelflux_ivar/dustfactor^2
 
-    ratio = cmodelmaggies[2,*]/(modelmaggies[2,*]+(modelmaggies[2,*] eq 0))
-    neg = where(modelmaggies[2,*] le 0)
-    if (neg[0] ne -1L) then ratio[neg] = 1.0
+       modelmaggies = cat.sdss_modelflux*dustfactor
+       modelivarmaggies = cat.sdss_modelflux_ivar/dustfactor^2
 
-    factor = rebin(ratio,5,ngal)
-    maggies = modelmaggies*factor
-    ivarmaggies = modelivarmaggies/factor^2
+       ratio = cmodelmaggies[2,*]/(modelmaggies[2,*]+(modelmaggies[2,*] eq 0))
+       neg = where(modelmaggies[2,*] le 0)
+       if (neg[0] ne -1L) then ratio[neg] = 1.0
+
+       factor = rebin(ratio,5,ngal)
+       maggies = modelmaggies*factor
+       ivarmaggies = modelivarmaggies/factor^2
+    endelse
 
     k_abfix, maggies, ivarmaggies
     k_minerror, maggies, ivarmaggies
+
     maggies = float(maggies)
     ivarmaggies = float(ivarmaggies)
 
 return
 end
 
-pro decals_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, sdss=sdss
+pro decals_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, $
+  sdss=sdss, psf=psf
 
     ngal = n_elements(cat)
     if (ngal eq 0L) then begin
@@ -91,7 +98,7 @@ pro decals_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, sdss=sd
     
 ; add SDSS
     if keyword_set(sdss) then begin
-       decals_sdss_to_maggies, cat, smaggies, sivarmaggies
+       decals_sdss_to_maggies, cat, smaggies, sivarmaggies, psf=psf
        maggies = [dmaggies,wmaggies,smaggies]
        ivarmaggies = [divarmaggies,wivarmaggies,sivarmaggies]
        filterlist = [dfilterlist,wfilterlist,sdss_filterlist()]

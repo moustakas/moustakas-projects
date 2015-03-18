@@ -26,11 +26,14 @@ pro merge_redmapper_isedfit, centrals=centrals, satellites=satellites
 ;   help, where(bcgs.z_lambda-mems[icen].z ne 0)
 
     centrals = struct_addtags(struct_trimtags(phot[icen],$
-      select=['mem_match_id','z','ra','r','p','pfree','theta_i','theta_r']),$
-      struct_trimtags(bcgs,except=['ra','dec','mem_match_id','model_mag','model_magerr','photoid','z']))
+      select=['mem_match_id','z','ra','dec','r',$
+      'p','pfree','theta_i','theta_r']),$
+      struct_trimtags(bcgs,except=['ra','dec',$
+      'mem_match_id','model_mag','model_magerr','photoid','z']))
     centrals = struct_addtags(temporary(centrals),$
       struct_trimtags(kcorr[icen],except=['z','maggies','ivarmaggies','bestmaggies']))
-    centrals = struct_addtags(temporary(centrals),struct_trimtags(ised[icen],except=['z','ra','dec']))
+    centrals = struct_addtags(temporary(centrals),$
+      struct_trimtags(ised[icen],except=['z','ra','dec']))
 
     im_mwrfits, centrals, datapath+'redmapper_isedfit_'+ver+'_centrals.fits', /clobber
     

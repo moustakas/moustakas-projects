@@ -67,7 +67,8 @@ return
 end
 
 pro decals_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, $
-  sdss=sdss, psf=psf
+  sdss=sdss, psf=psf, aperture=aperture, apmaggies=apmaggies, $
+  apivarmaggies=apivarmaggies, shortwise=shortwise, decam_grz=decam_grz
 
     ngal = n_elements(cat)
     if (ngal eq 0L) then begin
@@ -83,18 +84,18 @@ pro decals_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, $
 ;   euler, cat.ra, cat.dec, ll, bb, 1
 ;   extinction = red_fac # dust_getval(ll,bb,/interp,/noloop)
 
-    these = [1,2,4]
+    if keyword_set(decam_grz) then these = [1,2,4] else these = [0,1,2,3,4,5]
     factor = 1D-9/cat.decam_mw_transmission[these]
     dmaggies = float(cat.decam_flux[these]*factor)
     divarmaggies = float(cat.decam_flux_ivar[these]/factor^2)
-    dfilterlist = decals_filterlist()
+    dfilterlist = (decals_filterlist())[these]
 
 ; unWISE
-    these = [0,1]
+    if keyword_set(shortwise) then these = [0,1] else these = [0,1,2,3]
     factor = 1D-9/cat.wise_mw_transmission[these]
     wmaggies = float(cat.wise_flux[these]*factor)
     wivarmaggies = float(cat.wise_flux_ivar[these]/factor^2)
-    wfilterlist = wise_filterlist(/short)
+    wfilterlist = wise_filterlist(short=keyword_set(shortwise))
     
 ; add SDSS
     if keyword_set(sdss) then begin
@@ -107,6 +108,27 @@ pro decals_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, $
        ivarmaggies = [divarmaggies,wivarmaggies]
        filterlist = [dfilterlist,wfilterlist]
     endelse
+
+; optionally get the DECam aperture fluxes
+    if keyword_set(aperture) then begin
+       naper = n_elements(cat[0].decam_apflux[*,0])
+
+       if keyword_set(decam_grz) then these = [1,2,4] else these = [0,1,2,3,4,5]
+       nband = n_elements(these)
+       factor = 1D-9/cat.decam_mw_transmission[these]
+       factor = rebin(reform(factor,1,nband,ngal),naper,nband,ngal)
+
+       apmaggies = float(cat.decam_apflux[*,these]*factor)
+       apivarmaggies = float(cat.decam_apflux_ivar[*,these]/factor^2)
+
+;      these = [1,2,4]
+;      nband = n_elements(these)
+;      factor = 1D-9/cat.decam_mw_transmission[these]
+;      factor = rebin(reform(factor,1,nband,ngal),naper,nband,ngal)
+;
+;      apmaggies = float(cat.decam_apflux[*,these]*factor)
+;      apivarmaggies = float(cat.decam_apflux_ivar[*,these]/factor^2)
+    endif
     
 return   
 end

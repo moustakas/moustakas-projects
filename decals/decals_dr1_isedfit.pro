@@ -11,17 +11,38 @@ pro decals_dr1_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
     
 ; define the catalog
-    tractor = mrdfits(isedfit_dir+'tractor-dr1-specz.fits.gz',1)
-    ngal = n_elements(tractor)
+    tractor = mrdfits(dr1_dir+'dr1-specz.fits',1)
+    specz = mrdfits(dr1_dir+'dr1-specz.fits',2)
+    phot = mrdfits(dr1_dir+'dr1-specz.fits',3)
+    these = where(specz.z ge 0.05 and specz.z le 0.7 and specz.zwarning eq 0 and $
+      strtrim(specz.class,2) eq 'GALAXY' and tractor.decam_nobs[1] ge 1 and $
+      tractor.decam_nobs[2] ge 1 and tractor.decam_nobs[4] ge 1,ngal)
+    tractor = tractor[these]
+    specz = specz[these]
+    phot = phot[these]
     splog, 'Number of galaxies ', ngal
 
     galaxy = tractor.brickname+'-'+string(tractor.objid,format='(I5.5)')
 
-    zobj = tractor.z
-    decals_to_maggies, tractor, maggies, ivarmaggies, filterlist=filterlist, /sdss
+; gather the photometry    
+    decals_to_maggies, tractor, dmaggies, divarmaggies, $
+      filterlist=dfilterlist, /shortwise, /decam_grz
 
-;; do not use unWISE channels 3,4 photometry in the fitting    
-;    ivarmaggies[5:6,*] = 0      ; no weight!
+;   sdss_to_maggies, smaggies, sivarmaggies, calib=phot, flux='model'
+    sdss_to_maggies, modelmaggies, modelivarmaggies, calib=phot, flux='model'
+    sdss_to_maggies, cmodelmaggies, cmodelivarmaggies, calib=phot, flux='cmodel'
+    ratio = cmodelmaggies[2,*]/(modelmaggies[2,*]+(modelmaggies[2,*] eq 0))
+    neg = where(modelmaggies[2,*] le 0)
+    if (neg[0] ne -1L) then ratio[neg] = 1.0
+
+    factor = rebin(ratio,5,ngal)
+    smaggies = modelmaggies*factor
+    sivarmaggies = modelivarmaggies/factor^2
+
+    maggies = [dmaggies,smaggies]
+    ivarmaggies = [divarmaggies,sivarmaggies]
+    filterlist = [dfilterlist,sdss_filterlist()]
+    zobj = specz.z
 
 ; do not use DECaLS photometry in the fitting    
     if keyword_set(nodecals) then begin
@@ -36,7 +57,7 @@ pro decals_dr1_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
          prefix=prefix, filterlist=filterlist, zminmax=[0.05,0.7], nzz=30, $
          spsmodels='fsps_v2.4_miles', imf='chab', redcurve='charlot', igm=0, $
          sfhgrid=1, nmodel=10000L, age=[0.01,13.0], AV=[0.35,2.0], tau=[0.0,5.0], $
-         Zmetal=[0.0004,0.05], oiiihb=[-1.0,1.0], /nebular, /delayed, $
+         Zmetal=[0.004,0.03], oiiihb=[-1.0,1.0], /nebular, /delayed, $
          pburst=0.1, clobber=clobber
     endif
 
@@ -75,7 +96,7 @@ pro decals_dr1_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 ; --------------------------------------------------
 ; generate spectral energy distribution (SED) QAplots
     if keyword_set(qaplot_sed) then begin
-       index = lindgen(30)
+       index = lindgen(50)
        isedfit_qaplot_sed, isedfit_paramfile, isedfit_dir=isedfit_dir, $
          montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
          clobber=clobber, /xlog, nrandom=40, galaxy=galaxy, $

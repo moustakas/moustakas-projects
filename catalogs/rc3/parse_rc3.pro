@@ -50,7 +50,7 @@ pro parse_rc3, silent=silent
       'HI','W20','E_W20','W50','E_W50','V21'])
     rc3out.name = strcompress(rc3out.name,/remove)
 
-    coords = {RA:  '', DEC: ''}
+    coords = {RA:  0D, DEC: 0D}
     coords = replicate(coords,nobj)
 
     info = {D25_MAJ: -999.0, D25_MIN: -999.0, INCLINATION:  -999.0}
@@ -63,13 +63,14 @@ pro parse_rc3, silent=silent
     
        if rc3[k].ras lt 10.0 then ras = '0'+string(rc3[k].ras,format='(F3.1)') else $
          ras = string(rc3[k].ras,format='(F4.1)')
-       coords[k].ra = string(rc3[k].rah,format='(I2.2)')+':'+string(rc3[k].ram,format='(I2.2)')+':'+ras
-
-       coords[k].dec = rc3[k].de_+string(rc3[k].ded,format='(I2.2)')+':'+$
+       rahms = string(rc3[k].rah,format='(I2.2)')+':'+string(rc3[k].ram,format='(I2.2)')+':'+ras
+       dechms = rc3[k].de_+string(rc3[k].ded,format='(I2.2)')+':'+$
          string(rc3[k].dem,format='(I2.2)')+':'+string(rc3[k].des,format='(I2.2)')
 
-; other quantities
+       coords[k].ra = 15D*hms2dec(rahms)
+       coords[k].dec = hms2dec(dechms)
 
+; other quantities
        if (rc3[k].r25 gt -900.0) then begin
        
           ratio = 1.0/10.0^(rc3[k].r25) ; "b" divided by "a"
@@ -90,8 +91,8 @@ pro parse_rc3, silent=silent
 ; according to NED the RC3 coordinates are incorrect for UGC05491
 
     match = where(strmatch(rc3out.altname,'*5491*') eq 1B,nmatch)
-    coords[match].ra = '10:11:58.2'
-    coords[match].dec = '+58:51:52'
+    coords[match].ra = 15D*hms2dec('10:11:58.2')
+    coords[match].dec = hms2dec('+58:51:52')
     
     rc3out = struct_addtags(coords,rc3out)
     rc3out = struct_addtags(rc3out,info)

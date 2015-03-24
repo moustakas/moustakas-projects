@@ -63,6 +63,14 @@ pro decals_edr3, stars=stars, html_only=html_only
              endfor
              resid = image - model
 
+; read the color jpgs
+             read_jpeg, coaddpath+'decals-'+brick+'-image.jpg', imjpg, /true
+             read_jpeg, coaddpath+'decals-'+brick+'-model.jpg', modeljpg, /true
+
+             
+             
+stop             
+             
 ; parse the photometry             
              decals_to_maggies, cat, maggies, ivarmaggies
              mag = maggies2mag(maggies,ivarmaggies=ivarmaggies,$

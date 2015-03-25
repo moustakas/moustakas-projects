@@ -15,20 +15,20 @@ pro decals_query_ned, st=st, version=version
 
     if (NOT keyword_set(st)) then st=0L
 
-    outdir = getenv('IM_RESEARCH_DIR')+'decals/catalogs/ned'
+    outdir = '/global/work/decam/ned/'
     file_mkdir, outdir
 
     chunk=20L
-    for chunkst=st, 359L, chunk do begin
+    for chunkst = st, 359L, chunk do begin
        for id=chunkst+0L, ((chunkst+chunk-1L)<359L) do begin
-          rast=strtrim(string(id, f='(f40.2)'),2)+'d'
-          rand=strtrim(string(id+1, f='(f40.2)'),2)+'d'
+          rast = strtrim(string(id, f='(f40.2)'),2)+'d'
+          rand = strtrim(string(id+1, f='(f40.2)'),2)+'d'
           
-          filename='blanton_atlas_'+string(id,f='(i3.3)')+'.txt'
-          if(NOT file_test(outdir+'/'+filename+'.gz')) then begin
+          filename = 'decals_'+string(id,f='(I3.3)')+'.txt'
+          if (NOT file_test(outdir+filename+'.gz')) then begin
              splog, filename
-             queryfile='query_'+filename
-             openw,unit, outdir+'/'+queryfile, /get_lun 
+             queryfile = 'query_'+filename
+             openw, unit, outdir+queryfile, /get_lun 
              printf, unit, 'OUTPUT_FILENAME   '+filename
              printf, unit, 'OUTPUT_OPTION    compact'
              printf, unit, 'COMPRESS_OPTION    gzip'
@@ -42,10 +42,11 @@ pro decals_query_ned, st=st, version=version
              printf, unit, 'END_OF_DATA'
              printf, unit, 'END_OF_REQUESTS'
              free_lun, unit
-             spawn, 'mail nedbatch@ned.ipac.caltech.edu < '+outdir+'/'+queryfile
+             spawn, 'mail nedbatch@ned.ipac.caltech.edu < '+outdir+queryfile
           endif
+stop
        endfor
-       wait, 900.
+       wait, 900.0
     endfor
 
 return

@@ -15,7 +15,8 @@ pro decals_query_ned, st=st, version=version
 
     if (NOT keyword_set(st)) then st=0L
 
-    outdir = '/global/work/decam/ned/'
+    outdir = getenv('IM_RESEARCH_DIR')+'/projects/decals/ned/'
+;   outdir = '/global/work/decam/ned/'
     file_mkdir, outdir
 
     chunk=20L
@@ -42,7 +43,10 @@ pro decals_query_ned, st=st, version=version
              printf, unit, 'END_OF_DATA'
              printf, unit, 'END_OF_REQUESTS'
              free_lun, unit
-             spawn, 'mail nedbatch@ned.ipac.caltech.edu < '+outdir+queryfile
+
+             spawn, 'send_an_email_to_many_people_using_gmail.py '+$
+               '--email nedbatch@ned.ipac.caltech.edu --subject '+$
+               'NED Batch Form --text-body '+outdir+queryfile, /sh
           endif
 stop
        endfor

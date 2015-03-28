@@ -3,7 +3,8 @@ function stellarlocus_project_pickles, filterlist, pickles=pickles
 ;   spectra 
     
     if (n_elements(pickles) eq 0) then pickles = $
-      mrdfits(getenv('IM_PROJECTS_DIR')+'/decals/dr1/qaplots/pickles.fits',1,/silent)
+      mrdfits('pickles.fits',1,/silent)
+;     mrdfits(getenv('IM_PROJECTS_DIR')+'/decals/dr1/qaplots/pickles.fits',1,/silent)
     nband = n_elements(filterlist)
     nstar = n_elements(pickles)
     

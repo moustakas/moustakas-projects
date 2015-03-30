@@ -5,9 +5,9 @@ pro decals_dr1_gallery, build_sample=build_sample, get_cutouts=get_cutouts, $
     dr = 'dr1'
 
     dr1dir = decals_path(dr=dr)
-;   outdir = getenv('HOME')+'/dr1-color/'
-;   if file_test(outdir,/dir) eq 0 then file_mkdir, outdir
-;   if file_test(outdir+'fits',/dir) eq 0 then file_mkdir, outdir+'fits'
+    gallerydir = decals_path(dr=dr,/gallery)
+    if file_test(gallerydir,/dir) eq 0 then file_mkdir, gallerydir
+    if file_test(gallerydir+'fits',/dir) eq 0 then file_mkdir, gallerydir+'fits'
     
     band = ['g','r','z']
     nband = n_elements(band)
@@ -98,7 +98,7 @@ pro decals_dr1_gallery, build_sample=build_sample, get_cutouts=get_cutouts, $
           match = where(grp eq multobj[ii],nmatch)
           struct_print, sample[match]
           sample1 = sample_template
-          sample1.object = strjoin(sample[match].object,'/')
+          sample1.object = strjoin(sample[match].object,'-')
           sample1.ra = djs_mean(sample[match].ra)
           sample1.dec = djs_mean(sample[match].dec)
           sample1.radius = 3.0
@@ -115,7 +115,8 @@ pro decals_dr1_gallery, build_sample=build_sample, get_cutouts=get_cutouts, $
           if nthis ne 1 then message, 'Multiple matches!'
           out_sample[ii].brickname = bricks[this].brickname
        endfor
-       struct_print, out_sample[sort(out_sample.ra)]
+       out_sample = out_sample[sort(out_sample.ra)]
+       struct_print, out_sample
 
        im_mwrfits, out_sample, dr1dir+'gallery_sample.fits', /clobber
     endif 
@@ -136,57 +137,66 @@ pro decals_dr1_gallery, build_sample=build_sample, get_cutouts=get_cutouts, $
           coadddir = dr1dir+'coadd/'+subdir+'/'+thisbrick+'/'
 
           imfile = file_search(coadddir+'decals-'+thisbrick+'-image-'+band+'.fits',count=nfile)
-          if nfile ne nband then message, 'Missing some images!'
+          modelfile = repstr(repstr(imfile,'-image','-model'),'.fits','.fits.gz')
+;         if nfile ne nband then message, 'Missing some images!'
+          if nfile eq nband then begin
 
 ; save time by reading the images in all three bands
-          image = fltarr(nmosaic,nmosaic,nband)
-          for ib = 0, nband-1 do image[*,*,ib] = mrdfits(imfile[ib],0,hdr)
+             image = fltarr(nmosaic,nmosaic,nband)
+             for ib = 0, nband-1 do begin
+                image1 = mrdfits(imfile[ib],0,hdr)
+;               model = mrdfits(modelfile[ib],0,hdr)
+                patch = where(image1 eq 0)
+;               if patch[0] ne -1 then image1[patch] = model[patch]
+                image[*,*,ib] = image1
+             endfor
              
-          racen = djs_mean(sample[jj].ra)
-          deccen = djs_mean(sample[jj].dec)
-          adxy, hdr, racen, deccen, xx, yy
-          x0 = (xx-width*60D/pixscale)>0
-          x1 = (xx+width*60D/pixscale)<(nmosaic-1)
-          y0 = (yy-width*60D/pixscale)>0
-          y1 = (yy+width*60D/pixscale)<(nmosaic-1)
-          
-          for ib = 0, nband-1 do begin
-             hextract, reform(image[*,*,ib]), hdr, newim, newhdr, $
-               x0, x1, y0, y1, /silent                   
-             outfile = outdir+'fits/'+outname+'-'+band[ib]+'.fits'
-             splog, 'Writing '+outfile
-             mwrfits, newim, outfile, newhdr, /create
-          endfor 
-       endfor
+             racen = djs_mean(sample[jj].ra)
+             deccen = djs_mean(sample[jj].dec)
+             adxy, hdr, racen, deccen, xx, yy
+             x0 = (xx-width*60D/pixscale)>0
+             x1 = (xx+width*60D/pixscale)<(nmosaic-1)
+             y0 = (yy-width*60D/pixscale)>0
+             y1 = (yy+width*60D/pixscale)<(nmosaic-1)
+             
+             for ib = 0, nband-1 do begin
+                hextract, reform(image[*,*,ib]), hdr, newim, newhdr, $
+                  x0, x1, y0, y1, /silent                   
+                outfile = gallerydir+'fits/'+strtrim(sample[jj].object,2)+'-'+band[ib]+'.fits'
+                splog, 'Writing '+outfile
+                mwrfits, newim, outfile, newhdr, /create
+             endfor 
+          endif
+       endfor 
     endif
-       
+
 ; --------------------------------------------------
 ; make the three-color images
     if keyword_set(make_png) then begin
-       allfile = file_search(outdir+'fits/*-r.fits',count=nobj)
+       allfile = file_search(gallerydir+'fits/*-r.fits',count=nobj)
        for ii = 0, nobj-1 do begin
           name = repstr(file_basename(allfile[ii]),'-r.fits','')
-          pushd, outdir
+          pushd, gallerydir
 
 ; clean up previously created parameter files          
-          file_delete, outdir+['levels.txt', 'trilogyfilterlog.txt',$
+          file_delete, gallerydir+['levels.txt', 'trilogyfilterlog.txt',$
             name+'-image.in',name+'-image_filters.txt'], /quiet
           
-          infile = outdir+name+'-image.in'
+          infile = gallerydir+name+'-image.in'
           openw, lun, infile, /get_lun
           printf, lun, 'B'
-          printf, lun, file_search(outdir+'fits/'+name+'-g.fits')
+          printf, lun, file_search(gallerydir+'fits/'+name+'-g.fits')
           printf, lun, ''
           printf, lun, 'G'
-          printf, lun, file_search(outdir+'fits/'+name+'-r.fits')
+          printf, lun, file_search(gallerydir+'fits/'+name+'-r.fits')
           printf, lun, ''
           printf, lun, 'R'
-          printf, lun, file_search(outdir+'fits/'+name+'-z.fits')
+          printf, lun, file_search(gallerydir+'fits/'+name+'-z.fits')
           printf, lun, ''
-          printf, lun, 'indir '+outdir+'fits/'
-          printf, lun, 'outname '+outdir+name+'-image'
+          printf, lun, 'indir '+gallerydir+'fits/'
+          printf, lun, 'outname '+gallerydir+name+'-image'
           printf, lun, 'noiselum 0.15'
-;         printf, lun, 'scaling  '+outdir+'levels.txt'
+;         printf, lun, 'scaling  '+gallerydir+'levels.txt'
 ;         printf, lun, 'scaling  '+getenv('CLASH_ARCHIVE')+'/color_images/scaling/levels_ir.txt'
           printf, lun, 'show 0'
           printf, lun, 'legend 0'
@@ -199,18 +209,13 @@ pro decals_dr1_gallery, build_sample=build_sample, get_cutouts=get_cutouts, $
           popd
 
 ; clean up the parameter files          
-          file_delete, outdir+['levels.txt', 'trilogyfilterlog.txt',$
+          file_delete, gallerydir+['levels.txt', 'trilogyfilterlog.txt',$
             name+'-image.in',name+'-image_filters.txt'], /quiet
        endfor
 
     endif
 
-;    jj = mrdfits('dr1/dr1-grz-bricks.fits',1)
-;    openw, lun, 'decals-grz.txt', /get_lun
-;    niceprintf, lun, 'decals-'+jj.brickname+'-image-*.fits'
-;    free_lun, lun
-;    
-;    rsync -auvPn --delete --include='*/' --include-from='decals-grz.txt' --exclude='*' nersc:'/project/projectdirs/cosmo/work/decam/release/dr1/coadd' '/global/work/decam/release/dr1/'
+stop    
     
 return
 end

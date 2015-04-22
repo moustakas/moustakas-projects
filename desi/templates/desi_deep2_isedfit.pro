@@ -67,14 +67,14 @@ function deep2_get_oiiflux, ppxf, cflux_3727_rest=cflux_3727_rest
     oiicat = struct_addtags(oiicat,struct_trimtags(oii,select=['sigma_kms']))
     oiicat = struct_addtags(oiicat,replicate($
       {$
-      oii_3726:         0.0,$
-      oii_3726_err:    -2.0,$
-      oii_3729:         0.0,$
-      oii_3729_err:    -2.0,$
-      oii_3727:         0.0,$
-      oii_3727_err:    -2.0,$
-      oii_3727_ew:      0.0,$
-      oii_3727_ew_err: -2.0},ngal))
+      oii_3726:            0.0,$
+      oii_3726_err:       -2.0,$
+      oii_3729:            0.0,$
+      oii_3729_err:       -2.0,$
+      oii_3727:            0.0,$
+      oii_3727_err:       -2.0,$
+      oii_3727_ew:         0.0,$
+      oii_3727_ew_err:    -2.0},ngal))
 
     good = where(cflux_3727_rest gt 0.0,comp=bad)
     oiicat[good].oii_3726 = oii[good].oii_3727_1[0]
@@ -109,9 +109,12 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 ; DESI project; also build the final catalog of [OII] fluxes for the
 ; DEEP2 sample 
     
-    version = desi_elg_templates_version()
+    version = desi_elg_templates_version(/isedfit)
 
     prefix = 'desi_deep2'
+;   splog, 'Hacking the path!'
+;   isedfit_dir = getenv('IM_PROJECTS_DIR')+'/desi/spectro/templates/'+$
+;     'elg_templates/isedfit/'+version+'/'
     isedfit_dir = getenv('IM_ARCHIVE_DIR')+'/projects/desi/templates/'+$
       'elg_templates/isedfit/'+version+'/'
     montegrids_dir = isedfit_dir+'montegrids/'
@@ -226,9 +229,12 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
        oiicat[these].oii_3726_err = sqrt(factor[0])*oiicat[these].oii_3727_err
        oiicat[these].oii_3729_err = sqrt(factor[1])*oiicat[these].oii_3727_err
 
-       ww = where(oiicat.oii_3727_err eq -2)
+       ww = where(oiicat.oii_3727_err eq -2,comp=good)
        im_plothist, oiicat.z, bin=0.05
        im_plothist, oiicat[ww].z, bin=0.05, /over, /fill
+
+; finally add in the rest-frame [OII] continuum flux
+;       oiicat.oii_3727_continuum = kised.cflux_3727
 
        im_mwrfits, oiicat, isedfit_dir+'deep2_oiicat_'+version+'.fits', clobber=clobber
     endif

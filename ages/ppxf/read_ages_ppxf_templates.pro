@@ -18,7 +18,7 @@ function read_ages_ppxf_templates, out_tempwave, velscale=velscale, $
        templatefile = ages_path(/ppxf)+'bc03_'+metal+$
          '_'+ages_version(/ppxf_templates)+'.fits.gz'
        for ii = 0, n_elements(templatefile)-1 do begin
-          splog, 'Reading '+templatefile[ii]
+;         splog, 'Reading '+templatefile[ii]
           tempflux1 = mrdfits(templatefile[ii],0,temphdr,/silent)
           tempinfo1 = mrdfits(templatefile[ii],1,/silent)
           tempwave = float(make_wave(temphdr))

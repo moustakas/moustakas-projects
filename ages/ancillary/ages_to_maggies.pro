@@ -100,6 +100,10 @@ pro ages_to_maggies, cat, maggies, ivarmaggies, sdss=sdss, $
 ;   djs_oplot, cat[bad].ra, cat[bad].dec, ps=3, color='red'
 ;   bootes_maggies[zfilt,bad] = 0.0
     bootes_ivarmaggies[zfilt,bad] = 0.0
+
+; fix some other crummy photometry
+    
+    
     
 ; final photometry     
     maggies = [galex_maggies,bootes_maggies]

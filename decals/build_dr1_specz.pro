@@ -1,12 +1,14 @@
-pro merge_tractor_dr1, merge=merge, specz=specz
-; jm15mar11siena - merge the DR1 tractor catalogs    
+pro build_dr1_specz
+; jm15mar11siena - cross-match the Tractor catalogs with the SDSS/DR12
+; specz & photometry catalogs
 
     common com_sdss, sdss_coord
 
-    dr1dir = getenv('DECALS_DIR')+'/'
-    isedfit_dir = getenv('IM_ARCHIVE_DIR')+'/decam/isedfit/dr1/'
-    sdssdr12dir = '/home/work/data/sdss/dr12/'
-    outfile = dr1dir+'dr1-specz.fits'
+    dr1dir = getenv('DECALS_DIR')+'/dr1/'
+    sdssdr12dir = '/global/project/projectdirs/cosmo/work/sdss/cats/'
+;   sdssdr12dir = '/home/work/data/sdss/dr12/'
+    outfile = '~/decals-specz.fits'
+;   outfile = dr1dir+'dr1-specz.fits'
 
     if n_elements(sdss_coord) eq 0L then sdss_coord = mrdfits(sdssdr12dir+$
       'photoPosPlate-dr12.fits',1,columns=['ra','dec'])
@@ -14,8 +16,8 @@ pro merge_tractor_dr1, merge=merge, specz=specz
     allbrick = file_basename(file_search(dr1dir+'tractor/*',/test_dir,count=nbrick))
 
     tall = systime(1)
-;   for ii = 93, 94 do begin
-    for ii = 0L, nbrick-1 do begin
+    for ii = 0, 2 do begin
+;   for ii = 0L, nbrick-1 do begin
        delvarx, cat
        catfile = file_search(dr1dir+'tractor/'+allbrick[ii]+'/tractor-*.fits',count=ncat)
        for ic = 0L, ncat-1 do begin
@@ -27,8 +29,8 @@ pro merge_tractor_dr1, merge=merge, specz=specz
           if n_elements(cat) eq 0L then cat = cat1 else cat = [temporary(cat),temporary(cat1)]
        endfor          
        ngal = n_elements(cat)
-          
-; match against the SDSS/DR10       
+
+; match against the SDSS/DR12       
        spherematch, sdss_coord.ra, sdss_coord.dec, cat.ra, $
          cat.dec, 1D/3600.0, m1, m2
        nmatch = n_elements(m1)*(m1[0] ne -1)
@@ -67,7 +69,5 @@ pro merge_tractor_dr1, merge=merge, specz=specz
     mwrfits, spec, outfile
     mwrfits, phot, outfile
     
-stop    
-
 return
 end

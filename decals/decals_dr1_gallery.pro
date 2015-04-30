@@ -6,7 +6,7 @@ pro make_html, htmlfile, pnglist=pnglist, npngcols=npngcols, $
     html_path = file_dirname(htmlfile)
     png_path = html_path+'/png/'
 
-    pngfiles = strtrim(sample1.object,2)+'-image.png'
+    pngfiles = strtrim(sample1.object,2)+'.png'
     good = where(file_test(png_path+pngfiles) eq 1)
     sample = sample1[good]
     pngfiles = pngfiles[good]
@@ -156,7 +156,7 @@ function get_ngc
     template.object = 'NGC'+strtrim(cat.ngcnum,2)
     template.ra = cat.ra
     template.dec = cat.dec
-    template.radius = (cat.radius*60)>1.5
+    template.radius = (cat.radius*60)>3.0
     template.origin = 'NGC'
 ; fix some coordinates
     fix = where(strmatch(template.object,'*2783*'))
@@ -189,7 +189,7 @@ function get_messier
     template.object = 'M'+strtrim(cat.messier,2)
     template.ra = 15D*hms2dec(cat.ra)
     template.dec = hms2dec(cat.dec)
-    template.radius = 1.5
+    template.radius = 3.0
     template.origin = 'Messier'
 return, template
 end
@@ -200,6 +200,9 @@ function get_rc3
     cat = cat[where(cat.d25_maj gt 1.0)]
     template = get_template(n_elements(cat))
 
+    fix = where(strmatch(strtrim(cat.name,2),'A*'))
+    cat[fix].name = strtrim(cat[fix].altname) ; replace A names with UGC 
+
     template.object = strcompress(cat.name,/remove)
     need = where(strcompress(template.object,/remove) eq '')
     if need[0] ne -1 then template[need].object = $
@@ -207,10 +210,10 @@ function get_rc3
     need = where(strcompress(template.object,/remove) eq '')
     if need[0] ne -1 then template[need].object = $
       strcompress(cat[need].pgc,/remove)
-    
+
     template.ra = cat.ra
     template.dec = cat.dec
-    template.radius = cat.d25_maj*2
+    template.radius = cat.d25_maj*3
     template.origin = 'RC3'
 return, template
 end
@@ -290,7 +293,8 @@ pro decals_dr1_gallery, get_bricks=get_bricks, build_sample=build_sample, $
 
     dr1dir = decals_path(dr=dr)
 ;   gallerydir = decals_path(dr=dr,/gallery)
-    gallerydir = getenv('HOME')+'/gallery-dr1/'
+    gallerydir = '/project/projectdirs/cosmo/work/legacysurvey/gallery-dr1/'
+;   gallerydir = getenv('HOME')+'/gallery-dr1/'
     if file_test(gallerydir,/dir) eq 0 then file_mkdir, gallerydir
     if file_test(gallerydir+'png',/dir) eq 0 then file_mkdir, gallerydir+'png'
     if file_test(gallerydir+'fits',/dir) eq 0 then file_mkdir, gallerydir+'fits'
@@ -412,10 +416,14 @@ pro decals_dr1_gallery, get_bricks=get_bricks, build_sample=build_sample, $
              deccen = djs_mean(sample[ii].dec)
              width = sample[ii].radius/1.5
              adxy, hdr, racen, deccen, xx, yy
-             x0 = (xx-width*60D/pixscale)>0
-             x1 = (xx+width*60D/pixscale)<(nmosaic-1)
-             y0 = (yy-width*60D/pixscale)>0
-             y1 = (yy+width*60D/pixscale)<(nmosaic-1)
+             x0 = (xx-width*60D/pixscale)
+             x1 = (xx+width*60D/pixscale)
+             y0 = (yy-width*60D/pixscale)
+             y1 = (yy+width*60D/pixscale)
+;            x0 = (xx-width*60D/pixscale)>0
+;            x1 = (xx+width*60D/pixscale)<(nmosaic-1)
+;            y0 = (yy-width*60D/pixscale)>0
+;            y1 = (yy+width*60D/pixscale)<(nmosaic-1)
 
 ;             print, x0, x1, y0, y1
 ;             crop = max([0-x0,x1-(nmosaic-1),0-y0,y1-(nmosaic-1)])
@@ -426,44 +434,46 @@ pro decals_dr1_gallery, get_bricks=get_bricks, build_sample=build_sample, $
 ;             print, x0, x1, y0, y1
 ;             if x0 lt 0 or y0 lt 0 or x1 gt (nmosaic-1) or y1 gt (nmosaic-1) then stop
 
-             fraczero = fltarr(nband)
-             for ib = 0, nband-1 do begin
-                hextract, reform(image[*,*,ib]), hdr, $
-                  newim1, newhdr1, x0, x1, y0, y1, /silent                   
-                hextract, reform(invvar[*,*,ib]), ihdr, $
-                  newinvvar1, newihdr1, x0, x1, y0, y1, /silent                   
-                sz = size(newim1,/dim)
-                fraczero[ib] = total(newinvvar1 eq 0)/(1.0*sz[0]*sz[1])
-;               fraczero[ib] = total(newim1 eq 0)/(1.0*sz[0]*sz[1])
-                if ib eq 0 then begin
-                   newim = newim1
-                   newinvvar = newinvvar1
-                   newhdr = newhdr1
-                   newihdr = newihdr1
-                endif else begin
-                   newim = [[[newim]],[[newim1]]]
-                   newinvvar = [[[newinvvar]],[[newinvvar1]]]
-                   newhdr = [[newhdr],[newhdr1]]
-                   newihdr = [[newihdr],[newihdr1]]
-                endelse
-             endfor                
+             if x0 ge 0 and y0 ge 0 and x1 le (nmosaic-1) and y1 le (nmosaic-1) then begin
+                fraczero = fltarr(nband)
+                for ib = 0, nband-1 do begin
+                   hextract, reform(image[*,*,ib]), hdr, $
+                     newim1, newhdr1, x0, x1, y0, y1, /silent                   
+                   hextract, reform(invvar[*,*,ib]), ihdr, $
+                     newinvvar1, newihdr1, x0, x1, y0, y1, /silent                   
+                   sz = size(newim1,/dim)
+                   fraczero[ib] = total(newinvvar1 eq 0)/(1.0*sz[0]*sz[1])
+;                  fraczero[ib] = total(newim1 eq 0)/(1.0*sz[0]*sz[1])
+                   if ib eq 0 then begin
+                      newim = newim1
+                      newinvvar = newinvvar1
+                      newhdr = newhdr1
+                      newihdr = newihdr1
+                   endif else begin
+                      newim = [[[newim]],[[newim1]]]
+                      newinvvar = [[[newinvvar]],[[newinvvar1]]]
+                      newhdr = [[newhdr],[newhdr1]]
+                      newihdr = [[newihdr],[newihdr1]]
+                   endelse
+                endfor                
 ; if more than 20% of the pixels are masked in any of the bands then
 ; throw out the object
-             if total(fraczero ge 0.2) eq 0.0 then begin
-                for ib = 0, nband-1 do begin
-                   outfile = gallerydir+'fits/'+strtrim(sample[ii].object,2)+'-'+band[ib]+'.fits'
-                   splog, 'Writing '+outfile
-                   mwrfits, reform(newim[*,*,ib]), outfile, reform(newhdr[*,ib]), /create
-
+                if total(fraczero ge 0.2) eq 0.0 then begin
+                   for ib = 0, nband-1 do begin
+                      outfile = gallerydir+'fits/'+strtrim(sample[ii].object,2)+'-'+band[ib]+'.fits'
+                      splog, 'Writing '+outfile
+                      mwrfits, reform(newim[*,*,ib]), outfile, reform(newhdr[*,ib]), /create
+                      
 ;                  outfile = gallerydir+'fits/'+strtrim(sample[ii].object,2)+'-invvar-'+band[ib]+'.fits'
 ;                  splog, 'Writing '+outfile
 ;                  mwrfits, reform(newinvvar[*,*,ib]), outfile, reform(newihdr[*,ib]), /create
-                endfor
-             endif
-          endif
+                   endfor
+                endif 
+             endif 
 ;print, ii & cc = get_kbrd(1)
+          endif
        endfor 
-    endif
+    endif 
 
 ; --------------------------------------------------
 ; make the three-color images
@@ -477,9 +487,9 @@ pro decals_dr1_gallery, get_bricks=get_bricks, build_sample=build_sample, $
 
 ; clean up previously created parameter files          
           file_delete, gallerydir+'png/'+['levels.txt', 'trilogyfilterlog.txt',$
-            name+'-image.in',name+'-image_filters.txt'], /quiet
+            name+'.in',name+'_filters.txt'], /quiet
           
-          infile = gallerydir+'png/'+name+'-image.in'
+          infile = gallerydir+'png/'+name+'.in'
           openw, lun, infile, /get_lun
           printf, lun, 'B'
           printf, lun, file_search(gallerydir+'fits/'+name+'-g.fits')
@@ -491,7 +501,7 @@ pro decals_dr1_gallery, get_bricks=get_bricks, build_sample=build_sample, $
           printf, lun, file_search(gallerydir+'fits/'+name+'-z.fits')
           printf, lun, ''
           printf, lun, 'indir '+gallerydir+'fits/'
-          printf, lun, 'outname '+gallerydir+'png/'+name+'-image'
+          printf, lun, 'outname '+gallerydir+'png/'+name
           printf, lun, 'noiselum 0.15'
 ;         printf, lun, 'scaling  '+gallerydir+'levels.txt'
           printf, lun, 'show 0'
@@ -506,7 +516,7 @@ pro decals_dr1_gallery, get_bricks=get_bricks, build_sample=build_sample, $
 
 ; clean up the parameter files          
           file_delete, gallerydir+'png/'+['levels.txt', 'trilogyfilterlog.txt',$
-            name+'-image.in',name+'-image_filters.txt'], /quiet
+            name+'.in',name+'_filters.txt'], /quiet
        endfor
     endif
 
@@ -514,12 +524,13 @@ pro decals_dr1_gallery, get_bricks=get_bricks, build_sample=build_sample, $
 ; build a simple web page
     if keyword_set(html) then begin
        sample = mrdfits(gallerydir+'gallery_sample.fits.gz',1)
+       these = where(file_test(gallerydir+'png/'+strtrim(sample.object,2)+'.png'))
 
        title = 'DECaLS/DR1 Image Gallery'
        
        htmlfile = gallerydir+'index.html'
        make_html, htmlfile, npngcols=5, title=title, $
-         pnglist=pngfiles, sample=sample
+         pnglist=pngfiles, sample=sample[these]
     endif
     
 stop    

@@ -49,7 +49,7 @@ function read_ages_gandalf_specfit, specdata1, unfluxed=unfluxed, $
 
 ; convert to linear wavelength and/or the observed frame, if desired
     if keyword_set(observed) then begin
-       splog, 'Shifting to the observed frame'
+       if keyword_set(silent) eq 0 then splog, 'Shifting to the observed frame'
        for ii = 0L, nobj-1L do begin
           zfactor = (1.0+out_specfit[ii].zabs)
           out_specfit[ii].wave = out_specfit[ii].wave + alog(zfactor)*(out_specfit[ii].wave gt 0.0)

@@ -10,7 +10,7 @@ pro ages_match_sdss, gather=gather
     dra = (max(ages.ra)-min(ages.ra))
     ddec = max(ages.dec)-min(ages.dec)
 ;   radius = sqrt(dra^2+ddec^2)
-    radius = float(ceil(dra>ddec))
+    radius = float(ceil(dra>ddec))*1.1
     print, cra, cdec, radius
 
 ; grab stars and galaxies

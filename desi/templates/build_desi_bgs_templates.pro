@@ -88,7 +88,7 @@ function continuum_convolve, in, velscale=velscale, vdisp=vdisp
 return, out
 end
 
-pro build_desi_bgs_templates, debug=debug, clobber=clobber
+pro build_desi_bgs_templates, match_sdss=match_sdss, debug=debug, clobber=clobber
 ; jm15apr24siena - build a set of full-resolution templates for the
 ; BGS based on the AGES galaxy sample
 
@@ -100,6 +100,7 @@ pro build_desi_bgs_templates, debug=debug, clobber=clobber
     isedfit_dir = getenv('IM_ARCHIVE_DIR')+'/projects/desi/templates/'+$
       'bgs_templates/isedfit/'+isedfit_version+'/'
     templatepath = getenv('DESI_ROOT')+'/spectro/templates/bgs_templates/'+version+'/'
+    sdssdr12dir = '/home/work/data/sdss/dr12/'                                                                  
     isedfit_paramfile = isedfit_dir+'desi_ages_paramfile.par'
 
     if file_test(templatepath,/dir) eq 0 then file_mkdir, templatepath
@@ -107,6 +108,46 @@ pro build_desi_bgs_templates, debug=debug, clobber=clobber
     outfile_obs = templatepath+'bgs_templates_obs_'+version+'.fits'
     outfile_rest = templatepath+'bgs_templates_'+version+'.fits'
     outfile_continuum_rest = templatepath+'bgs_continuum_templates_'+version+'.fits'
+    
+; ---------------------------------------------------------------------------
+; match against the SDSS
+    if keyword_set(match_sdss) then begin
+
+       sdssdir = getenv('IM_ARCHIVE_DIR')+'/projects/desi/templates/'+$
+         'bgs_templates/sdss/'
+       phot1 = mrdfits(sdssdir+'bootes-sdss-galaxies-dr12.fits',1)
+       
+       cat = mrdfits(outfile_obs,1)
+       ngal = n_elements(cat)
+       
+       spherematch, phot1.ra, phot1.dec, cat.ra, cat.dec, 1D/3600.0, m1, m2
+       srt = sort(m2)
+       m1 = m1[srt] & m2 = m2[srt]
+
+       phot = im_empty_structure(phot1,ncopies=ngal,empty_value=-999.0)
+       phot[m2] = phot1[m1]
+
+; try matching the missing objects against the stars
+       phot1 = mrdfits(sdssdir+'bootes-sdss-stars-dr12.fits',1)
+
+       miss = where(phot.run eq -999)
+       spherematch, phot1.ra, phot1.dec, cat[miss].ra, cat[miss].dec, 1D/3600.0, m1, m2
+
+       phot[miss[m2]] = im_struct_assign(phot1[m1],phot[miss[m2]])
+       
+; match against the spectroscopic catalog       
+       spec1 = mrdfits(sdssdr12dir+'specObj-dr12.fits',1)
+       spherematch, spec1.plug_ra, spec1.plug_dec, cat.ra, cat.dec, 1D/3600.0, m1, m2
+
+       spec = im_empty_structure(spec1,ncopies=ngal,empty_value=-999.0)
+       spec[m2] = spec1[m1]
+
+       sdss_outfile = templatepath+'bgs_sdss_'+version+'.fits'
+       mwrfits, phot, sdss_outfile, /create
+       mwrfits, spec, sdss_outfile       
+       return
+    endif
+
     if im_file_test(outfile_obs,clobber=clobber) then return
     if im_file_test(outfile_rest,clobber=clobber) then return
     if im_file_test(outfile_continuum_rest,clobber=clobber) then return
@@ -162,10 +203,21 @@ pro build_desi_bgs_templates, debug=debug, clobber=clobber
     zcat[allzcat.ages_id] = allzcat
     isedfit = read_isedfit(isedfit_paramfile,thissfhgrid=sfhgrid,isedfit_dir=isedfit_dir)
 
+    rejplates = [$
+      104,$                     ; average fluxing vector
+      106,110,209,310,311,$     ; unfluxed
+      604]                      ; very crummy
+    
 ;   splog, 'Hack!!'
 ;   index = where(zcat.pass eq 101 and zcat.continuum_snr gt 5 and $
 ;     zcat.z ge 0.05 and zcat.z le 0.85 and phot.imain,ngal)
-    index = where(zcat.z ge 0.05 and zcat.z le 0.85 and phot.imain,ngal)
+    index = where(zcat.z ge 0.05 and zcat.z le 0.85 and phot.imain and $
+      isedfit.chi2 lt 40 and phot.i_tot lt 19.95 and $
+      (phot.pass ne rejplates[0]) and (phot.pass ne rejplates[1]) and $
+      (phot.pass ne rejplates[2]) and (phot.pass ne rejplates[3]) and $
+      (phot.pass ne rejplates[4]) and (phot.pass ne rejplates[5]) and $
+      (phot.pass ne rejplates[6]),ngal)
+;   index = index[0:20] & ngal = n_elements(index)
     splog, 'Total number of templates', ngal
 
 ; initialize the output data structure and header; the metadata header
@@ -184,6 +236,7 @@ pro build_desi_bgs_templates, debug=debug, clobber=clobber
       ra:                   0D,$
       dec:                  0D,$
       z:                   0.0,$
+      weight:              0.0,$
       infiber_r:           0.0,$
       vdisp:               0.0,$ ; intrinsic velocity dispersion [km/s]
       sigma_kms:           0.0,$ ; intrinsic velocity linewidth [km/s]
@@ -194,7 +247,7 @@ pro build_desi_bgs_templates, debug=debug, clobber=clobber
       decam_g:             0.0,$
       decam_r:             0.0,$
       decam_z:             0.0,$
-      sb_decam_r:          0.0,$ ; surface brightness [4" diameter aperture]
+      sb04_decam_r:        0.0,$ ; surface brightness [4" diameter aperture]
       logmstar:            0.0,$
       logsfr:              0.0,$
       av_ism:              0.0,$
@@ -210,7 +263,29 @@ pro build_desi_bgs_templates, debug=debug, clobber=clobber
     outinfo_obs.logmstar = isedfit[index].mstar_avg
     outinfo_obs.logsfr = isedfit[index].sfr_avg
     outinfo_obs.av_ism = isedfit[index].av*isedfit[index].mu ; mean attenuation of the ISM
-    
+
+; -------------------------
+; get the galaxy weight (see build_mz_parent); in addition to the
+; corrections for spectroscopic incompleteness (~2.1%), fiber
+; incompleteness (~4.3%), and sparse-sampling, we also need to account
+; for the catalog incompleteness (catalog_weight) and for the plates
+; that were rejected above (field_weight); from Eisenstein, the
+; catalog incompleteness is ~3%-6%, so assume an average value of 4%;
+; finally, compute the final galaxy weight as the product of all the
+; various selection terms                                                                           
+    catalog_weight = 1.04
+    allfield_weight = fltarr(ngal)+1
+
+    allfield = fix(strmid(strtrim(outinfo_obs.pass,2),1,2)) ; field number
+    field_weight = ages_upweight_field(rejplates,field=field)
+
+    for ii = 0, n_elements(field)-1 do begin
+       these = where(field[ii] eq allfield,nthese)
+       if (nthese ne 0) then allfield_weight[these] = 1.0/field_weight[ii] ; note 1/FIELD_WEIGHT!
+    endfor
+    outinfo_obs.weight = phot[index].spec_weight*phot[index].target_weight*$
+      phot[index].fiber_weight*catalog_weight*allfield_weight
+
 ; -------------------------
 ;; store the GALFIT parameters    
 ;    w1 = where(outinfo_obs.radius_halflight eq -999.0 and photo[index].flag_galfit_hi eq 0)
@@ -298,7 +373,7 @@ pro build_desi_bgs_templates, debug=debug, clobber=clobber
     for ichunk = 0, nchunk-1 do begin
        splog, format='("Working on chunk ",I0,"/",I0)', ichunk+1, nchunk
        these = where(chunkindx[ichunk] eq allchunkindx)
-;      if keyword_set(debug) then these = these[0:10]
+       if keyword_set(debug) then these = these[0:10]
        nthese = n_elements(these)
 
 ; (re)build the iSEDfit models
@@ -307,7 +382,8 @@ pro build_desi_bgs_templates, debug=debug, clobber=clobber
          noigm=0,thissfhgrid=sfhgrid) 
 
 ; read the AGES 1D spectra and best-fitting models       
-       spec1d = read_ages_gandalf_specfit(zcat[index[these]],/solar,/observed)
+       spec1d = read_ages_gandalf_specfit(zcat[index[these]],$
+         /solar,/observed,/silent)
 
 ;; rebuild the model spectrum over a wider wavelength range       
 ;       modelflux = restore_ages_ppxf_bestfit(zcat[index[these]].continuum_coeff,$
@@ -323,10 +399,10 @@ pro build_desi_bgs_templates, debug=debug, clobber=clobber
           distratio = (dlum/pc10)^2 ; distance ratio factor (obs-->rest)
 
 ; calculate the fraction of the flux within the fiber          
-          outinfo_obs[these[igal]].infiber_r = (k_project_filters(k_lambda_to_edges($
+          outinfo_obs[these[igal]].infiber_r = ((k_project_filters(k_lambda_to_edges($
             exp(spec1d[igal].wave)),spec1d[igal].flux,filterlist='decam_r.par')/$
             k_project_filters(k_lambda_to_edges(ised[igal].wave),ised[igal].flux,$
-            filterlist='decam_r.par'))<1.0 ; note!
+            filterlist='decam_r.par'))<1.0)>0.05 ; note!
 
 ; get the *continuum* flux around H-beta and thereby the integrated
 ; emission-line flux 
@@ -409,7 +485,7 @@ pro build_desi_bgs_templates, debug=debug, clobber=clobber
 ;         if igal eq 50 then stop
 
 ; get the r-band surface brightness
-          outinfo_obs[these[igal]].sb_decam_r = phot[index[these[igal]]].r_mag_aper_04 + $
+          outinfo_obs[these[igal]].sb04_decam_r = phot[index[these[igal]]].r_mag_aper_04 + $
             (outinfo_obs[these[igal]].decam_r+2.5*alog10(reform(k_project_filters($
             obswave_edges,obsflux,filterlist='ndwfs_R.par')))) + 2.5*alog10(2.0*!pi*4.0^2)
 
@@ -458,7 +534,7 @@ pro build_desi_bgs_templates, debug=debug, clobber=clobber
     endfor                      ; close chunk loop
 
 ; initialize the rest-frame and observed-frame spectral headers
-    mkhdr, outhdr_rest, outflux_rest, /extend
+    mkhdr, outhdr_rest, transpose(outflux_rest), /extend
     sxdelpar, outhdr_rest, 'DATE'
     sxdelpar, outhdr_rest, 'COMMENT'
     sxaddpar, outhdr_rest, 'VERSION', version, ' template version number'
@@ -478,7 +554,7 @@ pro build_desi_bgs_templates, debug=debug, clobber=clobber
     sxaddpar, outhdr_rest, 'BUNIT', 'erg/s/cm2/A', ' spectrum flux units'
     sxaddpar, outhdr_rest, 'FLUXUNIT', 'erg/s/cm2/A', ' spectrum flux units'
 
-    mkhdr, outhdr_continuum_rest, outflux_continuum_rest, /extend
+    mkhdr, outhdr_continuum_rest, transpose(outflux_continuum_rest), /extend
     sxdelpar, outhdr_continuum_rest, 'DATE'
     sxdelpar, outhdr_continuum_rest, 'COMMENT'
     sxaddpar, outhdr_continuum_rest, 'VERSION', version, ' template version number'
@@ -498,11 +574,11 @@ pro build_desi_bgs_templates, debug=debug, clobber=clobber
     sxaddpar, outhdr_continuum_rest, 'BUNIT', 'erg/s/cm2/A', ' spectrum flux units'
     sxaddpar, outhdr_continuum_rest, 'FLUXUNIT', 'erg/s/cm2/A', ' spectrum flux units'
 
-    mkhdr, outhdr_obs, outflux_obs, /extend
+    mkhdr, outhdr_obs, transpose(outflux_obs), /extend
     sxdelpar, outhdr_obs, 'DATE'
     sxdelpar, outhdr_obs, 'COMMENT'
     sxaddpar, outhdr_obs, 'VERSION', version, ' template version number'
-    sxaddpar, outhdr_obs, 'OBJTYPE', 'BGS-DEEP2', ' object type'
+    sxaddpar, outhdr_obs, 'OBJTYPE', 'BGS-AGES', ' object type'
     sxaddpar, outhdr_obs, 'DISPAXIS', 1, ' dispersion axis'
     sxaddpar, outhdr_obs, 'CTYPE1', 'WAVE-WAV', ' meaning of wavelength array'
     sxaddpar, outhdr_obs, 'CUNIT1', 'Angstrom', ' units of wavelength array'
@@ -524,7 +600,8 @@ pro build_desi_bgs_templates, debug=debug, clobber=clobber
       'APER,,AGES aperture number (0-indexed)',$
       'RA,degrees,right ascension (J2000)',$
       'DEC,degrees,declination (J2000)',$
-      'Z,,AGESheliocentric redshift',$
+      'Z,,AGES heliocentric redshift',$
+      'WEIGHT,,statistical weight',$
       'INFIBER_R,,fraction of r-band light in the AGES fiber',$
       'VDISP,km/s,stellar velocity dispersion',$
       'SIGMA_KMS,km/s,emission line velocity width',$
@@ -535,7 +612,7 @@ pro build_desi_bgs_templates, debug=debug, clobber=clobber
       'DECAM_G,mag,synthesized DECam g-band AB mag',$
       'DECAM_R,mag,synthesized DECam r-band AB mag',$
       'DECAM_Z,mag,synthesized DECam z-band AB mag',$
-      'SB_DECAM_R,mag/arcsec2,r-band surface brightness',$
+      'SB04_DECAM_R,mag/arcsec2,r-band surface brightness (4 arcsec diameter)',$
       'LOGMSTAR,Msun,log10(stellar mass) (Chabrier, h=0.7)',$
       'LOGSFR,Msun/yr,log10(star formation rate) (Chabrier, h=0.7)',$
       'AV_ISM,mag,V-band attenuation (Charlot & Fall 2000)',$
@@ -548,7 +625,7 @@ pro build_desi_bgs_templates, debug=debug, clobber=clobber
     units_continuum_rest = units_rest
 
     newheader = [$
-;     'DESI/DEEP2 galaxy templates',$
+;     'BGS/AGES galaxy templates',$
 ;     'Generated by J. Moustakas (jmoustakas@siena.edu) on '+im_today(),$
       'EXTNAME'+" = '"+string('METADATA','(A-8)')+"'           /"]
 
@@ -558,8 +635,8 @@ pro build_desi_bgs_templates, debug=debug, clobber=clobber
     mwrfits, outinfo_obs, outfile_obs, /silent
     metahdr_obs =  im_update_header(outfile_obs,units_obs,newheader_obs)
     
-    im_mwrfits, transpose(outflux_obs), outfile_obs, outhdr_obs, /clobber, /nogzip
-    im_mwrfits, outinfo_obs, outfile_obs, metahdr_obs, /append, /nogzip
+    mwrfits, transpose(outflux_obs), outfile_obs, outhdr_obs, /create
+    mwrfits, outinfo_obs, outfile_obs, metahdr_obs
 
 ; rest-frame - full spectrum
     newheader_rest = newheader

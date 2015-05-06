@@ -2,13 +2,14 @@ pro build_dr1_specz
 ; jm15mar11siena - cross-match the Tractor catalogs with the SDSS/DR12
 ; specz & photometry catalogs
 
+;   echo "build_dr1_specz" | /usr/bin/nohup idl > & ~/build-dr1-specz.log & 
+    
     common com_sdss, sdss_coord
 
     dr1dir = getenv('DECALS_DIR')+'/dr1/'
-    sdssdr12dir = '/global/project/projectdirs/cosmo/work/sdss/cats/'
-;   sdssdr12dir = '/home/work/data/sdss/dr12/'
-    outfile = '~/decals-specz.fits'
-;   outfile = dr1dir+'dr1-specz.fits'
+;   sdssdr12dir = '/global/project/projectdirs/cosmo/work/sdss/cats/'
+    sdssdr12dir = '/home/work/data/sdss/dr12/'
+    outfile = dr1dir+'dr1-specz.fits'
 
     if n_elements(sdss_coord) eq 0L then sdss_coord = mrdfits(sdssdr12dir+$
       'photoPosPlate-dr12.fits',1,columns=['ra','dec'])
@@ -16,10 +17,11 @@ pro build_dr1_specz
     allbrick = file_basename(file_search(dr1dir+'tractor/*',/test_dir,count=nbrick))
 
     tall = systime(1)
-    for ii = 0, 2 do begin
-;   for ii = 0L, nbrick-1 do begin
+;   for ii = 0, 2 do begin
+    for ii = 0L, nbrick-1 do begin
        delvarx, cat
        catfile = file_search(dr1dir+'tractor/'+allbrick[ii]+'/tractor-*.fits',count=ncat)
+;      for ic = 0L, 3 do begin
        for ic = 0L, ncat-1 do begin
           print, format='("Brick ",I0,"/",I0," Cat ",I0,"/",I0, A10,$)', $
             ii+1, nbrick, ic+1, ncat, string(13b)
@@ -30,10 +32,19 @@ pro build_dr1_specz
        endfor          
        ngal = n_elements(cat)
 
+; write out a sweep file
+;      sweep = struct_selecttags(cat,except=['SDSS*','*APFLUX*',$
+;        'SHAPE*','*TRANSMISSION*','BLOB','FRACDEV_IVAR'])
+       sweep = struct_selecttags(cat,ex=['SDSS*','*APFLUX*','SHAPE*',$
+         '*TRANSMISSION*','BLOB','FRACDEV_IVAR','BX*','BY*','LEFT*'])
+       mwrfits, sweep, dr1dir+'sweep/tractor-sweep-'+allbrick[ii]+'.fits', /create
+
 ; match against the SDSS/DR12       
        spherematch, sdss_coord.ra, sdss_coord.dec, cat.ra, $
          cat.dec, 1D/3600.0, m1, m2
        nmatch = n_elements(m1)*(m1[0] ne -1)
+;      print, format='("BigBrick ",I0,"/",I0," ",I0," matches", A10,$)', $
+;        ii+1, nbrick, nmatch, string(13b)
        splog, 'BigBrick '+strtrim(allbrick[ii],2)+', '+strtrim(nmatch,2)+' matches'
           
        if nmatch gt 0L then begin

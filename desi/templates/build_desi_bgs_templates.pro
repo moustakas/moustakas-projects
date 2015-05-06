@@ -179,7 +179,7 @@ pro build_desi_bgs_templates, match_sdss=match_sdss, debug=debug, clobber=clobbe
     velpixsize_hires = 20D ; [km/s]
     pixsize_hires = velpixsize_hires/light/alog(10) ; [pixel size in log-10 A]
     minwave_hires = alog10(1250D)
-    maxwave_hires = alog10(3.5D4)
+    maxwave_hires = alog10(4D4)
 ;   maxwave_hires = alog10(10000D)
     npix_hires = round((maxwave_hires-minwave_hires)/pixsize_hires+1L)
 
@@ -189,8 +189,8 @@ pro build_desi_bgs_templates, match_sdss=match_sdss, debug=debug, clobber=clobbe
 
 ; build an observed-frame wavelength vector with constant 0.5-A
 ; spacing
-    minwave_obs = 2200D
-    maxwave_obs = 3D4
+    minwave_obs = 1250D
+    maxwave_obs = 4D4
     dwave_obs = 0.5D
     npix_obs = (maxwave_obs-minwave_obs)/dwave_obs+1
     obswave = dindgen(npix_obs)*dwave_obs+minwave_obs
@@ -242,7 +242,6 @@ pro build_desi_bgs_templates, match_sdss=match_sdss, debug=debug, clobber=clobbe
       sigma_kms:           0.0,$ ; intrinsic velocity linewidth [km/s]
       hbeta:               0.0,$
       hbeta_ew:            0.0,$
-      hbeta_continuum:     0.0,$
       oiii_hbeta:       -999.0,$
       decam_g:             0.0,$
       decam_r:             0.0,$
@@ -404,16 +403,18 @@ pro build_desi_bgs_templates, match_sdss=match_sdss, debug=debug, clobber=clobbe
             k_project_filters(k_lambda_to_edges(ised[igal].wave),ised[igal].flux,$
             filterlist='decam_r.par'))<1.0)>0.05 ; note!
 
-; get the *continuum* flux around H-beta and thereby the integrated
-; emission-line flux 
+; get the rest-frame *continuum* flux around H-beta and thereby the
+; integrated emission-line flux
           cflux_hbeta = isedfit_linecontinuum(ised[igal].wave/(1+zobj),$
             ised[igal].flux*(1+zobj),linewave=4861.32,debug=0) ; wavelength in air
-          outinfo_obs[these[igal]].hbeta_continuum = cflux_hbeta/(1+zobj) ; observed [erg/s/cm2/A]
+          outinfo_rest[these[igal]].hbeta_continuum = cflux_hbeta
           outinfo_obs[these[igal]].hbeta = cflux_hbeta*outinfo_obs[these[igal]].hbeta_ew ; [erg/s/cm2]
 
-; measure D(4000)
+; measure D(4000) from the emission-line free (rest-frame) continuum
+; spectrum 
           outinfo_obs[these[igal]].d4000 = im_d4000(ised[igal].wave/(1+zobj),$
             (ised[igal].flux-ised[igal].nebflux)*(1+zobj),debug=0)
+          outinfo_rest[these[igal]].d4000 = outinfo_obs[these[igal]].d4000
 
 ; construct a rest-frame emission-line spectrum which has the correct
 ; H-beta flux; call ISEDFIT_NEBULAR just so we can get the LINE
@@ -467,10 +468,7 @@ pro build_desi_bgs_templates, match_sdss=match_sdss, debug=debug, clobber=clobbe
             10D^restwave*(1+zobj),obswave)
           obsflux = continuum_obs+emspectrum_obs
           
-; fill the rest-frame metadata table
-          outinfo_rest[these[igal]].d4000 = outinfo_obs[these[igal]].d4000
-          outinfo_rest[these[igal]].hbeta_continuum = outinfo_obs[these[igal]].hbeta_continuum*(1+zobj)
-
+; pack it in!
           outflux_rest[these[igal],*] = restflux
           outflux_continuum_rest[these[igal],*] = continuum_rest
           outflux_obs[these[igal],*] = obsflux
@@ -607,7 +605,6 @@ pro build_desi_bgs_templates, match_sdss=match_sdss, debug=debug, clobber=clobbe
       'SIGMA_KMS,km/s,emission line velocity width',$
       'HBETA,erg/s/cm2,H-beta emission-line flux',$
       'HBETA_EW,Angstrom,rest-frame H-beta emission-line equivalent width',$
-      'HBETA_CONTINUUM,erg/s/cm2/A,observed continuum flux around H-beta',$
       'OIII_HBETA,,logarithmic [OIII] 5007/H-beta flux ratio',$
       'DECAM_G,mag,synthesized DECam g-band AB mag',$
       'DECAM_R,mag,synthesized DECam r-band AB mag',$
@@ -621,7 +618,7 @@ pro build_desi_bgs_templates, match_sdss=match_sdss, debug=debug, clobber=clobbe
     units_rest = [$
       'TEMPLATEID,,unique template ID number (0-indexed)',$
       'D4000,,4000-Angstrom break',$
-      'HBETA_CONTINUUM,erg/s/cm2/A,observed continuum flux around H-beta']
+      'HBETA_CONTINUUM,erg/s/cm2/A,rest-frame continuum flux around H-beta']
     units_continuum_rest = units_rest
 
     newheader = [$

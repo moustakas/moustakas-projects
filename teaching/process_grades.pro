@@ -91,10 +91,13 @@ pro process_grades, data, assign=assign, allassign=allassign, $
              endfor
 
 ; ...now add it up, ignoring missing labs; optionally drop the lowest
-; grade 
+; grade; went figuring out the lowest grade weight by the number of
+; points possible
              if keyword_set(lab) then keep = where(points ne 0.0) else begin
                 if droplowest[ii] then begin
                    frac = points/(possible+(possible eq 0))*(possible ne 0)+999*(possible eq 0)
+                   frac_weighted = points/total(possible)
+;                  keep = where(frac_weighted gt min(frac_weighted),nkeep,comp=lowest)
                    keep = where(frac gt min(frac),nkeep,comp=lowest)
 ; special case for a student who has received 100% on every
 ; assignment!

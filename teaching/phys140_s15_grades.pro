@@ -3,7 +3,7 @@ pro phys140_s15_grades, alldata, test=test, sendit=sendit, final=final
 
     path = getenv('TEACHING_DIR')+'/140-S15/grades/'
     
-    date = '15apr12' ; update this
+    date = '15may02' ; update this
     semester = 'Spring 2015'
     class = 'Physics 140 - General Physics II'
 
@@ -15,7 +15,7 @@ pro phys140_s15_grades, alldata, test=test, sendit=sendit, final=final
 ; relative weights
     allassign = ['Homework','Pre-Lecture Quizzes','Chapter Quizzes','Lab','Final Exam']
     weight = [0.25,0.10,0.30,0.15,0.20]
-    droplowest = [0,0,1,0,0]
+    droplowest = [1,0,1,0,0]
 ;   droplowest = [0,0,1,0,0]
 
 ;   keep = where(strmatch(data.last_name,'*Nap*'))

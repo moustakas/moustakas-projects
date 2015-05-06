@@ -3,7 +3,7 @@ pro astr392_s15_grades, alldata, test=test, sendit=sendit, final=final
 
     path = getenv('TEACHING_DIR')+'/392-S15/grades/'
     
-    date = '15apr13' ; update this
+    date = '15may04' ; update this
     semester = 'Spring 2015'
     class = 'Astronomy 392 - Principles of Astrophysics II'
 
@@ -13,11 +13,11 @@ pro astr392_s15_grades, alldata, test=test, sendit=sendit, final=final
 
 ; specify the complete list of *possible* assignments and their
 ; relative weights
-    allassign = ['Homework','Quizzes','Final Problem Set']
+    allassign = ['Homework','Quizzes','Final']
     weight = [0.40,0.40,0.20]
     droplowest = [0,1,0]
 
-;   keep = where(strmatch(data.last_name,'*Mej*'))
+;   keep = where(strmatch(data.last_name,'*Young*'))
 ;   keep = where(data.final_exam gt 0.0)
 ;   data = data[keep]
 

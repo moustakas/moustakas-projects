@@ -145,6 +145,12 @@ pro build_desi_bgs_templates, match_sdss=match_sdss, debug=debug, clobber=clobbe
        sdss_outfile = templatepath+'bgs_sdss_'+version+'.fits'
        mwrfits, phot, sdss_outfile, /create
        mwrfits, spec, sdss_outfile       
+
+; write out some spectra
+       jj = mrdfits('bgs_templates_sdss_v1.0.fits',2)
+       gg = where(jj.fiberid gt -900)
+       niceprint, jj[gg].fiberid, jj[gg].plate, jj[gg].mjd
+       readspec, jj[gg].plate, jj[gg].fiberid, mjd=jj[gg].mjd, flux=flux, wave=wave, zans=zans
        return
     endif
 
@@ -237,7 +243,9 @@ pro build_desi_bgs_templates, match_sdss=match_sdss, debug=debug, clobber=clobbe
       dec:                  0D,$
       z:                   0.0,$
       weight:              0.0,$
+      ages_infiber_r:      0.0,$
       infiber_r:           0.0,$
+      infiber_i:           0.0,$
       vdisp:               0.0,$ ; intrinsic velocity dispersion [km/s]
       sigma_kms:           0.0,$ ; intrinsic velocity linewidth [km/s]
       hbeta:               0.0,$
@@ -258,6 +266,11 @@ pro build_desi_bgs_templates, match_sdss=match_sdss, debug=debug, clobber=clobbe
     outinfo_obs.ra = phot[index].ra
     outinfo_obs.dec = phot[index].dec
     outinfo_obs.z = zcat[index].z ; heliocentric-corrected
+
+    outinfo_obs.infiber_r = phot[index].infiber_r
+    outinfo_obs.infiber_i = phot[index].infiber_i
+
+stop
 
     outinfo_obs.logmstar = isedfit[index].mstar_avg
     outinfo_obs.logsfr = isedfit[index].sfr_avg
@@ -398,7 +411,7 @@ pro build_desi_bgs_templates, match_sdss=match_sdss, debug=debug, clobber=clobbe
           distratio = (dlum/pc10)^2 ; distance ratio factor (obs-->rest)
 
 ; calculate the fraction of the flux within the fiber          
-          outinfo_obs[these[igal]].infiber_r = ((k_project_filters(k_lambda_to_edges($
+          outinfo_obs[these[igal]].ages_infiber_r = ((k_project_filters(k_lambda_to_edges($
             exp(spec1d[igal].wave)),spec1d[igal].flux,filterlist='decam_r.par')/$
             k_project_filters(k_lambda_to_edges(ised[igal].wave),ised[igal].flux,$
             filterlist='decam_r.par'))<1.0)>0.05 ; note!

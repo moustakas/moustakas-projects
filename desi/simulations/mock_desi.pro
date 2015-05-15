@@ -78,8 +78,8 @@ pro mock_desi, elgs=elgs, lrgs=lrgs, stdstars=stdstars, qaplots=qaplots
          'elg_templates/'+version+'/'
        
        if n_elements(elg_restflux) eq 0L then begin
-          obsfile = templatepath+'elg_templates_obs_'+version+'.fits.gz'
-          restfile = templatepath+'elg_templates_'+version+'.fits.gz'
+          obsfile = templatepath+'elg_templates_obs_'+version+'.fits'
+          restfile = templatepath+'elg_templates_'+version+'.fits'
           
           elg_restflux = mrdfits(restfile,0,resthdr);,range=[0,999])
           elg_restwave = 10D^make_wave(resthdr)
@@ -119,7 +119,7 @@ pro mock_desi, elgs=elgs, lrgs=lrgs, stdstars=stdstars, qaplots=qaplots
 
           gr_these = interpolate(elg_gr,findex(elg_zvals,zobj),these)
           rz_these = interpolate(elg_rz,findex(elg_zvals,zobj),these)
-          
+stop          
 ; scale the measured [OII] flux by the r-band (re)normalization factor 
           oii_these = elg_info[these].oii_3727*$ ; [erg/s/cm^2]
             10^(-0.4*(rmag-elg_info[these].decam_r)) 

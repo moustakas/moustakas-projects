@@ -100,7 +100,7 @@ pro build_desi_bgs_templates, match_sdss=match_sdss, debug=debug, clobber=clobbe
     isedfit_dir = getenv('IM_ARCHIVE_DIR')+'/projects/desi/templates/'+$
       'bgs_templates/isedfit/'+isedfit_version+'/'
     templatepath = getenv('DESI_ROOT')+'/spectro/templates/bgs_templates/'+version+'/'
-    sdssdr12dir = '/home/work/data/sdss/dr12/'                                                                  
+    sdssdr12dir = '/home/work/data/sdss/dr12/'
     isedfit_paramfile = isedfit_dir+'desi_ages_paramfile.par'
 
     if file_test(templatepath,/dir) eq 0 then file_mkdir, templatepath
@@ -112,7 +112,6 @@ pro build_desi_bgs_templates, match_sdss=match_sdss, debug=debug, clobber=clobbe
 ; ---------------------------------------------------------------------------
 ; match against the SDSS
     if keyword_set(match_sdss) then begin
-
        sdssdir = getenv('IM_ARCHIVE_DIR')+'/projects/desi/templates/'+$
          'bgs_templates/sdss/'
        phot1 = mrdfits(sdssdir+'bootes-sdss-galaxies-dr12.fits',1)
@@ -148,7 +147,8 @@ pro build_desi_bgs_templates, match_sdss=match_sdss, debug=debug, clobber=clobbe
 
 ; write out some spectra
        jj = mrdfits('bgs_templates_sdss_v1.0.fits',2)
-       gg = where(jj.fiberid gt -900)
+;      gg = (where(jj.fiberid gt -900))[1]
+       gg = where(jj.plate eq 3864)
        niceprint, jj[gg].fiberid, jj[gg].plate, jj[gg].mjd
        readspec, jj[gg].plate, jj[gg].fiberid, mjd=jj[gg].mjd, flux=flux, wave=wave, zans=zans
        return
@@ -269,8 +269,6 @@ pro build_desi_bgs_templates, match_sdss=match_sdss, debug=debug, clobber=clobbe
 
     outinfo_obs.infiber_r = phot[index].infiber_r
     outinfo_obs.infiber_i = phot[index].infiber_i
-
-stop
 
     outinfo_obs.logmstar = isedfit[index].mstar_avg
     outinfo_obs.logsfr = isedfit[index].sfr_avg

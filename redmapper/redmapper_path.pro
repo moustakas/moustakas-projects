@@ -3,7 +3,8 @@ function redmapper_path, isedfit=isedfit, version=version, catalogs=catalogs, $
 ; jm13apr08siena
 
     version = 'v5.10'
-    project_root = getenv('IM_PROJECTS_DIR')+'/redmapper/'
+    project_root = getenv('IM_ARCHIVE_DIR')+'/projects/redmapper/'
+;   project_root = getenv('IM_PROJECTS_DIR')+'/redmapper/'
     archive_root = getenv('IM_ARCHIVE_DIR')+'/projects/redmapper/'
     paperpath = getenv('IM_PAPERS_DIR')+'/projects/redmapper/'
     

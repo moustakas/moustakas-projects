@@ -1,4 +1,4 @@
-pro build_dr1_specz
+pro build_dr1_specz, nosweep=nosweep
 ; jm15mar11siena - cross-match the Tractor catalogs with the SDSS/DR12
 ; specz & photometry catalogs
 
@@ -9,7 +9,7 @@ pro build_dr1_specz
     dr1dir = getenv('DECALS_DIR')+'/dr1/'
 ;   sdssdr12dir = '/global/project/projectdirs/cosmo/work/sdss/cats/'
     sdssdr12dir = '/home/work/data/sdss/dr12/'
-    outfile = dr1dir+'dr1-specz.fits'
+    outfile = dr1dir+'decals-specz.fits'
 
     if n_elements(sdss_coord) eq 0L then sdss_coord = mrdfits(sdssdr12dir+$
       'photoPosPlate-dr12.fits',1,columns=['ra','dec'])
@@ -32,12 +32,14 @@ pro build_dr1_specz
        endfor          
        ngal = n_elements(cat)
 
-; write out a sweep file
-;      sweep = struct_selecttags(cat,except=['SDSS*','*APFLUX*',$
-;        'SHAPE*','*TRANSMISSION*','BLOB','FRACDEV_IVAR'])
-       sweep = struct_selecttags(cat,ex=['SDSS*','*APFLUX*','SHAPE*',$
-         '*TRANSMISSION*','BLOB','FRACDEV_IVAR','BX*','BY*','LEFT*'])
-       mwrfits, sweep, dr1dir+'sweep/tractor-sweep-'+allbrick[ii]+'.fits', /create
+; write out a sweep file (unless /NOSWEEP)
+       if keyword_set(nosweep) eq 0 then begin
+;         sweep = struct_selecttags(cat,except=['SDSS*','*APFLUX*',$
+;           'SHAPE*','*TRANSMISSION*','BLOB','FRACDEV_IVAR'])
+          sweep = struct_selecttags(cat,except=['SDSS*','*APFLUX*','SHAPE*',$
+            '*TRANSMISSION*','BLOB','FRACDEV_IVAR','BX*','BY*','LEFT*'])
+          mwrfits, sweep, dr1dir+'sweep/tractor-sweep-'+allbrick[ii]+'.fits', /create
+       endif
 
 ; match against the SDSS/DR12       
        spherematch, sdss_coord.ra, sdss_coord.dec, cat.ra, $

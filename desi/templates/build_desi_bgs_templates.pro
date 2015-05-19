@@ -270,8 +270,6 @@ pro build_desi_bgs_templates, match_sdss=match_sdss, debug=debug, clobber=clobbe
     outinfo_obs.infiber_r = phot[index].infiber_r
     outinfo_obs.infiber_i = phot[index].infiber_i
 
-stop
-
     outinfo_obs.logmstar = isedfit[index].mstar_avg
     outinfo_obs.logsfr = isedfit[index].sfr_avg
     outinfo_obs.av_ism = isedfit[index].av*isedfit[index].mu ; mean attenuation of the ISM

@@ -36,7 +36,7 @@ pro merge_redmapper_isedfit, centrals=centrals, satellites=satellites
       struct_trimtags(ised[icen],except=['z','ra','dec']))
 
     im_mwrfits, centrals, datapath+'redmapper_isedfit_'+ver+'_centrals.fits', /clobber
-    
+
 ; now do the satellites    
     satellites = struct_trimtags(phot[isat],except=['maggies','ivarmaggies',$
       'model_mag','model_magerr','photoid','isbcg'])

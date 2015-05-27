@@ -440,12 +440,20 @@ pro build_desi_bgs_templates, match_sdss=match_sdss, debug=debug, clobber=clobbe
 ; rescale all the lines to the H-beta flux @10pc, normalized to 1Msun;
 ; note that there is no (1+z) factor because this is an integrated
 ; flux
-          ishbeta = where(strtrim(line.name,2) eq 'H_beta')
+          ishbeta = where(strtrim(line.name,2) eq 'Hbeta')
+;         hbetafactor = reflineflux/line[ishbeta].flux
           hbetafactor = reflineflux/line[ishbeta].flux*distratio/10D^ised[igal].mstar ; no (1+z)!
           for ll = 0, n_elements(line)-1 do begin
              line[ll].flux = line[ll].flux*hbetafactor
              line[ll].amp = line[ll].amp*hbetafactor
           endfor
+
+;; test to be sure we get the right total H-beta flux - yes!
+;          ishbeta = where(strtrim(line.name,2) eq 'Hbeta')
+;          testemspectrum = build_emline(restwave*0,logwave=restwave,$
+;            lineflux=line[ishbeta].flux,linesigma=linesigma,linewave=line[ishbeta].wave)
+;          print, im_integral(10^restwave,testemspectrum)*10D^ised[igal].mstar/distratio, $
+;            outinfo_obs[these[igal]].hbeta, linesigma
 
 ; now build the full emission-line spectrum at the new velocity
 ; resolution
@@ -475,6 +483,7 @@ pro build_desi_bgs_templates, match_sdss=match_sdss, debug=debug, clobber=clobbe
           continuum_obs = continuum_convolve(continuum_obs1,velscale=velpixsize_hires,$
             vdisp=outinfo_obs[these[igal]].vdisp)
 
+;         emspectrum_obs = interpol(emspectrum_rest/(1+zobj),10D^restwave*(1+zobj),obswave)
           emspectrum_obs = interpol(emspectrum_rest*10D^ised[igal].mstar/(1+zobj)/distratio,$
             10D^restwave*(1+zobj),obswave)
           obsflux = continuum_obs+emspectrum_obs

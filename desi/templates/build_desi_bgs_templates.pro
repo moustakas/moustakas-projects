@@ -133,7 +133,11 @@ pro build_desi_bgs_templates, match_sdss=match_sdss, debug=debug, clobber=clobbe
        spherematch, phot1.ra, phot1.dec, cat[miss].ra, cat[miss].dec, 1D/3600.0, m1, m2
 
        phot[miss[m2]] = im_struct_assign(phot1[m1],phot[miss[m2]])
+
+; add the PHOTOID and CASID
        
+stop
+
 ; match against the spectroscopic catalog       
        spec1 = mrdfits(sdssdr12dir+'specObj-dr12.fits',1)
        spherematch, spec1.plug_ra, spec1.plug_dec, cat.ra, cat.dec, 1D/3600.0, m1, m2
@@ -144,6 +148,8 @@ pro build_desi_bgs_templates, match_sdss=match_sdss, debug=debug, clobber=clobbe
        sdss_outfile = templatepath+'bgs_sdss_'+version+'.fits'
        mwrfits, phot, sdss_outfile, /create
        mwrfits, spec, sdss_outfile       
+
+stop
 
 ; write out some spectra
        jj = mrdfits('bgs_templates_sdss_v1.0.fits',2)

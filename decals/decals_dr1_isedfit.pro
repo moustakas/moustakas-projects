@@ -1,55 +1,66 @@
 pro decals_dr1_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
   model_photometry=model_photometry, qaplot_models=qaplot_models, isedfit=isedfit, $
   kcorrect=kcorrect, qaplot_sed=qaplot_sed, thissfhgrid=thissfhgrid, $
-  clobber=clobber, nodecals=nodecals
+  clobber=clobber, nodecals=nodecals, nosdss=nosdss
 ; jm14sep07siena
 
+; echo "decals_dr1_isedfit, /ised, /qaplot_sed, /cl" | /usr/bin/nohup idl > & logall.log & 
+; echo "decals_dr1_isedfit, /ised, /qaplot_sed, /nosdss, /cl" | /usr/bin/nohup idl > & lognosdss.log & 
+; echo "decals_dr1_isedfit, /ised, /qaplot_sed, /nodecals, /cl" | /usr/bin/nohup idl > & lognodecals.log & 
+
     prefix = 'decals_dr1'
-    dr1_dir = getenv('DECALS_DIR')+'/'
+    dr1_dir = getenv('DECALS_DIR_DR1')+'/'
     isedfit_dir = getenv('IM_ARCHIVE_DIR')+'/decam/isedfit/dr1/'
     montegrids_dir = isedfit_dir+'montegrids/'
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
-    
+
 ; define the catalog
-    tractor = mrdfits(dr1_dir+'dr1-specz.fits',1)
-    specz = mrdfits(dr1_dir+'dr1-specz.fits',2)
-    phot = mrdfits(dr1_dir+'dr1-specz.fits',3)
+    tractor = mrdfits(dr1_dir+'decals-specz.fits',1)
+    specz = mrdfits(dr1_dir+'decals-specz.fits',2)
+    phot = mrdfits(dr1_dir+'decals-specz.fits',3)
     these = where(specz.z ge 0.05 and specz.z le 0.7 and specz.zwarning eq 0 and $
       strtrim(specz.class,2) eq 'GALAXY' and tractor.decam_nobs[1] ge 1 and $
       tractor.decam_nobs[2] ge 1 and tractor.decam_nobs[4] ge 1,ngal)
+;   these = these[0:50] & ngal = n_elements(these)
     tractor = tractor[these]
     specz = specz[these]
     phot = phot[these]
     splog, 'Number of galaxies ', ngal
-
+    
     galaxy = tractor.brickname+'-'+string(tractor.objid,format='(I5.5)')
-
+       
 ; gather the photometry    
     decals_to_maggies, tractor, dmaggies, divarmaggies, $
       filterlist=dfilterlist, /shortwise, /decam_grz
-
+    
 ;   sdss_to_maggies, smaggies, sivarmaggies, calib=phot, flux='model'
     sdss_to_maggies, modelmaggies, modelivarmaggies, calib=phot, flux='model'
     sdss_to_maggies, cmodelmaggies, cmodelivarmaggies, calib=phot, flux='cmodel'
     ratio = cmodelmaggies[2,*]/(modelmaggies[2,*]+(modelmaggies[2,*] eq 0))
     neg = where(modelmaggies[2,*] le 0)
     if (neg[0] ne -1L) then ratio[neg] = 1.0
-
+    
     factor = rebin(ratio,5,ngal)
     smaggies = modelmaggies*factor
     sivarmaggies = modelivarmaggies/factor^2
-
+    
     maggies = [dmaggies,smaggies]
     ivarmaggies = [divarmaggies,sivarmaggies]
     filterlist = [dfilterlist,sdss_filterlist()]
     zobj = specz.z
-
+       
 ; do not use DECaLS photometry in the fitting    
     if keyword_set(nodecals) then begin
        outprefix = 'nodecals'
        ivarmaggies[0:2,*] = 0   ; no weight!
     endif
-
+       
+; do not use SDSS photometry in the fitting    
+    if keyword_set(nosdss) then begin
+       outprefix = 'nosdss'
+       ivarmaggies[5:9,*] = 0   ; no weight!
+    endif
+       
 ; --------------------------------------------------
 ; build the parameter files
     if keyword_set(write_paramfile) then begin
@@ -81,7 +92,8 @@ pro decals_dr1_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
     if keyword_set(isedfit) then begin
        isedfit, isedfit_paramfile, maggies, ivarmaggies, zobj, thissfhgrid=thissfhgrid, $
          isedfit_dir=isedfit_dir, outprefix=outprefix, isedfit_results=ised, $
-         isedfit_post=isedpost, clobber=clobber, photoz=photoz, index=index
+         isedfit_post=isedpost, clobber=clobber, photoz=photoz, index=index, $
+         ra=tractor.ra, dec=tractor.dec
     endif 
 
 ; --------------------------------------------------
@@ -90,7 +102,7 @@ pro decals_dr1_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
        isedfit_kcorrect, isedfit_paramfile, isedfit_dir=isedfit_dir, $
          montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
          absmag_filterlist=galex_filterlist(), band_shift=0.0, $
-         clobber=clobber
+         clobber=clobber, outprefix=outprefix
     endif 
 
 ; --------------------------------------------------

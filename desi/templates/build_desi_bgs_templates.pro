@@ -134,10 +134,38 @@ pro build_desi_bgs_templates, match_sdss=match_sdss, debug=debug, clobber=clobbe
 
        phot[miss[m2]] = im_struct_assign(phot1[m1],phot[miss[m2]])
 
-; add the PHOTOID and CASID
-       
-stop
+       phot = struct_addtags(replicate({photoid: long64(0), casid: long64(0)},ngal),phot)
+       phot.photoid = sdss_photoid(phot.run,phot.rerun,phot.camcol,phot.field,phot.id)
 
+       outfile = '~/tmp/bgs_casjobs.dat'
+       openw, lun, outfile, /get_lun
+       printf, lun, '# id ra dec'
+       struct_print, struct_trimtags(phot,select=['photoid','ra','dec']), $
+         lun=lun, ddigit=12, /no_head
+       free_lun, lun
+
+       
+       
+       
+       rdeV and rExp, the effective radii of the models;
+       abDeV and abExp, the axis ratio of the best fit models ;
+       phiDeV and phiExp, the position angles of the ellipticity (in degrees East of North).
+
+       
+       
+       
+; add PHOTOID and CASID or the equivalent casjobs output
+       if file_test(file) eq 0 then begin
+          
+          sdss_photoid(run,[rerun,camcol,field,id])
+          phot.casid = photoid2casid(phot.photoid)
+       endif else begin
+
+          
+       endelse
+
+stop       
+       
 ; match against the spectroscopic catalog       
        spec1 = mrdfits(sdssdr12dir+'specObj-dr12.fits',1)
        spherematch, spec1.plug_ra, spec1.plug_dec, cat.ra, cat.dec, 1D/3600.0, m1, m2

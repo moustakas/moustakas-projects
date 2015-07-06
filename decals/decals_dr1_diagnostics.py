@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-if __name__ == '__main__':
+def main():
 
     import os
     import numpy as np
@@ -46,3 +46,6 @@ if __name__ == '__main__':
     cb.set_clim(vmin=vmin,vmax=vmax)
     plt.savefig('test.png')
     plt.close()
+
+if __name__ == '__main__':
+    main()

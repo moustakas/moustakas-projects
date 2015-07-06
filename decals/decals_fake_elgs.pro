@@ -182,7 +182,7 @@ stop
        version = desi_elg_templates_version()
        templatepath = getenv('DESI_ROOT')+'/spectro/templates/'+$
          'elg_templates/'+version+'/'
-       cat = mrdfits(templatepath+'elg_templates_obs_'+version+'.fits.gz',1)
+       cat = mrdfits(templatepath+'elg_templates_obs_'+version+'.fits',1)
 
        keep = where(cat.radius_halflight gt 0 and cat.sersicn lt 6.0,ngal)
        cat = cat[keep]

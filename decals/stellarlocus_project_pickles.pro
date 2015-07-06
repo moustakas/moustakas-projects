@@ -2,8 +2,7 @@ function stellarlocus_project_pickles, filterlist, pickles=pickles
 ; jm09jul24ucsd - project specified bandpasses onto the Pickles+98
 ;   spectra 
     
-    if (n_elements(pickles) eq 0) then pickles = $
-      mrdfits('pickles.fits',1,/silent)
+    if (n_elements(pickles) eq 0) then pickles = read_98pickles()
 ;     mrdfits(getenv('IM_PROJECTS_DIR')+'/decals/dr1/qaplots/pickles.fits',1,/silent)
     nband = n_elements(filterlist)
     nstar = n_elements(pickles)

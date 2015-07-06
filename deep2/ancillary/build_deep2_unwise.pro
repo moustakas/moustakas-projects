@@ -1,4 +1,4 @@
-pro build_deep2_unwise, query=query, parse=parse
+pro build_deep2_unwise
 ; jm14may21siena - merge the individual unWISE pcat files and match
 ; them to the extended photometric catalog
 
@@ -9,6 +9,8 @@ pro build_deep2_unwise, query=query, parse=parse
     ff = file_search(wisepath+'*.fits.gz',count=nff)
     wise = mrdfits(ff[0],1)
     for ii = 1, nff-1 do wise = [wise,mrdfits(ff[ii],1)]
+
+    im_mwrfits, wise, catpath+'deep2.unwise.fits', /clobber
 
     phot = mrdfits(catpath+'zcat_ext.uniq.fits.gz',1)
     ngal = n_elements(phot)

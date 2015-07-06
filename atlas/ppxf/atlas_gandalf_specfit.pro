@@ -406,8 +406,8 @@ pro atlas_gandalf_specfit, debug=debug, broad=broad, nuclear=nuclear, solar=sola
 
 ; fit each object using GANDALF/PPXF
     t0 = systime(1)
-;   for iobj = 0, 1 do begin
-    for iobj = 0, nobj-1 do begin
+    for iobj = 339, 339 do begin
+;   for iobj = 0, nobj-1 do begin
        splog, file_basename(speclist[iobj])+': '+string(iobj+1,$
          format='(I3.3)')+'/'+string(nobj,format='(I3.3)')
 
@@ -543,6 +543,7 @@ pro atlas_gandalf_specfit, debug=debug, broad=broad, nuclear=nuclear, solar=sola
          specdata = [temporary(specdata),specdata1]
        
     endfor
+stop
     im_mwrfits, specdata, specdatafile, /clobber
     splog, 'Total time = ', (systime(1)-t0)/60.0, ' minutes'
     

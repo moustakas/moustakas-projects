@@ -3,11 +3,12 @@ function stellarlocus_decals_colors, maggies, filterlist=filterlist
     case filterlist of
        'grz': begin
           colors = {$
-            r: reform(-2.5*alog10(maggies[1,*])+22.5), $
+            g: reform(-2.5*alog10(maggies[0,*])), $
+            r: reform(-2.5*alog10(maggies[1,*])), $
+            z: reform(-2.5*alog10(maggies[2,*])), $
             gr: reform(-2.5*alog10(maggies[0,*]/maggies[1,*])), $
             rz: reform(-2.5*alog10(maggies[1,*]/maggies[2,*]))}
        end
     endcase
-
 return, colors
 end

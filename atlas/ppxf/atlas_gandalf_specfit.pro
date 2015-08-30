@@ -77,16 +77,19 @@ pro atlas_read_and_rebin, specfile, spec1dpath=spec1dpath, $
     linearferr = spec1d.sigspec/fluxscale
     linearwave = spec1d.wave
 
-; rebin logarithmically in wavelength
-    log_rebin, minmax(linearwave), linearflux, flux, $
-      wave, velscale=velscale
-    log_rebin, minmax(linearwave), linearferr^2, var, $
-      velscale=velscale
+; rebin logarithmically in wavelength; jm15aug13siena - LOG_REBIN() seems to be
+; inconsistent with IM_LOG_REBIN() and does not conserve flux!  
+    flux = im_log_rebin(linearwave,linearflux,var=linearferr^2,$
+      outwave=wave,outvar=var,vsc=velscale)
+;   log_rebin, minmax(linearwave), linearflux, flux, $
+;     wave, velscale=velscale
+;   log_rebin, minmax(linearwave), linearferr^2, var, $
+;     velscale=velscale
     ferr = sqrt(abs(var))
 
     good = where(linearferr gt 0.0,ngood)
     snr = djs_median(linearflux[good]/linearferr[good])
-    
+
 return
 end
 
@@ -149,7 +152,7 @@ function atlas_fit_lines, wave, flux, ferr, continuum, smooth_continuum, $
 
 ; parse the output
     if keyword_set(debug) then begin
-       djs_plot, exp(restwave), restlineflux, ps=10, xr=[3650,4100] ; xr=[6400,6750] ; 
+       djs_plot, exp(restwave), restlineflux, ps=10, xr=[6400,6750] ; xr=[3650,4100]
        djs_oplot, exp(restwave), bestlinefit, ps=10, color='green'
        djs_oplot, exp(restwave[goodpixels]), restlineflux[goodpixels], ps=4, color='blue'
        djs_oplot, exp(restwave[goodlinepixels]), restlineflux[goodlinepixels], ps=4, color='red'
@@ -219,12 +222,12 @@ pro atlas_zabs_vdisp, wave, flux, ferr, tempwave=tempwave, $
 ; fitting parameters
     if (n_elements(zabs_guess) eq 0) then zabs_guess = 0.0
     if (n_elements(vdisp_guess) eq 0) then vdisp_guess = 150.0 ; [km/s]
-    if (n_elements(vmaxshift) eq 0) then vmaxshift = 500D ; maximum velocity shift [km/s]
+    if (n_elements(vmaxshift) eq 0) then vmaxshift = 200D ; maximum velocity shift [km/s]
     if (n_elements(sigmamax) eq 0) then sigmamax = 500D   ; maximum velocity dispersion [km/s]
     npix = n_elements(wave)
     
-    min_fitwave1 = 3700.0 ; rest-frame
-    max_fitwave1 = 4850.0 ; 4200.0
+    min_fitwave1 = 3600.0 ; rest-frame
+    max_fitwave1 = 4400.0 ; 4200.0
 
     linearwave = exp(wave)
     restwave = wave - alog(zabs_guess+1.0D)
@@ -254,7 +257,7 @@ pro atlas_zabs_vdisp, wave, flux, ferr, tempwave=tempwave, $
     im_ppxf, fit_tempflux, restflux, restferr, velscale, $
       start, sol, goodpixels=goodpixels, plot=doplot, $
       moments=2, degree=degree, error=err, bestfit=bestfit, $
-      /clean, /quiet, vmaxshift=vmaxshift, sigmamax=sigmamax
+      /clean, quiet=1, vmaxshift=vmaxshift, sigmamax=sigmamax
     chi2 = sol[6]
     err = err*sqrt(chi2)        ; scale by chi^2/dof
 
@@ -262,14 +265,14 @@ pro atlas_zabs_vdisp, wave, flux, ferr, tempwave=tempwave, $
     zabs_err = zabs*(err[0]/light)
     vdisp = sol[1]
     vdisp_err = err[1]
-    
+
     if keyword_set(debug) then begin
        djs_plot, exp(restwave), restflux, ps=10, xsty=3, ysty=3, xr=[3650,4400]
        djs_oplot, exp(restwave), bestfit, ps=10, color='yellow'
        splog, zabs_guess, zabs, zabs_err, vdisp, vdisp_err, chi2
        cc = get_kbrd(1)
     endif
-    
+
 end
     
 function atlas_fit_continuum, wave, flux, ferr, tempwave=tempwave, $
@@ -312,7 +315,7 @@ function atlas_fit_continuum, wave, flux, ferr, tempwave=tempwave, $
     err = err*sqrt(chi2)        ; scale by chi^2/dof
 
     if keyword_set(debug) then begin
-       djs_plot, exp(restwave), restflux, ps=10, xsty=3, ysty=3, xr=[3650,5400]
+       djs_plot, exp(restwave), restflux, ps=10, xsty=3, ysty=3, xr=[6500,6750] ; xr=[5500,6800] ; xr=[4700,5050], xr=[3650,5400]
        djs_oplot, exp(restwave), continuum, ps=10, color='blue'
  ;     djs_oplot, exp(restwave[goodpixels]), restflux[goodpixels], psym=4, color='red'
 ;      djs_oplot, exp(restwave[goodlinepixels]), restflux[goodlinepixels], ps=4, color='blue'
@@ -406,8 +409,10 @@ pro atlas_gandalf_specfit, debug=debug, broad=broad, nuclear=nuclear, solar=sola
 
 ; fit each object using GANDALF/PPXF
     t0 = systime(1)
-    for iobj = 339, 339 do begin
-;   for iobj = 0, nobj-1 do begin
+;   for iobj = 0, 20 do begin ; =UM461
+;   for iobj = 195, 195 do begin ; =UM461
+;   for iobj = 339, 339 do begin ; =UGCA410
+    for iobj = 0, nobj-1 do begin
        splog, file_basename(speclist[iobj])+': '+string(iobj+1,$
          format='(I3.3)')+'/'+string(nobj,format='(I3.3)')
 
@@ -429,11 +434,18 @@ pro atlas_gandalf_specfit, debug=debug, broad=broad, nuclear=nuclear, solar=sola
 
 ; if the velocity dispersion is not well-measured then put a floor
           vdisp_snr = vdisp1/(vdisp_err1+(vdisp_err1 eq 0))*(vdisp_err1 ne 0)
-          if (vdisp_snr lt 1.0) then begin
+          if (vdisp_snr lt 1.0) or abs(vdisp_err1) eq 0.0 then begin
              vdisp1 = 150.0
              vdisp_err1 = -1.0
           endif
-          
+
+; if ZABS is not well-measured then don't use it
+          zabs_snr = zabs1/(zabs_err1+(zabs_err1 eq 0))*(zabs_err1 ne 0)
+          if (zabs_snr lt 1.0) or abs(zabs_err1) eq 0.0 then begin
+             zabs1 = zguess[iobj]
+             zabs_err1 = -1.0
+          endif
+
 ; test the effect of *fixing* the velocity dispersion for all galaxies!
 ;         vdisp1 = 150.0
 
@@ -543,7 +555,7 @@ pro atlas_gandalf_specfit, debug=debug, broad=broad, nuclear=nuclear, solar=sola
          specdata = [temporary(specdata),specdata1]
        
     endfor
-stop
+    
     im_mwrfits, specdata, specdatafile, /clobber
     splog, 'Total time = ', (systime(1)-t0)/60.0, ' minutes'
     

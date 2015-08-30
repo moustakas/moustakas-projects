@@ -21,13 +21,16 @@ function atlas_version, ancillary=ancillary, specfit=specfit, $
 ;    v1.1 - minor tweaks to the BC03 info structure; write out a
 ;           limited wavelength range
 ;
+; ppxf_specfit
+;    v1.0 - original effort
+;    v1.1 - trying to fix various problems
     
     if keyword_set(ancillary) then version = 'v1.1'
     if keyword_set(specfit) then version = 'v3.1'
     if keyword_set(templates) then version = 'v1.1'
 
     if keyword_set(ppxf_templates) then version = 'v1.0'
-    if keyword_set(ppxf_specfit) then version = 'v1.0'
+    if keyword_set(ppxf_specfit) then version = 'v1.1'
     if keyword_set(ppxf_ancillary) then version = 'v1.0'
 
 return, version

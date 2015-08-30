@@ -464,7 +464,7 @@ endif else begin
 endelse
 
 ; jm09dec08ucsd
-if (n_elements(vmaxshift) eq 0) then vmaxshift = 2000D ; maximum velocity shift (km/s)
+if (n_elements(vmaxshift) eq 0) then vmaxshift = 500D ; maximum velocity shift (km/s)
 if (n_elements(sigmamax) eq 0) then sigmamax = 1000D ; maximum velocity dispersion (km/s)
 
 if moments gt 0 then begin
@@ -489,6 +489,7 @@ if moments gt 0 then begin
     endelse
     start1[0] = start/velScale  ; Convert velocity scale to pixels
     parinfo[0].limits = start1[0] + [-vmaxshift,vmaxshift]/velScale ; +/-VMAXSHIFT km/s from first guess
+
     parinfo[1].limits = [0.1d,sigmamax/velScale] ; hard-coded velScale/10<sigma<SIGMAMAX km/s
 ;   parinfo[0].limits = start1[0] + [-2d3,2d3]/velScale ; +/-2000 km/s from first guess
 ;   parinfo[1].limits = [0.1d,1d3/velScale] ; hard-coded velScale/10<sigma<1000 km/s

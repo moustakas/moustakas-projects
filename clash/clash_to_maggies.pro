@@ -10,7 +10,7 @@
 ;
 ; OPTIONAL INPUTS: 
 ;
-; KEYWORD PARAMETERS: 
+; KEYWORD PARAMETERS:
 ;
 ; OUTPUTS: 
 ;   maggies - 

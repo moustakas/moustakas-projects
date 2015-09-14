@@ -83,11 +83,14 @@ pro sings_read_and_rebin, specfile, spec1dpath=spec1dpath, $
     linearferr = spec1d.sigspec/fluxscale
     linearwave = spec1d.wave
 
-; rebin logarithmically in wavelength
-    log_rebin, minmax(linearwave), linearflux, flux, $
-      wave, velscale=velscale
-    log_rebin, minmax(linearwave), linearferr^2, var, $
-      velscale=velscale
+; rebin logarithmically in wavelength; jm15aug13siena - LOG_REBIN() seems to be
+; inconsistent with IM_LOG_REBIN() and does not conserve flux!  
+    flux = im_log_rebin(linearwave,linearflux,var=linearferr^2,$
+      outwave=wave,outvar=var,vsc=velscale)
+;   log_rebin, minmax(linearwave), linearflux, flux, $
+;     wave, velscale=velscale
+;   log_rebin, minmax(linearwave), linearferr^2, var, $
+;     velscale=velscale
     ferr = sqrt(abs(var))
 
     good = where(linearferr gt 0.0,ngood)
@@ -265,7 +268,7 @@ pro sings_zabs_vdisp, wave, flux, ferr, tempwave=tempwave, $
     err = err*sqrt(chi2)        ; scale by chi^2/dof
 
     zabs = exp((vsys+sol[0]-voffset)/light)-1.0D ; new absorption-line redshift
-    zabs_err = zabs*(err[0]/light)
+    zabs_err = abs(zabs*(err[0]/light))
     vdisp = sol[1]
     vdisp_err = err[1]
     

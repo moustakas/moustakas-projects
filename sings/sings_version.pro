@@ -41,10 +41,10 @@
 ;
 ;   ppxf_templates 
 ;     v1.0 - see SINGS_GANDALF_SPECFIT
-;     v2.0 - expanded wavelength range, for M. Brown's photoz
-;       template project
+;     v2.0 - expanded wavelength range, for M. Brown's template project 
 ;   ppxf_specfit
 ;     v1.0 - see SINGS_GANDALF_SPECFIT
+;     v1.1 - changed from LOG_REBIN() to IM_LOG_REBIN()
 ;
 ; MODIFICATION HISTORY:
 ;   J. Moustakas, 2008 Sep 08, NYU - written, based on earlier
@@ -74,7 +74,7 @@ function sings_version, ancillary=ancillary, specfit=specfit, $
     if keyword_set(templates) then version = 'v2.0'
 
     if keyword_set(ppxf_templates) then version = 'v2.0' ; 'v1.0'
-    if keyword_set(ppxf_specfit) then version = 'v1.0'
+    if keyword_set(ppxf_specfit) then version = 'v1.1'
 
 return, version
 end

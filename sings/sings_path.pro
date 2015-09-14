@@ -3,12 +3,13 @@ function sings_path, spec1d=spec1d, spec2d=spec2d, ascii=ascii, analysis=analysi
   dss=dss, web=web, papers=papers, ppxf=ppxf
 ; jm03jan16uofa
 
+    archivepath = getenv('IM_ARCHIVE_DIR')+'/data/sings/'
     datapath = getenv('IM_RESEARCH_DIR')+'/projects/sings/'
     paperspath = getenv('IM_PAPERS_DIR')+'/projects/sings/'
 
-    if keyword_set(spec1d) then return, datapath+'spec1d/' 
+    if keyword_set(spec1d) then return, archivepath+'spec1d/' 
     if keyword_set(ascii) then return, datapath+'ascii/' 
-    if keyword_set(analysis) then return, datapath+'analysis/' 
+    if keyword_set(analysis) then return, archivepath+'analysis/' 
     if keyword_set(specfit) then return, datapath+'specfit/' 
     if keyword_set(templates) then return, datapath+'templates/' 
     if keyword_set(observing) then return, datapath+'observing/' 
@@ -17,7 +18,7 @@ function sings_path, spec1d=spec1d, spec2d=spec2d, ascii=ascii, analysis=analysi
     if keyword_set(web) then return, datapath+'public_html/sings/' 
     if keyword_set(papers) then return, paperspath
     
-    if keyword_set(ppxf) then return, datapath+'ppxf/' 
+    if keyword_set(ppxf) then return, archivepath+'ppxf/' 
 
     if keyword_set(spec2d) then begin
        if file_test('/mount/bias1/ioannis/sings/spec2d/',/directory) then begin

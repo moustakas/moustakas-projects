@@ -45,14 +45,18 @@ function read_sings_ppxf_templates, out_tempwave, velscale=velscale, $
     
 ; resample logarithmically (natural log) for use with PPXF
     if (n_elements(velscale) ne 0) then begin
-       log_rebin, minmax(linear_tempwave), tempflux[*,0,0], $
-         lnflux1, out_tempwave, velscale=velscale
+       lnflux1 = im_log_rebin(linear_tempwave,reform(tempflux[*,0,0]),$
+         outwave=out_tempwave,outvar=var,vsc=velscale)
+;      log_rebin, minmax(linear_tempwave), tempflux[*,0,0], $
+;        lnflux1, out_tempwave, velscale=velscale
        ntemppix = n_elements(lnflux1)
        out_tempflux = fltarr(ntemppix,ntemp,nmetal)
        for jj = 0, nmetal-1 do begin
           for ii = 0, ntemp-1 do begin
-             log_rebin, minmax(linear_tempwave), tempflux[*,ii,jj], $
-               lnflux1, velscale=velscale
+             lnflux1 = im_log_rebin(linear_tempwave,reform(tempflux[*,ii,jj]),$
+               outwave=out_tempwave,outvar=var,vsc=velscale)
+;            log_rebin, minmax(linear_tempwave), tempflux[*,ii,jj], $
+;              lnflux1, velscale=velscale
              out_tempflux[*,ii,jj] = lnflux1
           endfor
        endfor

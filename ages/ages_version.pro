@@ -84,6 +84,8 @@
 ;     v1.0 - see AGES_GANDALF_SPECFIT
 ;   ppxf_specfit
 ;     v1.0 - see AGES_GANDALF_SPECFIT
+;     v2.0 - 
+;     v2.1 - fix LOG_REBIN bug
 ;   ppxf_ancillary 
 ;     v1.0 - see BUILD_AGES_GANDALF_ANCILLARY
 ;     v2.0 - updated to use the v2.0 photometry and v3.0 K-corrections
@@ -127,7 +129,7 @@ function ages_version, ancillary=ancillary, photometry=photometry, $
 ;   if keyword_set(ppxf_templates) then version = 'v1.0'
 ;   if keyword_set(ppxf_specfit) then version = 'v1.0'
     if keyword_set(ppxf_templates) then version = 'v2.0'
-    if keyword_set(ppxf_specfit) then version = 'v2.0'
+    if keyword_set(ppxf_specfit) then version = 'v2.1'
 
 return, version
 end

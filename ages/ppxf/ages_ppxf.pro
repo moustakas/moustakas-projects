@@ -420,7 +420,7 @@ if n_elements(reddening) gt 0 then begin
     if n_elements(mdegree) gt 0 then $
         message, 'MDEGREE cannot be used with REDDENING keyword'
 endif else lambda = 0
-if ~array_equal(noise gt 0, 1) then message, 'NOISE must be a positive vector'
+if ~array_equal(noise ge 0, 1) then message, 'NOISE must be a positive vector'
 if s4[0] gt 0 && s4[1] ne s2[1] then message, 'SKY must have the same size as GALAXY'
 if n_elements(degree) le 0 then degree = 4 else degree = degree > (-1)
 if n_elements(mdegree) le 0 then mdegree = 0 else mdegree = mdegree > 0

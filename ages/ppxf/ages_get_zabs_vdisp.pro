@@ -115,8 +115,10 @@ pro ages_get_zabs_vdisp, pass1, firstpass=firstpass, lastpass=lastpass, $
           flux = spec1d.flux[good,index[iobj]]
           ferr = spec1d.ferr[good,index[iobj]]
 
-          log_rebin, minmax(wave), flux, lnflux, lnwave, velscale=velscale
-          log_rebin, minmax(wave), ferr^2, lnvar, velscale=velscale
+          lnflux = im_log_rebin(wave,flux,var=ferr^2,$
+            outwave=lnwave,outvar=lnvar,vsc=velscale)
+;         log_rebin, minmax(wave), flux, lnflux, lnwave, velscale=velscale
+;         log_rebin, minmax(wave), ferr^2, lnvar, velscale=velscale
           lnferr = sqrt(abs(lnvar))
 
           lnrestwave = lnwave - alog(zobj+1.0D)

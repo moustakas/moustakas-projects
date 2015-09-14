@@ -187,7 +187,7 @@ return
 end
     
 pro qaplot_sings_gandalf_specfit, specdata, nuclear=nuclear, $
-  drift20=drift20, drift56=drift56, psfile=psfile
+  drift20=drift20, drift56=drift56, psfile=psfile, solar=solar
 ; jm10mar04ucsd - build a QAplot from the SINGS_GANDALF_SPECFIT output
 
     if (keyword_set(nuclear) eq 0) and (keyword_set(drift20) eq 0) and $
@@ -202,14 +202,15 @@ pro qaplot_sings_gandalf_specfit, specdata, nuclear=nuclear, $
     if keyword_set(nuclear) then suffix = 'nuclear'
     if keyword_set(drift20) then suffix = 'drift20'
     if keyword_set(drift56) then suffix = 'drift56'
+    if keyword_set(solar) then suffix = 'solar_'+suffix
     if (n_elements(psfile) eq 0) then psfile = specfitpath+$
       'qaplot_sings_'+suffix+'_'+version+'.ps'
 
     if (n_elements(specdata) eq 0) then $
       specdata = read_sings_gandalf(nuclear=nuclear, $
-      drift20=drift20,drift56=drift56)
+      drift20=drift20,drift56=drift56,solar=solar)
     specfit = read_sings_gandalf_specfit(specdata,$
-      nuclear=nuclear,drift20=drift20,drift56=drift56)
+      nuclear=nuclear,drift20=drift20,drift56=drift56,solar=solar)
 
 ; build the plot    
     im_plotconfig, 19, pos2, xspace=0.5, yspace=[0.5,0.5,0.5], $
@@ -229,7 +230,7 @@ pro qaplot_sings_gandalf_specfit, specdata, nuclear=nuclear, $
        endfor
     endif
        
-    im_plotconfig, psfile=psfile, /gzip, /psclose
+    im_plotconfig, psfile=psfile, /pdf, /psclose
 
 return
 end    

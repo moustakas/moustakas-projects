@@ -18,10 +18,8 @@ pro clash_redgals_isedfit, write_paramfile=write_paramfile, build_grids=build_gr
 
     cat = rsex(isedfit_dir+'redgals.cat')
 
-    zobj = cat.zml
+    zobj = float(string(cat.zml,format='(F12.5)'))
     clash_redgals_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist
-
-stop
 
 ; --------------------------------------------------
 ; build the parameter files
@@ -54,7 +52,7 @@ stop
        isedfit, isedfit_paramfile, maggies, ivarmaggies, zobj, $
          isedfit_dir=isedfit_dir, outprefix=outprefix, isedfit_results=ised, $
          isedfit_post=isedpost, clobber=clobber, thissfhgrid=thissfhgrid, $
-         photoz=photoz, index=index;, ra=cat.ra, dec=cat.dec
+         photoz=photoz, index=index, ra=cat.alpha_j2000, dec=cat.delta_j2000
     endif 
 
 ; --------------------------------------------------
@@ -69,11 +67,19 @@ stop
 ; --------------------------------------------------
 ; generate spectral energy distribution (SED) QAplots
     if keyword_set(qaplot_sed) then begin
-;      index = lindgen(50)
-       isedfit_qaplot_sed, isedfit_paramfile, isedfit_dir=isedfit_dir, $
-         montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
-         clobber=clobber, /xlog, nrandom=40, galaxy=galaxy, $
-         index=index, outprefix=outprefix
+       allcl = strtrim(cat.cluster,2)
+       cl = allcl[uniq(allcl,sort(allcl))]
+       galaxy = 'GalID'+string(cat.galid,format='(I4.4)')
+       for ii = 0, n_elements(cl)-1 do begin
+          pdffile = cl[ii]+'_fsps_v2.4_miles_salp_charlot_sfhgrid01.pdf'
+          index = where(cl[ii] eq allcl)
+
+          isedfit_qaplot_sed, isedfit_paramfile, isedfit_dir=isedfit_dir, $
+            montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
+            clobber=clobber, /xlog, galaxy=galaxy, $
+            index=index, outprefix=outprefix, $ ;nrandom=40, $
+            pdffile=pdffile
+       endfor
     endif
     
 return

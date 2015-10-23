@@ -142,13 +142,13 @@ pro process_grades, data, assign=assign, allassign=allassign, $
 
 ; print the current grade and predict the final grade, unless
 ; we're at the end of the semester
-       these = where(isdata eq 1)
+       these = where(isdata eq 1,nthese)
        current = 100*im_weighted_mean(cumupoints[these]/$
          cumupossible[these],weights=weight[these])
        indx = tag_indx(alldata,'current_grade')
        alldata[ss].(indx) = current
        grade = 100*im_weighted_mean(cumupoints/cumupossible,weights=weight)
-       if total(isdata eq -1) gt 0 then begin
+       if total(isdata eq -1) gt 0 or (keyword_set(final) eq 0) then begin
           printf, lun, 'Some of your scores in the class have not been tabulated yet.'
           printf, lun, 'However, based on the fraction of your grade that you have'
           printf, lun, 'earned so far, your current percent grade in the class is '+$

@@ -18,7 +18,7 @@ pro clash_redgals_isedfit, write_paramfile=write_paramfile, build_grids=build_gr
 
     cat = rsex(isedfit_dir+'redgals.cat')
 
-    zobj = float(string(cat.zml,format='(F12.5)'))
+    zobj = float(string(cat.z_cl,format='(F12.5)'))
     clash_redgals_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist
 
 ; --------------------------------------------------
@@ -27,7 +27,7 @@ pro clash_redgals_isedfit, write_paramfile=write_paramfile, build_grids=build_gr
        write_isedfit_paramfile, params=params, isedfit_dir=isedfit_dir, $
          prefix=prefix, filterlist=filterlist, spsmodels='fsps_v2.4_miles', $
          imf='salp', redcurve='charlot', /igm, use_redshift=clash.z, $
-         nmodel=10000L, age=[1.0,11.5], tau=[0.1,10.0], Zmetal=[0.005,0.03], $
+         nmodel=50000L, age=[1.0,11.5], tau=[0.1,10.0], Zmetal=[0.005,0.03], $
          clobber=clobber
     endif
 
@@ -71,7 +71,7 @@ pro clash_redgals_isedfit, write_paramfile=write_paramfile, build_grids=build_gr
        cl = allcl[uniq(allcl,sort(allcl))]
        galaxy = 'GalID'+string(cat.galid,format='(I4.4)')
        for ii = 0, n_elements(cl)-1 do begin
-          pdffile = cl[ii]+'_fsps_v2.4_miles_salp_charlot_sfhgrid01.pdf'
+          pdffile = 'qaplot_sed_redgals_'+cl[ii]+'_fsps_v2.4_miles_salp_charlot_sfhgrid01.pdf'
           index = where(cl[ii] eq allcl)
 
           isedfit_qaplot_sed, isedfit_paramfile, isedfit_dir=isedfit_dir, $

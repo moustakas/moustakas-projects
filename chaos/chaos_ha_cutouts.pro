@@ -11,6 +11,8 @@ end
 pro chaos_ha_cutouts
 ; jm15nov21siena - get Ha cutouts of all the HII regions
 
+; add more galaxies!
+
     gal = 'm101'
     ngal = n_elements(gal)
 

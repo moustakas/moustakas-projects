@@ -56,7 +56,7 @@ pro build_ediscs_sfh_sample, clobber=clobber
     for ii = 0, n_elements(zclust)-1 do begin
        field1 = where((strtrim(sample.cluster,2) eq target[ii]) and $
          (strmatch(sample.memberflag,'*1*') eq 0) and $
-         (abs(sample.z-zclust[ii]) lt 0.1),nfield1)
+         (abs(sample.z-zclust[ii]) lt 0.2),nfield1)
 ;      print, sample[field1].memberflag & stop
        if (nfield1 eq 0) then splog, 'No field galaxies for '+$
          'cluster '+cl[ii]+' (z='+strtrim(zclust[ii],2)+')' else begin

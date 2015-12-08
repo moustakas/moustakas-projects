@@ -31,7 +31,7 @@ pro ediscs_sfh_oplot, specdata, specfit, pos1, pos2
     djs_oplot, wave, scale*flux, ps=10, color='grey', thick=4
     djs_oplot, wave, scale*continuum, ps=10, thick=4, color='black'
     djs_oplot, wave, scale*(flux-continuum), ps=10, $
-      color=fsc_color('medium grey',101), thick=6
+      color=cgcolor('medium grey',101), thick=6
     djs_oplot, wave, scale*(smooth_continuum+linefit), $
       ps=10, color='red', thick=4
     
@@ -110,7 +110,7 @@ pro ediscs_sfh_oplot, specdata, specfit, pos1, pos2
        if (windex[0] ne -1) then begin
           polyfill, [windex[0],windex[1],windex[1],windex[0]], $ 
             [!y.crange[0],!y.crange[0],!y.crange[1],!y.crange[1]], /data, $
-            /line_fill, orientation=135, color=fsc_color('tan',101), $
+            /line_fill, orientation=135, color=cgcolor('tan',101), $
             spacing=0.05, linestyle=1, noclip=0
        endif       
 ; now plot the data       
@@ -119,7 +119,7 @@ pro ediscs_sfh_oplot, specdata, specfit, pos1, pos2
          ps=10, color='red', thick=6
        djs_oplot, wave, scale*continuum, ps=10, thick=6, color='black'
 ;      djs_oplot, wave, scale*(flux-linefit), ps=10, $
-;        color=fsc_color('medium grey',101), thick=6
+;        color=cgcolor('medium grey',101), thick=6
        im_legend, label[ii], /left, /top, box=0, margin=0, charsize=1.7
     endfor
 
@@ -193,6 +193,11 @@ pro qaplots_ediscs_sfh
     kcorr = read_ediscs(/kcorr)
     info = read_ediscs(/spec1d)
 
+; hack!
+    old = mrdfits(sfhpath+'v2.0/ediscs_sfh_field_all.fits.gz',1)
+    keep = cmset_op(field.ediscs_id,'and',/not2,old.ediscs_id,/index)
+    field = field[keep]
+    
 ; read Pascale's table of non emission-line galaxies
 ;   readcol, sfhpath+'greg/table3.dat', galaxy, format='A', $
 ;     comment='#', /silent
@@ -236,12 +241,12 @@ pro qaplots_ediscs_sfh
        im_plotconfig, 0, pos1, psfile=psfile, height=3.5, $
          width=10D, ymargin=[0.6,5.0], xmargin=[1.1,0.4], $
          charsize=1.5
-; cluster galaxies
-       djs_plot, [0], [0], /nodata, xsty=4, ysty=4, $
-         position=pos2[*,1], title=cl[ii]+': Cluster Sample'
-       cspec = read_ediscs_gandalf_specfit(cluster[iscl])
-       for jj = 0, niscl-1 do ediscs_sfh_oplot, cluster[iscl[jj]], $
-         cspec[jj], pos1, pos2
+;; cluster galaxies
+;       djs_plot, [0], [0], /nodata, xsty=4, ysty=4, $
+;         position=pos2[*,1], title=cl[ii]+': Cluster Sample'
+;       cspec = read_ediscs_gandalf_specfit(cluster[iscl])
+;       for jj = 0, niscl-1 do ediscs_sfh_oplot, cluster[iscl[jj]], $
+;         cspec[jj], pos1, pos2
 ; field galaxies
        djs_plot, [0], [0], /nodata, xsty=4, ysty=4, $
          position=pos2[*,1], title=cl[ii]+': Field Sample'
@@ -250,7 +255,7 @@ pro qaplots_ediscs_sfh
           for jj = 0, nisfield-1 do ediscs_sfh_oplot, field[isfield[jj]], $
             fspec[jj], pos1, pos2
        endif
-       im_plotconfig, psfile=psfile, /psclose, /gzip
+       im_plotconfig, psfile=psfile, /psclose
     endfor
 
 stop
@@ -303,9 +308,9 @@ stop
          xrange=xrange, yrange=yrange1, /xlog, title=title
        if (isfield[0] ne -1) then djs_oplot, ppxf[isfield].continuum_snr, $
          -2.5*alog10(kcorr[isfield].maggies[3]), psym=symcat(15), $
-         color=fsc_color('dodger blue',101), symsize=symsize1
+         color=cgcolor('dodger blue',101), symsize=symsize1
        djs_oplot, ppxf[iscl].continuum_snr, -2.5*alog10(kcorr[iscl].maggies[3]), $
-         psym=symcat(16), color=fsc_color('firebrick',101), symsize=symsize1
+         psym=symcat(16), color=cgcolor('firebrick',101), symsize=symsize1
        djs_oplot, 3.0*[1,1], !y.crange, line=0, thick=4
        djs_oplot, 10^!x.crange, 23*[1,1], line=5, thick=6
 
@@ -314,11 +319,11 @@ stop
          xtitle=xtitle, ytitle=ytitle2, xrange=xrange, yrange=yrange2, /xlog
        if (isfield[0] ne -1) then djs_oplot, ppxf[isfield].continuum_snr, $
          kcorr[isfield].ubvrijhk_absmag_00[2], psym=symcat(15), $
-         color=fsc_color('dodger blue',101), symsize=symsize1
+         color=cgcolor('dodger blue',101), symsize=symsize1
        djs_oplot, ppxf[iscl].continuum_snr, kcorr[iscl].ubvrijhk_absmag_00[2], $
-         psym=symcat(16), color=fsc_color('firebrick',101), symsize=symsize1
+         psym=symcat(16), color=cgcolor('firebrick',101), symsize=symsize1
 ;      djs_oplot, allfield.continuum_snr, allfield.ubvrijhk_absmag_00[2], $
-;        psym=symcat(15), color=fsc_color('dodger blue',101), symsize=symsize1
+;        psym=symcat(15), color=cgcolor('dodger blue',101), symsize=symsize1
        djs_oplot, 3.0*[1,1], !y.crange, line=0, thick=4
        djs_oplot, 10^!x.crange, -19.0*[1,1], line=5, thick=6
 
@@ -328,11 +333,11 @@ if ii eq 5 then stop
          xtitle=ytitle1, ytitle=ytitle2, xrange=yrange1, yrange=yrange2
        if (isfield[0] ne -1) then djs_oplot, -2.5*alog10(kcorr[isfield].maggies[3]), $
          kcorr[isfield].ubvrijhk_absmag_00[2], psym=symcat(15), $
-         color=fsc_color('dodger blue',101), symsize=symsize1
+         color=cgcolor('dodger blue',101), symsize=symsize1
        djs_oplot, -2.5*alog10(kcorr[iscl].maggies[3]), kcorr[iscl].ubvrijhk_absmag_00[2], $
-         psym=symcat(16), color=fsc_color('firebrick',101), symsize=symsize1
+         psym=symcat(16), color=cgcolor('firebrick',101), symsize=symsize1
 ;      djs_oplot, -2.5*alog10(allfield.maggies[3]), allfield.ubvrijhk_absmag_00[2], $
-;        psym=symcat(15), color=fsc_color('dodger blue',101), symsize=symsize1
+;        psym=symcat(15), color=cgcolor('dodger blue',101), symsize=symsize1
        djs_oplot, !x.crange, -19.0*[1,1], line=0, thick=4
        djs_oplot, 23*[1,1], !y.crange, line=0, thick=4
     endfor

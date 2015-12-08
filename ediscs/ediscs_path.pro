@@ -13,7 +13,7 @@ function ediscs_path, papers=papers, specfit=specfit, $ ; analysis=analysis, $
 ;   if keyword_set(analysis) then return, projpath+'analysis/'
     if keyword_set(catalogs) then return, datapath+'catalogs/'
     if keyword_set(mycatalogs) then return, datapath+'mycatalogs/'
-    if keyword_set(projects) then return, projpath+'projects/'
+    if keyword_set(projects) then return, projpath; +'projects/'
     if keyword_set(spec1d) then return, projpath+'spec1d/'
     if keyword_set(bamford_spec1d) then return, projpath+'spec1d/bamford/'
     if keyword_set(isedfit) then return, projpath+'isedfit/'

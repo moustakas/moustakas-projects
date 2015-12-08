@@ -101,10 +101,10 @@ pro parse_atlas_gandalf_specfit, nuclear=nuclear, debug=debug, solar=solar
        raw_broad = mrdfits(rawfile_broad,1,/silent)
        broad = 1
     endif else broad = 0
-    
+
 ; loop on each object
     t0 = systime(1)
-;   for iobj = 0, 1 do begin
+;   for iobj = 65, 65 do begin
     for iobj = 0, nobj-1 do begin
        if broad then begin
           match = where(strtrim(raw[iobj].galaxy,2) eq $
@@ -167,6 +167,7 @@ pro parse_atlas_gandalf_specfit, nuclear=nuclear, debug=debug, solar=solar
        if (size(new_etemplates,/n_dim) eq 1) then $
          bestlinefit = new_etemplates else $
            bestlinefit = total(new_etemplates,2)
+
 ; parse
        elinefit = gandalf_parse_elinefit(new_sol,esol,$
          new_linepars,vsys=vsys,fluxscale=fluxscale)

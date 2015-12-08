@@ -51,7 +51,8 @@ function atlas_get_speclist, atlas1, atlas_zguess1, broad=broad, $
        zguess = atlas_zguess1[these].zguess_nuclear
     endif else begin
        if keyword_set(broad) then these = where((atlas1.drift eq 1) and $
-         ((gal eq 'NGC1068') or (gal eq 'ARP118') or (gal eq 'NGC1144') or $
+         ((gal eq 'NGC1068') or $
+;        (gal eq 'ARP118') or (gal eq 'NGC1144') or $
          (gal eq 'NGC1275') or (gal eq 'IRAS05189-2524') or (gal eq 'NGC3998') or $
          (gal eq 'UGC08058') or (gal eq 'NGC6240') or (gal eq 'NGC7469') or $
          (gal eq 'MRK0315') or (gal eq 'NGC7674') or (gal eq 'ARP182'))) else $
@@ -409,7 +410,7 @@ pro atlas_gandalf_specfit, debug=debug, broad=broad, nuclear=nuclear, solar=sola
 
 ; fit each object using GANDALF/PPXF
     t0 = systime(1)
-;   for iobj = 0, 20 do begin ; =UM461
+;   for iobj = 65, 66 do begin ; =UM461
 ;   for iobj = 195, 195 do begin ; =UM461
 ;   for iobj = 339, 339 do begin ; =UGCA410
     for iobj = 0, nobj-1 do begin
@@ -555,7 +556,7 @@ pro atlas_gandalf_specfit, debug=debug, broad=broad, nuclear=nuclear, solar=sola
          specdata = [temporary(specdata),specdata1]
        
     endfor
-    
+
     im_mwrfits, specdata, specdatafile, /clobber
     splog, 'Total time = ', (systime(1)-t0)/60.0, ' minutes'
     

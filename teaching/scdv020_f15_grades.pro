@@ -3,7 +3,7 @@ pro scdv020_f15_grades, alldata, test=test, sendit=sendit, final=final
 
     path = getenv('TEACHING_DIR')+'/020-F15/grades/'
     
-    date = '15oct25' ; update this
+    date = '15dec05' ; update this
     semester = 'Fall 2015'
     class = 'SCDV 020 - Intro to Engineering'
 

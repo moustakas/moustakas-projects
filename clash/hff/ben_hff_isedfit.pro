@@ -4,7 +4,7 @@ pro ben_hff_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
   clobber=clobber, photoz=photoz
 ; jm15sep11siena
 
-; echo "ben_hff_isedfit, /write_param, /build_grids, /model_phot, /cl" | /usr/bin/nohup idl > &
+; echo "ben_hff_isedfit, /write_param, /build_grids, /model_phot, /cl" | /usr/bin/nohup idl > & ~/ben.log & 
 
     prefix = 'ben'
     isedfit_dir = getenv('CLASH_PROJECTS')+'/hff/ben/'

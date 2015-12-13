@@ -11,8 +11,11 @@ pro ben_hff_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
     
 ; gather the photometry
     cat = rsex(getenv('SIENAASTROPHYSICS_DIR')+'/research/hff/z9_candidates.cat')
+    fixcat = rsex(getenv('SIENAASTROPHYSICS_DIR')+'/research/hff/z9_candidates.fix')
+    fix = where(strmatch(cat.name,'*0416*'))
+    cat[fix] = fixcat
     ngal = n_elements(cat)
-    
+
     filterlist = hff_filterlist(/useirac)
     nfilt = n_elements(filterlist)
 

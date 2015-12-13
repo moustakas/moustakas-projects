@@ -95,7 +95,7 @@ function hff_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
     if keyword_set(usehawki) then begin
        filterlist = [filterlist,'hawki_Ks1.par']
        nice_filter = [nice_filter,'HAWKI-Ks']
-       short_filter = [short_filter,'HAWKI_KS']
+       short_filter = [short_filter,'KS']
        zpt = [zpt,0.0]
        pivotwave = [pivotwave,21420.8]
        width = [width,1922.24]

@@ -18,7 +18,7 @@ pro ben_hff_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
     cat[fix] = fixcat
     ngal = n_elements(cat)
 
-    filterlist = hff_filterlist(/useirac)
+    filterlist = hff_filterlist(/useirac,/usehawki)
     nfilt = n_elements(filterlist)
 
 ; --------------------------------------------------
@@ -64,7 +64,7 @@ pro ben_hff_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
 ; --------------------------------------------------
 ; do the fitting!
     if keyword_set(isedfit) then begin
-       hff_to_maggies, cat, maggies, ivarmaggies, /nJy, filterlist=filt
+       hff_to_maggies, cat, maggies, ivarmaggies, /nJy, filterlist=filt, /usehawki
        zobj = cat.bpz
        isedfit, isedfit_paramfile, maggies, ivarmaggies, zobj, thissfhgrid=thissfhgrid, $
          isedfit_dir=isedfit_dir, outprefix=outprefix, isedfit_results=ised, $

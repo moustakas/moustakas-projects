@@ -3,7 +3,7 @@ pro scdv020_f15_grades, alldata, test=test, sendit=sendit, final=final
 
     path = getenv('TEACHING_DIR')+'/020-F15/grades/'
     
-    date = '15dec05' ; update this
+    date = '15dec17' ; update this
     semester = 'Fall 2015'
     class = 'SCDV 020 - Intro to Engineering'
 
@@ -24,6 +24,10 @@ pro scdv020_f15_grades, alldata, test=test, sendit=sendit, final=final
     process_grades, data, assign=assign, allassign=allassign, $
       weight=weight, class=class, semester=semester, test=test, $
       sendit=sendit, alldata=alldata, final=final, droplowest=droplowest
+
+; 2% evaluation incentive 
+    alldata.current_grade *= 1.02
+
     srt = sort(alldata.current_grade)
     struct_print, alldata[srt]
 

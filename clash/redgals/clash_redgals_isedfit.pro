@@ -16,7 +16,8 @@ pro clash_redgals_isedfit, write_paramfile=write_paramfile, build_grids=build_gr
     clash = rsex(getenv('CLASH_DIR')+'/clash_sample.sex')
     clash = clash[sort(clash.z)]
 
-    cat = rsex(isedfit_dir+'redgals.cat')
+    cat = rsex(isedfit_dir+'isedfit_catalog.cat')
+;   cat = rsex(isedfit_dir+'redgals.cat')
 
     zobj = float(string(cat.z_cl,format='(F12.5)'))
     clash_redgals_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist
@@ -58,9 +59,12 @@ pro clash_redgals_isedfit, write_paramfile=write_paramfile, build_grids=build_gr
 ; --------------------------------------------------
 ; compute K-corrections
     if keyword_set(kcorrect) then begin
+       absmag_filterlist = [sdss_filterlist(),'clash_'+$
+         ['wfc3_f336w','wfc3_f390w','acs_f435w','acs_f475w']+'.par']
+
        isedfit_kcorrect, isedfit_paramfile, isedfit_dir=isedfit_dir, $
          montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
-         absmag_filterlist=galex_filterlist(), band_shift=0.0, $
+         absmag_filterlist=absmag_filterlist, band_shift=0.0, $
          clobber=clobber, outprefix=outprefix
     endif 
 

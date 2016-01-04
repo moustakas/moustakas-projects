@@ -131,10 +131,11 @@ pro make_html, htmlfile, pnglist=pnglist, npngcols=npngcols, $
 ;               printf, lun1, '<td width="'+xwidth+'%" class="center">'+string(j+1,format='(I0)')+':'+$
 ;                 string(i+1,format='(I0)')
                 printf, lun1, '<td width="'+xwidth+'%" class="left">'+$
-                  '<a target="_blank" href="http://legacysurvey.org/viewer/?layer=decals-dr1&ra='+$
+                  '<a target="_blank" href="http://legacysurvey.org/viewer/?layer=decals-dr2&ra='+$
                   strtrim(string(sample[indx].ra,format='(F12.4)'),2)+'&dec='+$
                   strtrim(string(sample[indx].dec,format='(F12.5)'),2)+'&zoom=14">'+$
-                  strtrim(repstr(sample[indx].object,'-','/'),2)+'</a>'
+                  strtrim(sample[indx].object,2)+'</a>'
+;                 strtrim(repstr(sample[indx].object,'-','/'),2)+'</a>'
 ;               printf, lun1, rootpngfiles[indx]+' <a href="'+htmlbase+'/'+pngfiles[indx]+'">png</a>'
                 printf, lun1, '</td>'
              endif
@@ -319,7 +320,7 @@ return, out_sample
 end
 
 pro decals_dr2_gallery, build_sample=build_sample, runbrick=runbrick, $
-  make_png=make_png, html=html, debug=debug, mindiam=mindiam
+  make_png=make_png, html=html, debug=debug, mindiam=mindiam, clobber=clobber
 ; jm15mar19siena - build some pretty pictures for DR2
 
     dr = 'dr2'
@@ -337,11 +338,12 @@ pro decals_dr2_gallery, build_sample=build_sample, runbrick=runbrick, $
     band = ['g','r','z']
     nband = n_elements(band)
 
-    pixscale = 0.26D           ; [arcsec/pixel]
+    pixscale = 0.26D            ; [arcsec/pixel]
 ;   pixscale = 0.262D           ; [arcsec/pixel]
+    barlen30 = fix(30.0/pixscale) ; [pixels]
     nmosaic = 3600
 
-    if n_elements(mindiam) eq 0 then mindiam = 1.0 ; [arcmin]
+    if n_elements(mindiam) eq 0 then mindiam = 0.75 ; [arcmin]
     
 ; --------------------------------------------------
 ; build a sample of objects for the DR1 gallery
@@ -385,7 +387,6 @@ pro decals_dr2_gallery, build_sample=build_sample, runbrick=runbrick, $
 ;      djs_plot, sample.ra, sample.dec, psym=6, xsty=3, ysty=3, symsize=0.5
 ;      djs_oplot, bricks.ra, bricks.dec, psym=6, color='orange'
 ;      djs_oplot, out_sample.ra, out_sample.dec, psym=7, color='blue'
-
        im_mwrfits, out_sample, gallerydir+'gallery_sample.fits', /clobber
     endif 
 
@@ -396,17 +397,21 @@ pro decals_dr2_gallery, build_sample=build_sample, runbrick=runbrick, $
        gal = strcompress(sample.object,/remove)
        nobj = n_elements(sample)
 
-       for ii = 23, nobj-1 do begin
-;      for ii = 0L, nobj-1 do begin
+;      for ii = 23, nobj-1 do begin
+       for ii = 0L, nobj-1 do begin
           width = floor(sample[ii].radius*1.5*60.0/pixscale)
           logfile = gallerydir+'logs/'+gal[ii]+'.log'
           splog, logfile
-          cmd = 'python -u ${LEGACYPIPE}/py/legacypipe/runbrick.py --no-write --splinesky --skip-calibs --pixpsf '+$
-            '--no-sdss --stage image_coadds --radec '+strtrim(sample[ii].ra,2)+' '+strtrim(sample[ii].dec,2)+' --width '+$
-            strtrim(width,2)+' --height '+strtrim(width,2)+' --pixscale '+strtrim(string(pixscale,format='(G0.0)'),2)+$
-            ' > & '+logfile+' &'
-          splog, cmd
-          spawn, cmd
+
+          if file_test(gallerydir+'fits/'+gal[ii]+'-r.fits') eq 0 or keyword_set(clobber) then begin
+             cmd = 'python -u ${LEGACYPIPE}/py/legacypipe/runbrick.py --no-write --splinesky --pixpsf '+$
+               '--no-sdss --stage image_coadds --radec '+strtrim(sample[ii].ra,2)+' '+$
+               strtrim(sample[ii].dec,2)+' --width '+strtrim(width,2)+' --height '+$
+               strtrim(width,2)+' --pixscale '+strtrim(string(pixscale,format='(G0.0)'),2)+$
+               ' > & '+logfile+' &'
+             splog, cmd
+             spawn, cmd
+          endif
        endfor
     endif
        
@@ -417,60 +422,66 @@ pro decals_dr2_gallery, build_sample=build_sample, runbrick=runbrick, $
        gal = strcompress(sample.object,/remove)
        nobj = n_elements(sample)
 
-;      for ii = 25, 25 do begin
-       for ii = 26, nobj-1 do begin
-;      for ii = 0, nobj-1 do begin
+;      for ii = 56, 56 do begin
+;      for ii = 26, nobj-1 do begin
+       for ii = 0, nobj-1 do begin
 
           if sample[ii].dec lt 0.0 then pm = 'm' else pm = 'p'
           cusdir = 'custom-'+string(1000*sample[ii].ra,format='(I6.6)')+pm+$
             string(1000*abs(sample[ii].dec),format='(I5.5)')
           fitsfile = strarr(3)
-          for jj = 0, 2 do fitsfile[jj] = gallerydir+'coadd/cus/'+cusdir+'/decals-'+cusdir+'-image-'+band[jj]+'.fits'
+          for jj = 0, 2 do fitsfile[jj] = gallerydir+'coadd/cus/'+cusdir+$
+            '/decals-'+cusdir+'-image-'+band[jj]+'.fits'
 
           if total(file_test(fitsfile)) ne 3 then begin
+             splog, gal[ii]
              if n_elements(prob) eq 0L then prob = ii else prob = [prob,ii]
           endif else begin
-             for jj = 0, 2 do begin
-                spawn, 'cp -f '+gallerydir+'coadd/cus/'+cusdir+'/decals-'+cusdir+'-image-'+band[jj]+'.fits '+$
-                  gallerydir+'fits/'+gal[ii]+'-'+band[jj]+'.fits', /sh
-             endfor
-;            spawn, 'mv -f '+gallerydir+'coadd/cus/'+cusdir+'/decals-'+cusdir+'-image.jpg '+$
-;              gallerydir+'jpg/'+gal[ii]+'.jpg', /sh
-;            spawn, 'rm -f '+gallerydir+'coadd/cus/'+cusdir, /sh
+             if file_test(gallerydir+'png/'+gal[ii]+'.png') eq 0 or keyword_set(clobber) then begin
+                for jj = 0, 2 do begin
+                   spawn, 'cp -f '+gallerydir+'coadd/cus/'+cusdir+'/decals-'+$
+                     cusdir+'-image-'+band[jj]+'.fits '+$
+                     gallerydir+'fits/'+gal[ii]+'-'+band[jj]+'.fits', /sh
+                endfor
           
-             infile = gallerydir+'png/'+gal[ii]+'.in'
-             openw, lun, infile, /get_lun
-             printf, lun, 'B'
-             printf, lun, file_search(gallerydir+'fits/'+gal[ii]+'-g.fits')
-             printf, lun, ''
-             printf, lun, 'G'
-             printf, lun, file_search(gallerydir+'fits/'+gal[ii]+'-r.fits')
-             printf, lun, ''
-             printf, lun, 'R'
-             printf, lun, file_search(gallerydir+'fits/'+gal[ii]+'-z.fits')
-             printf, lun, ''
-             printf, lun, 'indir '+gallerydir+'fits/'
-             printf, lun, 'outname '+gallerydir+'png/'+gal[ii]
-             printf, lun, 'noiselum 0.2'
-;            printf, lun, 'scaling  '+gallerydir+'levels.txt'
-             printf, lun, 'show 0'
-             printf, lun, 'legend 0'
-             printf, lun, 'testfirst 0'
-             free_lun, lun
-             
-             cmd = 'python '+getenv('IMPY_DIR')+'/image/trilogy.py '+infile
-             splog, cmd
-             spawn, cmd, /sh
-             
+                infile = gallerydir+'png/'+gal[ii]+'.in'
+                openw, lun, infile, /get_lun
+                printf, lun, 'B'
+                printf, lun, file_search(gallerydir+'fits/'+gal[ii]+'-g.fits')
+                printf, lun, ''
+                printf, lun, 'G'
+                printf, lun, file_search(gallerydir+'fits/'+gal[ii]+'-r.fits')
+                printf, lun, ''
+                printf, lun, 'R'
+                printf, lun, file_search(gallerydir+'fits/'+gal[ii]+'-z.fits')
+                printf, lun, ''
+                printf, lun, 'indir '+gallerydir+'fits/'
+                printf, lun, 'outname '+gallerydir+'png/'+gal[ii]
+                printf, lun, 'noiselum 0.2'
+;               printf, lun, 'scaling  '+gallerydir+'levels.txt'
+                printf, lun, 'show 0'
+                printf, lun, 'legend 0'
+                printf, lun, 'testfirst 0'
+                free_lun, lun
+                
+                cmd = 'python '+getenv('IMPY_DIR')+'/image/trilogy.py '+infile
+                splog, cmd
+                spawn, cmd, /sh
+                
 ; clean up the parameter files          
-             file_delete, gallerydir+'png/'+['levels.txt', 'trilogyfilterlog.txt',$
-               gal[ii]+'.in',gal[ii]+'_filters.txt'], /quiet
-             file_delete, gallerydir+['levels.txt', 'trilogyfilterlog.txt'], /quiet
-             
-; read the image back in and label it
-             im = read_png(gallerydir+'png/'+gal[ii]+'.png')
-             label_png, im, galaxy=gal[ii], outfile=gallerydir+'png/'+gal[ii]+'.png'
-          endelse
+                file_delete, gallerydir+'png/'+['levels.txt', 'trilogyfilterlog.txt',$
+                  gal[ii]+'.in',gal[ii]+'_filters.txt'], /quiet
+                file_delete, gallerydir+['levels.txt', 'trilogyfilterlog.txt'], /quiet
+                
+; read the image back in, label it, and put a scale bar
+                im = read_png(gallerydir+'png/'+gal[ii]+'.png')
+                sz = size(im,/dim)
+                s0 = fix(sz[1]*0.05)
+                ww = fix(sz[1]*0.0035)>2
+                im[*,s0:s0+barlen30,s0:s0+ww] = cgcolor('white')
+                label_png, im, galaxy=gal[ii], outfile=gallerydir+'png/'+gal[ii]+'.png'
+             endif
+          endelse 
        endfor
        if n_elements(prob) ne 0L then begin
           splog, 'Problem running runbrick '
@@ -483,13 +494,27 @@ pro decals_dr2_gallery, build_sample=build_sample, runbrick=runbrick, $
     if keyword_set(html) then begin
        sample = mrdfits(gallerydir+'gallery_sample.fits.gz',1)
        gal = strcompress(sample.object,/remove)
-       these = where(file_test(gallerydir+'png/'+gal+'.png'))
+       these = where(file_test(gallerydir+'png/'+gal+'.png'),nthese)
+
+; missing data on these       
+       skip = ['IC1256','IC2327','IC534','MCG0-32-4','NGC2576',$
+         'NGC2743','NGC3323','NGC4382','NGC4536','NGC5534',$
+         'NGC5656','NGC5806','NGC5838','NGC5850','NGC5956',$
+         'NGC7046','NGC7081','UGC10176','UGC10547','UGC10831',$
+         'UGC10837','UGC10905','UGC11859','UGC4285','UGC4340',$
+         'UGC6440','UGC6821','UGC7170','UGC9117','UGC9760',$
+         'UGC9900','UGC9977','IC1516','MCG-1-59-27','CGCG119-119',$
+         'MCG2-55-4','NGC5983','UGC10023','UGC11807','UGC4571',$
+         'UGC4884','UGC6379','UGC9782','UGC9949','MCG0-29-28']
+       keep = these
+       match, gal[these], skip, m1, m2
+       remove, m1, keep
 
        title = 'DECaLS/DR2 Image Gallery'
        
        htmlfile = gallerydir+'index.html'
        make_html, htmlfile, npngcols=5, title=title, $
-         pnglist=pngfiles, sample=sample[these]
+         pnglist=pngfiles, sample=sample[keep]
     endif
     
 stop    

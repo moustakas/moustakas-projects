@@ -109,10 +109,11 @@ pro make_html, htmlfile, pnglist=pnglist, npngcols=npngcols, $
        printf, lun1, ' '
        printf, lun1, '</head>'
        printf, lun1, '<body>'
-       printf, lun1, '</br>'
-       printf, lun1, '<h1>'+title+'</h1>'
-       printf, lun1, '</br>'
-
+       printf, lun1, '<h1>Image Gallery of Large Galaxies</h1>'
+       printf, lun1, '<p>Color mosaics generated using <a class="reference external" href="http://www.stsci.edu/~dcoe/trilogy/Intro.html">trilogy.py</a>.  The white bar represents 30 arcsec.</p>'
+;      printf, lun1, '</br>'
+;      printf, lun1, '<h1>'+title+'</h1>'
+;      printf, lun1, '</br>'
 ;      printf, lun1, '<br />'
 ;      printf, lun1, '<p class="left">This is text.</p>'
        printf, lun1, '<br />'
@@ -126,7 +127,7 @@ pro make_html, htmlfile, pnglist=pnglist, npngcols=npngcols, $
              indx = j + i*npngcols
              if (indx le npngfiles-1L) then begin
                 printf, lun1, '<td width="'+xwidth+'%"><a href="png/'+pngfiles[indx]+'">'+$
-                  '<img width="100%" align="center" valign="center" src="png/'+pngfiles[indx]+'"></a></td>'
+                  '<img width="100%" align="center" valign="center" src="png/thumb-'+pngfiles[indx]+'"></a></td>'
              endif
           endfor
           printf, lun1, '</tr>'
@@ -328,7 +329,8 @@ return, out_sample
 end
 
 pro decals_dr2_gallery, build_sample=build_sample, runbrick=runbrick, $
-  make_png=make_png, html=html, debug=debug, mindiam=mindiam, clobber=clobber
+  make_png=make_png, thumb=thumb, html=html, debug=debug, $
+  mindiam=mindiam, clobber=clobber
 ; jm15mar19siena - build some pretty pictures for DR2
 
     dr = 'dr2'
@@ -496,6 +498,21 @@ pro decals_dr2_gallery, build_sample=build_sample, runbrick=runbrick, $
           struct_print, sample[prob]
        endif
     endif
+
+; --------------------------------------------------
+; generate thumbnails
+    if keyword_set(thumb) then begin
+       sample = mrdfits(gallerydir+'gallery_sample.fits.gz',1)
+       gal = strcompress(sample.object,/remove)
+       these = where(file_test(gallerydir+'png/'+gal+'.png'),nthese)
+
+       for ii = 0L, nthese-1 do begin
+          if file_test(gallerydir+'thumb/'+gal[these[ii]]+'.png') eq 0 then begin
+             spawn, 'convert -thumbnail 100x100 '+gallerydir+'png/'+gal[these[ii]]+'.png '+$
+               gallerydir+'png/thumb-'+gal[these[ii]]+'.png'
+          endif
+       endfor
+    endif       
 
 ; --------------------------------------------------
 ; build a simple web page

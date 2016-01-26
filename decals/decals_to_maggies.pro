@@ -96,7 +96,7 @@ pro decals_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, $
     wmaggies = float(cat.wise_flux[these]*factor)
     wivarmaggies = float(cat.wise_flux_ivar[these]/factor^2)
     wfilterlist = wise_filterlist(short=keyword_set(shortwise))
-    
+
 ; add SDSS
     if keyword_set(sdss) then begin
        decals_sdss_to_maggies, cat, smaggies, sivarmaggies, psf=psf

@@ -16,8 +16,8 @@ pro desi_ages_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
 
 ; select the sample    
-    zminmax = [0.05,0.85]
-    nzz = 70
+    zminmax = [0.01,0.85]
+    nzz = 100
     
     phot = read_ages(/photo)
     index = where((phot.imain eq 1) and (phot.z ge zminmax[0]) and $

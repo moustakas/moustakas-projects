@@ -112,11 +112,11 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
     version = desi_elg_templates_version(/isedfit)
 
     prefix = 'desi_deep2'
-;   splog, 'Hacking the path!'
-;   isedfit_dir = getenv('IM_PROJECTS_DIR')+'/desi/spectro/templates/'+$
-;     'elg_templates/isedfit/'+version+'/'
-    isedfit_dir = getenv('IM_ARCHIVE_DIR')+'/projects/desi/templates/'+$
+    splog, 'Hacking the path!'
+    isedfit_dir = getenv('IM_PROJECTS_DIR')+'/desi/spectro/templates/'+$
       'elg_templates/isedfit/'+version+'/'
+;   isedfit_dir = getenv('IM_ARCHIVE_DIR')+'/projects/desi/templates/'+$
+;     'elg_templates/isedfit/'+version+'/'
     montegrids_dir = isedfit_dir+'montegrids/'
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
 
@@ -129,34 +129,64 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
     deep2_to_maggies, phot, maggies, ivarmaggies, /unwise, $
       filterlist=filterlist
 
+; Note that the Field 1 photometry from Matthews+13 is from CFHTLS while the
+; Field 3-4 photometry is calibrated on the SDSS photometric system.  Therefore,
+; we need to generate two sets of Monte Carlo grids
+    filterlist2 = filterlist
+    filterlist2[where(strmatch(filterlist,'*cfht*'))] = sdss_filterlist()
+
+; drop W3/W4 from the fitting
+    maggies = maggies[0:9,*]
+    ivarmaggies = ivarmaggies[0:9,*]
+    filterlist = filterlist[0:9]
+    filterlist2 = filterlist2[0:9]
+
     zminmax = [0.1,2.0]
     nzz = 140
 
-    index = where(cat.zbest ge zminmax[0] and cat.zbest le zminmax[1])
+;   index = where(cat.zbest ge zminmax[0] and cat.zbest le zminmax[1])
+    index_field1 = where(cat.zbest ge zminmax[0] and cat.zbest le zminmax[1] and $
+      strmid(strtrim(cat.objno,2),0,1) eq 1)
+    index_field24 = where(cat.zbest ge zminmax[0] and cat.zbest le zminmax[1] and $
+      strmid(strtrim(cat.objno,2),0,1) ne 1)
     ngal = n_elements(cat)
 
 ; --------------------------------------------------
 ; write the parameter file
     if keyword_set(write_paramfile) then begin
-       spsmodels = 'fsps_v2.4_miles'
-       imf = 'chab'
+       spsmodels = 'ckc14z'          ; v2.? templates
+       imf = 'kroupa01'
+;      spsmodels = 'fsps_v2.4_miles' ; v1.? templates
+;      imf = 'chab'                
        redcurve = 'charlot'
        Zmetal = [0.004,0.03]
        age = [0.1,12.5]
        tau = [0.0,10]
-       nmodel = 30000L
+       nmodel = 50000L
        pburst = 0.2
        interval_pburst = 2.0
 
-; without emission lines
+; Field 1, without emission lines
        write_isedfit_paramfile, params=params, isedfit_dir=isedfit_dir, $
          prefix=prefix, filterlist=filterlist, spsmodels=spsmodels, $
          imf=imf, redcurve=redcurve, /igm, zminmax=zminmax, nzz=nzz, $
          nmodel=nmodel, age=age, tau=tau, Zmetal=Zmetal, $
          pburst=pburst, interval_pburst=interval_pburst, clobber=clobber
-; with emission lines
+; Field 1, with emission lines
        write_isedfit_paramfile, params=params, isedfit_dir=isedfit_dir, $
          prefix=prefix, filterlist=filterlist, spsmodels=spsmodels, $
+         imf=imf, redcurve=redcurve, /igm, zminmax=zminmax, nzz=nzz, $
+         nmodel=nmodel, age=age, tau=tau, Zmetal=Zmetal, $
+         pburst=pburst, interval_pburst=interval_pburst, /nebular, /append
+; Fields 2-4, without emission lines
+       write_isedfit_paramfile, params=params, isedfit_dir=isedfit_dir, $
+         prefix=prefix, filterlist=filterlist2, spsmodels=spsmodels, $
+         imf=imf, redcurve=redcurve, /igm, zminmax=zminmax, nzz=nzz, $
+         nmodel=nmodel, age=age, tau=tau, Zmetal=Zmetal, $
+         pburst=pburst, interval_pburst=interval_pburst, /append
+; Fields 2-4, with emission lines
+       write_isedfit_paramfile, params=params, isedfit_dir=isedfit_dir, $
+         prefix=prefix, filterlist=filterlist2, spsmodels=spsmodels, $
          imf=imf, redcurve=redcurve, /igm, zminmax=zminmax, nzz=nzz, $
          nmodel=nmodel, age=age, tau=tau, Zmetal=Zmetal, $
          pburst=pburst, interval_pburst=interval_pburst, /nebular, /append
@@ -179,14 +209,17 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
     endif
 
 ; --------------------------------------------------
-; fit!
+; fit Field 1 and Fields 2-4 separately
     if keyword_set(isedfit) then begin
 ;      outprefix = 'unwise'
 ;      index = where(phot.w1_nanomaggies_ivar ne 0 and cat.zbest ge zminmax[0] and $
 ;        cat.zbest le zminmax[1])
        isedfit, isedfit_paramfile, maggies, ivarmaggies, cat.zbest, ra=cat.ra, $
-         dec=cat.dec, isedfit_dir=isedfit_dir, thissfhgrid=thissfhgrid, $
-         clobber=clobber, index=index, outprefix=outprefix
+         dec=cat.dec, isedfit_dir=isedfit_dir, thissfhgrid=[1,2], $
+         clobber=clobber, index=index_field1, outprefix=outprefix
+       isedfit, isedfit_paramfile, maggies, ivarmaggies, cat.zbest, ra=cat.ra, $
+         dec=cat.dec, isedfit_dir=isedfit_dir, thissfhgrid=[3,4], $
+         clobber=clobber, index=index_field24, outprefix=outprefix
     endif 
 
 ; --------------------------------------------------

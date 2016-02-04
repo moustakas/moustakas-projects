@@ -10,8 +10,11 @@ pro desi_ages_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
     version = desi_bgs_templates_version(/isedfit)
 
     prefix = 'desi_ages'
-    isedfit_dir = getenv('IM_ARCHIVE_DIR')+'/projects/desi/templates/'+$
+    splog, 'Hacking the path!'
+    isedfit_dir = getenv('IM_PROJECTS_DIR')+'/desi/spectro/templates/'+$
       'bgs_templates/isedfit/'+version+'/'
+;   isedfit_dir = getenv('IM_ARCHIVE_DIR')+'/projects/desi/templates/'+$
+;     'bgs_templates/isedfit/'+version+'/'
     montegrids_dir = isedfit_dir+'montegrids/'
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
 
@@ -39,13 +42,15 @@ pro desi_ages_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
 ; --------------------------------------------------
 ; write the parameter file
     if keyword_set(write_paramfile) then begin
-       spsmodels = 'fsps_v2.4_miles'
-       imf = 'chab'
+       spsmodels = 'ckc14z'
+       imf = 'kroupa01'
+;      spsmodels = 'fsps_v2.4_miles' ; v1.0
+;      imf = 'chab'
        redcurve = 'charlot'
        Zmetal = [0.004,0.03]
        age = [0.1,12.5]
        tau = [0.0,10]
-       nmodel = 30000L
+       nmodel = 50000L
        pburst = 0.2
        interval_pburst = 2.0
 

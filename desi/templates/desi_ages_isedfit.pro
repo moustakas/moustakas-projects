@@ -104,7 +104,7 @@ pro desi_ages_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
 ; --------------------------------------------------
 ; generate spectral energy distribution (SED) QAplots
     if keyword_set(qaplot_sed) then begin
-       galaxy = phot.galaxy
+       galaxy = string(phot.pass,format='(I3.3)')+'/'+string(phot.aper,format='(I3.3)')
        these = shuffle_indx(ngal,num=50)
        isedfit_qaplot_sed, isedfit_paramfile, isedfit_dir=isedfit_dir, $
          montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $

@@ -142,7 +142,7 @@ function ages_smooth_residuals, wave, flux, continuum, zabs=zabs, $
       randomn(seed,nbad)*djsig(residuals[good])
 
     smooth2 = medsmooth(smooth1,151)
-    smooth_continuum = smooth(smooth2,51,/edge)
+    smooth_continuum = smooth(smooth2,51,/edge_truncate)
     
     if keyword_set(debug) then begin
        djs_plot, exp(restwave), residuals, xsty=3, ysty=3, ps=10;, xr=[5500,6800] ; xr=[4700,5050]
@@ -244,7 +244,8 @@ function ages_fit_lines, wave, flux, ferr, continuum, smooth_continuum, $
 return, sol
 end
 
-pro ages_gandalf_specfit, pass1, debug=debug, broad=broad, solar=solar
+pro ages_gandalf_specfit, pass1, firstpass=firstpass, lastpass=lastpass, $
+  debug=debug, broad=broad, solar=solar
     
     light = 2.99792458D5 ; speed of light [km/s]
     
@@ -271,6 +272,9 @@ pro ages_gandalf_specfit, pass1, debug=debug, broad=broad, solar=solar
     endelse
     npass = n_elements(allpass)
 
+    if (n_elements(firstpass) eq 0) then firstpass = 0
+    if (n_elements(lastpass) eq 0) then lastpass = npass-1
+    
 ; read the templates (see BUILD_AGES_PPXF_TEMPLATES); resample and
 ; convolve to AGES pixel size and instrumental resolution
     velscale = ages_ppxf_velscale()
@@ -325,7 +329,7 @@ pro ages_gandalf_specfit, pass1, debug=debug, broad=broad, solar=solar
 
 ; fit each plate separately
     t1 = systime(1)
-    for ipass = 0, npass-1 do begin
+    for ipass = firstpass, lastpass do begin
        splog, 'Pass ', allpass[ipass]
        
 ; output file names
@@ -364,7 +368,7 @@ pro ages_gandalf_specfit, pass1, debug=debug, broad=broad, solar=solar
 ; fit each object using GANDALF/PPXF
        t0 = systime(1)
 ;      for iobj = 3, 3 do begin
-;      for iobj = 164, 164 do begin
+;      for iobj = 169, 170 do begin
        for iobj = 0, nobj-1 do begin
           splog, strtrim(allpass[ipass],2)+': '+string(iobj+1,format='(I3.3)')+'/'+$
             string(nobj,format='(I3.3)')
@@ -388,7 +392,7 @@ pro ages_gandalf_specfit, pass1, debug=debug, broad=broad, solar=solar
           linterp, tweakwave1, tweak1, exp(wave), tweak, missing=1.0
           flux = flux1*tweak/fluxscale
           ferr = ferr1*tweak/fluxscale
-
+          
 ; see AGES_GET_ZABS_VDISP
           zabs1 = zabsvdisp[iobj].zabs ; zabsvdisp[iobj].z
           vdisp1 = zabsvdisp[iobj].vdisp

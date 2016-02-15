@@ -197,7 +197,7 @@ pro qaplot_ages_gandalf_specfit, specdata, specfit, $
          pos1, pos2, linear=linear, nev=nev, neon=neon
     endfor
 
-    im_plotconfig, psfile=psfile, /gzip, /psclose
+    im_plotconfig, psfile=psfile, /psclose, /pdf
 ;   spawn, 'rsync -auv '+psfile+'.gz ~', /sh
 
 return

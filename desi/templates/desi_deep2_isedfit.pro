@@ -102,21 +102,28 @@ return, oiicat
 end
 
 pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
-  model_photometry=model_photometry, isedfit=isedfit, kcorrect=kcorrect, $
-  build_oiiflux=build_oiiflux, qaplot_sed=qaplot_sed, thissfhgrid=thissfhgrid, $
-  clobber=clobber
+  model_photometry=model_photometry, isedfit_field1=isedfit_field1, $
+  isedfit_field24=isedfit_field24, kcorrect_field1=kcorrect_field1, $
+  kcorrect_field24=kcorrect_field24, build_oiiflux=build_oiiflux, $
+  qaplot_sed_field1=qaplot_sed_field1, qaplot_sed_field24=qaplot_sed_field24, $
+  thissfhgrid=thissfhgrid, clobber=clobber
 ; jm13dec18siena - fit the parent sample of DEEP2 galaxies for the
 ; DESI project; also build the final catalog of [OII] fluxes for the
 ; DEEP2 sample 
+
+;   echo "desi_deep2_isedfit, /write_param, /build_grids, /model_phot, /isedfit, /cl" | /usr/bin/nohup idl > & ~/desi-deep2-isedfit.log &     
+
+;   echo "desi_deep2_isedfit, /kcorrect_field1, thissfhgrid=2, /cl" | /usr/bin/nohup idl > & ~/desi-deep2-kcorr2.log &     
+;   echo "desi_deep2_isedfit, /kcorrect_field24, thissfhgrid=4, /cl" | /usr/bin/nohup idl > & ~/desi-deep2-kcorr4.log &     
     
     version = desi_elg_templates_version(/isedfit)
 
     prefix = 'desi_deep2'
     splog, 'Hacking the path!'
-    isedfit_dir = getenv('IM_PROJECTS_DIR')+'/desi/spectro/templates/'+$
-      'elg_templates/isedfit/'+version+'/'
-;   isedfit_dir = getenv('IM_ARCHIVE_DIR')+'/projects/desi/templates/'+$
+;   isedfit_dir = getenv('IM_PROJECTS_DIR')+'/desi/spectro/templates/'+$
 ;     'elg_templates/isedfit/'+version+'/'
+    isedfit_dir = getenv('IM_ARCHIVE_DIR')+'/projects/desi/templates/'+$
+      'elg_templates/isedfit/'+version+'/'
     montegrids_dir = isedfit_dir+'montegrids/'
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
 
@@ -146,9 +153,9 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 
 ;   index = where(cat.zbest ge zminmax[0] and cat.zbest le zminmax[1])
     index_field1 = where(cat.zbest ge zminmax[0] and cat.zbest le zminmax[1] and $
-      strmid(strtrim(cat.objno,2),0,1) eq 1)
+      strmid(strtrim(cat.objno,2),0,1) eq 1,nfield1)
     index_field24 = where(cat.zbest ge zminmax[0] and cat.zbest le zminmax[1] and $
-      strmid(strtrim(cat.objno,2),0,1) ne 1)
+      strmid(strtrim(cat.objno,2),0,1) ne 1,nfield24)
     ngal = n_elements(cat)
 
 ; --------------------------------------------------
@@ -210,26 +217,46 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 
 ; --------------------------------------------------
 ; fit Field 1 and Fields 2-4 separately
-    if keyword_set(isedfit) then begin
+    if keyword_set(isedfit_field1) then begin
+       if n_elements(thissfhgrid) eq 0 then thissfhgrid = [1,2]
 ;      outprefix = 'unwise'
 ;      index = where(phot.w1_nanomaggies_ivar ne 0 and cat.zbest ge zminmax[0] and $
 ;        cat.zbest le zminmax[1])
+       splog, 'Hack!!!!'
+       toss = where(strtrim(filterlist,2) eq 'wise_w2.par')
+       ivarmaggies[toss,*] = 0.0
        isedfit, isedfit_paramfile, maggies, ivarmaggies, cat.zbest, ra=cat.ra, $
-         dec=cat.dec, isedfit_dir=isedfit_dir, thissfhgrid=[1,2], $
+         dec=cat.dec, isedfit_dir=isedfit_dir, thissfhgrid=thissfhgrid, $
          clobber=clobber, index=index_field1, outprefix=outprefix
+    endif 
+    if keyword_set(isedfit_field24) then begin
+       if n_elements(thissfhgrid) eq 0 then thissfhgrid = [3,4]
+;      outprefix = 'unwise'
+;      index = where(phot.w1_nanomaggies_ivar ne 0 and cat.zbest ge zminmax[0] and $
+;        cat.zbest le zminmax[1])
+       splog, 'Hack!!!!'
+       toss = where(strtrim(filterlist,2) eq 'wise_w2.par')
+       ivarmaggies[toss,*] = 0.0
        isedfit, isedfit_paramfile, maggies, ivarmaggies, cat.zbest, ra=cat.ra, $
-         dec=cat.dec, isedfit_dir=isedfit_dir, thissfhgrid=[3,4], $
+         dec=cat.dec, isedfit_dir=isedfit_dir, thissfhgrid=thissfhgrid, $
          clobber=clobber, index=index_field24, outprefix=outprefix
     endif 
 
 ; --------------------------------------------------
 ; compute K-corrections
-    if keyword_set(kcorrect) then begin
-;      index = [9,23,29]
+    if keyword_set(kcorrect_field1) then begin
+       if n_elements(thissfhgrid) eq 0 then thissfhgrid = [1,2]
        isedfit_kcorrect, isedfit_paramfile, isedfit_dir=isedfit_dir, $
          montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
          absmag_filterlist=sdss_filterlist(), band_shift=0.0, $
-         clobber=clobber, index=index, outprefix=outprefix
+         clobber=clobber, index=index_field1, outprefix=outprefix
+    endif 
+    if keyword_set(kcorrect_field24) then begin
+       if n_elements(thissfhgrid) eq 0 then thissfhgrid = [3,4]
+       isedfit_kcorrect, isedfit_paramfile, isedfit_dir=isedfit_dir, $
+         montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
+         absmag_filterlist=sdss_filterlist(), band_shift=0.0, $
+         clobber=clobber, index=index_field24, outprefix=outprefix
     endif 
 
 ; --------------------------------------------------
@@ -237,10 +264,15 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 ; continuum flux from iSEDfit based on the models which include
 ; nebular emission (because they have slightly lower chi2)
     if keyword_set(build_oiiflux) then begin
-;      kised = mrdfits(isedfit_dir+'desi_deep2_fsps_v2.4_miles_'+$
-;        'chab_charlot_sfhgrid01_kcorr.z0.0.fits.gz',1)
-       kised = mrdfits(isedfit_dir+'desi_deep2_fsps_v2.4_miles_'+$
-         'chab_charlot_sfhgrid02_kcorr.z0.0.fits.gz',1)
+       params = read_isedfit_paramfile(isedfit_paramfile)
+       fp2 = isedfit_filepaths(params[1],isedfit_dir=isedfit_dir,outprefix=outprefix)
+       fp4 = isedfit_filepaths(params[3],isedfit_dir=isedfit_dir,outprefix=outprefix)
+
+       kised1 = mrdfits(isedfit_dir+fp2.kcorr_outfile+'.gz',1)
+       kised24 = mrdfits(isedfit_dir+fp4.kcorr_outfile+'.gz',1)
+       kised = im_empty_structure(kised1[0],ncopies=ngal)
+       kised[index_field1] = kised1[index_field1]
+       kised[index_field24] = kised24[index_field24]
 
 ; assume a fixed doublet ratio       
        ppxf = read_deep2(/ppxf,/fixoii)
@@ -274,19 +306,36 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 
 ; --------------------------------------------------
 ; generate spectral energy distribution (SED) QAplots
-    if keyword_set(qaplot_sed) then begin
+    if keyword_set(qaplot_sed_field1) then begin
+       if n_elements(thissfhgrid) eq 0 then thissfhgrid = [1,2]
 ;      outprefix = 'unwise'
 ;      index = (where(phot.w1_nanomaggies_ivar ne 0 and cat.zbest ge zminmax[0] and $
 ;        cat.zbest le zminmax[1]))[0:30]
        galaxy = 'DEEP2/'+strtrim(cat.objno,2);+'/'+strtrim(cat.source,2)
-       these = shuffle_indx(ngal,num=25)
+       these = shuffle_indx(nfield1,num=25)
 ;      these = where(cat[index].objno eq 12024524) & yrange = [24,20]
 ;      these = where(cat[index].objno eq 12024078)
 ;      these = where(cat[index].objno eq 12101118)
 ;      these = where(cat[index].objno eq 12015944)
        isedfit_qaplot_sed, isedfit_paramfile, isedfit_dir=isedfit_dir, $
          montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
-         clobber=clobber, /xlog, galaxy=galaxy, index=index[these];, yrange=yrange
+         clobber=clobber, /xlog, galaxy=galaxy, index=index_field1[these];, yrange=yrange
+;        yrange=[26,15] ;, outprefix=outprefix
+    endif
+    if keyword_set(qaplot_sed_field24) then begin
+       if n_elements(thissfhgrid) eq 0 then thissfhgrid = [3,4]
+;      outprefix = 'unwise'
+;      index = (where(phot.w1_nanomaggies_ivar ne 0 and cat.zbest ge zminmax[0] and $
+;        cat.zbest le zminmax[1]))[0:30]
+       galaxy = 'DEEP2/'+strtrim(cat.objno,2);+'/'+strtrim(cat.source,2)
+       these = shuffle_indx(nfield24,num=25)
+;      these = where(cat[index].objno eq 12024524) & yrange = [24,20]
+;      these = where(cat[index].objno eq 12024078)
+;      these = where(cat[index].objno eq 12101118)
+;      these = where(cat[index].objno eq 12015944)
+       isedfit_qaplot_sed, isedfit_paramfile, isedfit_dir=isedfit_dir, $
+         montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
+         clobber=clobber, /xlog, galaxy=galaxy, index=index_field24[these];, yrange=yrange
 ;        yrange=[26,15] ;, outprefix=outprefix
     endif
 

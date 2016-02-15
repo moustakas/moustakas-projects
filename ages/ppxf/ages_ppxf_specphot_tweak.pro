@@ -4,7 +4,7 @@ pro ages_ppxf_specphot_tweak, clobber=clobber
 
     version = ages_version(/ppxf_specfit)
     base_specfitpath = ages_path(/ppxf)
-    specfitpath = base_specfitpath+'fluxed/pretweak/'+version+'/' 
+    specfitpath = ages_path(/spec1d)+'fluxed/pretweak/'+version+'/' 
 
     allfiles = file_search(specfitpath+'ppxf_???.fits.gz')
     nfile = n_elements(allfiles)
@@ -70,7 +70,7 @@ pro ages_ppxf_specphot_tweak, clobber=clobber
          box=0, charsize=1.6
        
     endfor
-    im_plotconfig, psfile=psfile, /psclose, /gzip
+    im_plotconfig, psfile=psfile, /psclose, /pdf
 
 ; write out
     im_mwrfits, out, outfile, /clobber

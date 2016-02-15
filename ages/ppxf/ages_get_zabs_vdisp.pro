@@ -10,7 +10,7 @@ pro ages_get_zabs_vdisp, pass1, firstpass=firstpass, lastpass=lastpass, $
 ;   VDISP 
 
 ; jm10dec06ucsd - just use the solar metallicity templates
-    
+
     common ages_catalogs, allcodes
 
     light = 2.99792458D5        ; speed of light [km/s]
@@ -120,6 +120,8 @@ pro ages_get_zabs_vdisp, pass1, firstpass=firstpass, lastpass=lastpass, $
 ;         log_rebin, minmax(wave), flux, lnflux, lnwave, velscale=velscale
 ;         log_rebin, minmax(wave), ferr^2, lnvar, velscale=velscale
           lnferr = sqrt(abs(lnvar))
+          bigerr = where(lnferr le 0)
+          if bigerr[0] ne -1 then lnferr[bigerr] = 1E16
 
           lnrestwave = lnwave - alog(zobj+1.0D)
           lnrestflux = lnflux*(zobj+1.0D)
@@ -149,7 +151,7 @@ pro ages_get_zabs_vdisp, pass1, firstpass=firstpass, lastpass=lastpass, $
 ;         djs_plot, exp(lnrestwave), lnrestflux, xsty=3, ysty=3
 ;         djs_oplot, exp(lnrestwave[goodpixels]), lnrestflux[goodpixels], psym=4, color='red'
 
-          ages_ppxf, fit_tempflux, lnrestflux, lnrestferr, velscale, start, $
+          im_ppxf, fit_tempflux, lnrestflux, lnrestferr, velscale, start, $
             sol, goodpixels=goodpixels, plot=doplot, moments=2, degree=degree, $
             weights=weights, polyweights=polyweights, mdegree=mdegree, $
             bestfit=bestfit, clean=0, /quiet, vmaxshift=vmaxshift, $
@@ -181,7 +183,7 @@ pro ages_get_zabs_vdisp, pass1, firstpass=firstpass, lastpass=lastpass, $
 ;         djs_plot, exp(lnrestwave), lnrestflux_cor, xsty=3, ysty=3
 ;         djs_oplot, exp(lnrestwave[goodpixels]), lnrestflux_cor[goodpixels], psym=4, color='red'
 
-          ages_ppxf, fit_tempflux, lnrestflux_cor, lnrestferr_cor, velscale, $
+          im_ppxf, fit_tempflux, lnrestflux_cor, lnrestferr_cor, velscale, $
             start, sol, goodpixels=goodpixels, plot=doplot, $
             moments=2, degree=degree, error=err, bestfit=bestfit, $
             /clean, /quiet, vmaxshift=vmaxshift, sigmamax=sigmamax
@@ -236,7 +238,7 @@ pro ages_get_zabs_vdisp, pass1, firstpass=firstpass, lastpass=lastpass, $
             /left, /top, box=0, charsize=1.3, margin=0
        endfor
        if (keyword_set(doplot) eq 0) then $
-         im_plotconfig, psfile=psfile, /gzip, /psclose
+         im_plotconfig, psfile=psfile, /pdf, /psclose
        splog, 'Total time = ', (systime(1)-t0)/60.0, ' minutes'
        im_mwrfits, result, outfile, /clobber
     endfor 

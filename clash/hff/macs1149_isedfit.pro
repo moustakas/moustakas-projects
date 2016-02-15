@@ -10,7 +10,7 @@ pro macs1149_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, 
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
     
 ; gather the photometry
-    date = 'sep4'
+    date = 'jan28'
     cat = rsex(isedfit_dir+'flx_iso.'+date)
 
     filterlist = hff_filterlist(/useirac)

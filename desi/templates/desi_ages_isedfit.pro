@@ -8,13 +8,14 @@ pro desi_ages_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
 ;   echo "desi_ages_isedfit, /write_param, /build_grids, /model_phot, /isedfit, /cl" | /usr/bin/nohup idl > & ~/desi-ages-isedfit.log & 
     
     version = desi_bgs_templates_version(/isedfit)
+    splog, 'HACK!!!!!'
 
     prefix = 'desi_ages'
     splog, 'Hacking the path!'
-    isedfit_dir = getenv('IM_PROJECTS_DIR')+'/desi/spectro/templates/'+$
-      'bgs_templates/isedfit/'+version+'/'
-;   isedfit_dir = getenv('IM_ARCHIVE_DIR')+'/projects/desi/templates/'+$
+;   isedfit_dir = getenv('IM_PROJECTS_DIR')+'/desi/spectro/templates/'+$
 ;     'bgs_templates/isedfit/'+version+'/'
+    isedfit_dir = getenv('IM_ARCHIVE_DIR')+'/projects/desi/templates/'+$
+      'bgs_templates/isedfit/'+version+'/'
     montegrids_dir = isedfit_dir+'montegrids/'
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
 
@@ -25,6 +26,7 @@ pro desi_ages_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
     phot = read_ages(/photo)
     index = where((phot.imain eq 1) and (phot.z ge zminmax[0]) and $
       (phot.z le zminmax[1]),ngal)
+;   index = index[0:20] & ngal = n_elements(index)
 ;   index = index[0:30] & ngal = n_elements(index)
 
     ages_to_maggies, phot, maggies, ivarmaggies, /totalmag, $
@@ -86,6 +88,9 @@ pro desi_ages_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
 ; --------------------------------------------------
 ; fit!
     if keyword_set(isedfit) then begin
+       splog, 'Temporary hack!'
+       toss = where(filterlist eq 'spitzer_irac_ch2.par')
+       ivarmaggies[toss,*] = 0
        isedfit, isedfit_paramfile, maggies, ivarmaggies, phot.z, ra=phot.ra, $
          dec=phot.dec, isedfit_dir=isedfit_dir, thissfhgrid=thissfhgrid, $
          clobber=clobber, index=index, outprefix=outprefix
@@ -105,6 +110,7 @@ pro desi_ages_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
 ; generate spectral energy distribution (SED) QAplots
     if keyword_set(qaplot_sed) then begin
        galaxy = string(phot.pass,format='(I3.3)')+'/'+string(phot.aper,format='(I3.3)')
+;      these = lindgen(ngal)
        these = shuffle_indx(ngal,num=50)
        isedfit_qaplot_sed, isedfit_paramfile, isedfit_dir=isedfit_dir, $
          montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $

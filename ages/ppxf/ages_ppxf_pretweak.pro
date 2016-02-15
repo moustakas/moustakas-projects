@@ -1,6 +1,15 @@
 pro ages_ppxf_pretweak, pass1, firstpass=firstpass, lastpass=lastpass, $
   test=test, doplot=doplot
 ; jm09nov13ucsd - see the README
+
+; echo "ages_ppxf_pretweak,  first=0, last=11" | nohup idl > & /home/work/data/ages/spec1d/fluxed/pretweak/v2.1/logs/chunk1.log &
+; echo "ages_ppxf_pretweak, first=12, last=23" | nohup idl > & /home/work/data/ages/spec1d/fluxed/pretweak/v2.1/logs/chunk2.log &
+; echo "ages_ppxf_pretweak, first=24, last=35" | nohup idl > & /home/work/data/ages/spec1d/fluxed/pretweak/v2.1/logs/chunk3.log &
+; echo "ages_ppxf_pretweak, first=36, last=47" | nohup idl > & /home/work/data/ages/spec1d/fluxed/pretweak/v2.1/logs/chunk4.log &
+; echo "ages_ppxf_pretweak, first=48, last=59" | nohup idl > & /home/work/data/ages/spec1d/fluxed/pretweak/v2.1/logs/chunk5.log &
+; echo "ages_ppxf_pretweak, first=60, last=71" | nohup idl > & /home/work/data/ages/spec1d/fluxed/pretweak/v2.1/logs/chunk6.log &
+; echo "ages_ppxf_pretweak, first=72, last=83" | nohup idl > & /home/work/data/ages/spec1d/fluxed/pretweak/v2.1/logs/chunk7.log &
+; echo "ages_ppxf_pretweak, first=84, last=95" | nohup idl > & /home/work/data/ages/spec1d/fluxed/pretweak/v2.1/logs/chunk8.log &
     
     light = 2.99792458D5        ; speed of light [km/s]
 
@@ -129,7 +138,7 @@ pro ages_ppxf_pretweak, pass1, firstpass=firstpass, lastpass=lastpass, $
          psfile = specfitpath+'qaplot_ppxf_'+suffix+'.ps'
        im_plotconfig, 8, pos, psfile=psfile, charsize=1.6, $
          thick=1, ymargin=[0.6,1.1]
-;      for iobj = 50, 60 do begin
+;      for iobj = 169, 169 do begin
        for iobj = 0, nobj-1 do begin
           splog, allpass[ipass], iobj
 ;         print, format='("Fitting object ",I0,"/",I0,A10,$)', $
@@ -147,11 +156,22 @@ pro ages_ppxf_pretweak, pass1, firstpass=firstpass, lastpass=lastpass, $
           flux = spec1d.flux[good,index[iobj]]
           ferr = spec1d.ferr[good,index[iobj]]
 
+; interpolate over bad pixels (introduced 2016 Feb 10)
+          msk = ferr gt 1D14
+          ferr = djs_maskinterp(ferr,msk,wave,/const)
+          ww = where(msk eq 1)
+          if ww[0] ne -1L then ferr[ww] *= 10
+
           lnflux = im_log_rebin(wave,flux,var=ferr^2,$
             outwave=lnwave,outvar=lnvar,vsc=velscale)
 ;         log_rebin, minmax(wave), flux, lnflux, lnwave, velscale=velscale
 ;         log_rebin, minmax(wave), ferr^2, lnvar, velscale=velscale
           lnferr = sqrt(abs(lnvar))
+
+          msk = lnferr le 0
+          lnferr = djs_maskinterp(lnferr,msk,lnwave,/const)
+          ww = where(msk eq 1)
+          if ww[0] ne -1L then lnferr[ww] *= 10
 
           lnrestwave = lnwave - alog(1.0+zabs)
           lnrestflux = lnflux*(1.0+zabs)
@@ -181,7 +201,7 @@ pro ages_ppxf_pretweak, pass1, firstpass=firstpass, lastpass=lastpass, $
 ; setting MOMENTS=0, and just solve for the continuum, with reddening,
 ; but *no* additive polynomial freedom
           ebv = ebv_guess
-          ages_ppxf, fit_tempflux, lnrestflux, lnrestferr, velscale, start, $
+          im_ppxf, fit_tempflux, lnrestflux, lnrestferr, velscale, start, $
             sol, goodpixels=goodpixels, plot=doplot, moments=0, $
             degree=degree, weights=weights, bestfit=bestfit, quiet=1, $
             clean=1, reddening=ebv, lambda=exp(lnrestwave)
@@ -232,7 +252,7 @@ pro ages_ppxf_pretweak, pass1, firstpass=firstpass, lastpass=lastpass, $
             /left, /top, box=0, charsize=1.3, margin=0
        endfor
        if (keyword_set(doplot) eq 0) then $
-         im_plotconfig, psfile=psfile, /gzip, /psclose
+         im_plotconfig, psfile=psfile, /psclose, /pdf
        splog, 'Total time = ', (systime(1)-t0)/60.0, ' minutes'
        im_mwrfits, result, outfile, /clobber
        

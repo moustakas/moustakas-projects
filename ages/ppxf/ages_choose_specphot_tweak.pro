@@ -38,8 +38,10 @@ function ages_choose_specphot_tweak, pass, tweakwave=tweakwave
     good = where(all.wave gt -900.0)
     rawwave = all.wave
     rawtweak = all.tweak
-
-    tweakwave = im_array(3700.0,9200.0<max(all.wave[good]),1.0)
+        
+    npix = ceil(((9200<max(all.wave[good]))-3700.0)/1.0)
+    tweakwave = range(3700.0,(9200<max(all.wave[good])),npix)
+;   tweakwave = im_array(3700.0,9200.0<max(all.wave[good]),1.0)
 ;   tweakwave = im_array(3700.0>min(all.wave[good]),$
 ;     9200.0<max(all.wave[good]),1.0)
 

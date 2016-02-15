@@ -82,6 +82,7 @@
 ;
 ;   ppxf_templates 
 ;     v1.0 - see AGES_GANDALF_SPECFIT
+;     v2.0 - updated to the CKCz14 templates
 ;   ppxf_specfit
 ;     v1.0 - see AGES_GANDALF_SPECFIT
 ;     v2.0 - 
@@ -97,8 +98,9 @@
 ;   jm08jun18nyu - ancillary version pushed to v2.1
 ;   jm08sep02nyu - KCORRECT and ANCILLARY versions branched  
 ;   jm09nov09ucsd - new PHOTOMETRY version number
+;   jm16feb10siena - update the template version number
 
-; Copyright (C) 2008-2009, John Moustakas
+; Copyright (C) 2008-2009, 2016, John Moustakas
 ; 
 ; This program is free software; you can redistribute it and/or modify 
 ; it under the terms of the GNU General Public License as published by 

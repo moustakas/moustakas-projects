@@ -113,6 +113,9 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 
 ;   echo "desi_deep2_isedfit, /write_param, /build_grids, /model_phot, /isedfit, /cl" | /usr/bin/nohup idl > & ~/desi-deep2-isedfit.log &     
 
+;   echo "desi_deep2_isedfit, /isedfit_field1, /kcorrect_field1, thissfhgrid=2, /cl" | /usr/bin/nohup idl > & ~/desi-deep2-ised2.log &     
+;   echo "desi_deep2_isedfit, /isedfit_field24, /kcorrect_field24, thissfhgrid=4, /cl" | /usr/bin/nohup idl > & ~/desi-deep2-ised4.log &     
+
 ;   echo "desi_deep2_isedfit, /kcorrect_field1, thissfhgrid=2, /cl" | /usr/bin/nohup idl > & ~/desi-deep2-kcorr2.log &     
 ;   echo "desi_deep2_isedfit, /kcorrect_field24, thissfhgrid=4, /cl" | /usr/bin/nohup idl > & ~/desi-deep2-kcorr4.log &     
     
@@ -148,8 +151,8 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
     filterlist = filterlist[0:9]
     filterlist2 = filterlist2[0:9]
 
-    zminmax = [0.1,2.0]
-    nzz = 140
+    zminmax = [0.1,1.5]
+    nzz = 130
 
 ;   index = where(cat.zbest ge zminmax[0] and cat.zbest le zminmax[1])
     index_field1 = where(cat.zbest ge zminmax[0] and cat.zbest le zminmax[1] and $
@@ -169,7 +172,7 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
        Zmetal = [0.004,0.03]
        age = [0.1,12.5]
        tau = [0.0,10]
-       nmodel = 50000L
+       nmodel = 30000L
        pburst = 0.2
        interval_pburst = 2.0
 
@@ -203,8 +206,7 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 ; build the Monte Carlo grids    
     if keyword_set(build_grids) then begin
        isedfit_montegrids, isedfit_paramfile, isedfit_dir=isedfit_dir, $
-         montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, clobber=clobber;, $
-;        montefile=montegrids_dir+'sfhgrid02/fsps_v2.4_miles/charlot/desi_deep2_fsps_v2.4_miles_chab_montegrid.fits.gz'
+         montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, clobber=clobber
     endif
 
 ; --------------------------------------------------
@@ -222,9 +224,9 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 ;      outprefix = 'unwise'
 ;      index = where(phot.w1_nanomaggies_ivar ne 0 and cat.zbest ge zminmax[0] and $
 ;        cat.zbest le zminmax[1])
-       splog, 'Hack!!!!'
-       toss = where(strtrim(filterlist,2) eq 'wise_w2.par')
-       ivarmaggies[toss,*] = 0.0
+;      splog, 'Hack!!!!'
+;      toss = where(strtrim(filterlist,2) eq 'wise_w2.par')
+;      ivarmaggies[toss,*] = 0.0
        isedfit, isedfit_paramfile, maggies, ivarmaggies, cat.zbest, ra=cat.ra, $
          dec=cat.dec, isedfit_dir=isedfit_dir, thissfhgrid=thissfhgrid, $
          clobber=clobber, index=index_field1, outprefix=outprefix
@@ -234,9 +236,9 @@ pro desi_deep2_isedfit, write_paramfile=write_paramfile, build_grids=build_grids
 ;      outprefix = 'unwise'
 ;      index = where(phot.w1_nanomaggies_ivar ne 0 and cat.zbest ge zminmax[0] and $
 ;        cat.zbest le zminmax[1])
-       splog, 'Hack!!!!'
-       toss = where(strtrim(filterlist,2) eq 'wise_w2.par')
-       ivarmaggies[toss,*] = 0.0
+;      splog, 'Hack!!!!'
+;      toss = where(strtrim(filterlist,2) eq 'wise_w2.par')
+;      ivarmaggies[toss,*] = 0.0
        isedfit, isedfit_paramfile, maggies, ivarmaggies, cat.zbest, ra=cat.ra, $
          dec=cat.dec, isedfit_dir=isedfit_dir, thissfhgrid=thissfhgrid, $
          clobber=clobber, index=index_field24, outprefix=outprefix

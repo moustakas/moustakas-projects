@@ -20,8 +20,8 @@ pro desi_ages_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
 
 ; select the sample    
-    zminmax = [0.01,0.85]
-    nzz = 100
+    zminmax = [0.01,0.8]
+    nzz = 75
     
     phot = read_ages(/photo)
     index = where((phot.imain eq 1) and (phot.z ge zminmax[0]) and $
@@ -52,7 +52,7 @@ pro desi_ages_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
        Zmetal = [0.004,0.03]
        age = [0.1,12.5]
        tau = [0.0,10]
-       nmodel = 50000L
+       nmodel = 30000L
        pburst = 0.2
        interval_pburst = 2.0
 
@@ -88,9 +88,9 @@ pro desi_ages_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
 ; --------------------------------------------------
 ; fit!
     if keyword_set(isedfit) then begin
-       splog, 'Temporary hack!'
-       toss = where(filterlist eq 'spitzer_irac_ch2.par')
-       ivarmaggies[toss,*] = 0
+;      splog, 'Temporary hack!'
+;      toss = where(filterlist eq 'spitzer_irac_ch2.par')
+;      ivarmaggies[toss,*] = 0
        isedfit, isedfit_paramfile, maggies, ivarmaggies, phot.z, ra=phot.ra, $
          dec=phot.dec, isedfit_dir=isedfit_dir, thissfhgrid=thissfhgrid, $
          clobber=clobber, index=index, outprefix=outprefix

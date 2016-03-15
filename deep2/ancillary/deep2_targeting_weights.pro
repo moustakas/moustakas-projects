@@ -1,3 +1,13 @@
+function get_subfield, field
+    case field of
+       '1': subfield = ['1']
+       '2': subfield = ['21','22']
+       '3': subfield = ['31','32','33']
+       '4': subfield = ['41','42']
+    endcase
+return, subfield
+end
+
 function deep2_colorcut, magb, magr, magi, mlim=mlim
     if n_elements(mlim) eq 0 then mlim = 24.1
     return, magr lt mlim and $
@@ -11,7 +21,9 @@ end
 pro deep2_targeting_weights
 ; jm14may21siena - compute the targeting weights for DEEP2/DR4
 ; for details see: Newman+13 and
-; http://deep.ps.uci.edu/dr4/completeness.html 
+; http://deep.ps.uci.edu/dr4/completeness.html
+
+; jm16feb29siena - also add the mask weight
 
 ; ** after running this code you should run DEEP2_ZSUCCESS **
 
@@ -29,10 +41,28 @@ pro deep2_targeting_weights
     
     out = struct_addtags(struct_trimtags(zcat,select=$
       ['objno','objname','ra','dec','pgal','magr']),replicate({$
-      obj_weight: -1.0, select_weight: -1.0, phot_weight: 1.05, $
+      mask_weight: -1.0, obj_weight: -1.0, select_weight: -1.0, phot_weight: 1.05, $
       targ_weight: -1.0, zsuccess_weight: -1.0, final_weight: -1.0},ngal))
 ;     deep2_nmatch: 0, deep2_psel: -1.0, deep2_probcut: -1.0, deep2_weight: -1.0
-    
+
+; get the spectroscopic mask weight
+    field = ['1','2','3','4']
+    for ff = 0, n_elements(field)-1 do begin
+       subfield = get_subfield(field[ff])
+       for ss = 0, n_elements(subfield)-1 do begin
+          win = mrdfits(winpath+'windowf.'+subfield[ss]+'.fits.gz',0,hdr,/silent)
+          extast, hdr, astr
+          area = total(win gt 0)*determ(astr.cd) ; =0.4342 deg^2
+          splog, 'Spectroscopic area (deg^2) = ', field[ff], subfield[ss], area
+          
+          if field[ff] eq '1' then trim = 1 else trim = 2
+          these = where(strmid(strtrim(out.objno,2),0,trim) eq subfield[ss],nobj)
+          
+          ad2xy, out[these].ra, out[these].dec, astr, xx, yy
+          out[these].mask_weight = interpolate(win,xx,yy,missing=0)
+       endfor      
+    endfor       
+
 ; ####################
 ; Field 1/EGS targeting weights: W = Wsg * WR; note we
 ; select on OBJNO here (not OBJNAME) because there are ~6 objects with

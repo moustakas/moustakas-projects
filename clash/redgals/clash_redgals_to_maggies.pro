@@ -24,13 +24,18 @@ pro clash_redgals_to_maggies, cat, maggies, ivar, filterlist=filterlist
        utag = tag_indx(cat[0],ivartags[ib])
 
        if ftag ne -1 and utag ne -1 then begin
-          good = where(cat.(utag) gt 0.0 and cat.(utag) lt 1E3,ngood)
+          good = where(cat.(utag) gt 0.0,ngood)
+;         good = where(cat.(utag) gt 0.0 and cat.(utag) lt 1E3,ngood)
           if (ngood ne 0L) then begin
              maggies[ib,good] = float(cat[good].(ftag)*fact)
              ivar[ib,good] = float(cat[good].(utag)/fact^2.0)
           endif
        endif
     endfor
+
+;; minimum photometric error    
+;    minerr = fltarr(nbands)+0.02
+;    k_minerror, maggies, ivar, minerr
     
 return   
 end

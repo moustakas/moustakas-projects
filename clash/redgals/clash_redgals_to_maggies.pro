@@ -33,9 +33,9 @@ pro clash_redgals_to_maggies, cat, maggies, ivar, filterlist=filterlist
        endif
     endfor
 
-;; minimum photometric error    
-;    minerr = fltarr(nbands)+0.02
-;    k_minerror, maggies, ivar, minerr
+; minimum photometric error    
+     minerr = fltarr(nbands)+0.02
+     k_minerror, maggies, ivar, minerr
     
 return   
 end

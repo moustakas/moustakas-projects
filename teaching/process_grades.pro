@@ -1,7 +1,13 @@
 pro process_grades, data, assign=assign, allassign=allassign, $
   weight=weight, droplowest=droplowest, class=class, alldata=alldata, $
-  semester=semester, lab=lab, test=test, sendit=sendit, final=final
+  semester=semester, lab=lab, test=test, sendit=sendit, final=final, $
+  dontdrop=dontdrop, gradefactor=gradefactor
 ; jm12oct05siena - process the final grades
+
+; dontdrop - ensure this assignment (string) isn't dropped
+
+    if n_elements(dontdrop) eq 0 then dontdrop = 'xxxxxx'
+    if n_elements(gradefactor) eq 0 then gradefactor = 1.0
 
     nstudent = n_elements(data)
     
@@ -95,10 +101,20 @@ pro process_grades, data, assign=assign, allassign=allassign, $
 ; points possible
              if keyword_set(lab) then keep = where(points ne 0.0) else begin
                 if droplowest[ii] then begin
-                   frac = points/(possible+(possible eq 0))*(possible ne 0)+999*(possible eq 0)
-                   frac_weighted = points/total(possible)
+                   scoreweight = points/total(possible)*(possible ne 0)
+                   frac = points/(possible+(possible eq 0))*(possible ne 0)+999*(possible eq 0) 
+                   frac_weighted = scoreweight*frac/total(scoreweight)
+;                  niceprint, frac, points, possible, weight*frac, weight
+
+                   zero = where(frac_weighted eq 0.0,nzero)
+                   if nzero ne 0 then frac_weighted[zero] = 999.0
+
+; it turns out that weighting has some funky effects I still need to figure out 
 ;                  keep = where(frac_weighted gt min(frac_weighted),nkeep,comp=lowest)
-                   keep = where(frac gt min(frac),nkeep,comp=lowest)
+;                  keep = where(frac gt min(frac),nkeep,comp=lowest)
+                   frac_dontdrop = frac+strmatch(details,'*'+dontdrop+'*')
+                   keep = where(frac_dontdrop gt min(frac_dontdrop),nkeep,comp=lowest)
+
 ; special case for a student who has received 100% on every
 ; assignment!
                    if n_elements(points) gt 1 and min(frac) eq 1.0 then begin
@@ -147,7 +163,7 @@ pro process_grades, data, assign=assign, allassign=allassign, $
          cumupossible[these],weights=weight[these])
        indx = tag_indx(alldata,'current_grade')
        alldata[ss].(indx) = current
-       grade = 100*im_weighted_mean(cumupoints/cumupossible,weights=weight)
+       grade = 100*im_weighted_mean(cumupoints/cumupossible,weights=weight)*gradefactor
        if total(isdata eq -1) gt 0 or (keyword_set(final) eq 0) then begin
           printf, lun, 'Some of your scores in the class have not been tabulated yet.'
           printf, lun, 'However, based on the fraction of your grade that you have'

@@ -1,9 +1,9 @@
-pro astr390_f16_grades, alldata, test=test, sendit=sendit, final=final
+pro astr390_f16_grades, alldata, test=test, sendit=sendit, final=final, drop=drop
 ; jm15jan31siena - parse the grades for this class 
 
     path = getenv('TEACHING_DIR')+'/390-F16/grades/'
     
-    date = '16oct24' ; update this
+    date = '16nov17' ; update this
     semester = 'Fall 2016'
     class = 'ASTR390 - Principles of Astrophysics I'
 
@@ -15,11 +15,14 @@ pro astr390_f16_grades, alldata, test=test, sendit=sendit, final=final
 ; relative weights
     allassign = ['Homework','Quizzes','Talk','Final Problem Set']
     weight = [0.30,0.40,0.15,0.15]
-    droplowest = [1,1,0,0]
+    if keyword_set(drop) then begin
+       droplowest = [1,1,0,0]
+    endif else begin
+       droplowest = [0,0,0,0]
+    endelse
 
-    keep = where(strmatch(data.first_name,'*Alexander*'))
-;   keep = where(strmatch(data.first_name,'*Cristian*'))
-    data = data[keep]
+;   keep = where(strmatch(data.first_name,'*Fred*'))
+;   data = data[keep]
 
     process_grades, data, assign=assign, allassign=allassign, $
       weight=weight, class=class, semester=semester, test=test, $

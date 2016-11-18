@@ -113,7 +113,16 @@ pro process_grades, data, assign=assign, allassign=allassign, $
 ;                  keep = where(frac_weighted gt min(frac_weighted),nkeep,comp=lowest)
 ;                  keep = where(frac gt min(frac),nkeep,comp=lowest)
                    frac_dontdrop = frac+strmatch(details,'*'+dontdrop+'*')
-                   keep = where(frac_dontdrop gt min(frac_dontdrop),nkeep,comp=lowest)
+                   keep = where(frac_dontdrop gt min(frac_dontdrop))
+
+; capture the case where the student has missed multiple assignments
+                   manymin = where(frac_dontdrop eq min(frac_dontdrop),nmany)
+                   if nmany gt 1 then begin
+                      these = where(possible[manymin] ne max(possible[manymin]))
+                      keep = [keep, manymin[these]]
+                      keep = keep[sort(keep)]
+                   endif
+                   nkeep = n_elements(keep)
 
 ; special case for a student who has received 100% on every
 ; assignment!

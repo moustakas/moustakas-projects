@@ -78,7 +78,7 @@ pro clash_redgals_isedfit, write_paramfile=write_paramfile, build_grids=build_gr
 ; --------------------------------------------------
 ; compute K-corrections
     if keyword_set(kcorrect) then begin
-       absmag_filterlist = sdss_filterlist()
+       absmag_filterlist = [sdss_filterlist(), bessell_filterlist(), twomass_filterlist()]
 ;      absmag_filterlist = [sdss_filterlist(),'clash_'+$
 ;        ['wfc3_f336w','wfc3_f390w','acs_f435w','acs_f475w']+'.par']
 

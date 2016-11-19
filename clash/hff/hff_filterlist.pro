@@ -1,6 +1,6 @@
 function hff_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
   zpt=zpt, alam=alam, useirac=useirac, weff=weff, fwhm=fwhm, pivotwave=pivotwave, $
-  width=width, instr=instr, usehawki=usehawki, usemoircs=usemoircs
+  width=width, instr=instr, usehawki=usehawki, usemoircs=usemoircs, forwei=forwei
 ; jm11apr24ucsd 
 
     filterlist = [$
@@ -86,9 +86,15 @@ function hff_filterlist, short_filter=short_filter, nice_filter=nice_filter, $
        nice_filter = [nice_filter,'IRAC-[ch1]','IRAC-[ch2]']
        short_filter = [short_filter,'irac_ch1','irac_ch2']
        zpt = [zpt,18.803,18.318]
-       pivotwave = [pivotwave,1D4*[3.551,4.496]]
 ;      width = [width,[0.7,1.0,1.5,3.0]*1D4] ; approximate for IRAC!
-       width = [width,[4313.0,5712]*2] ; approximate for IRAC!
+
+       if keyword_set(forwei) then begin
+          pivotwave = [pivotwave,1D4*[3.5,4.5]]
+          width = [width,[4000.0,6000.0]*2] ; approximate for IRAC!
+       endif else begin
+          pivotwave = [pivotwave,1D4*[3.551,4.496]]
+          width = [width,[4313.0,5712]*2] ; approximate for IRAC!
+       endelse
     endif
 
 ; add HAWK-I/Ks

@@ -96,9 +96,9 @@ pro macs1149_plots
     isedfit_paramfile = isedfit_dir+'macs1149_paramfile.par'
     suffix = 'jan28'
 
-    filt = hff_filterlist(pivotwave=weff,width=hwhm,/useirac)
+    filt = hff_filterlist(pivotwave=weff,width=hwhm,/useirac,/forwei)
     weff = weff/1D4
-    hwhm = hwhm/1D4
+    hwhm = hwhm/1D4/2
 
     cat = rsex(isedfit_dir+'flx_iso.'+suffix)
     cat = struct_addtags(cat,replicate({logmu: 1.0},n_elements(cat)))
@@ -170,7 +170,8 @@ pro macs1149_plots
 ; on the input photometry
     print, allmodel.maggies*sqrt(allmodel.ivarmaggies)
     nsigma = allmodel.maggies*0+2.0
-;   if ii eq 1 then nsigma[1] = 2.49
+    nsigma[2] = 3.11 ; hack!
+    print, nsigma
 ;   if ii eq 3 then nsigma[2] = 2.1
     mab = maggies2mag(allmodel.maggies,nsigma=nsigma,$
       ivar=allmodel.ivarmaggies,magerr=maberr,$
@@ -191,10 +192,12 @@ pro macs1149_plots
          psym=symcat(11,thick=6), symsize=3.0, color=im_color('orange')
     endif
     im_legend, /left, /top, box=0, spacing=1.8, charsize=1.5, $
-      ['MACS1149-663','z = '+strtrim(string(cat.bpz,format='(F12.2)'),2)]
+      ['M1149-JD','z = '+strtrim(string(cat.bpz,format='(F12.2)'),2)]
 
     im_plotconfig, psfile=psfile, /psclose, /pdf
 
+stop    
+    
 ; --------------------------------------------------
 ; paper plot: posteriors on stellar mass, SFR, and SFR-weighted age
     psfile = isedfit_dir+'macs1149_id663_post.ps'

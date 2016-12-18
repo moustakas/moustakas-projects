@@ -3,7 +3,7 @@ pro phys310_f16_grades, alldata, test=test, sendit=sendit, final=final, drop=dro
 
     path = getenv('TEACHING_DIR')+'/310-F16/grades/'
     
-    date = '16nov17' ; update this
+    date = '16dec14' ; update this
     semester = 'Fall 2016'
     class = 'PHYS310 - Mechanics I'
 
@@ -25,8 +25,8 @@ pro phys310_f16_grades, alldata, test=test, sendit=sendit, final=final, drop=dro
 ;   data.final *= 1.03
 
 ;   keep = where(data.final_exam gt 0.0)
-;   keep = where(strmatch(data.last_name,'*Clements*'))
-;   data = data[keep]
+    keep = where(strmatch(data.first_name,'*Shane*'))
+    data = data[keep]
 
     process_grades, data, assign=assign, allassign=allassign, $
       weight=weight, class=class, semester=semester, test=test, $

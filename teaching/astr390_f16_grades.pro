@@ -3,7 +3,7 @@ pro astr390_f16_grades, alldata, test=test, sendit=sendit, final=final, drop=dro
 
     path = getenv('TEACHING_DIR')+'/390-F16/grades/'
     
-    date = '16nov17' ; update this
+    date = '16dec16' ; update this
     semester = 'Fall 2016'
     class = 'ASTR390 - Principles of Astrophysics I'
 

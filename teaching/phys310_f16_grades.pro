@@ -3,7 +3,7 @@ pro phys310_f16_grades, alldata, test=test, sendit=sendit, final=final, drop=dro
 
     path = getenv('TEACHING_DIR')+'/310-F16/grades/'
     
-    date = '16dec14' ; update this
+    date = '16dec20' ; update this
     semester = 'Fall 2016'
     class = 'PHYS310 - Mechanics I'
 
@@ -13,6 +13,10 @@ pro phys310_f16_grades, alldata, test=test, sendit=sendit, final=final, drop=dro
 
 ; specify the complete list of *possible* assignments and their
 ; relative weights
+
+; for the final grades I sent the weight on the final exam equal to zero -- the
+; final was not a good test of their understanding (I guess) 
+
     allassign = ['Homework','Laboratory','Quizzes','Final']
     weight = [0.25,0.25,0.30,0.20]
     if keyword_set(drop) then begin
@@ -21,7 +25,7 @@ pro phys310_f16_grades, alldata, test=test, sendit=sendit, final=final, drop=dro
        droplowest = [0,0,0,0]
     endelse
 
-;   data.quizzes *= 1.05
+    data.quizzes *= 1.03
 ;   data.final *= 1.03
 
 ;   keep = where(data.final_exam gt 0.0)

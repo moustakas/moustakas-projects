@@ -55,7 +55,7 @@ pro ages_to_maggies, cat, maggies, ivarmaggies, sdss=sdss, $
        filterlist = ['sdss_'+['u0','g0','r0','i0','z0'],$
          'twomass_'+['J','H','Ks']]+'.par'
 ; SDSS
-       good = where(cat.sdss_match)
+       good = where(cat.sdss_ra gt -900)
        sdss_to_maggies, maggies1, ivarmaggies1, $
          calibobj=cat[good], flux='model'
        maggies[0:4,good] = maggies1

@@ -6,9 +6,11 @@ pro desi_ages_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
 ; project
 
 ;   echo "desi_ages_isedfit, /write_param, /build_grids, /model_phot, /isedfit, /cl" | /usr/bin/nohup idl > & ~/desi-ages-isedfit.log & 
+;   echo "desi_ages_isedfit, /kcorrect, thissfhgrid=2, /cl" | /usr/bin/nohup idl > ~/desi-ages-kcorrect.log 2>&1 & 
     
-    version = desi_bgs_templates_version(/isedfit)
-    splog, 'HACK!!!!!'
+    splog, 'HACK the version number!!!!!'
+;   version = desi_bgs_templates_version(/isedfit)
+    version = 'v2.0'
 
     prefix = 'desi_ages'
     splog, 'Hacking the path!'
@@ -102,7 +104,7 @@ pro desi_ages_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
 ;      index = [9,23,29]
        isedfit_kcorrect, isedfit_paramfile, isedfit_dir=isedfit_dir, $
          montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
-         absmag_filterlist=sdss_filterlist(), band_shift=0.0, $
+         absmag_filterlist=sdss_filterlist(), band_shift=0.1, $
          clobber=clobber, index=index, outprefix=outprefix
     endif 
 

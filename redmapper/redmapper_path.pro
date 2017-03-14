@@ -1,5 +1,6 @@
 function redmapper_path, isedfit=isedfit, version=version, catalogs=catalogs, $
-  paper=paper, redbaryons=redbaryons, icl=icl, decamlegacy=decamlegacy
+  paper=paper, redbaryons=redbaryons, icl=icl, decamlegacy=decamlegacy, $
+  redmagic=redmagic
 ; jm13apr08siena
 
     version = 'v5.10'
@@ -19,6 +20,7 @@ function redmapper_path, isedfit=isedfit, version=version, catalogs=catalogs, $
     if keyword_set(icl) then return, project_root+'icl/'
     if keyword_set(redbaryons) then return, project_root+'redbaryons/'
     if keyword_set(decamlegacy) then return, project_root+'decamlegacy/'
+    if keyword_set(redmagic) then return, project_root+'redmagic/'
 
 return, project_root
 end

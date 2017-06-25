@@ -67,7 +67,7 @@ pro redmapper_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
 ; fit! but split the members catalog into chunks since it's so big 
     if keyword_set(isedfit) then begin
        if keyword_set(bcgs) then begin
-          phot = mrdfits(redmapper_dir+'redmapper_'+ver+'_phot.fits.gz',1)
+          phot = mrdfits(redmapper_dir+'catalogs/redmapper_'+ver+'_phot.fits.gz',1)
 
           outprefix = 'bcgs'
           phot = phot[where(phot.isbcg)]
@@ -92,7 +92,7 @@ pro redmapper_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
              these = these[where(these lt ngal)]
 ;            these = these[0:99] ; test!
 
-             phot = mrdfits(redmapper_dir+'redmapper_'+ver+'_phot.fits.gz',1,rows=these)
+             phot = mrdfits(redmapper_dir+'catalogs/redmapper_'+ver+'_phot.fits.gz',1,rows=these)
              isedfit, isedfit_paramfile, phot.maggies, phot.ivarmaggies, $
                phot.z, ra=phot.ra, dec=phot.dec, isedfit_dir=isedfit_dir, $
                outprefix=outprefix, thissfhgrid=thissfhgrid, clobber=clobber
@@ -128,7 +128,7 @@ pro redmapper_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
 ; --------------------------------------------------
 ; generate spectral energy distribution (SED) QAplots
     if keyword_set(qaplot_sed) then begin
-       phot = mrdfits(redmapper_dir+'redmapper_'+ver+'_phot.fits.gz',1)
+       phot = mrdfits(redmapper_dir+'catalogs/redmapper_'+ver+'_phot.fits.gz',1)
        if keyword_set(bcgs) then begin
           outprefix = 'bcgs'
           phot = phot[where(phot.isbcg)]
@@ -141,10 +141,12 @@ pro redmapper_isedfit, write_paramfile=write_paramfile, build_grids=build_grids,
 ;      allcl = phot.mem_match_id
 ;      cl = allcl[uniq(allcl,sort(allcl))]
 
-       isedfit_qaplot_sed, isedfit_paramfile, nrandom=50, outprefix=outprefix, $
+       index = lindgen(50)
+       
+       isedfit_qaplot_sed, isedfit_paramfile, outprefix=outprefix, $
          isedfit_dir=isedfit_dir, montegrids_dir=montegrids_dir, $
          thissfhgrid=thissfhgrid, clobber=clobber, galaxy=galaxy, $
-         /xlog
+         /xlog, index=index ; nrandom=50
     endif
     
 return

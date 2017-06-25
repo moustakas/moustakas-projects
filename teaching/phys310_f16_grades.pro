@@ -29,8 +29,8 @@ pro phys310_f16_grades, alldata, test=test, sendit=sendit, final=final, drop=dro
 ;   data.final *= 1.03
 
 ;   keep = where(data.final_exam gt 0.0)
-    keep = where(strmatch(data.first_name,'*Shane*'))
-    data = data[keep]
+;   keep = where(strmatch(data.first_name,'*Shane*'))
+;   data = data[keep]
 
     process_grades, data, assign=assign, allassign=allassign, $
       weight=weight, class=class, semester=semester, test=test, $

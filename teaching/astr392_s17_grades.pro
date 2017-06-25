@@ -3,7 +3,7 @@ pro astr392_s17_grades, alldata, test=test, sendit=sendit, final=final
 
     path = getenv('TEACHING_DIR')+'/392-S17/grades/'
     
-    date = '17apr20' ; update this
+    date = '17may08' ; update this
     semester = 'Spring 2017'
     class = 'Astronomy 392 - Principles of Astrophysics II'
 
@@ -14,10 +14,13 @@ pro astr392_s17_grades, alldata, test=test, sendit=sendit, final=final
 ; specify the complete list of *possible* assignments and their
 ; relative weights
     allassign = ['Midterm 1 Exam','Midterm 2 Exam',$
-      'Midterm 2 Computational','Talk','Final Problem Set']
+      'Midterm 2 Computational','Astrophysics Talk','Final Problem Set']
     weight = [0.25,0.2125,0.0375,0.25,0.25]
     droplowest = [0,0,0,0,0]
 
+; include this factor in the final grades --    
+;   data.final_problem_set *= 1.07
+    
 ;   keep = where(strmatch(data.last_name,'*Young*'))
 ;   keep = where(data.final_exam gt 0.0)
 ;   data = data[keep]

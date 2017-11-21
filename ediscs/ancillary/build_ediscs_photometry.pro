@@ -198,7 +198,7 @@ pro build_ediscs_photometry, outphot, clobber=clobber
 
     out = struct_addtags(out,struct_trimtags(outmorph,$
       except=['_raj2000','_dej2000','_ra','_de','cluster','edcsn','imag']))
-    
+
 ; write out
     outfile = mycatpath+'ediscs_all_photometry.'+vv+'.fits'
     im_mwrfits, out, outfile, clobber=clobber

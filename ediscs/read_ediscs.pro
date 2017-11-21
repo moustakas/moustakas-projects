@@ -1,11 +1,11 @@
-function read_ediscs, spec1dinfo=spec1dinfo, photo=photo, $
+function read_ediscs, spec1dinfo=spec1dinfo, photo=photo, allphoto=allphoto, $
   specfit=specfit, ppxf=ppxf, kcorr=kcorr, synthmags=synthmags, $
   silent=silent
 ; jm06sep27nyu
 ; jm08mar31nyu - major update
 
-    common ediscs_read, ediscs_photo, ediscs_kcorr, ediscs_spec1dinfo, $
-      ediscs_specfit, ediscs_ppxf
+    common ediscs_read, ediscs_photo, ediscs_allphoto, ediscs_kcorr, $
+      ediscs_spec1dinfo, ediscs_specfit, ediscs_ppxf
     
     mycatpath = ediscs_path(/mycatalogs)
     specfitpath = ediscs_path(/specfit)
@@ -29,6 +29,16 @@ function read_ediscs, spec1dinfo=spec1dinfo, photo=photo, $
           ediscs_photo = mrdfits(thisfile,1,silent=0)
        endif else if (keyword_set(silent) eq 0) then splog, 'Restoring '+file_basename(thisfile)
        return, ediscs_photo
+    endif
+
+; see BUILD_EDISCS_PHOTOMETRY    
+    if keyword_set(allphoto) then begin
+       thisfile = mycatpath+'ediscs_all_photometry.v23.fits.gz'
+       if (size(ediscs_allphoto,/type) ne 8) then begin
+          if (keyword_set(silent) eq 0) then splog, 'Reading '+thisfile
+          ediscs_allphoto = mrdfits(thisfile,1,silent=0)
+       endif else if (keyword_set(silent) eq 0) then splog, 'Restoring '+file_basename(thisfile)
+       return, ediscs_allphoto
     endif
 
 ; see EDISCS_GANDALF_SPECFIT    

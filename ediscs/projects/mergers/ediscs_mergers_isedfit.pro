@@ -1,7 +1,8 @@
 pro ediscs_mergers_isedfit, write_paramfile=write_paramfile, build_grids=build_grids, $
   model_photometry=model_photometry, qaplot_models=qaplot_models, isedfit=isedfit, $
-  merge_isedfit=merge_isedfit, kcorrect=kcorrect, qaplot_sed=qaplot_sed, clobber=clobber, $
-  thissfhgrid=thissfhgrid, bcgs=bcgs, firstchunk=firstchunk, lastchunk=lastchunk
+  kcorrect=kcorrect, qaplot_sed=qaplot_sed, clobber=clobber, thissfhgrid=thissfhgrid, $
+  use_clusterz=use_clusterz, use_specz=use_specz
+  
 ; jm17nov21siena - 
 
 ; echo "ediscs_mergers_isedfit, /write_param, /build_grids, /model_phot, /cl" | /usr/bin/nohup idl > ~/mergers.log 2>&1 &
@@ -13,12 +14,45 @@ pro ediscs_mergers_isedfit, write_paramfile=write_paramfile, build_grids=build_g
     isedfit_paramfile = isedfit_dir+prefix+'_paramfile.par'
     ediscs_mergers_dir = ediscs_path(/projects)+'mergers/'
 
-    filterlist = ediscs_filterlist()
+    if keyword_set(use_specz) then begin
+       phot = read_ediscs(/phot)
+       ediscs_to_maggies, phot, maggies, ivarmaggies, filterlist=filterlist
 
-;   phot = mrdfits(ediscs_mergers_dir+'ediscs_mergers_v1.fits',1)
-;   ediscs_mergers_to_maggies, phot, maggies, ivarmaggies
-;   zobj = phot.zredmagic
-    
+       spec1d = read_ediscs(/spec1d)
+       zobj = spec1d.z
+
+       outprefix = prefix+'_specz'
+    endif else begin
+       phot = read_ediscs(/allphot)
+       ediscs_to_maggies, phot, maggies, ivarmaggies, filterlist=filterlist
+       
+       if keyword_set(use_clusterz) then begin
+
+          spec1d = read_ediscs(/spec1d)
+          spec1d = spec1d[where(strmatch(spec1d.memberflag,'*1*'))]
+
+          cl = strtrim(spec1d.cluster,2)
+          cl = spec1d[uniq(cl,sort(cl))].cluster
+          zcl = spec1d[uniq(cl,sort(cl))].cluster_z
+          
+;         match2, strmid(strtrim(phot.cluster,2),0,6), strtrim(spec1d.cluster,2), m1, m2
+;         match, strtrim(phot.cluster,2), strmid(strtrim(spec1d.cluster_fullname),0,13), m1, m2
+
+          stop
+          
+          index = where(phot.starflag eq 0 and (total(ivarmaggies gt 0,1) ge 3))
+          
+          outprefix = prefix+'_zcl'
+          
+       endif else begin
+          ; individual photoz
+          index = where(phot.bestz gt 0.05 and phot.bestz lt 1.5 and $
+            phot.starflag eq 0 and (total(ivarmaggies gt 0,1) ge 3))
+          zobj = phot.bestz
+          outprefix = prefix+'_photoz'
+       endelse
+    endelse
+
 ; --------------------------------------------------
 ; write the iSEDfit parameter file 
     if keyword_set(write_paramfile) then begin
@@ -68,75 +102,16 @@ pro ediscs_mergers_isedfit, write_paramfile=write_paramfile, build_grids=build_g
     endif 
 
 ; --------------------------------------------------
-; fit! but split the members catalog into chunks since it's so big 
-    if keyword_set(junk_isedfit) then begin
-       if keyword_set(bcgs) then begin
-          phot = mrdfits(ediscs_mergers_dir+'ediscs_mergers_'+ver+'_phot.fits.gz',1)
-
-          outprefix = 'bcgs'
-          phot = phot[where(phot.isbcg)]
-;         phot = phot[0:100]
-
-          isedfit, isedfit_paramfile, phot.maggies, phot.ivarmaggies, $
-            phot.z, ra=phot.ra, dec=phot.dec, isedfit_dir=isedfit_dir, $
-            outprefix=outprefix, thissfhgrid=thissfhgrid, clobber=clobber
-       endif else begin
-          splog, 'Hard-coding NGAL to speed things up!'
-          ngal = 11235932L
-          chunksize = ceil(ngal/float(nchunk))
-          if n_elements(firstchunk) eq 0 then firstchunk = 0
-          if n_elements(lastchunk) eq 0 then lastchunk = nchunk-1
-
-          for ii = firstchunk, lastchunk do begin
-             splog, 'Working on CHUNK '+strtrim(ii,2)+', '+strtrim(lastchunk,2)
-             splog, im_today()
-             t0 = systime(1)
-             outprefix = 'ediscs_mergers_chunk'+string(ii,format='(I3.3)')
-             these = lindgen(chunksize)+ii*chunksize
-             these = these[where(these lt ngal)]
-;            these = these[0:99] ; test!
-
-             phot = mrdfits(ediscs_mergers_dir+'ediscs_mergers_'+ver+'_phot.fits.gz',1,rows=these)
-             isedfit, isedfit_paramfile, phot.maggies, phot.ivarmaggies, $
-               phot.z, ra=phot.ra, dec=phot.dec, isedfit_dir=isedfit_dir, $
-               outprefix=outprefix, thissfhgrid=thissfhgrid, clobber=clobber
-             splog, 'Total time (min) = '+strtrim((systime(1)-t0)/60.0,2)
-          endfor                    
-       endelse
-    endif 
-
-; --------------------------------------------------
-; merge the iSEDfit results
-    if keyword_set(merge_isedfit) then begin
-       params = read_isedfit_paramfile(isedfit_paramfile,thissfhgrid=thissfhgrid)
-       fp = isedfit_filepaths(params,isedfit_dir=isedfit_dir)
-;      for ii = 0, 10 do begin
-       for ii = 0, nchunk-1 do begin
-          outprefix = 'ediscs_mergers_chunk'+string(ii,format='(I3.3)')
-          ised1 = read_isedfit(isedfit_paramfile,isedfit_dir=isedfit_dir,$
-            outprefix=outprefix)
-          if ii eq 0 then ised = temporary(ised1) else ised = [temporary(ised),temporary(ised1)]
-       endfor
-;      im_mwrfits, ised, ediscs_mergers_dir+fp.isedfit_outfile, clobber=clobber
-       im_mwrfits, ised, fp.isedfit_dir+fp.isedfit_outfile, clobber=clobber
-    endif
-
-; --------------------------------------------------
 ; compute K-corrections
     if keyword_set(kcorrect) then begin
        isedfit_kcorrect, isedfit_paramfile, isedfit_dir=isedfit_dir, $
          montegrids_dir=montegrids_dir, thissfhgrid=thissfhgrid, $
-         clobber=clobber
+         clobber=clobber, outprefix=outprefix
     endif 
 
 ; --------------------------------------------------
 ; generate spectral energy distribution (SED) QAplots
     if keyword_set(qaplot_sed) then begin
-;      phot = mrdfits(ediscs_mergers_dir+'ediscs_mergers_'+ver+'_phot.fits.gz',1)
-;      galaxy = 'BCG '+string(phot.mem_match_id,format='(I6.6)')
-;      allcl = phot.mem_match_id
-;      cl = allcl[uniq(allcl,sort(allcl))]
-
        isedfit_qaplot_sed, isedfit_paramfile, nrandom=50, outprefix=outprefix, $
          isedfit_dir=isedfit_dir, montegrids_dir=montegrids_dir, $
          thissfhgrid=thissfhgrid, clobber=clobber, galaxy=galaxy

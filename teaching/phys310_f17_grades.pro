@@ -21,7 +21,7 @@ pro phys310_f17_grades, alldata, test=test, sendit=sendit, final=final, drop=dro
        droplowest = [0,0,0,0]
     endelse
 
-;   data.final *= 1.1
+    data.final *= 1.1
 
 ;   keep = where(data.final_exam gt 0.0)
 ;   keep = where(strmatch(data.first_name,'**'))

@@ -27,23 +27,22 @@ pro ediscs_mergers_isedfit, write_paramfile=write_paramfile, build_grids=build_g
        ediscs_to_maggies, phot, maggies, ivarmaggies, filterlist=filterlist
        
        if keyword_set(use_clusterz) then begin
+          info = rsex(ediscs_path(/cat)+'ediscs_clusters.sex')
+          shortcl = strarr(n_elements(info))
+          for ii = 0, n_elements(info)-1 do begin
+             cl = strtrim(info[ii].cluster_fullname,2)
+             shortcl[ii] = strmid(cl,0,6)+'-'+strmid(cl,9,4)
+          endfor
+          niceprint, shortcl, info.cluster_fullname, info.z
+          match2, strtrim(phot.cluster,2), shortcl, m1, m2
 
-          spec1d = read_ediscs(/spec1d)
-          spec1d = spec1d[where(strmatch(spec1d.memberflag,'*1*'))]
+          zobj = fltarr(n_elements(phot))-1.0
+          good = where(m1 ne -1) ; no photometry for cl1122
+          zobj[good] = info[m1[good]].z
 
-          cl = strtrim(spec1d.cluster,2)
-          cl = spec1d[uniq(cl,sort(cl))].cluster
-          zcl = spec1d[uniq(cl,sort(cl))].cluster_z
-          
-;         match2, strmid(strtrim(phot.cluster,2),0,6), strtrim(spec1d.cluster,2), m1, m2
-;         match, strtrim(phot.cluster,2), strmid(strtrim(spec1d.cluster_fullname),0,13), m1, m2
-
-          stop
-          
-          index = where(phot.starflag eq 0 and (total(ivarmaggies gt 0,1) ge 3))
+          index = where(zobj gt 0 and phot.starflag eq 0 and (total(ivarmaggies gt 0,1) ge 3))
           
           outprefix = prefix+'_zcl'
-          
        endif else begin
           ; individual photoz
           index = where(phot.bestz gt 0.05 and phot.bestz lt 1.5 and $

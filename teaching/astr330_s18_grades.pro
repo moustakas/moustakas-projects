@@ -1,9 +1,9 @@
-pro astr330_s18_grades, alldata, test=test, sendit=sendit, final=final
+pro astr330_s18_grades, alldata, test=test, sendit=sendit, final=final, drop=drop
 ; jm18feb05siena - parse the grades for this class 
 
     path = getenv('TEACHING_DIR')+'/330-S18/grades/'
     
-    date = '18mar05' ; update this
+    date = '18apr30' ; update this
     semester = 'Spring 2018'
     class = 'ASTRO330 - Astrophysics Seminar I'
 
@@ -15,6 +15,11 @@ pro astr330_s18_grades, alldata, test=test, sendit=sendit, final=final
 ; relative weights
     allassign = ['Participation','Written Summary','Journal Club']
     weight = [0.20,0.40,0.40]
+    if keyword_set(drop) then begin
+       droplowest = [0, 1, 0]
+    endif else begin
+       droplowest = [0, 0, 0]
+    endelse
 
     process_grades, data, assign=assign, allassign=allassign, $
       weight=weight, class=class, semester=semester, test=test, $

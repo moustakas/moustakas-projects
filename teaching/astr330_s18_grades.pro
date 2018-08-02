@@ -3,7 +3,7 @@ pro astr330_s18_grades, alldata, test=test, sendit=sendit, final=final, drop=dro
 
     path = getenv('TEACHING_DIR')+'/330-S18/grades/'
     
-    date = '18apr30' ; update this
+    date = '18aug02' ; update this
     semester = 'Spring 2018'
     class = 'ASTRO330 - Astrophysics Seminar I'
 
@@ -11,6 +11,9 @@ pro astr330_s18_grades, alldata, test=test, sendit=sendit, final=final, drop=dro
     gradefile = path+'astr330_grades_'+date+'.csv'
     data = read_gradefile(gradefile,unique_assignments=assign)
 
+    ww = where(strmatch(data.first_name,'*Fred*'))
+    data = data[ww]
+    
 ; specify the complete list of *possible* assignments and their
 ; relative weights
     allassign = ['Participation','Written Summary','Journal Club']

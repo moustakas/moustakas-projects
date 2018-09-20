@@ -68,7 +68,7 @@ return
 end
 
 pro legacysurvey_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, $
-  sdss=sdss, psf=psf
+  sdss=sdss, psf=psf, nodust=nodust
 
     ngal = n_elements(cat)
     if (ngal eq 0L) then begin
@@ -84,8 +84,12 @@ pro legacysurvey_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, $
 ;   euler, cat.ra, cat.dec, ll, bb, 1
 ;   extinction = red_fac # dust_getval(ll,bb,/interp,/noloop)
 
-    factor = 1D-9 / transpose([ [cat.mw_transmission_g], [cat.mw_transmission_r], $
-      [cat.mw_transmission_z] ])
+    if keyword_set(nodust) then begin
+       factor = 1D-9
+    endif else begin
+       factor = 1D-9 / transpose([ [cat.mw_transmission_g], [cat.mw_transmission_r], $
+         [cat.mw_transmission_z] ])
+    endelse
     dmaggies = float(transpose([ [cat.flux_g], [cat.flux_r], [cat.flux_z] ]) * factor)
     divarmaggies = float(transpose([ [cat.flux_ivar_g], [cat.flux_ivar_r], $
       [cat.flux_ivar_z] ]) / factor^2)
@@ -93,7 +97,11 @@ pro legacysurvey_to_maggies, cat, maggies, ivarmaggies, filterlist=filterlist, $
     dfilterlist = legacysurvey_filterlist()
 
 ; unWISE
-    factor = 1D-9 / transpose([ [cat.mw_transmission_w1], [cat.mw_transmission_w2] ])
+    if keyword_set(nodust) then begin
+       factor = 1D-9
+    endif else begin
+       factor = 1D-9 / transpose([ [cat.mw_transmission_w1], [cat.mw_transmission_w2] ])
+    endelse
     wmaggies = float(transpose([ [cat.flux_w1], [cat.flux_w2] ]) * factor)
     wivarmaggies = float(transpose([ [cat.flux_ivar_w1], [cat.flux_ivar_w2] ]) / factor^2)
 

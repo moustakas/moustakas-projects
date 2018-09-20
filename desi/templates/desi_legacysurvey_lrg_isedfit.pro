@@ -2,13 +2,12 @@ pro desi_legacysurvey_lrg_isedfit, write_paramfile=write_paramfile, build_grids=
   model_photometry=model_photometry, isedfit=isedfit, kcorrect=kcorrect, $
   build_oiiflux=build_oiiflux, qaplot_sed=qaplot_sed, thissfhgrid=thissfhgrid, $
   clobber=clobber
-; jm15apr23siena - fit the parent sample of AGES galaxies for the DESI
-; project
+; jm15apr23siena - fit the subset of LRG targets with spectroscopic redshifts
 
-;   echo "desi_ages_isedfit, /write_param, /build_grids, /model_phot, /isedfit, /cl" | /usr/bin/nohup idl > & ~/desi-ages-isedfit.log & 
-;   echo "desi_ages_isedfit, /kcorrect, thissfhgrid=2, /cl" | /usr/bin/nohup idl > ~/desi-ages-kcorrect.log 2>&1 & 
+;   echo "desi_legacysurvey_lrg_isedfit, /write_param, /build_grids, /model_phot, /isedfit, /cl" | /usr/bin/nohup idl > & ~/desi-lrg-isedfit.log & 
+;   echo "desi_legacysurvey_lrg_isedfit, /kcorrect, thissfhgrid=2, /cl" | /usr/bin/nohup idl > ~/desi-lrg-kcorrect.log 2>&1 & 
     
-    version = 'v1.0'
+    version = 'v2.0' ; 'v1.0'
 ;   version = desi_lrg_templates_version(/isedfit)
     splog, 'Fixing the iSEDfit version number to '+version+'!'
 
@@ -22,11 +21,14 @@ pro desi_legacysurvey_lrg_isedfit, write_paramfile=write_paramfile, build_grids=
     zminmax = [0.2,1.2]
     nzz = 51 ; 101
 
-    catfile = isedfit_dir+'targets-dr3.1-0.14.0-lrg-rf-photoz-0.2.fits'
+    catfile = isedfit_dir+'dr7_lrg_all_20180826.fits'
+;   catfile = isedfit_dir+'targets-dr3.1-0.14.0-lrg-rf-photoz-0.2.fits'
     print, 'Reading '+catfile
     cat = mrdfits(catfile, 1)
 
-    legacysurvey_to_maggies, cat, allmaggies, allivarmaggies, filterlist=filterlist
+; the fluxes in the DR7 catalog has been corrected for extinction (hence,
+; /nodust) while the fluxes in the DR3.1 catalog have not
+    legacysurvey_to_maggies, cat, allmaggies, allivarmaggies, filterlist=filterlist, /nodust
     nfilt = n_elements(filterlist)
     nobsmin = 3
 
@@ -43,6 +45,8 @@ pro desi_legacysurvey_lrg_isedfit, write_paramfile=write_paramfile, build_grids=
 ;   gr = -2.5*alog10(maggies[0, *] / maggies[1, *])
 ;   rz = -2.5*alog10(maggies[1, *] / maggies[2, *])
 ;   plot, rz, gr, psym=3, xsty=3, ysty=3
+
+    stop    
     
 ; --------------------------------------------------
 ; write the parameter file

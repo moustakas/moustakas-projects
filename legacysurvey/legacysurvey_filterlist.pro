@@ -9,7 +9,7 @@
 
 function legacysurvey_filterlist, north=north
     if keyword_set(north) then begin
-       message, 'Not yet supported!'
+       filt = ['bass_'+['g','r'], 'mzls_z']+'.par'
     endif else begin
        filt = 'decam_'+['g','r','z']+'.par'
     endelse

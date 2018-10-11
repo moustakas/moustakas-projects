@@ -4,8 +4,8 @@ pro desi_legacysurvey_lrg_isedfit, write_paramfile=write_paramfile, build_grids=
   clobber=clobber
 ; jm15apr23siena - fit the subset of LRG targets with spectroscopic redshifts
 
-;   echo "desi_legacysurvey_lrg_isedfit, /write_param, /build_grids, /model_phot, /isedfit, /cl" | /usr/bin/nohup idl > & ~/desi-lrg-isedfit.log & 
-;   echo "desi_legacysurvey_lrg_isedfit, /kcorrect, thissfhgrid=2, /cl" | /usr/bin/nohup idl > ~/desi-lrg-kcorrect.log 2>&1 & 
+;   echo "desi_legacysurvey_lrg_isedfit, /write_param, /build_grids, /model_phot, /cl" | /usr/bin/nohup idl > & ~/desi-lrg-isedfit.log & 
+;   echo "desi_legacysurvey_lrg_isedfit, /isedfit, /kcorrect, /qaplot_sed, /cl" | /usr/bin/nohup idl > ~/lrg-isedfit-v2.0.log 2>&1 & 
     
     version = 'v2.0' ; 'v1.0'
 ;   version = desi_lrg_templates_version(/isedfit)
@@ -21,7 +21,8 @@ pro desi_legacysurvey_lrg_isedfit, write_paramfile=write_paramfile, build_grids=
     zminmax = [0.2,1.2]
     nzz = 51 ; 101
 
-    catfile = isedfit_dir+'dr7_lrg_all_20180826.fits'
+    catfile = isedfit_dir+'truth_combined_ds_20180819_weighted.fits'
+;   catfile = isedfit_dir+'dr7_lrg_all_20180826.fits'
 ;   catfile = isedfit_dir+'targets-dr3.1-0.14.0-lrg-rf-photoz-0.2.fits'
     print, 'Reading '+catfile
     cat = mrdfits(catfile, 1)
@@ -32,13 +33,15 @@ pro desi_legacysurvey_lrg_isedfit, write_paramfile=write_paramfile, build_grids=
     nfilt = n_elements(filterlist)
     nobsmin = 3
 
-    these = where( (cat.z_spec gt zminmax[0]) and (cat.z_spec lt zminmax[1]) and $
+    these = where( (cat.redshift gt zminmax[0]) and (cat.redshift lt zminmax[1]) and $
       (cat.nobs_g ge nobsmin) and (cat.nobs_r ge nobsmin) and (cat.nobs_z ge nobsmin) and $
+      (cat.wisemask eq 'F') and (cat.brightstarinblob eq 'F') and $
       (total(allivarmaggies gt 0, 1) eq nfilt),ngal)
-
+    im_mwrfits, cat[these], isedfit_dir+'lrg_parent.fits', /clobber
+    
     maggies = allmaggies[*, these]
     ivarmaggies = allivarmaggies[*, these]
-    zobj = cat[these].z_spec
+    zobj = cat[these].redshift
     ra = cat[these].ra
     dec = cat[these].dec
 
@@ -46,8 +49,6 @@ pro desi_legacysurvey_lrg_isedfit, write_paramfile=write_paramfile, build_grids=
 ;   rz = -2.5*alog10(maggies[1, *] / maggies[2, *])
 ;   plot, rz, gr, psym=3, xsty=3, ysty=3
 
-    stop    
-    
 ; --------------------------------------------------
 ; write the parameter file
     if keyword_set(write_paramfile) then begin
